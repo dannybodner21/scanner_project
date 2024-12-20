@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+
+{% block head %}
+  <title>Scanner</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #4CAF50;
+        color: white;
+    }
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+    tr:hover {
+        background-color: #ddd;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+
+    <h3>Top Cryptocurrencies</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Symbol</th>
+                    <th>Price</th>
+                    <th>Market Cap</th>
+                    <th>24 Hour Volume $</th>
+                    <th>24 Hour Volume %</th>
+                    <th>24 Hour Price Change %</th>
+                    <th>Circulating Supply</th>
+                    <th>Relative Volume (daily %)</th>
+                    <th>Relative Volume (5 min %)</th>
+                    <th>5 Min Price Change %</th>
+                    <th>10 Min Price Change %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for crypto in top_cryptos %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ crypto.time }}</td>
+                        <td>{{ crypto.name }}</td>
+                        <td>{{ crypto.symbol }}</td>
+                        <td>
+                          {% if crypto.triggerThree == True %}
+                            <span style="color: green;">{{ crypto.price }}</span>
+                          {% else %}
+                            <span style="color: red;">{{ crypto.price }}</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if crypto.triggerFive == True %}
+                            <span style="color: green;">{{ crypto.market_cap }}</span>
+                          {% else %}
+                            <span style="color: red;">{{ crypto.market_cap }}</span>
+                          {% endif %}
+                        </td>
+                        <td>${{ crypto.volume_24h_USD }}</td>
+                        <td>{{ crypto.volume_24h_percentage }}%</td>
+                        <td>
+                            {% if crypto.price_change_24h_percentage < 10 %}
+                                <span style="color: red;">{{ crypto.price_change_24h_percentage }}%</span>
+                            {% else %}
+                                <span style="color: green;">{{ crypto.price_change_24h_percentage }}%</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if crypto.triggerFour == True %}
+                                <span style="color: green;">{{ crypto.circulating_supply }}</span>
+                            {% else %}
+                                <span style="color: red;">{{ crypto.circulating_supply }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                          {% if crypto.triggerTwo == True %}
+                            <span style="color: green;">{{ crypto.relative_volume }}%</span>
+                          {% else %}
+                            <span style="color: red;">{{ crypto.relative_volume }}%</span>
+                          {% endif %}
+                        </td>
+                        <td>{{ crypto.five_min_relative_volume }}%</td>
+                        <td>{{ crypto.price_change_5min }}%</td>
+                        <td>{{ crypto.price_change_10min }}%</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+{% endblock %}
