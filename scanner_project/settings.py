@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -127,13 +128,31 @@ STATIC_ROOT = BASE_DIR / "staticfiles"    # For production
 
 # DJANGO Q STUFF ------------------------
 Q_CLUSTER = {
-    'name': 'Django Q',
-    'workers': 4,  # Number of worker threads
-    'timeout': 90,
+    'name': 'DjangoQCluster',
+    'workers': 4,
+    'timeout': 60,
     'retry': 120,
-    'orm': 'default',  # Use Django's ORM for task storage
+    'queue_limit': 50,
+    'bulk': 10,
+    'orm': 'default',
+    'ack_failures': True,
 }
 # ---------------------------------------
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
 
 
 
