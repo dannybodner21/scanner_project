@@ -17,6 +17,7 @@ from scanner.models import Coin, BacktestResult, SuccessfulMove, FiredSignal, Su
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
+<<<<<<< HEAD
 from django.http import HttpResponse
 from django.http import FileResponse, Http404
 from django.db.models import Prefetch, OuterRef, Subquery
@@ -37,6 +38,11 @@ from django.utils.timezone import now
 from sklearn.linear_model import LinearRegression
 from collections import defaultdict
 import threading
+=======
+from scanner.tasks import setup_schedule
+from django.http import HttpResponse
+
+>>>>>>> c7f8cc6 (Add Django Q with task scheduling)
 
 
 
@@ -1999,6 +2005,7 @@ def index(request):
         return JsonResponse(data, safe=False)
 
     # Render data to the HTML template
+<<<<<<< HEAD
     return render(request, "index.html", {
         "top_cryptos": [],
         "sorted_volumes": [],
@@ -2006,10 +2013,14 @@ def index(request):
         "patterns": [],
         "support_resistance_levels": [],
     })
+=======
+    return render(request, "index.html", {"top_cryptos": top_cryptos})
+>>>>>>> c7f8cc6 (Add Django Q with task scheduling)
 
 
 
 
+<<<<<<< HEAD
 
 
 
@@ -5085,3 +5096,8 @@ def retrieve_metrics(symbol):
 
 
 #
+=======
+def setup_scheduler(request):
+    setup_schedule()
+    return HttpResponse("Schedule created successfully!")
+>>>>>>> c7f8cc6 (Add Django Q with task scheduling)
