@@ -12,6 +12,9 @@ from scanner.models import Coin, HistoricalData, ShortIntervalData, Metrics
 from datetime import datetime, timedelta, timezone
 from django.utils.timezone import now
 from django.http import JsonResponse
+from scanner.tasks import setup_schedule
+from django.http import HttpResponse
+
 
 
 def create_temporary_data():
@@ -123,3 +126,10 @@ def index(request):
 
     # Render data to the HTML template
     return render(request, "index.html", {"top_cryptos": top_cryptos})
+
+
+
+
+def setup_scheduler(request):
+    setup_schedule()
+    return HttpResponse("Schedule created successfully!")
