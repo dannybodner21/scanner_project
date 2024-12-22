@@ -6,10 +6,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
-    help = 'Run the scheduled task manually'
+    help = "Run the scheduled task manually"
 
     def handle(self, *args, **kwargs):
-        logger.info(f'Running scheduled task at {datetime.now()}')
+
+        logger.info(f"Doing the task...")
+
         from scanner.tasks import scheduled_task_function
-        scheduled_task_function()
-        logger.info("Scheduled task completed.")
+        from scanner.views import load_coins, gather_historical_data, fetch_short_interval_data
+        #scheduled_task_function()
+        load_coins()
+        #gather_historical_data()
+        fetch_short_interval_data()
+
+        logger.info("Task completed.")

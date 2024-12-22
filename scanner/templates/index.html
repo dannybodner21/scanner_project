@@ -37,19 +37,25 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Date</th>
+                    <th>Time</th>
                     <th>Name</th>
                     <th>Symbol</th>
                     <th>Price</th>
                     <th>Market Cap</th>
                     <th>24 Hour Volume $</th>
+                    <!--
                     <th>24 Hour Volume %</th>
+                    -->
+                    <th>1 Hour Price Change %</th>
                     <th>24 Hour Price Change %</th>
+                    <th>7 day Price Change %</th>
                     <th>Circulating Supply</th>
                     <th>Relative Volume (daily %)</th>
-                    <th>Relative Volume (5 min %)</th>
                     <th>5 Min Price Change %</th>
                     <th>10 Min Price Change %</th>
+                    <!--
+                    <th>Relative Volume (5 min %)</th>
+                    -->
                 </tr>
             </thead>
             <tbody>
@@ -73,15 +79,27 @@
                             <span style="color: red;">{{ crypto.market_cap }}</span>
                           {% endif %}
                         </td>
-                        <td>${{ crypto.volume_24h_USD }}</td>
-                        <td>{{ crypto.volume_24h_percentage }}%</td>
                         <td>
-                            {% if crypto.price_change_24h_percentage < 10 %}
-                                <span style="color: red;">{{ crypto.price_change_24h_percentage }}%</span>
-                            {% else %}
-                                <span style="color: green;">{{ crypto.price_change_24h_percentage }}%</span>
-                            {% endif %}
+                          {% if crypto.triggerSix == True %}
+                            <span style="color: green;">{{ crypto.volume_24h_USD }}</span>
+                          {% else %}
+                            <span style="color: red;">{{ crypto.volume_24h_USD }}</span>
+                          {% endif %}
                         </td>
+
+                        <!--
+                        <td>{{ crypto.volume_24h_percentage }}%</td>
+                        -->
+
+                        <td>{{ crypto.price_change_1hr }}%</td>
+                        <td>
+                          {% if crypto.triggerOne == True %}
+                            <span style="color: green;">{{ crypto.price_change_24h_percentage }}</span>
+                          {% else %}
+                            <span style="color: red;">{{ crypto.price_change_24h_percentage }}</span>
+                          {% endif %}
+                        </td>
+                        <td>{{ crypto.price_change_7d }}%</td>
                         <td>
                             {% if crypto.triggerFour == True %}
                                 <span style="color: green;">{{ crypto.circulating_supply }}</span>
@@ -96,11 +114,21 @@
                             <span style="color: red;">{{ crypto.relative_volume }}%</span>
                           {% endif %}
                         </td>
-                        <td>{{ crypto.five_min_relative_volume }}%</td>
                         <td>{{ crypto.price_change_5min }}%</td>
                         <td>{{ crypto.price_change_10min }}%</td>
+
+                        <!--
+                        <td>{{ crypto.five_min_relative_volume }}%</td>
+                        -->
+
                     </tr>
                 {% endfor %}
+                <script>
+                  // Reload the page every 5 minutes
+                  setTimeout(function() {
+                      location.reload();
+                  }, 150000); // 300,000 ms = 5 minutes
+              </script>
             </tbody>
         </table>
 
