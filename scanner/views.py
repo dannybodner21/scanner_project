@@ -515,33 +515,39 @@ def index(request):
 
         # TRIGGER ONE - price up 10% or more in last 24 hours
         triggerOne = False
-        if metric.price_change_24hr >= 10:
-            triggerOne = True
+        if hasattr(metric, 'price_change_24hr'):
+            if metric.price_change_24hr >= 10:
+                triggerOne = True
 
         # TRIGGER TWO - relative volume is 2.0 or higher
         triggerTwo = False
-        if metric.relative_volume >= 2.0:
-            triggerTwo = True
+        if hasattr(metric, 'relative_volume'):
+            if metric.relative_volume >= 2.0:
+                triggerTwo = True
 
         # TRIGGER THREE - price is less than $50
         triggerThree = False
-        if shortIntervalData.price < 50:
-            triggerThree = True
+        if hasattr(shortIntervalData, 'price'):
+            if shortIntervalData.price < 50:
+                triggerThree = True
 
         # TRIGGER FOUR - circulating supply is less than 100 million
         triggerFour = False
-        if metric.circulating_supply < 100000000:
-            triggerFour = True
+        if hasattr(metric, 'circulating_supply'):
+            if metric.circulating_supply < 100000000:
+                triggerFour = True
 
         # TRIGGER FIVE - market cap between $10M and $1B
         triggerFive = False
-        if metric.market_cap > 10000000 and metric.market_cap < 1000000000:
-            triggerFive = True
+        if hasattr(metric, 'market_cap'):
+            if metric.market_cap > 10000000 and metric.market_cap < 1000000000:
+                triggerFive = True
 
         # TRIGGER SIX - volume today is at least 200000
         triggerSix = False
-        if metric.volume_24h >= 200000:
-            triggerSix = True
+        if hasattr(metric, 'volume_24h'):
+            if metric.volume_24h >= 200000:
+                triggerSix = True
 
         try:
             top_cryptos.append({
