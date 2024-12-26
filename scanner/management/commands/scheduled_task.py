@@ -13,10 +13,12 @@ class Command(BaseCommand):
         logger.info(f"Doing the task...")
 
         from scanner.tasks import scheduled_task_function
-        from scanner.views import load_coins, gather_historical_data, fetch_short_interval_data
-        #scheduled_task_function()
+        from scanner.views import load_coins, fetch_short_interval_data, analyze_historical_metrics, gather_daily_historical_data
+
         load_coins()
-        #gather_historical_data()
         fetch_short_interval_data()
+        gather_daily_historical_data()
+
+        #analyze_historical_metrics()
 
         logger.info("Task completed.")

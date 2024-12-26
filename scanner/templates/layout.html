@@ -1,4 +1,5 @@
 <!doctype html>
+{% load static %}
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -12,10 +13,12 @@
       rel="stylesheet"
       href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
     />
+    <link href="{% static 'styles.css' %}" rel="stylesheet">
     {% block head %} {% endblock %}
   </head>
 
   <body style="min-height: 100vh; margin: 0px">
+    <!--
     <nav
       class="navbar navbar-expand-lg navbar-light bg-light justify-content-left"
       style="
@@ -43,8 +46,9 @@
         </ul>
       </div>
     </nav>
+  -->
 
     <div style="min-height: 100vh">{% block body %} {% endblock %}</div>
-    
+
   </body>
 </html>
