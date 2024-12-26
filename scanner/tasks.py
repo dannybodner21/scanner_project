@@ -24,6 +24,6 @@ def setup_schedule():
     schedule(
         func='scanner.tasks.scheduled_task_function',  # Path to the function in this file
         schedule_type='I',  # Interval-based scheduling
-        minutes=1,         # Run every 1 minutes
+        minutes=5,         # Run every 1 minutes
         repeats=-1,         # Run indefinitely
     )

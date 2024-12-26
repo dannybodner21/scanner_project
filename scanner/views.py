@@ -72,7 +72,7 @@ def fetch_short_interval_data():
                             timestamp=quote["timestamp"],
                             defaults={
                                 "price": quote["quote"]["USD"]["price"],
-                                "volume_5min": quote["quote"]["USD"]["volume_24h"],  # Volume for the interval
+                                "volume_5min": quote["quote"]["USD"]["volume_24h"],
                                 "circulating_supply": quote["quote"]["USD"]["circulating_supply"]
                             },
                         )
@@ -301,13 +301,13 @@ def calculate_price_change_five_min(coin):
 
     price_change_5min = None
 
-    prices = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:6]
+    prices = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:2]
 
     # Extract the most recent and second most recent, if available
-    if len(prices) < 6:
+    if len(prices) < 2:
         return None
 
-    price_now, price_five_min_ago = prices[0].price, prices[5].price
+    price_now, price_five_min_ago = prices[0].price, prices[1].price
     if price_five_min_ago == 0:
         return None
 
@@ -321,10 +321,10 @@ def calculate_price_change_ten_min(coin):
 
     price_change_10min = None
 
-    prices = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:11]
+    prices = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:4]
 
     price_now = prices[0].price if len(prices) > 0 else None
-    price_ten_min_ago = prices[10].price if len(prices) > 2 else None
+    price_ten_min_ago = prices[2].price if len(prices) > 3 else None
 
     if price_now != None and price_ten_min_ago != None:
 
@@ -344,7 +344,7 @@ def calculate_twenty_min_relative_volume(coin):
 
     try:
 
-        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:21]
+        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:6]
 
         volume_now = volumes[0].volume_5min if len(volumes) > 0 else None
 
@@ -386,7 +386,7 @@ def calculate_five_min_relative_volume(coin):
 
     try:
 
-        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:11]
+        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:3]
         #volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')
 
         # Extract the most recent and second most recent, if available
@@ -515,7 +515,7 @@ def five_min_update():
                         print("FAILED IN GROUP 3")
                         print(e)
 
-                    if now.hour == 0 and now.minute < 1:
+                    if now.hour == 0 and now.minute <= 5:
 
                         timestamp = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S")
                         date = timestamp.date()
@@ -724,8 +724,8 @@ def index(request):
             #relative_volumes = Metrics.objects.filter(coin=coin).order_by("-timestamp")[:122]
             relative_volumes = Metrics.objects.filter(coin=coin).order_by("-timestamp")
 
-            # get every 10th
-            relative_volumes = relative_volumes[::60]
+            # get every 12th
+            relative_volumes = relative_volumes[::12]
 
             volumes = []
 
