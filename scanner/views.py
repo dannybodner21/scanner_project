@@ -113,7 +113,7 @@ def load_coins():
 
     params = {
         "start": "1",
-        "limit": "300",
+        "limit": "200",
         "convert": "USD",
     }
 
@@ -725,7 +725,8 @@ def index(request):
             relative_volumes = Metrics.objects.filter(coin=coin).order_by("-timestamp")
 
             # get every 12th
-            relative_volumes = relative_volumes[::12]
+            #relative_volumes = relative_volumes[::12]
+
 
             volumes = []
 
@@ -749,24 +750,6 @@ def index(request):
                     "is_descending": is_descending,
                 })
 
-            '''
-            if len(relative_volumes) >= 122:
-                volume_one = relative_volumes[1].daily_relative_volume
-                volume_two = relative_volumes[31].daily_relative_volume
-                volume_three = relative_volumes[61].daily_relative_volume
-                volume_four = relative_volumes[91].daily_relative_volume
-                volume_five = relative_volumes[121].daily_relative_volume
-
-                daily_relative_volumes.append({
-                    "symbol": coin_symbol,
-                    "price_change_24h_percentage": coin_price_change_24h_percentage,
-                    "volume_one": volume_one,
-                    "volume_two": volume_two,
-                    "volume_three": volume_three,
-                    "volume_four": volume_four,
-                    "volume_five": volume_five
-                })
-            '''
 
         except Exception as e:
             print(f"Couldn't fetch RELATIVE VOLUME DATAS: {e}")
