@@ -116,7 +116,7 @@ def load_coins():
     chunk_size = 100
 
     for i in range(0, len(specific_coins), chunk_size):
-        chunk = symbols[i:i + chunk_size]  # Slice the symbols list into chunks
+        chunk = specific_coins[i:i + chunk_size]  # Slice the symbols list into chunks
         params = {
             "symbol": ",".join(chunk),
             "convert": "USD",
