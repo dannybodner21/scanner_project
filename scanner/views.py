@@ -104,7 +104,8 @@ def fetch_short_interval_data():
 def load_coins():
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
-    url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
+    #url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
+    url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 
     headers = {
         "Accepts": "application/json",
