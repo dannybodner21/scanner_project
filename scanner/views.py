@@ -736,11 +736,11 @@ def index(request):
         # gather relative volume data
         try:
 
-            relative_volumes = Metrics.objects.filter(coin=coin).order_by("-timestamp")[:73]
+            relative_volumes = Metrics.objects.filter(coin=coin).order_by("-timestamp")[:46]
             #relative_volumes = Metrics.objects.filter(coin=coin).order_by("-timestamp")
 
             # get every 12th
-            relative_volumes = relative_volumes[::12]
+            relative_volumes = relative_volumes[::4]
 
 
             volumes = []
