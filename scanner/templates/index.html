@@ -169,19 +169,26 @@
 
 
       <table>
+        <h3 style="text-align:center;color:white;">Relative Volume Progression</h3>
         <thead>
-          <th>
-            Rank
-          </th>
-          <th>
-            Coin
-          </th>
-          <th>
-            24h Price Change %
-          </th>
-          <th>
-            Most recent relative volume
-          </th>
+          <th>Rank</th>
+          <th>Coin</th>
+          <th>24h Price Change %</th>
+          <th>Daily RVOL</th>
+          <th>RVOL Now</th>
+          <th>30min ago</th>
+          <th>1hr ago</th>
+          <th>1.5hr ago</th>
+          <th>2hr ago</th>
+          <th>2.5hr ago</th>
+          <th>3hr ago</th>
+          <th>3.5hr ago</th>
+          <th>4hr ago</th>
+          <th>4.5hr ago</th>
+          <th>5hr ago</th>
+          <th>5.5hr ago</th>
+          <th>6hr ago</th>
+
         </thead>
         <tbody style="background-color: white;">
           {% for coin in sorted_volumes %}
@@ -189,9 +196,10 @@
                 <td style="color:black; border:0.5px solid black;">{{ coin.rank }}</td>
                 <td style="color:black; border:0.5px solid black;">{{ coin.symbol }}</td>
                 <td style="color:black; border:0.5px solid black;">{{ coin.price_change_24h_percentage }}%</td>
+                <td style="color:black; border:0.5px solid black;">{{ coin.daily_relative_volume }}%</td>
                 {% for volume in coin.volumes %}
                   {% if coin.is_descending %}
-                    <td style="color:green; border:0.5px solid black;">{{ volume }}%</td>
+                    <td style="color:green; border:0.5px solid black;">{{ volume }}</td>
                   {% endif %}
                 {% endfor %}
               </tr>
@@ -201,7 +209,7 @@
 
 
 
-      <table>
+      <table style="margin-top:50px;">
           <thead>
               <tr>
                   <!--
@@ -217,9 +225,9 @@
                   -->
 
                   <th onclick="sortTable(2)">24 Hour Volume $</th>
-                  <th onclick="sortTable(3)">Daily Relative Volume (%)</th>
-                  <th onclick="sortTable(3)">Rolling Relative Volume (%)</th>
-                  <th onclick="sortTable(3)">5 min Relative Volume (%)</th>
+                  <th onclick="sortTable(3)">Daily Relative Volume</th>
+                  <th onclick="sortTable(3)">Rolling Relative Volume</th>
+                  <th onclick="sortTable(3)">5 min Relative Volume</th>
                   <th onclick="sortTable(3)">20 min Relative Volume</th>
                   <!--
                   <th>24 Hour Volume %</th>
@@ -230,9 +238,9 @@
                   <th onclick="sortTable(7)">24 Hour Price Change %</th>
                   <th onclick="sortTable(8)">7 day Price Change %</th>
                   <th onclick="sortTable(9)">Circulating Supply</th>
-                  <th onclick="sortTable(9)">Circulating Supply Change %</th>
 
                   <!--
+                  <th onclick="sortTable(9)">Circulating Supply Change %</th>
                   <th>Relative Volume (5 min %)</th>
                   -->
               </tr>
@@ -264,25 +272,25 @@
                       -->
                       <td style="color:black; border:0.5px solid black;">
                         {% if crypto.triggerSix == True %}
-                          <span style="color: green;">{{ crypto.volume_24h_USD }}</span>
+                          <span style="color: green;">${{ crypto.volume_24h_USD }}</span>
                         {% else %}
-                          <span style="color: red;">{{ crypto.volume_24h_USD }}</span>
+                          <span style="color: red;">${{ crypto.volume_24h_USD }}</span>
                         {% endif %}
                       </td>
-                      <td style="color:black; border:0.5px solid black;">{{ crypto.daily_relative_volume }}%</td>
+                      <td style="color:black; border:0.5px solid black;">{{ crypto.daily_relative_volume }}</td>
                       <td style="color:black; border:0.5px solid black;">
                         {% if crypto.triggerTwo == True %}
-                          <span style="color: green;">{{ crypto.rolling_relative_volume }}%</span>
+                          <span style="color: green;">{{ crypto.rolling_relative_volume }}</span>
                         {% else %}
-                          <span style="color: red;">{{ crypto.rolling_relative_volume }}%</span>
+                          <span style="color: red;">{{ crypto.rolling_relative_volume }}</span>
                         {% endif %}
                       </td>
-                      <td style="color:black; border:0.5px solid black;">{{ crypto.five_min_relative_volume }}%</td>
+                      <td style="color:black; border:0.5px solid black;">{{ crypto.five_min_relative_volume }}</td>
                       <td style="color:black; border:0.5px solid black;">
                         {% if crypto.triggerSeven == True %}
-                          <span style="color: green;">{{ crypto.twenty_min_relative_volume }}%</span>
+                          <span style="color: green;">{{ crypto.twenty_min_relative_volume }}</span>
                         {% else %}
-                          <span style="color: red;">{{ crypto.twenty_min_relative_volume }}%</span>
+                          <span style="color: red;">{{ crypto.twenty_min_relative_volume }}</span>
                         {% endif %}
                       </td>
 
@@ -294,9 +302,9 @@
                       <td style="color:black; border:0.5px solid black;">{{ crypto.price_change_1h }}%</td>
                       <td style="color:black; border:0.5px solid black;">
                         {% if crypto.triggerOne == True %}
-                          <span style="color: green;">{{ crypto.price_change_24h_percentage }}</span>
+                          <span style="color: green;">{{ crypto.price_change_24h_percentage }}%</span>
                         {% else %}
-                          <span style="color: red;">{{ crypto.price_change_24h_percentage }}</span>
+                          <span style="color: red;">{{ crypto.price_change_24h_percentage }}%</span>
                         {% endif %}
                       </td>
                       <td style="color:black; border:0.5px solid black;">{{ crypto.price_change_7d }}%</td>
@@ -307,15 +315,15 @@
                               <span style="color: red;">{{ crypto.circulating_supply }}</span>
                           {% endif %}
                       </td>
-                      <td style="color:black; border:0.5px solid black;">
-                          {% if crypto.triggerEight == True %}
-                              <span style="color: green;">{{ crypto.circulating_supply_change }}</span>
-                          {% else %}
-                              <span style="color: red;">{{ crypto.circulating_supply_change }}</span>
-                          {% endif %}
-                      </td>
 
                       <!--
+                      <td style="color:black; border:0.5px solid black;">
+                          {% if crypto.triggerEight == True %}
+                              <span style="color: green;">{{ crypto.circulating_supply_change }}%</span>
+                          {% else %}
+                              <span style="color: red;">{{ crypto.circulating_supply_change }}%</span>
+                          {% endif %}
+                      </td>
                       <td>{{ crypto.five_min_relative_volume }}%</td>
                       -->
 
