@@ -401,13 +401,24 @@ def calculate_five_min_relative_volume(coin):
 
     try:
 
-        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:3]
+        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:4]
         #volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')
 
         # Extract the most recent and second most recent, if available
         volume_now = volumes[0].volume_5min if len(volumes) > 0 else None
 
         remaining_volumes = volumes[1:]
+
+        if coin.symbol == "BTC":
+            print("=========== BTC =============")
+            print(len(volumes))
+            print(len(remaining_volumes))
+            print("VOLUME NOW:")
+            print(volume_now)
+            print("VOLUME 5 MIN AGO:")
+            print(remaining_volumes[0].volume_5min)
+            print("VOLUME 10 MIN AGO:")
+            print(remaining_volumes[1].volume_5min)
 
         sum = 0
         for volume in remaining_volumes:
@@ -428,6 +439,9 @@ def calculate_five_min_relative_volume(coin):
 
         else:
             print("problem in five min relative volume")
+            print(coin.symbol)
+            print(volume_now)
+            print(average)
             return None
 
     except Exception as e:
@@ -441,8 +455,8 @@ def five_min_update():
 
     # if the time is ~0000 delete old data
     now = datetime.now()
-    if now.hour == 0 and now.minute < 6:
-        delete_old_data()
+    if now.hour == 0 and now.minute <= 5:
+        manually_clean_database()
 
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
@@ -565,6 +579,11 @@ def index(request):
         #metric = Metrics.objects.get(coin=coin)
         metric = Metrics.objects.filter(coin=coin).order_by("-timestamp").first()
 
+        if coin.symbol == "BTC":
+            test = ShortIntervalData.objects.filter(coin=coin).order_by("-timestamp")
+            for x in test:
+                print(x.volume_5min)
+
         if hasattr(shortIntervalData, 'timestamp'):
             coin_time = shortIntervalData.timestamp
         else:
@@ -573,8 +592,8 @@ def index(request):
         coin_name = coin.name
         coin_symbol = coin.symbol
 
-        if hasattr(shortIntervalData, 'price'):
-            coin_price = shortIntervalData.price
+        if hasattr(shortIntervalData, 'price') and shortIntervalData.price != None:
+            coin_price = round(shortIntervalData.price, 7)
         else:
             coin_price = None
         if hasattr(metric, 'market_cap'):
@@ -736,11 +755,11 @@ def index(request):
         # gather relative volume data
         try:
 
-            relative_volumes = Metrics.objects.filter(coin=coin).order_by("-timestamp")[:46]
+            relative_volumes = Metrics.objects.filter(coin=coin).order_by("-timestamp")[:73]
             #relative_volumes = Metrics.objects.filter(coin=coin).order_by("-timestamp")
 
             # get every 12th
-            relative_volumes = relative_volumes[::4]
+            relative_volumes = relative_volumes[::6]
 
 
             volumes = []
@@ -765,6 +784,7 @@ def index(request):
                     "price_change_24h_percentage": coin_price_change_24h_percentage,
                     "volumes": volumes,
                     "is_descending": is_descending,
+                    "daily_relative_volume": coin_daily_relative_volume,
                 })
 
 
@@ -783,7 +803,7 @@ def index(request):
     try:
         sorted_coins = sorted(
             top_cryptos,
-            key=lambda x: (x["price_change_24h_percentage"] is None, x["price_change_24h_percentage"] if x["price_change_24h_percentage"] is not None else 0),
+            key=lambda x: (x["daily_relative_volume"] is None, x["daily_relative_volume"] if x["daily_relative_volume"] is not None else 0),
             reverse=True
         )
 
@@ -803,11 +823,6 @@ def index(request):
 def setup_scheduler(request):
     setup_schedule()
     return HttpResponse("Schedule created successfully!")
-
-
-
-
-
 
 
 def gather_daily_historical_data():
@@ -893,10 +908,6 @@ def gather_daily_historical_data():
         print("resuming")
 
 
-
-
-
-
 def analyze_historical_metrics():
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
@@ -976,6 +987,25 @@ def analyze_historical_metrics():
         return []
 
 
+def manually_clean_database():
+
+    # Calculate cutoff times
+    thirty_days_ago = now() - timedelta(days=31)
+    thirty_six_hours_ago = now() - timedelta(hours=25)
+
+    # Delete HistoricalData older than 30 days
+    historical_deleted, _ = HistoricalData.objects.filter(date__lt=thirty_days_ago).delete()
+
+    # Delete ShortIntervalData older than 36 hours
+    short_interval_deleted, _ = ShortIntervalData.objects.filter(timestamp__lt=thirty_six_hours_ago).delete()
+
+    # Delete Metrics older than 36 hours
+    metrics_deleted, _ = Metrics.objects.filter(timestamp__lt=thirty_six_hours_ago).delete()
+
+    print(f"Cleaned database:")
+    print(f" - {historical_deleted} HistoricalData entries older than 30 days")
+    print(f" - {short_interval_deleted} ShortIntervalData entries older than 36 hours")
+    print(f" - {metrics_deleted} Metrics entries older than 36 hours")
 
 
 

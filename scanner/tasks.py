@@ -1,7 +1,7 @@
-from django_q.tasks import schedule
-from datetime import timedelta
+from datetime import timedelta, datetime
 import logging
 from django.test import RequestFactory
+from django_q.models import Schedule
 
 
 logger = logging.getLogger(__name__)
@@ -21,9 +21,19 @@ def scheduled_task_function():
 
 
 def setup_schedule():
-    schedule(
-        func='scanner.tasks.scheduled_task_function',  # Path to the function in this file
-        schedule_type='I',  # Interval-based scheduling
-        minutes=5,         # Run every 1 minutes
-        repeats=-1,         # Run indefinitely
+
+    # Calculate the next 5-minute mark
+    now = datetime.now()
+    minutes_to_next_five = (5 - now.minute % 5) % 5
+    next_run = now.replace(second=0, microsecond=0) + timedelta(minutes=minutes_to_next_five)
+
+    Schedule.objects.update_or_create(
+        name='scheduled_task_function',
+        defaults={
+            'func': 'scanner.tasks.scheduled_task_function',
+            'schedule_type': Schedule.MINUTES,
+            'minutes': 5,
+            'next_run': next_run,
+            'repeats': -1,
+        }
     )
