@@ -2289,7 +2289,7 @@ def calculate_price_change_ten_min(coin):
     prices = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:4]
 
     price_now = prices[0].price if len(prices) > 0 else None
-    price_ten_min_ago = prices[2].price if len(prices) > 3 else None
+    price_ten_min_ago = prices[3].price if len(prices) > 3 else None
 
     if price_now != None and price_ten_min_ago != None:
 
@@ -2309,7 +2309,7 @@ def calculate_twenty_min_relative_volume(coin):
 
     try:
 
-        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:6]
+        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:8]
 
         volume_now = volumes[0].volume_5min if len(volumes) > 0 else None
 
@@ -2358,17 +2358,6 @@ def calculate_five_min_relative_volume(coin):
         volume_now = volumes[0].volume_5min if len(volumes) > 0 else None
 
         remaining_volumes = volumes[1:]
-
-        if coin.symbol == "BTC":
-            print("=========== BTC =============")
-            print(len(volumes))
-            print(len(remaining_volumes))
-            print("VOLUME NOW:")
-            print(volume_now)
-            print("VOLUME 5 MIN AGO:")
-            print(remaining_volumes[0].volume_5min)
-            print("VOLUME 10 MIN AGO:")
-            print(remaining_volumes[1].volume_5min)
 
         sum = 0
         for volume in remaining_volumes:
@@ -2496,7 +2485,7 @@ def five_min_update():
 
                     if now.hour == 0 and now.minute <= 5:
 
-                        timestamp = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S")
+                        timestamp = datetime.strptime(crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S")
                         date = timestamp.date()
 
                         try:
@@ -2528,11 +2517,6 @@ def index(request):
         shortIntervalData = ShortIntervalData.objects.filter(coin=coin).order_by("-timestamp").first()
         #metric = Metrics.objects.get(coin=coin)
         metric = Metrics.objects.filter(coin=coin).order_by("-timestamp").first()
-
-        if coin.symbol == "BTC":
-            test = ShortIntervalData.objects.filter(coin=coin).order_by("-timestamp")
-            for x in test:
-                print(x.volume_5min)
 
         if hasattr(shortIntervalData, 'timestamp'):
             coin_time = shortIntervalData.timestamp
@@ -2727,7 +2711,9 @@ def index(request):
 
             #is_descending = True
 
-            if is_descending:
+            not_all_same = len(set(volumes)) > 1
+
+            if is_descending and not_all_same:
 
                 if coin_price_change_24h_percentage != None:
                     coin_price_change_24h_percentage = round(coin_price_change_24h_percentage, 2)
@@ -2764,6 +2750,17 @@ def index(request):
     except:
         print("--------------------------Couldn't sort coins...")
         sorted_coins = top_cryptos
+
+
+
+    # If this is an Ajax automatic refresh:
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':  # Check if it's an AJAX request
+
+        data = {
+            "top_cryptos": sorted_coins,  # Ensure this is serializable
+            "sorted_volumes": sorted_volumes,  # Ensure this is serializable
+        }
+        return JsonResponse(data, safe=False)
 
 
     # Render data to the HTML template
