@@ -57,18 +57,94 @@
         background-color: rgba(255,255,255,0.2);
       }
     }
-
-
-
+    .container {
+        display: flex;
+        flex-direction: row;
+        height: auto;
+        width: 95%;
+    }
+    .left-column {
+        width: 40%;
+        padding: 10px;
+    }
+    .right-column {
+        width: 60%;
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        gap: 10px;
+        height: 100vh;
+        position: sticky;
+        top: 10px;
+    }
+    .chart-container {
+        height: 49%;
+        padding: 10px;
+        border-radius: 5px;
+    }
   </style>
 
 {% endblock %}
 
 {% block body %}
 
-  <section class="charts-container">
-    <div class="columns w-row">
-      <div class="chart-1 w-col w-col-6">
+  <section class="container">
+
+    <div class="left-column">
+      <table id="volume-table">
+        <!--
+        <h3 style="text-align:center;color:white;">Relative Volume Progression</h3>
+        -->
+        <thead>
+          <th>Rank</th>
+          <th>Coin</th>
+          <th>24h Price Change %</th>
+          <th>Daily RVOL</th>
+          <th>RVOL Progression</th>
+          <!--
+          <th>30min ago</th>
+          <th>1hr ago</th>
+          <th>1.5hr ago</th>
+          <th>2hr ago</th>
+          <th>2.5hr ago</th>
+          <th>3hr ago</th>
+          <th>3.5hr ago</th>
+          <th>4hr ago</th>
+          <th>4.5hr ago</th>
+          <th>5hr ago</th>
+          <th>5.5hr ago</th>
+          <th>6hr ago</th>
+          -->
+
+        </thead>
+        <tbody id="volume-table-body" style="background-color: white;">
+          {% for coin in sorted_volumes %}
+              <tr>
+                <td style="color:black; border:0.5px solid black;">{{ coin.rank }}</td>
+                <td style="color:black; border:0.5px solid black;">{{ coin.symbol }}</td>
+                <td style="color:black; border:0.5px solid black;">{{ coin.price_change_24h_percentage }}%</td>
+                <td style="color:black; border:0.5px solid black;">{{ coin.daily_relative_volume }}</td>
+                <!--
+                {% for volume in coin.volumes %}
+                    <td style="color:green; border:0.5px solid black;">{{ volume }}</td>
+                {% endfor %}
+                -->
+                <td style="color:green; border:0.5px solid black;text-align:left;">
+                    <ul>
+                        {% for volume in coin.volumes %}
+                          <li>{{ volume }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+              </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+
+    <div class="right-column">
+      <div class="chart-container" id="chart1">
         <div class="code-embed w-embed w-script"><!--  TradingView Widget BEGIN  -->
 
           <div class="tradingview-widget-container" style="height:100%;width:100%">
@@ -105,7 +181,8 @@
           <!--  TradingView Widget END  -->
         </div>
       </div>
-      <div class="chart-2 w-col w-col-6">
+
+      <div class="chart-container" id="chart2">
         <div class="code-embed-2 w-embed w-script"><!--  TradingView Widget BEGIN  -->
           <div class="tradingview-widget-container" style="height:100%;width:100%">
             <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
@@ -142,7 +219,11 @@
         </div>
       </div>
     </div>
+
   </section>
+
+
+
   <section class="scanner-container">
     <div class="w-layout-blockcontainer container w-container">
 
@@ -168,48 +249,7 @@
 -->
 
 
-      <table>
-        <h3 style="text-align:center;color:white;">Relative Volume Progression</h3>
-        <thead>
-          <th>Rank</th>
-          <th>Coin</th>
-          <th>24h Price Change %</th>
-          <th>Daily RVOL</th>
-          <th>RVOL Now</th>
-          <th>30min ago</th>
-          <th>1hr ago</th>
-          <th>1.5hr ago</th>
-          <th>2hr ago</th>
-          <th>2.5hr ago</th>
-          <th>3hr ago</th>
-          <th>3.5hr ago</th>
-          <th>4hr ago</th>
-          <th>4.5hr ago</th>
-          <th>5hr ago</th>
-          <th>5.5hr ago</th>
-          <th>6hr ago</th>
-
-        </thead>
-        <tbody style="background-color: white;">
-          {% for coin in sorted_volumes %}
-              <tr>
-                <td style="color:black; border:0.5px solid black;">{{ coin.rank }}</td>
-                <td style="color:black; border:0.5px solid black;">{{ coin.symbol }}</td>
-                <td style="color:black; border:0.5px solid black;">{{ coin.price_change_24h_percentage }}%</td>
-                <td style="color:black; border:0.5px solid black;">{{ coin.daily_relative_volume }}%</td>
-                {% for volume in coin.volumes %}
-                  {% if coin.is_descending %}
-                    <td style="color:green; border:0.5px solid black;">{{ volume }}</td>
-                  {% endif %}
-                {% endfor %}
-              </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
-
-
-      <table style="margin-top:50px;">
+      <table id="main-table" style="margin-top:50px;">
           <thead>
               <tr>
                   <!--
@@ -374,11 +414,85 @@
     }
 
     // Reload the page every 5 minutes
-    setTimeout(function() {
-        location.reload();
-    }, 60000);
+    //setTimeout(function() {
+        //location.reload();
+    //}, 60000);
 
   </script>
+
+  <script>
+    function updateTable() {
+
+        fetch(window.location.href, {
+            headers: {
+                'x-requested-with': 'XMLHttpRequest'  // Indicate this is an AJAX request
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            // Clear and rebuild the table rows using the returned data
+            let rows = '';
+            data.sorted_volumes.forEach((crypto) => {
+                rows += `<tr>
+                            <td style="color:black; border:0.5px solid black;">${crypto.rank}</td>
+                            <td style="color:black; border:0.5px solid black;">${crypto.symbol}</td>
+                            <td style="color:black; border:0.5px solid black;">${crypto.price_change_24h_percentage}</td>
+                            <td style="color:black; border:0.5px solid black;">${crypto.daily_relative_volume}</td>
+                            <td style="color:green; border:0.5px solid black;text-align:left;">
+                              <ul>
+                                <li>${crypto.volumes[0]}</li>
+                                <li>${crypto.volumes[1]}</li>
+                                <li>${crypto.volumes[2]}</li>
+                                <li>${crypto.volumes[3]}</li>
+                                <li>${crypto.volumes[4]}</li>
+                                <li>${crypto.volumes[5]}</li>
+                                <li>${crypto.volumes[6]}</li>
+                                <li>${crypto.volumes[7]}</li>
+                                <li>${crypto.volumes[8]}</li>
+                                <li>${crypto.volumes[9]}</li>
+                                <li>${crypto.volumes[10]}</li>
+                                <li>${crypto.volumes[11]}</li>
+                                <li>${crypto.volumes[12]}</li>
+                              </ul>
+                            </td>
+                         </tr>`;
+            });
+
+            // Update the table body
+            document.querySelector("#volume-table tbody").innerHTML = rows;
+
+            // do the same thing for the second table
+            let rows_main = '';
+            data.top_cryptos.forEach((crypto) => {
+
+                rows_main += `<tr>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.symbol }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.volume_24h_USD }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.daily_relative_volume }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.rolling_relative_volume }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.five_min_relative_volume }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.twenty_min_relative_volume }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_5min }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_10min }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_1h }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_24h_percentage }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_7d }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.circulating_supply }</td>
+                         </tr>`;
+            });
+
+            // Update the table body
+            document.querySelector("#main-table tbody").innerHTML = rows_main;
+
+        })
+        .catch(error => console.error('Error fetching table data:', error));
+    }
+
+    // Call the function every 5 min
+    setInterval(updateTable, 60000);
+</script>
 
 
 
