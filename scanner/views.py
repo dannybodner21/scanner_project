@@ -4,7 +4,6 @@ import urllib.request
 import os
 import requests
 import asyncio
-import time
 
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
@@ -104,7 +103,6 @@ def fetch_short_interval_data():
 def load_coins():
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
-    #url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 
     headers = {
@@ -159,7 +157,6 @@ def load_coins():
             print(f"Error fetching data: {e}")
 
 
-
 # once a day delete unneeded data from database
 def delete_old_data():
 
@@ -167,72 +164,6 @@ def delete_old_data():
     threshold_date = now() - timedelta(days=30)
     deleted_count, _ = ShortIntervalData.objects.filter(timestamp__lt=threshold_date).delete()
     print(f"Deleted {deleted_count} old records from ShortIntervalData.")
-
-
-
-'''
-
-def add_new_historical_data():
-
-
-    API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
-    URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
-
-    headers = {
-        "Accepts": "application/json",
-        "X-CMC_PRO_API_KEY": API_KEY,
-    }
-
-    coins = Coin.objects.all()
-
-    try:
-        end_time = datetime.now()
-        start_time = end_time - timedelta(days=30)
-
-        params = {
-            "id": coin.cmc_id,
-            "time_start": start_time.isoformat(),
-            "time_end": end_time.isoformat(),
-            "interval": "1d",
-        }
-
-        response = requests.get(URL, headers=headers, params=params)
-        response.raise_for_status()
-        data = response.json()
-
-        if "data" in data and "quotes" in data["data"]:
-            historical_data = data["data"]["quotes"]
-
-            for quote in historical_data:
-
-                HistoricalData.objects.update_or_create(
-                    coin=coin,
-                    date=quote["timestamp"].split("T")[0],
-                    defaults={
-                        "price": quote["quote"]["USD"]["price"],
-                        "volume_24h": quote["quote"]["USD"]["volume_24h"],
-                    },
-                )
-
-        else:
-            print('==============')
-            print(' Historical Data error with:')
-            print(coin.symbol)
-            print(data)
-
-            HistoricalData.objects.update_or_create(
-                coin=coin,
-                date=end_time,
-                defaults={
-                    "price": None,
-                    "volume_24h": None,
-                },
-            )
-
-
-
-'''
-
 
 
 def calculate_daily_relative_volume(coin):
@@ -445,7 +376,8 @@ def five_min_update():
     # if the time is ~0000 delete old data
     now = datetime.now()
     if now.hour == 0 and now.minute <= 5:
-        manually_clean_database()
+        #manually_clean_database()
+        print("not deleting right now...")
 
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
