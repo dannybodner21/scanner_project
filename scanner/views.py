@@ -371,7 +371,7 @@ def calculate_five_min_relative_volume(coin):
     return five_min_relative_volume
 
 
-def five_min_update():
+def five_min_update(request=None):
 
     # if the time is ~0000 delete old data
     now = datetime.now()
@@ -483,6 +483,10 @@ def five_min_update():
 
         except Exception as e:
             print(f"Error updating tracked coins for batch {cmc_id_batch}: {e}")
+
+    if request:
+        return JsonResponse({"status": "success", "message": "Update triggered successfully"})
+
 
 
 def index(request):
