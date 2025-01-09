@@ -6,56 +6,44 @@
   <title>Scanner</title>
 
   <style>
-    body{
-      background: linear-gradient(90deg, #1f1f1f, #686868);
-      font-family: sans-serif;
-      font-weight: 100;
-    }
 
-    h1{
-      font-size: 30px;
-      color: white;
-      text-transform: uppercase;
-      font-weight: 300;
-      text-align: center;
-      margin-bottom: 15px;
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
     }
-    table{
-      width:100%;
-      table-layout: fixed;
-      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    body {
+        font-family: sans-serif;
+        margin: 0;
+        height: 100vh;
+        background: radial-gradient(circle at top left, #b8ffcb 0%, rgba(255, 255, 255, 0) 70%),
+                    radial-gradient(circle at top right, #408f55 0%, rgba(255, 255, 255, 0) 70%),
+                    radial-gradient(circle at bottom left, #1e943d 0%, rgba(255, 255, 255, 0) 70%),
+                    radial-gradient(circle at bottom right, #033811 0%, rgba(255, 255, 255, 0) 70%);
+        background-size: 50% 50%;
+        background-repeat: no-repeat;
+        background-position: top left, top right, bottom left, bottom right;
+        background-size: cover;
+        background-attachment: fixed;
     }
-    th,
-    td {
-      padding: 15px;
-      background-color: white;
-      color: #fff;
-      text-align: center;
-      text-transform: uppercase;
-      font-size: 15px;
-    }
-    .tbl-header{
-      background-color: black;
-      color: white;
-     }
-    .tbl-content{
-      height:300px;
-      overflow-x:auto;
-      margin-top: 0px;
-      border: 1px solid red;
-    }
-    thead {
-      th {
-        background-color: #1a1a1a;
-      }
-    }
-    tbody {
-      tr {
-        background-color: rgba(255,255,255,0.3);
-      }
-      td {
-        background-color: rgba(255,255,255,0.2);
-      }
+    .volume_table {
+      /*
+      background: radial-gradient(circle at top left, #87ffa3 0%, rgba(255, 255, 255, 0) 70%),
+                  radial-gradient(circle at top right, #61ed97 0%, rgba(255, 255, 255, 0) 70%),
+                  radial-gradient(circle at bottom left, #31f558 0%, rgba(255, 255, 255, 0) 70%),
+                  radial-gradient(circle at bottom right, #62de66 0%, rgba(255, 255, 255, 0) 70%);
+      background-size: 50% 50%;
+      background-repeat: no-repeat;
+      background-position: top left, top right, bottom left, bottom right;
+      background-size: cover;
+      background-attachment: fixed;
+      */
+      border-spacing: 10px;
+      border-collapse: separate;
+      border-spacing: 0px 10px;
+      border-radius: 15px;
+      overflow: hidden;
+      border-collapse: separate;
     }
     .container {
         display: flex;
@@ -74,59 +62,77 @@
         gap: 10px;
         height: 100vh;
         position: sticky;
-        top: 5px;
+        top: 10px;
+        padding-top: 5px;
     }
     .chart-container {
-        height: 45%;
+        height: 65%;
         padding: 5px;
     }
+
+    th, td {
+            padding: 10px;
+    }
+
+    .table_card {
+      color:black;
+      background-color:rgba(255, 255, 255, 0.35);
+      border-radius:15px;
+      padding-left:15px;
+    }
+    .card_header {
+      text-align:center;
+      margin-bottom:15px;
+    }
+    .card_item {
+      padding-left:30px;
+      font-size:18px;
+    }
+    .table_header {
+      /*position: sticky;
+      top: 0px;*/
+      z-index: 5;
+      color:black;
+      height:100px;
+      font-size:30px;
+      text-align:center;
+      /*background-color: white;*/
+      margin: 0px;
+      padding: 0px;
+      border-radius: 20px 20px 0px 0px;
+    }
+
+
   </style>
+
 
 {% endblock %}
 
 {% block body %}
 
-  <section class="container">
+  <section class="container" style="margin-top: 60px;">
 
     <div class="left-column">
-      <table id="volume-table">
+
+      <table class="volume_table" id="volume-table" style="border-radius: 20px; width:100%; overflow-y:auto;">
+
         <!--
         <h3 style="text-align:center;color:white;">Relative Volume Progression</h3>
         -->
         <thead>
-          <th>Rank</th>
-          <th>Coin</th>
-          <th>24h Price Change %</th>
-          <th>Daily RVOL</th>
-          <th>RVOL Progression</th>
-          <!--
-          <th>30min ago</th>
-          <th>1hr ago</th>
-          <th>1.5hr ago</th>
-          <th>2hr ago</th>
-          <th>2.5hr ago</th>
-          <th>3hr ago</th>
-          <th>3.5hr ago</th>
-          <th>4hr ago</th>
-          <th>4.5hr ago</th>
-          <th>5hr ago</th>
-          <th>5.5hr ago</th>
-          <th>6hr ago</th>
-          -->
-
+          <th class="table_header">Relative Volume Scanner</th>
         </thead>
-        <tbody id="volume-table-body" style="background-color: white;">
+
+        <tbody id="volume-table-body" style="padding:10px;">
           {% for coin in sorted_volumes %}
+
+          <!--
               <tr>
                 <td style="color:black; border:0.5px solid black;">{{ coin.rank }}</td>
                 <td style="color:black; border:0.5px solid black;">{{ coin.symbol }}</td>
                 <td style="color:black; border:0.5px solid black;">{{ coin.price_change_24h_percentage }}%</td>
                 <td style="color:black; border:0.5px solid black;">{{ coin.daily_relative_volume }}</td>
-                <!--
-                {% for volume in coin.volumes %}
-                    <td style="color:green; border:0.5px solid black;">{{ volume }}</td>
-                {% endfor %}
-                -->
+
                 <td style="color:green; border:0.5px solid black;text-align:left;">
                     <ul>
                         {% for volume in coin.volumes %}
@@ -135,6 +141,24 @@
                     </ul>
                 </td>
               </tr>
+            -->
+
+
+              <tr>
+                <td class="table_card">
+                  <div class="card_header">
+                    <h3>{{ coin.rank }}. {{ coin.symbol }} ${{ coin.price }}</h3>
+                  </div>
+                  <p class="card_item"><strong>24h Price Change:</strong> {{ coin.price_change_24h_percentage }}%</p>
+                  <p class="card_item"><strong>Daily RVOL:</strong> {{ coin.daily_relative_volume }}</p>
+                  <p class="card_item"><strong>RVOL Progression:</strong>
+                    {% for volume in coin.volumes %}
+                      {{ volume }} |
+                    {% endfor %}
+                  </p>
+                </td>
+              </tr>
+
           {% endfor %}
         </tbody>
       </table>
@@ -247,8 +271,8 @@
 -->
 
 
-      <table id="main-table" style="margin-top:50px;">
-          <thead>
+      <table id="main-table" style="margin-top:50px;background-color:white; border-radius:20px;">
+          <thead style="position:sticky; top:0px; overflow-y:auto; background-color:white;z-index:5;border-radius:20px 20px 0px 0px;">
               <tr>
                   <!--
                   <th>#</th>
@@ -393,6 +417,8 @@
             // Clear and rebuild the table rows using the returned data
             let rows = '';
             data.sorted_volumes.forEach((crypto) => {
+
+              /*
                 rows += `<tr>
                             <td style="color:black; border:0.5px solid black;">${crypto.rank}</td>
                             <td style="color:black; border:0.5px solid black;">${crypto.symbol}</td>
@@ -416,7 +442,41 @@
                               </ul>
                             </td>
                          </tr>`;
+                */
+
+                rows += `<tr>
+                  <td class="table_card">
+                    <div class="card_header">
+                      <h3>${ crypto.rank }. ${ crypto.symbol } $${ crypto.price }</h3>
+                    </div>
+                    <p class="card_item"><strong>24h Price Change:</strong> ${ crypto.price_change_24h_percentage }%</p>
+                    <p class="card_item"><strong>Daily RVOL:</strong> ${ crypto.daily_relative_volume }</p>
+                    <p class="card_item"><strong>RVOL Progression:</strong>
+                      ${crypto.volumes[0]}
+                      ${crypto.volumes[1]}
+                      ${crypto.volumes[2]}
+                      ${crypto.volumes[3]}
+                      ${crypto.volumes[4]}
+                      ${crypto.volumes[5]}
+                      ${crypto.volumes[6]}
+                      ${crypto.volumes[7]}
+                      ${crypto.volumes[8]}
+                    </p>
+                  </td>
+                </tr>`;
             });
+
+
+
+
+
+
+
+
+
+
+
+
 
             // Update the table body
             document.querySelector("#volume-table tbody").innerHTML = rows;
@@ -450,7 +510,7 @@
     }
 
     // Call the function every 5 min
-    setInterval(updateTable, 60000);
+    setInterval(updateTable, 300000);
 </script>
 
 

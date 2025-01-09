@@ -6,4 +6,6 @@ urlpatterns = [
     path("", views.index, name="index"),
     path('setup-scheduler/', views.setup_scheduler, name='setup-scheduler'),
     path('five-min-update/', views.five_min_update, name='five-min-update'),
+
+    path('test/', views.test, name='test'),
 ]
