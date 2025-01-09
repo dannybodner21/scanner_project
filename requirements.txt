@@ -36,6 +36,7 @@ environ==1.0
 filelock==3.16.1
 frozenlist==1.4.1
 fsspec==2024.9.0
+git-filter-repo==2.47.0
 gunicorn==23.0.0
 h11==0.14.0
 httpcore==1.0.7
@@ -61,6 +62,7 @@ pillow==10.4.0
 pipdeptree==2.24.0
 platformdirs==4.3.6
 poppler-utils==0.1.0
+psycopg2-binary==2.9.10
 pyarrow==18.1.0
 pycryptodome==3.19.1
 PyJWT==2.8.0
@@ -95,6 +97,6 @@ urllib3==1.26.20
 wcwidth==0.2.13
 websocket-client==1.8.0
 websockets==8.1
-whitenoise>=6.0.0
+whitenoise==6.8.2
 xxhash==3.5.0
 yarl==1.9.4
