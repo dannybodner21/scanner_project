@@ -2876,6 +2876,8 @@ def index(request):
     # try storing multiple daily relative volumes to see the progression
     daily_relative_volumes = []
 
+    sorted_volumes = []
+
     for coin in coins:
 
         # use the following to see metrics on a coin that pumped recently
@@ -3157,11 +3159,14 @@ def index(request):
             print(coin)
             print(coin.symbol)
 
-        sorted_volumes = sorted(
-            daily_relative_volumes,
-            key=lambda x: (x["price_change_24h_percentage"] is None, x["price_change_24h_percentage"] if x["price_change_24h_percentage"] is not None else 0),
-            reverse=True
-        )
+        try:
+            sorted_volumes = sorted(
+                daily_relative_volumes,
+                key=lambda x: (x["price_change_24h_percentage"] is None, x["price_change_24h_percentage"] if x["price_change_24h_percentage"] is not None else 0),
+                reverse=True
+            )
+        except:
+            sorted_volumes = []
 
     # sort by top gainers: price change over the last 24 hours
     try:
