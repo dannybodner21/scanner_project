@@ -20,8 +20,13 @@ import time
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
+<<<<<<< HEAD
 from scanner.models import Coin, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from datetime import datetime, timedelta, timezone, date
+=======
+from scanner.models import Coin, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData
+from datetime import datetime, timedelta, timezone
+>>>>>>> 9a6f804 (who cares)
 from django.utils.timezone import now
 from django.http import JsonResponse
 <<<<<<< HEAD
@@ -52,6 +57,7 @@ from django.http import HttpResponse
 >>>>>>> c7f8cc6 (Add Django Q with task scheduling)
 
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 
 
@@ -1087,6 +1093,8 @@ def update_historical_data():
         else:
             print(f"HistoricalData for {coin.name} on {target_date} already exists. No action taken.")
 
+=======
+>>>>>>> 9a6f804 (who cares)
 
 # bot message notificagtions
 def send_text(true_triggers_two):
@@ -1094,14 +1102,22 @@ def send_text(true_triggers_two):
     if len(true_triggers_two) > 0:
 
         # telegram bot information
+<<<<<<< HEAD
         chat_id_danny = '1077594551'
         #chat_id_ricki = '1054741134'
         #chat_ids = [chat_id_danny, chat_id_ricki]
         chat_ids = [chat_id_danny]
+=======
+        chat_id = '1077594551'
+        #chat_id_ricki = '1054741134,'
+        #chat_ids = [chat_id, chat_id_ricki]
+        chat_ids = [chat_id]
+>>>>>>> 9a6f804 (who cares)
         bot_token = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
 
 
+<<<<<<< HEAD
         # send message to myself and Ricki
         message = ""
         for chat_id in chat_ids:
@@ -1887,10 +1903,32 @@ def check_triggers(metrics_queryset):
     if len(true_triggers) > 0:
         send_text(true_triggers)
         print("not sending messages at this time.")
+=======
+    # send message to myself and Ricki
+    message = ""
+    for chat_id in chat_ids:
+        for trigger in true_triggers_two:
+
+            message += trigger + " "
+
+            payload = {
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "Markdown",
+            }
+
+            response = requests.post(url, data=payload)
+
+            if response.status_code == 200:
+                print("Message sent successfully.")
+            else:
+                print(f"Failed to send message: {response.content}")
+>>>>>>> 9a6f804 (who cares)
 
     return
 
 
+<<<<<<< HEAD
 def gather_historical_data():
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
@@ -1977,6 +2015,8 @@ def gather_historical_data():
 
 =======
 >>>>>>> fef3d17 (updates)
+=======
+>>>>>>> 9a6f804 (who cares)
 def fetch_short_interval_data():
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
@@ -2330,7 +2370,372 @@ def calculate_five_min_relative_volume(coin):
     return five_min_relative_volume
 
 
+<<<<<<< HEAD
 def five_min_update():
+=======
+
+
+def calculate_meme_price_change_five_min(coin):
+
+    # (price change over 5 min / price 5 min ago) * 100
+
+    price_change_5min = None
+
+    prices = MemeShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:2]
+
+    # Extract the most recent and second most recent, if available
+    if len(prices) < 2:
+        return None
+
+    price_now, price_five_min_ago = prices[0].price, prices[1].price
+    if price_five_min_ago == 0:
+        return None
+
+    price_change_5min = ((price_now - price_five_min_ago) / price_five_min_ago) * 100
+    return price_change_5min
+
+def calculate_meme_price_change_ten_min(coin):
+
+    # (price change over 10 min / price 10 min ago) * 100
+
+    price_change_10min = None
+
+    prices = MemeShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:4]
+
+    price_now = prices[0].price if len(prices) > 0 else None
+    price_ten_min_ago = prices[3].price if len(prices) > 3 else None
+
+    if price_now != None and price_ten_min_ago != None:
+
+        price_difference = price_now - price_ten_min_ago
+        price_change_10min = (price_difference / price_ten_min_ago) * 100 if price_ten_min_ago != 0 else None
+        return price_change_10min
+
+    else:
+        return None
+
+def calculate_meme_five_min_relative_volume(coin):
+
+    five_min_relative_volume = None
+
+    # volume now / volume 5 min ago - trying this instead of average volume over last 5 min
+
+    try:
+
+        volumes = MemeShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:4]
+        #volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')
+
+        # Extract the most recent and second most recent, if available
+        volume_now = volumes[0].volume_5min if len(volumes) > 0 else None
+
+        remaining_volumes = volumes[1:]
+
+        sum = 0
+        for volume in remaining_volumes:
+            sum += volume.volume_5min
+
+        if len(remaining_volumes) != 0:
+            average = sum / len(volumes)
+
+        else:
+            average = None
+
+        #volume_five_min_ago = volumes[200].volume_5min if len(volumes) > 60 else None
+
+        if volume_now != None and average != None and average != 0:
+
+            five_min_relative_volume = (volume_now / average)
+            return five_min_relative_volume
+
+        else:
+            print("problem in five min relative volume")
+            print(coin.symbol)
+            print(volume_now)
+            print(average)
+            return None
+
+    except Exception as e:
+        print(f"There was a problem calculating 5 min relative volume for: {e}")
+        print(coin.symbol)
+
+    return five_min_relative_volume
+
+
+
+
+
+
+
+
+
+
+# =======================================================================
+
+
+# stop everything
+# python3 manage.py makemigrations
+# python3 manage.py migrate
+# python3 manage.py scheduled_task
+
+
+# Function to fetch all Solana meme coins and save to the Coins model
+def fetch_solana_meme_coins():
+
+    CMC_API_KEY = "7dd5dd98-35d0-475d-9338-407631033cd9"
+    CMC_API_BASE_URL = "https://pro-api.coinmarketcap.com/v1/"
+
+    HEADERS = {
+        "Accepts": "application/json",
+        "X-CMC_PRO_API_KEY": CMC_API_KEY,
+    }
+
+    url = f"{CMC_API_BASE_URL}cryptocurrency/listings/latest"
+    params = {
+        "start": 1,
+        "limit": 3000,
+        "convert": "USD",
+    }
+
+    try:
+        response = requests.get(url, headers=HEADERS, params=params)
+        response.raise_for_status()
+        coins_data = response.json().get("data", [])
+
+        for coin in coins_data:
+
+            platform = coin.get("platform")
+            tags = coin.get("tags", [])
+
+            # Check for Solana platform and meme-related tags
+            if platform and platform.get("name") == "Solana" and any(tag in tags for tag in ["memes", "cat-themed", "animal-memes"]):
+
+                MemeCoin.objects.update_or_create(
+                    cmc_id=coin.get("id"),
+                    defaults={
+                        "name": coin.get("name"),
+                        "symbol": coin.get("symbol"),
+                        "market_cap_rank": coin.get("cmc_rank"),
+                        "last_updated": datetime.strptime(coin.get("last_updated"), "%Y-%m-%dT%H:%M:%S.%fZ"),
+                    },
+                )
+
+        print("Solana meme coins fetched and updated.")
+    except Exception as e:
+        print(f"Error fetching Solana meme coins: {e}")
+
+
+# Function to check for new Solana meme coin listings and get metrics
+def check_new_solana_listings():
+
+    CMC_API_KEY = "7dd5dd98-35d0-475d-9338-407631033cd9"
+    CMC_API_BASE_URL = "https://pro-api.coinmarketcap.com/v1/"
+
+    HEADERS = {
+        "Accepts": "application/json",
+        "X-CMC_PRO_API_KEY": CMC_API_KEY,
+    }
+
+    url = f"{CMC_API_BASE_URL}cryptocurrency/listings/new"
+
+    try:
+        response = requests.get(url, headers=HEADERS)
+        response.raise_for_status()
+        new_listings = response.json().get("data", [])
+
+        for coin in new_listings:
+            # Filter for Solana-based meme coins
+            if coin.get("tags") and "meme" in coin["tags"] and coin.get("platform") and coin["platform"].get("name") == "Solana":
+                # Save or update coin in the Coins model
+                coin_obj, created = MemeCoin.objects.update_or_create(
+                    cmc_id=coin.get("id"),
+                    defaults={
+                        "name": coin.get("name"),
+                        "symbol": coin.get("symbol"),
+                        "market_cap_rank": coin.get("cmc_rank"),
+                        "last_updated": datetime.strptime(coin.get("last_updated"), "%Y-%m-%dT%H:%M:%S.%fZ"),
+                    },
+                )
+
+                # If the coin is new, fetch its metrics
+                #if created:
+                    #fetch_coin_metrics(coin_obj)
+        print("New Solana meme coins checked and updated.")
+    except Exception as e:
+        print(f"Error checking new Solana listings: {e}")
+
+
+def fetch_memecoin_metrics():
+    COINMARKETCAP_API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    API_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+
+    headers = {
+        "Accepts": "application/json",
+        "X-CMC_PRO_API_KEY": COINMARKETCAP_API_KEY,
+    }
+
+    meme_coins = MemeCoin.objects.all()
+    cmc_ids = [coin.cmc_id for coin in meme_coins]
+
+    # API limit: Up to 100 IDs per call
+    batch_size = 100
+    for i in range(0, len(cmc_ids), batch_size):
+        cmc_id_batch = cmc_ids[i:i + batch_size]
+        params = {
+            "id": ",".join(map(str, cmc_id_batch)),
+            "convert": "USD",
+        }
+
+        try:
+            response = requests.get(API_URL, headers=headers, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            for cmc_id in cmc_id_batch:
+                if str(cmc_id) in data["data"]:
+
+                    coin = MemeCoin.objects.get(cmc_id=cmc_id)
+
+                    coin_data = data["data"][str(cmc_id)]
+
+                    last_updated = datetime.strptime(
+                        coin_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                    )
+
+                    try:
+                        MemeShortIntervalData.objects.update_or_create(
+                            coin=coin,
+                            timestamp=datetime.strptime(
+                                coin_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                            ),
+                            price=coin_data["quote"]["USD"]["price"],
+                            volume_5min=coin_data["quote"]["USD"]["volume_24h"],
+                            circulating_supply=coin_data["circulating_supply"]
+                        )
+
+                    except:
+                        print("failed fetchine meme shortIntervalData")
+
+
+                    try:
+                        meme_metric = MemeMetric.objects.update_or_create(
+                            coin=coin,
+                            timestamp=last_updated,
+                            defaults={
+                                "five_min_relative_volume": calculate_meme_five_min_relative_volume(coin),
+                                "price_change_5min": calculate_meme_price_change_five_min(coin),
+                                "price_change_10min": calculate_meme_price_change_ten_min(coin),
+                                "price_change_1hr": coin_data["quote"]["USD"]["percent_change_1h"],
+                                "circulating_supply": coin_data["circulating_supply"],
+                                "volume_24h": coin_data["quote"]["USD"]["volume_24h"],
+                                "last_price": coin_data["quote"]["USD"]["price"],
+                                "market_cap": coin_data["quote"]["USD"]["market_cap"],
+                            },
+                        )
+
+                    except:
+                        print("failed fetchine meme metrics")
+
+        except Exception as e:
+            print(f"Error fetching metrics for batch starting with: {e}")
+
+
+def meme_coin_triggers():
+
+    meme_coins = MemeCoin.objects.all()
+
+    for coin in meme_coins:
+
+        meme_triggers = []
+
+        # check for an increase in volume
+        meme_trigger_one = False
+        meme_trigger_two = False
+        meme_trigger_three = False
+        meme_trigger_four = False
+
+        meme_volumes = MemeMetric.objects.filter(coin=coin).order_by('-timestamp').all()
+
+        if len(meme_volumes) > 2:
+
+            current_meme_metric = meme_volumes[0]
+
+            if hasattr(meme_volumes[0], 'volume_24h') and meme_volumes[0].volume_24h != None:
+
+                current_meme_volume = meme_volumes[0].volume_24h
+                remaining_meme_volumes = meme_volumes[1:]
+
+                # (current volume - avg volume 30 min ago) / avg volume 30 min age * 100
+                sum_meme_volume = sum(data.volume_24h for data in remaining_meme_volumes)
+                average_meme_volume = sum_meme_volume / len(remaining_meme_volumes)
+                temp = current_meme_volume - average_meme_volume
+                percentage_change_meme_volume = (temp / average_meme_volume) * 100
+                if percentage_change_meme_volume > 10:
+                    meme_trigger_one = True
+
+                    #trigger = "MEME | " + coin.symbol + " : relative volume > 10"
+                    #meme_triggers.append(trigger)
+
+                if percentage_change_meme_volume > 3:
+                    meme_trigger_four = True
+
+            # price increased 5% over last 5 min
+            if hasattr(current_meme_metric, 'price_change_5min') and current_meme_metric.price_change_5min != None:
+                if current_meme_metric.price_change_5min > 10:
+                    meme_trigger_two = True
+
+                    #trigger = "MEME | " + coin.symbol + " : price change 5 min > 5"
+                    #meme_triggers.append(trigger)
+
+                if current_meme_metric.price_change_5min < 5:
+                    meme_trigger_four = False
+
+            # price increased 5% over last 10 min
+            if hasattr(current_meme_metric, 'price_change_10min') and current_meme_metric.price_change_10min != None:
+                if current_meme_metric.price_change_10min > 15:
+                    meme_trigger_three = True
+
+                    #trigger = "MEME | " + coin.symbol + " : price change 10 min > 10"
+                    #meme_triggers.append(trigger)
+
+            if meme_trigger_one == True and meme_trigger_two == True:
+                trigger = "MEME | " + coin.symbol + " : relative volume > 10 and price change 5 min > 10"
+                meme_triggers.append(trigger)
+
+            '''
+            if meme_trigger_one == True and meme_trigger_three == True:
+                trigger = "MEME | " + coin.symbol + " : relative volume > 10 and price change 10 min > 10"
+                meme_triggers.append(trigger)
+            '''
+
+            # trigger 4
+            # 1. coins that were listed in the last 3 hours
+            # 2. average true volume is 3x
+            # 3. has consistent price increase over 5 intervals of 1 minute ( so 5 green candle sticks in a row on the 1 minute)
+            # 4. has atleast a volume of 200K
+
+            if hasattr(current_meme_metric, 'volume_24h') and current_meme_metric.volume_24h != None:
+                if current_meme_metric.volume_24h < 200000:
+                    meme_trigger_four = False
+
+            if meme_trigger_four == True:
+                trigger = "MEME | " + coin.symbol + " : RICKI'S CRITERIA HIT"
+                meme_triggers.append(trigger)
+
+
+
+        if len(meme_triggers) > 0:
+            send_text(meme_triggers)
+
+    return
+
+
+# ====================================================================
+
+
+
+
+def five_min_update(request=None):
+>>>>>>> 9a6f804 (who cares)
 
     # if the time is ~0000 delete old data
     now = datetime.now()
@@ -2444,6 +2849,24 @@ def five_min_update():
             print(f"Error updating tracked coins for batch {cmc_id_batch}: {e}")
 
 
+<<<<<<< HEAD
+=======
+    # wait 30 seconds before checking solana
+    print("pausing for 30 seconds before solana check")
+    time.sleep(30)
+    print("checking solana")
+    #check_new_solana_listings()
+    fetch_memecoin_metrics()
+    print("done fetching solana data")
+    print("checking meme triggers")
+    meme_coin_triggers()
+    print("done checking meme triggers")
+
+    if request:
+        return JsonResponse({"status": "success", "message": "Update triggered successfully"})
+
+
+>>>>>>> 9a6f804 (who cares)
 def index(request):
 
     # get all the coins in our databse
@@ -2454,6 +2877,28 @@ def index(request):
     daily_relative_volumes = []
 
     for coin in coins:
+
+        # use the following to see metrics on a coin that pumped recently
+        '''
+        if coin.symbol == 'G':
+            metrics = Metrics.objects.filter(coin=coin).order_by("-timestamp").all()
+            for metric in metrics:
+                print("Time: " + str(metric.timestamp))
+                print("daily_relative_volume:" + str(metric.daily_relative_volume))
+                print("rolling relative volume: " + str(metric.rolling_relative_volume))
+                print("five_min_relative_volume: " + str(metric.five_min_relative_volume))
+                print("twenty_min_relative_volume: " + str(metric.twenty_min_relative_volume))
+                print("price_change_5min: " + str(metric.price_change_5min))
+                print("price_change_10min: " + str(metric.price_change_10min))
+                print("price_change_1hr: " + str(metric.price_change_1hr))
+                print("price_change_24hr: " + str(metric.price_change_24hr))
+                print("circulating_supply: " + str(metric.circulating_supply))
+                print("volume_24h: " + str(metric.volume_24h))
+                print("last_price: " + str(metric.last_price))
+                print("market_cap: " + str(metric.market_cap))
+        '''
+
+
 
         shortIntervalData = ShortIntervalData.objects.filter(coin=coin).order_by("-timestamp").first()
         #metric = Metrics.objects.get(coin=coin)
@@ -2522,6 +2967,7 @@ def index(request):
 
         # Go through the different triggers
         true_triggers = []
+        true_triggers_two = []
 
         # TRIGGER ONE - price up 10% or more in last 24 hours
         triggerOne = False
@@ -2536,8 +2982,9 @@ def index(request):
         if coin_rolling_relative_volume != None:
             if coin_rolling_relative_volume >= 2.0:
                 triggerTwo = True
-                trigger = coin.symbol + " : Relative Volume > 2.0"
+                trigger = coin.symbol + " : Relative Volume >= 2.0"
                 true_triggers.append(trigger)
+                #true_triggers_two.append(trigger)
 
         # TRIGGER THREE - price is less than $50
         triggerThree = False
@@ -2571,25 +3018,60 @@ def index(request):
                 trigger = coin.symbol + " : 20 min Relative Volume > 2.0"
                 true_triggers.append(trigger)
 
-        # TRIGGER EIGHT - circulating supply down 10% in last hour
+        # TRIGGER EIGHT - circulating supply down >5% in last 24 hours
         triggerEight = False
-        circulating_supplies = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:13]
+        circulating_supplies = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')
+        remaining_circulating_supplies = circulating_supplies[1:]
+        circulating_supply_now = circulating_supplies[0].circulating_supply
+        sum_circulating_supplies = sum(data.circulating_supply for data in remaining_circulating_supplies)
 
-        if len(circulating_supplies) > 12:
-            circulating_supply_hour_ago = circulating_supplies[12].circulating_supply
-            circulating_supply_now = coin_circulating_supply
-            if circulating_supply_hour_ago != 0 and circulating_supply_hour_ago != None and circulating_supply_now != None:
-                circulating_supply_change = (circulating_supply_hour_ago - circulating_supply_now) / circulating_supply_hour_ago * 100
+        if len(remaining_circulating_supplies) != 0:
+            average_circulating_supply = sum_circulating_supplies / len(remaining_circulating_supplies)
 
-            else:
-                circulating_supply_change = None
-            if  circulating_supply_change != None and circulating_supply_change >= 5:
-                triggerEight = True
-                trigger = coin.symbol + " : Circulating Supply down > 5% in last hour"
-                true_triggers.append(trigger)
+            if average_circulating_supply != 0:
+                circulating_supply_change = ((average_circulating_supply - circulating_supply_now) / average_circulating_supply) * 100
 
-        else:
-            circulating_supply_change = None
+                if circulating_supply_change > 5:
+                    triggerEight = True
+                    trigger = coin.symbol + " : Circulating Supply down > 5% in last 24 hours"
+                    true_triggers_two.append(trigger)
+
+        # TRIGGER NINE - price is up 5%+ in last hour
+        triggerNine = False
+        if coin_price_change_1h != None and coin_price_change_1h >= 5:
+            triggerNine = True
+
+            if triggerTwo == True:
+                trigger = coin.symbol + " : Price > 5% in last hour and RVOL > 2"
+                true_triggers_two.append(trigger)
+
+
+        # TRIGGER TEN -
+        # rolling_relative_volume > 2.5 and increasing over 2 intervals
+        # five_min_relative_volume > 1.7 for 2 consecutive intervals
+        # price_change_10min > 3%
+        # volume_24h increases by 10% within the last 30 minutes
+        triggerTen = False
+        if coin_rolling_relative_volume > 2:
+            if coin_five_min_relative_volume > 1.5:
+                if coin_price_change_10min > 3:
+
+                    # (current volume - volume 30 min ago) / volume 30 min age * 100
+                    trigger_ten_volumes = Metrics.objects.filter(coin=coin).order_by('-timestamp')[:8]
+                    if len(trigger_ten_volumes) > 6:
+                        trigger_ten_volume = trigger_ten_volumes[0].volume_24h
+                        trigger_ten_30_min_volume = trigger_ten_volumes[6].volume_24h
+                        temp = (trigger_ten_volume - trigger_ten_30_min_volume)
+                        trigger_ten_percent_change = (temp / trigger_ten_30_min_volume) * 100
+
+                        if trigger_ten_percent_change >= 5:
+                            triggerTen = True
+
+                            trigger = coin.symbol + " : TRIGGER TEN HIT !!!"
+                            true_triggers_two.append(trigger)
+
+        if len(true_triggers_two) > 0:
+            send_text(true_triggers_two)
 
         try:
             top_cryptos.append({
@@ -2666,6 +3148,7 @@ def index(request):
                     "volumes": volumes,
                     "is_descending": is_descending,
                     "daily_relative_volume": coin_daily_relative_volume,
+                    "price": coin_price,
                 })
 
 
@@ -6193,6 +6676,10 @@ def manually_clean_database():
     print(f" - {metrics_deleted} Metrics entries older than 36 hours")
 
 >>>>>>> fef3d17 (updates)
+
+def test(request):
+    return render(request, "test.html")
+
 
 
 
