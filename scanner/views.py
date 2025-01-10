@@ -739,7 +739,7 @@ def meme_coin_triggers():
                     #meme_triggers.append(trigger)
 
             if meme_trigger_one == True and meme_trigger_two == True:
-                trigger = "MEME | " + coin.symbol + " : relative volume > 10 and price change 5 min > 10"
+                trigger = "MEME | " + coin.symbol + " : relative volume > 12 and price change 5 min > 10"
                 meme_triggers.append(trigger)
 
             '''
@@ -755,7 +755,7 @@ def meme_coin_triggers():
             # 4. has atleast a volume of 200K
 
             if hasattr(current_meme_metric, 'volume_24h') and current_meme_metric.volume_24h != None:
-                if current_meme_metric.volume_24h < 200000:
+                if current_meme_metric.volume_24h < 300000:
                     meme_trigger_four = False
 
             if meme_trigger_four == True:
@@ -1070,9 +1070,9 @@ def index(request):
             if average_circulating_supply != 0:
                 circulating_supply_change = ((average_circulating_supply - circulating_supply_now) / average_circulating_supply) * 100
 
-                if circulating_supply_change > 5:
+                if circulating_supply_change > 10:
                     triggerEight = True
-                    trigger = coin.symbol + " : Circulating Supply down > 5% in last 24 hours"
+                    trigger = coin.symbol + " : Circulating Supply down > 10% in last 24 hours"
                     true_triggers_two.append(trigger)
 
         # TRIGGER NINE - price is up 5%+ in last hour
