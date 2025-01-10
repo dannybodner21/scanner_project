@@ -594,11 +594,14 @@ def check_new_solana_listings():
                     },
                 )
 
-                print("new meme coin created")
-                print(coin_obj.symbol)
+                #print("new meme coin created")
+                #print(coin_obj.symbol)
 
                 # If the coin is new, fetch its metrics
                 if created:
+                    text_message = f"new meme coin created: {coin_obj.symbol}"
+                    text_to_send = [text_message]
+                    send_text(text_to_send)
                     fetch_coin_metrics(coin_obj)
         print("New Solana meme coins checked and updated.")
     except Exception as e:
