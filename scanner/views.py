@@ -563,6 +563,8 @@ def fetch_solana_meme_coins():
 # Function to check for new Solana meme coin listings and get metrics
 def check_new_solana_listings():
 
+    print("looking for new solana meme coins")
+
     CMC_API_KEY = "7dd5dd98-35d0-475d-9338-407631033cd9"
     CMC_API_BASE_URL = "https://pro-api.coinmarketcap.com/v1/"
 
@@ -592,9 +594,12 @@ def check_new_solana_listings():
                     },
                 )
 
+                print("new meme coin created")
+                print(coin_obj.symbol)
+
                 # If the coin is new, fetch its metrics
-                #if created:
-                    #fetch_coin_metrics(coin_obj)
+                if created:
+                    fetch_coin_metrics(coin_obj)
         print("New Solana meme coins checked and updated.")
     except Exception as e:
         print(f"Error checking new Solana listings: {e}")
@@ -888,7 +893,7 @@ def five_min_update(request=None):
     print("pausing for 30 seconds before solana check")
     time.sleep(30)
     print("checking solana")
-    #check_new_solana_listings()
+    check_new_solana_listings()
     fetch_memecoin_metrics()
     print("done fetching solana data")
     print("checking meme triggers")
@@ -1105,7 +1110,7 @@ def index(request):
                             true_triggers_two.append(trigger)
 
         if len(true_triggers_two) > 0:
-            send_text(true_triggers_two)
+            #send_text(true_triggers_two)
 
         try:
             top_cryptos.append({
