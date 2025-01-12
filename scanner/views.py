@@ -1074,9 +1074,10 @@ def index(request):
                 circulating_supply_change = ((average_circulating_supply - circulating_supply_now) / average_circulating_supply) * 100
 
                 if circulating_supply_change > 50:
-                    triggerEight = True
-                    trigger = coin.symbol + " : Circulating Supply down > 50% in last 24 hours"
-                    true_triggers_two.append(trigger)
+                    #triggerEight = True
+                    triggerEight = False
+                    #trigger = coin.symbol + " : Circulating Supply down > 50% in last 24 hours"
+                    #true_triggers_two.append(trigger)
 
         # TRIGGER NINE - price is up 5%+ in last hour
         triggerNine = False
