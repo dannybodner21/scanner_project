@@ -586,6 +586,9 @@ def check_new_solana_listings():
             # Filter for Solana-based meme coins
             if coin.get("tags") and "meme" in coin["tags"] and coin.get("platform") and coin["platform"].get("name") == "Solana":
                 # Save or update coin in the Coins model
+
+                print(coin.get("name"))
+
                 coin_obj, created = MemeCoin.objects.update_or_create(
                     cmc_id=coin.get("id"),
                     defaults={
@@ -605,6 +608,11 @@ def check_new_solana_listings():
                     text_to_send = [text_message]
                     send_text(text_to_send)
                     fetch_coin_metrics(coin_obj)
+                else:
+                    text_message = f"new meme coin FAILED: {coin_obj.symbol}"
+                    text_to_send = [text_message]
+                    send_text(text_to_send)
+
         print("New Solana meme coins checked and updated.")
     except Exception as e:
         print(f"Error checking new Solana listings: {e}")
