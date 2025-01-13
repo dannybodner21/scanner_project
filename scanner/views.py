@@ -2542,6 +2542,8 @@ def check_new_solana_listings():
         response.raise_for_status()
         new_listings = response.json().get("data", [])
 
+        print(new_listings)
+
         for coin in new_listings:
             # Filter for Solana-based meme coins
             if coin.get("tags") and "meme" in coin["tags"] and coin.get("platform") and coin["platform"].get("name") == "Solana":
