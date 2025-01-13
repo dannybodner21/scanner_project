@@ -607,11 +607,6 @@ def check_new_solana_listings():
                             text_to_send = [text_message]
                             send_text(text_to_send)
                             #fetch_memecoin_metrics(coin_obj)
-                        else:
-                            print("MEME NOT CREATED")
-                            text_message = f"new meme coin FAILED: {coin_obj.symbol}"
-                            text_to_send = [text_message]
-                            send_text(text_to_send)
 
         print("New Solana meme coins checked and updated.")
     except Exception as e:
