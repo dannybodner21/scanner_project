@@ -666,7 +666,7 @@ def fetch_memecoin_metrics(coin=None):
                     )
 
                 except:
-                    print("failed fetchine meme shortIntervalData")
+                    print("failed fetching meme shortIntervalData")
 
 
                 try:
@@ -685,8 +685,8 @@ def fetch_memecoin_metrics(coin=None):
                         },
                     )
 
-                except:
-                    print("failed fetchine meme metrics")
+                except Exception as e:
+                    print(f"failed fetching meme metrics: {e}")
 
     except Exception as e:
         print(f"Error fetching metrics for batch starting with: {e}")
