@@ -12,7 +12,6 @@ from scanner.models import Coin, HistoricalData, ShortIntervalData, Metrics, Mem
 from datetime import datetime, timedelta, timezone
 from django.utils.timezone import now
 from django.http import JsonResponse
-from scanner.tasks import setup_schedule
 from django.http import HttpResponse
 
 
@@ -507,7 +506,6 @@ def calculate_meme_five_min_relative_volume(coin):
 
 # =======================================================================
 
-
 # stop everything
 # python3 manage.py makemigrations
 # python3 manage.py migrate
@@ -580,45 +578,46 @@ def check_new_solana_listings():
         response.raise_for_status()
         new_listings = response.json().get("data", {})
 
-        print(new_listings)
-
         for coin in new_listings:
             # Filter for Solana-based meme coins
-            if coin.get("tags") and "meme" in coin["tags"] and coin.get("platform") and coin["platform"].get("name") == "Solana":
+
+            for tag in coin.get("tags"):
+                if tag['slug'] == 'solana-ecosystem':
+
                 # Save or update coin in the Coins model
 
-                print(coin.get("name"))
+                    coin_obj, created = MemeCoin.objects.update_or_create(
+                        cmc_id=coin.get("id"),
+                        defaults={
+                            "name": coin.get("name"),
+                            "symbol": coin.get("symbol"),
+                            "market_cap_rank": coin.get("cmc_rank"),
+                            "date_added": datetime.strptime(coin.get("last_updated"), "%Y-%m-%dT%H:%M:%S.%fZ"),
+                        },
+                    )
 
-                coin_obj, created = MemeCoin.objects.update_or_create(
-                    cmc_id=coin.get("id"),
-                    defaults={
-                        "name": coin.get("name"),
-                        "symbol": coin.get("symbol"),
-                        "market_cap_rank": coin.get("cmc_rank"),
-                        "date_added": datetime.strptime(coin.get("last_updated"), "%Y-%m-%dT%H:%M:%S.%fZ"),
-                    },
-                )
+                    #print("new meme coin created")
+                    #print(coin_obj.symbol)
 
-                #print("new meme coin created")
-                #print(coin_obj.symbol)
-
-                # If the coin is new, fetch its metrics
-                if created:
-                    text_message = f"new meme coin created: {coin_obj.symbol}"
-                    text_to_send = [text_message]
-                    send_text(text_to_send)
-                    fetch_coin_metrics(coin_obj)
-                else:
-                    text_message = f"new meme coin FAILED: {coin_obj.symbol}"
-                    text_to_send = [text_message]
-                    send_text(text_to_send)
+                    # If the coin is new, fetch its metrics
+                    if created:
+                        print("MEME CREATED")
+                        text_message = f"new meme coin created: {coin_obj.symbol}"
+                        text_to_send = [text_message]
+                        send_text(text_to_send)
+                        #fetch_memecoin_metrics(coin_obj)
+                    else:
+                        print("MEME NOT CREATED")
+                        text_message = f"new meme coin FAILED: {coin_obj.symbol}"
+                        text_to_send = [text_message]
+                        send_text(text_to_send)
 
         print("New Solana meme coins checked and updated.")
     except Exception as e:
         print(f"Error checking new Solana listings: {e}")
 
 
-def fetch_memecoin_metrics():
+def fetch_memecoin_metrics(coin=None):
     COINMARKETCAP_API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     API_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 
@@ -627,66 +626,77 @@ def fetch_memecoin_metrics():
         "X-CMC_PRO_API_KEY": COINMARKETCAP_API_KEY,
     }
 
-    meme_coins = MemeCoin.objects.all()
-    cmc_ids = [coin.cmc_id for coin in meme_coins]
-
-    # API limit: Up to 100 IDs per call
-    batch_size = 100
-    for i in range(0, len(cmc_ids), batch_size):
-        cmc_id_batch = cmc_ids[i:i + batch_size]
+    if coin:
         params = {
-            "id": ",".join(map(str, cmc_id_batch)),
+            "id": coin.cmc_id,
             "convert": "USD",
         }
 
-        try:
-            response = requests.get(API_URL, headers=headers, params=params)
-            response.raise_for_status()
-            data = response.json()
+    else:
+        meme_coins = MemeCoin.objects.all()
+        cmc_ids = [coin.cmc_id for coin in meme_coins]
 
-            for cmc_id in cmc_id_batch:
-                if str(cmc_id) in data["data"]:
-
-                    coin = MemeCoin.objects.get(cmc_id=cmc_id)
-
-                    coin_data = data["data"][str(cmc_id)]
-
-                    try:
-                        MemeShortIntervalData.objects.update_or_create(
-                            coin=coin,
-                            timestamp=datetime.strptime(
-                                coin_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                            ),
-                            price=coin_data["quote"]["USD"]["price"],
-                            volume_5min=coin_data["quote"]["USD"]["volume_24h"],
-                            circulating_supply=coin_data["circulating_supply"]
-                        )
-
-                    except:
-                        print("failed fetchine meme shortIntervalData")
+        # API limit: Up to 100 IDs per call
+        batch_size = 100
+        for i in range(0, len(cmc_ids), batch_size):
+            cmc_id_batch = cmc_ids[i:i + batch_size]
+            params = {
+                "id": ",".join(map(str, cmc_id_batch)),
+                "convert": "USD",
+            }
 
 
-                    try:
-                        meme_metric = MemeMetric.objects.update_or_create(
-                            coin=coin,
-                            timestamp=last_updated,
-                            defaults={
-                                "five_min_relative_volume": calculate_meme_five_min_relative_volume(coin),
-                                "price_change_5min": calculate_meme_price_change_five_min(coin),
-                                "price_change_10min": calculate_meme_price_change_ten_min(coin),
-                                "price_change_1hr": coin_data["quote"]["USD"]["percent_change_1h"],
-                                "circulating_supply": coin_data["circulating_supply"],
-                                "volume_24h": coin_data["quote"]["USD"]["volume_24h"],
-                                "last_price": coin_data["quote"]["USD"]["price"],
-                                "market_cap": coin_data["quote"]["USD"]["market_cap"],
-                            },
-                        )
+    try:
+        response = requests.get(API_URL, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
 
-                    except:
-                        print("failed fetchine meme metrics")
+        for cmc_id in cmc_id_batch:
+            if str(cmc_id) in data["data"]:
 
-        except Exception as e:
-            print(f"Error fetching metrics for batch starting with: {e}")
+                coin = MemeCoin.objects.get(cmc_id=cmc_id)
+
+                coin_data = data["data"][str(cmc_id)]
+
+                try:
+                    MemeShortIntervalData.objects.update_or_create(
+                        coin=coin,
+                        timestamp=datetime.strptime(
+                            coin_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
+                        price=coin_data["quote"]["USD"]["price"],
+                        volume_5min=coin_data["quote"]["USD"]["volume_24h"],
+                        circulating_supply=coin_data["circulating_supply"]
+                    )
+
+                except:
+                    print("failed fetchine meme shortIntervalData")
+
+
+                try:
+                    meme_metric = MemeMetric.objects.update_or_create(
+                        coin=coin,
+                        timestamp=last_updated,
+                        defaults={
+                            "five_min_relative_volume": calculate_meme_five_min_relative_volume(coin),
+                            "price_change_5min": calculate_meme_price_change_five_min(coin),
+                            "price_change_10min": calculate_meme_price_change_ten_min(coin),
+                            "price_change_1hr": coin_data["quote"]["USD"]["percent_change_1h"],
+                            "circulating_supply": coin_data["circulating_supply"],
+                            "volume_24h": coin_data["quote"]["USD"]["volume_24h"],
+                            "last_price": coin_data["quote"]["USD"]["price"],
+                            "market_cap": coin_data["quote"]["USD"]["market_cap"],
+                        },
+                    )
+
+                except:
+                    print("failed fetchine meme metrics")
+
+    except Exception as e:
+        print(f"Error fetching metrics for batch starting with: {e}")
+
+
+
 
 
 def meme_coin_triggers():
@@ -1240,12 +1250,6 @@ def index(request):
         "top_cryptos": sorted_coins,
         "sorted_volumes": sorted_volumes
     })
-
-
-
-def setup_scheduler(request):
-    setup_schedule()
-    return HttpResponse("Schedule created successfully!")
 
 
 def gather_daily_historical_data():

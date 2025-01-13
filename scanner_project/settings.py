@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "scanner",
     "django_extensions",
-    'django_q',
 ]
 
 MIDDLEWARE = [
