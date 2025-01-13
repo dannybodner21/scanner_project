@@ -584,33 +584,34 @@ def check_new_solana_listings():
             for tag in coin.get("tags"):
                 if tag['slug'] == 'solana-ecosystem':
 
-                # Save or update coin in the Coins model
+                    exists = MemeCoin.objects.filter(cmc_id=coin.get("id")).exists()
 
-                    coin_obj, created = MemeCoin.objects.update_or_create(
-                        cmc_id=coin.get("id"),
-                        defaults={
-                            "name": coin.get("name"),
-                            "symbol": coin.get("symbol"),
-                            "market_cap_rank": coin.get("cmc_rank"),
-                            "date_added": datetime.strptime(coin.get("last_updated"), "%Y-%m-%dT%H:%M:%S.%fZ"),
-                        },
-                    )
+                    if exists == False:
+                        coin_obj, created = MemeCoin.objects.update_or_create(
+                            cmc_id=coin.get("id"),
+                            defaults={
+                                "name": coin.get("name"),
+                                "symbol": coin.get("symbol"),
+                                "market_cap_rank": coin.get("cmc_rank"),
+                                "date_added": datetime.strptime(coin.get("last_updated"), "%Y-%m-%dT%H:%M:%S.%fZ"),
+                            },
+                        )
 
-                    #print("new meme coin created")
-                    #print(coin_obj.symbol)
+                        #print("new meme coin created")
+                        #print(coin_obj.symbol)
 
-                    # If the coin is new, fetch its metrics
-                    if created:
-                        print("MEME CREATED")
-                        text_message = f"new meme coin created: {coin_obj.symbol}"
-                        text_to_send = [text_message]
-                        send_text(text_to_send)
-                        #fetch_memecoin_metrics(coin_obj)
-                    else:
-                        print("MEME NOT CREATED")
-                        text_message = f"new meme coin FAILED: {coin_obj.symbol}"
-                        text_to_send = [text_message]
-                        send_text(text_to_send)
+                        # If the coin is new, fetch its metrics
+                        if created:
+                            print("MEME CREATED")
+                            text_message = f"new meme coin created: {coin_obj.symbol}"
+                            text_to_send = [text_message]
+                            send_text(text_to_send)
+                            #fetch_memecoin_metrics(coin_obj)
+                        else:
+                            print("MEME NOT CREATED")
+                            text_message = f"new meme coin FAILED: {coin_obj.symbol}"
+                            text_to_send = [text_message]
+                            send_text(text_to_send)
 
         print("New Solana meme coins checked and updated.")
     except Exception as e:
@@ -696,9 +697,6 @@ def fetch_memecoin_metrics(coin=None):
         print(f"Error fetching metrics for batch starting with: {e}")
 
 
-
-
-
 def meme_coin_triggers():
 
     meme_coins = MemeCoin.objects.all()
@@ -773,9 +771,17 @@ def meme_coin_triggers():
             # 3. has consistent price increase over 5 intervals of 1 minute ( so 5 green candle sticks in a row on the 1 minute)
             # 4. has atleast a volume of 200K
 
-            if hasattr(current_meme_metric, 'volume_24h') and current_meme_metric.volume_24h != None:
-                if current_meme_metric.volume_24h < 300000:
+            current_time = now()
+
+            if hasattr(coin, 'date_added') and coin.date_added != None:
+                time_difference = current_time - coin.date_added
+                if time_difference >= timedelta(hours=3):
                     meme_trigger_four = False
+
+            if meme_trigger_four == True:
+                if hasattr(current_meme_metric, 'volume_24h') and current_meme_metric.volume_24h != None:
+                    if current_meme_metric.volume_24h < 300000:
+                        meme_trigger_four = False
 
             if meme_trigger_four == True:
                 trigger = "MEME | " + coin.symbol + " : RICKI'S CRITERIA HIT"
