@@ -578,7 +578,7 @@ def check_new_solana_listings():
     try:
         response = requests.get(url, headers=HEADERS)
         response.raise_for_status()
-        new_listings = response.json().get("data", [])
+        new_listings = response.json().get("data", {})
 
         print(new_listings)
 
