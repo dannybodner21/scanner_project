@@ -592,7 +592,7 @@ def check_new_solana_listings():
                         "name": coin.get("name"),
                         "symbol": coin.get("symbol"),
                         "market_cap_rank": coin.get("cmc_rank"),
-                        "last_updated": datetime.strptime(coin.get("last_updated"), "%Y-%m-%dT%H:%M:%S.%fZ"),
+                        "date_added": datetime.strptime(coin.get("last_updated"), "%Y-%m-%dT%H:%M:%S.%fZ"),
                     },
                 )
 
@@ -642,10 +642,6 @@ def fetch_memecoin_metrics():
                     coin = MemeCoin.objects.get(cmc_id=cmc_id)
 
                     coin_data = data["data"][str(cmc_id)]
-
-                    last_updated = datetime.strptime(
-                        coin_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                    )
 
                     try:
                         MemeShortIntervalData.objects.update_or_create(
