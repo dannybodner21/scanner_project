@@ -672,7 +672,9 @@ def fetch_memecoin_metrics(coin=None):
                 try:
                     meme_metric = MemeMetric.objects.update_or_create(
                         coin=coin,
-                        timestamp=last_updated,
+                        timestamp=datetime.strptime(
+                            coin_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
                         defaults={
                             "five_min_relative_volume": calculate_meme_five_min_relative_volume(coin),
                             "price_change_5min": calculate_meme_price_change_five_min(coin),
