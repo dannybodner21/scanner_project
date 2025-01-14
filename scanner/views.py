@@ -1132,6 +1132,120 @@ def index(request):
                             trigger = coin.symbol + " : TRIGGER TEN HIT !!!"
                             true_triggers_two.append(trigger)
 
+
+
+
+
+        # updated triggers ------------------------------------------
+
+        # PRIMARY TRIGGER - HIGH CONFIDENCE
+        # rolling rvol increased by 5-10% over 15-30 min period
+        # 5 min rvol > 1.3 or 20 min rvol > 1.0
+        # 5 min and 10 min price change are positive, while 1hr or
+        # 24hr price change is negative -5% to -20%
+
+        # rolling rvol change > 5% over 30 min
+        # rvol now - rvol 30 min ago / rvol 30 min ago * 100
+        primary_trigger_metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')[:8]
+        if len(primary_trigger_metrics) > 6:
+            primary_trigger_rvol_now = primary_trigger_metrics[0].rolling_relative_volume
+            primary_trigger_rvol_30min_ago = primary_trigger_metrics[6].rolling_relative_volume
+            temp_value = (primary_trigger_rvol_now - primary_trigger_rvol_30min_ago)
+            if primary_trigger_rvol_30min_ago != 0:
+                primary_trigger_rvol_change = (temp_value / primary_trigger_rvol_30min_ago) * 100
+
+            else:
+                primary_trigger_rvol_change = 0
+
+            if primary_trigger_rvol_change > 5:
+
+                if (primary_trigger_metrics[0].five_min_relative_volume > 1.3) or (primary_trigger_metrics[0].twenty_min_relative_volume > 1.0):
+
+                    if (primary_trigger_metrics[0].price_change_5min > 0.0) and (primary_trigger_metrics[0].price_change_10min > 0.0):
+
+                        if (primary_trigger_metrics[0].price_change_1hr < -5 or primary_trigger_metrics[0].price_change_24hr < -5):
+
+                            # rolling rvol change > 10% over 30 min
+                            if primary_trigger_rvol_change > 10:
+
+                                primary_trigger = coin.symbol + " : PRIMARY TRIGGER HIT | rvol > 5% !"
+                                true_triggers_two.append(primary_trigger)
+
+                            else:
+
+                                primary_trigger = coin.symbol + " : PRIMARY TRIGGER HIT | rvol > 10% !!!!!!!!!!"
+                                true_triggers_two.append(primary_trigger)
+
+
+        # SECONDARY TRIGGER - MEDIUM CONFIDENCE
+        # 24hr volume increasing steadily by 5-10% over 1-2 hours
+        # market cap is increasing
+        # 7day price change down 20% or more (oversold)
+        secondary_trigger_metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')[:13]
+        secondary_trigger_volumes = [metric['volume_24h'] for metric in secondary_trigger_metrics]
+        tolerance = 0
+
+        for i in range(1, len(secondary_trigger_metrics)):
+            # Calculate time difference in hours
+            time_diff = (secondary_trigger_metrics[i]['timestamp'] - secondary_trigger_metrics[i - 1]['timestamp']).total_seconds() / 3600.0
+
+            # Check if the time difference is 1 hour
+            if time_diff >= 1:
+                # Calculate percentage change
+                prev_volume = secondary_trigger_metrics[i - 1]['volume_24h']
+                curr_volume = secondary_trigger_metrics[i]['volume_24h']
+                if prev_volume != 0:
+                    percentage_change = (curr_volume - prev_volume) / prev_volume * 100
+                else:
+                    percentage_change = 0
+
+                # If the increase is less than the threshold, return False
+                if percentage_change > 5:
+
+                    # check for increasing market cap
+                    secondary_trigger_market_caps = [metric['market_cap'] for metric in secondary_trigger_metrics]
+
+                    # Check for steady increase
+                    for i in range(1, len(secondary_trigger_market_caps)):
+                        try:
+                            market_cap_change = (secondary_trigger_market_caps[i] - secondary_trigger_market_caps[i - 1]) / secondary_trigger_market_caps[i - 1] * 100
+
+                            if market_cap_change < -tolerance:
+
+                                if secondary_trigger_metrics[0].price_change_7d < -20:
+
+                                    secondary_trigger = coin.symbol + " : SECONDARY TRIGGER HIT !!"
+                                    true_triggers_two.append(secondary_trigger)
+
+                        except:
+                            print("FAILED TO CALCULATE MARKET CAP PERCENTAGE CHANGE")
+
+
+        # AMPLIFYING TRIGGER - HIGH CONFIDENCE
+        # 5 min or 10 min price change is increasing
+        # 5 min rvol > 1.3
+        window_minutes = 60
+        threshold = 0.2
+        latest_time = secondary_trigger_metrics[-1]['timestamp']
+        window_start = latest_time - timedelta(minutes = window_minutes)
+        filtered_metrics = [m for m in metrics if m['timestamp'] >= window_start]
+
+        # Check for increasing 5-minute and 10-minute price change
+        for i in range(1, len(filtered_metrics)):
+            prev = filtered_metrics[i - 1]
+            curr = filtered_metrics[i]
+
+            # Ensure both 5 and 10-minute price changes are increasing
+            if (curr['price_change_5min'] > prev['price_change_5min'] + threshold and
+                curr['price_change_10min'] > prev['price_change_10min'] + threshold):
+
+                if secondary_trigger_metrics[0].five_min_relative_volume > 1.3:
+
+                    amplifying_trigger = coin.symbol + " : AMPLIFYING TRIGGER HIT !!!"
+                    true_triggers_two.append(amplifying_trigger)
+
+
+
         if len(true_triggers_two) > 0:
             send_text(true_triggers_two)
 
