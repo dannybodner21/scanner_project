@@ -1459,12 +1459,15 @@ def analyze_recent_metrics(event_time, coin_symbol):
     # KAS on Jan 13, 2025 at 1445 - about to go up 20%
     # FARTCOIN on Jan 13, 2025 at 1215 - about to go up 60%
     # TURBO on Jan 13, 2025 at 1845 - about to go up 14%
+    # ACT on Jan 13, 2025 at 1900 - about to go up 16%
 
 
     # Define the event time
 
     # Jan 13, 2025, 1445 UTC
     #event_time = datetime(2025, 1, 13, 14, 45, tzinfo=timezone.utc)
+
+    #python manage.py analyze_recent_metrics
 
     # Jan 13, 2025, 1215 UTC
     #event_time = datetime(2025, 1, 13, 12, 15, tzinfo=timezone.utc)
