@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import logging
 from scanner.views import analyze_recent_metrics
 
