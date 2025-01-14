@@ -1222,7 +1222,7 @@ def index(request):
         # 5 min or 10 min price change is increasing
         # 5 min rvol > 1.3
 
-        window_minutes = 60
+        window_minutes = 30
         threshold = 0.2
 
         # Ensure metrics are ordered by timestamp (oldest to newest)
@@ -1244,7 +1244,7 @@ def index(request):
                 curr.price_change_10min > prev.price_change_10min + threshold):
 
                 # Check for relative volume
-                if secondary_trigger_metrics[0].five_min_relative_volume > 1.3:
+                if secondary_trigger_metrics[0].five_min_relative_volume > 1.8:
                     amplifying_trigger = coin.symbol + " : AMPLIFYING TRIGGER HIT !!!"
                     true_triggers_two.append(amplifying_trigger)
 
