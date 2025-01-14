@@ -3356,18 +3356,23 @@ def analyze_historical_metrics():
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
 
-    target_time = "2024-11-09 11:00:00"
+    target_time = "2025-01-25 14:45:00"
     target_datetime = datetime.strptime(target_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
     time_end = target_datetime.isoformat()
     time_start = (target_datetime - timedelta(days=30)).isoformat()
 
 
 
+    # UTC TIME ZONE------------------------------------------------
     # XRP at Dec 20, 2024 12:30:00 - right before 16% up
     # XRP at Dec 10, 2024 19:00:00 - 16% up
     # XRP at Dec 02, 2024 12:00:00 - 18% up
     # XRP at Dec 01, 2024 17:00:00 - 28% up
     # XRP at Nov 09, 2024 21:00:00 - 120% up
+
+    # KAS on Jan 13, 2025 at 1445 - about to go up 20%
+
+
 
 
 
@@ -6748,6 +6753,68 @@ def manually_clean_database():
 def test(request):
     return render(request, "test.html")
 
+
+
+
+def analyze_recent_metrics():
+
+    # UTC TIME ZONE------------------------------------------------
+    # XRP at Dec 20, 2024 12:30:00 - right before 16% up
+    # XRP at Dec 10, 2024 19:00:00 - 16% up
+    # XRP at Dec 02, 2024 12:00:00 - 18% up
+    # XRP at Dec 01, 2024 17:00:00 - 28% up
+    # XRP at Nov 09, 2024 21:00:00 - 120% up
+
+    # KAS on Jan 13, 2025 at 1445 - about to go up 20%
+
+
+    # Define the event time
+    # Jan 13, 2025, 1445 UTC
+    event_time = datetime(2025, 1, 13, 14, 45, tzinfo=timezone.utc)
+
+    # Calculate the time range: 30 minutes before and 5 hours after
+    start_time = event_time - timedelta(minutes=30)
+    end_time = event_time + timedelta(hours=5)
+
+    try:
+        coin_symbol = "KAS"
+        coin = Coin.objects.get(symbol=coin_symbol)
+
+        metrics = coin.metrics.filter(timestamp__gte=start_time, timestamp__lte=end_time)
+
+        # Prepare the data for JSON response
+        metrics_data = [
+            {
+                "Metric Name": metric.coin.symbol,
+                "Timestamp": metric.timestamp,
+                "daily rvol": metric.daily_relative_volume,
+                "rolling rvol": metric.rolling_relative_volume,
+                "five min rvol": metric.five_min_relative_volume,
+                "20 min rvol": metric.twenty_min_relative_volume,
+                "5 min price change": metric.price_change_5min,
+                "10 min price change": metric.price_change_10min,
+                "1hr price change": metric.price_change_1hr,
+                "24hr price change": metric.price_change_24hr,
+                "7day price change": metric.price_change_7d,
+                "circulaating supply": metric.circulating_supply,
+                "24hr volume": metric.volume_24h,
+                "last price": metric.last_price,
+                "market cap": metric.market_cap,
+            }
+
+            for metric in metrics
+        ]
+
+        # Return the data as JSON
+        return JsonResponse({"status": "success", "coin": coin_name, "metrics": metrics_data})
+
+    except Coin.DoesNotExist:
+        # Handle case where the coin does not exist
+        return JsonResponse({"status": "error", "message": f"Coin '{coin_name}' not found."})
+
+    except Exception as e:
+        # Handle other exceptions
+        return JsonResponse({"status": "error", "message": str(e)})
 
 
 
