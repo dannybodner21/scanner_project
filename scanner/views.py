@@ -1532,8 +1532,11 @@ def analyze_recent_metrics(event_time, coin_symbol):
                 "market cap": metric.market_cap,
             }
 
-            for metric in metrics
+            for metric in metrics_data:
+                print(metric)
         ]
+
+        for metric in metrics:
 
         # Return the data as JSON
         return JsonResponse({"status": "success", "coin": coin_name, "metrics": metrics_data})
