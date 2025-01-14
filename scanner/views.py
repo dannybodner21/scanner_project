@@ -1462,6 +1462,7 @@ def analyze_recent_metrics(event_time, coin_symbol):
     # ACT on Jan 13, 2025 at 1900 - about to go up 16%
     # URO on Jan 13, 2025 at 2030 - about to go up 24%
     # STMX on Jan 13, 2025 at 1900 - about to go up 17%
+    # PRIME on Jan 13, 2025 at 1845 - about to go up 22%
 
 
     # Define the event time
@@ -1477,22 +1478,25 @@ def analyze_recent_metrics(event_time, coin_symbol):
 
 
     #coin_symbol = "KAS"
-    python manage.py analyze_recent_metrics --coin_symbol="KAS" --event_time="2025-01-13 14:45:00"
+    #python manage.py analyze_recent_metrics --coin_symbol="KAS" --event_time="2025-01-13 14:45:00"
 
     #coin_symbol = "FARTCOIN"
-    python manage.py analyze_recent_metrics --coin_symbol="FARTCOIN" --event_time="2025-01-13 12:15:00"
+    #python manage.py analyze_recent_metrics --coin_symbol="FARTCOIN" --event_time="2025-01-13 12:15:00"
 
     #coin_symbol = "TURBO"
-    python manage.py analyze_recent_metrics --coin_symbol="TURBO" --event_time="2025-01-13 18:45:00"
+    #python manage.py analyze_recent_metrics --coin_symbol="TURBO" --event_time="2025-01-13 18:45:00"
 
     #coin_symbol = "ACT"
-    python manage.py analyze_recent_metrics --coin_symbol="ACT" --event_time="2025-01-13 19:00:00"
+    #python manage.py analyze_recent_metrics --coin_symbol="ACT" --event_time="2025-01-13 19:00:00"
 
     #coin_symbol = "URO"
-    python manage.py analyze_recent_metrics --coin_symbol="URO" --event_time="2025-01-13 18:45:00"
+    #python manage.py analyze_recent_metrics --coin_symbol="URO" --event_time="2025-01-13 18:45:00"
 
     #coin_symbol = "STMX"
-    python manage.py analyze_recent_metrics --coin_symbol="STMX" --event_time="2025-01-13 19:00:00"
+    #python manage.py analyze_recent_metrics --coin_symbol="STMX" --event_time="2025-01-13 19:00:00"
+
+    #coin_symbol = "PRIME"
+    #python manage.py analyze_recent_metrics --coin_symbol="PRIME" --event_time="2025-01-13 18:45:00"
 
 
 
