@@ -1147,34 +1147,34 @@ def index(request):
         # rolling rvol change > 5% over 30 min
         # rvol now - rvol 30 min ago / rvol 30 min ago * 100
         primary_trigger_metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')[:8]
+
+        # Ensure we have enough data points
         if len(primary_trigger_metrics) > 6:
             primary_trigger_rvol_now = primary_trigger_metrics[0].rolling_relative_volume
             primary_trigger_rvol_30min_ago = primary_trigger_metrics[6].rolling_relative_volume
-            temp_value = (primary_trigger_rvol_now - primary_trigger_rvol_30min_ago)
-            if primary_trigger_rvol_30min_ago != 0:
-                primary_trigger_rvol_change = (temp_value / primary_trigger_rvol_30min_ago) * 100
 
+            # Calculate percentage change in rolling relative volume
+            if primary_trigger_rvol_30min_ago != 0:
+                primary_trigger_rvol_change = ((primary_trigger_rvol_now - primary_trigger_rvol_30min_ago) / primary_trigger_rvol_30min_ago) * 100
             else:
                 primary_trigger_rvol_change = 0
 
+            # Trigger conditions
             if primary_trigger_rvol_change > 5:
+                if (primary_trigger_metrics[0].five_min_relative_volume > 1.3 or
+                    primary_trigger_metrics[0].twenty_min_relative_volume > 1.0):
+                    if (primary_trigger_metrics[0].price_change_5min > 0.0 and
+                        primary_trigger_metrics[0].price_change_10min > 0.0):
+                        if (primary_trigger_metrics[0].price_change_1hr < -5 or
+                            primary_trigger_metrics[0].price_change_24hr < -5):
 
-                if (primary_trigger_metrics[0].five_min_relative_volume > 1.3) or (primary_trigger_metrics[0].twenty_min_relative_volume > 1.0):
-
-                    if (primary_trigger_metrics[0].price_change_5min > 0.0) and (primary_trigger_metrics[0].price_change_10min > 0.0):
-
-                        if (primary_trigger_metrics[0].price_change_1hr < -5 or primary_trigger_metrics[0].price_change_24hr < -5):
-
-                            # rolling rvol change > 10% over 30 min
+                            # Primary trigger identified
+                            primary_trigger = f"{coin.symbol} : PRIMARY TRIGGER HIT | rvol > 5% !"
                             if primary_trigger_rvol_change > 10:
+                                primary_trigger += " (rvol > 10% !!!!!!!!!!)"
 
-                                primary_trigger = coin.symbol + " : PRIMARY TRIGGER HIT | rvol > 5% !"
-                                true_triggers_two.append(primary_trigger)
+                            true_triggers_two.append(primary_trigger)
 
-                            else:
-
-                                primary_trigger = coin.symbol + " : PRIMARY TRIGGER HIT | rvol > 10% !!!!!!!!!!"
-                                true_triggers_two.append(primary_trigger)
 
 
         # SECONDARY TRIGGER - MEDIUM CONFIDENCE
@@ -1187,33 +1187,30 @@ def index(request):
 
         for i in range(1, len(secondary_trigger_metrics)):
             # Calculate time difference in hours
-            time_diff = (secondary_trigger_metrics[i].timestamp - secondary_trigger_metrics[i - 1].timestamp).total_seconds() / 3600.0
+            time_diff = (secondary_trigger_metrics[i - 1].timestamp - secondary_trigger_metrics[i].timestamp).total_seconds() / 3600.0
 
             # Check if the time difference is 1 hour
             if time_diff >= 1:
                 # Calculate percentage change
-                prev_volume = secondary_trigger_metrics[i - 1].volume_24h
-                curr_volume = secondary_trigger_metrics[i].volume_24h
+                prev_volume = secondary_trigger_metrics[i].volume_24h
+                curr_volume = secondary_trigger_metrics[i - 1].volume_24h
                 if prev_volume != 0:
                     percentage_change = (curr_volume - prev_volume) / prev_volume * 100
                 else:
                     percentage_change = 0
 
-                # If the increase is less than the threshold, return False
+                # If the increase is greater than the threshold
                 if percentage_change > 5:
-
-                    # check for increasing market cap
+                    # Check for increasing market cap
                     secondary_trigger_market_caps = [metric.market_cap for metric in secondary_trigger_metrics]
 
                     # Check for steady increase
-                    for i in range(1, len(secondary_trigger_market_caps)):
+                    for j in range(1, len(secondary_trigger_market_caps)):
                         try:
-                            market_cap_change = (secondary_trigger_market_caps[i] - secondary_trigger_market_caps[i - 1]) / secondary_trigger_market_caps[i - 1] * 100
+                            market_cap_change = (secondary_trigger_market_caps[j] - secondary_trigger_market_caps[j - 1]) / secondary_trigger_market_caps[j - 1] * 100
 
                             if market_cap_change < -tolerance:
-
                                 if secondary_trigger_metrics[0].price_change_7d < -20:
-
                                     secondary_trigger = coin.symbol + " : SECONDARY TRIGGER HIT !!"
                                     true_triggers_two.append(secondary_trigger)
 
@@ -1224,13 +1221,20 @@ def index(request):
         # AMPLIFYING TRIGGER - HIGH CONFIDENCE
         # 5 min or 10 min price change is increasing
         # 5 min rvol > 1.3
+
         window_minutes = 60
         threshold = 0.2
-        latest_time = secondary_trigger_metrics[-1].timestamp
-        window_start = latest_time - timedelta(minutes = window_minutes)
+
+        # Ensure metrics are ordered by timestamp (oldest to newest)
+        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+        latest_time = secondary_trigger_metrics[0].timestamp
+        window_start = latest_time - timedelta(minutes=window_minutes)
+
+        # Filter metrics within the time window
         filtered_metrics = [m for m in metrics if m.timestamp >= window_start]
 
-        # Check for increasing 5-minute and 10-minute price change
+        # Check for increasing 5-minute and 10-minute price changes
         for i in range(1, len(filtered_metrics)):
             prev = filtered_metrics[i - 1]
             curr = filtered_metrics[i]
@@ -1239,10 +1243,11 @@ def index(request):
             if (curr.price_change_5min > prev.price_change_5min + threshold and
                 curr.price_change_10min > prev.price_change_10min + threshold):
 
+                # Check for relative volume
                 if secondary_trigger_metrics[0].five_min_relative_volume > 1.3:
-
                     amplifying_trigger = coin.symbol + " : AMPLIFYING TRIGGER HIT !!!"
                     true_triggers_two.append(amplifying_trigger)
+
 
 
 
