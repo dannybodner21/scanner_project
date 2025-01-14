@@ -1447,7 +1447,7 @@ def test(request):
 
 
 
-def analyze_recent_metrics():
+def analyze_recent_metrics(event_time, coin_symbol):
 
     # UTC TIME ZONE------------------------------------------------
     # XRP at Dec 20, 2024 12:30:00 - right before 16% up
@@ -1457,18 +1457,36 @@ def analyze_recent_metrics():
     # XRP at Nov 09, 2024 21:00:00 - 120% up
 
     # KAS on Jan 13, 2025 at 1445 - about to go up 20%
+    # FARTCOIN on Jan 13, 2025 at 1215 - about to go up 60%
+    # TURBO on Jan 13, 2025 at 1845 - about to go up 14%
 
 
     # Define the event time
-    # Jan 13, 2025, 1445 UTC
-    event_time = datetime(2025, 1, 13, 14, 45, tzinfo=timezone.utc)
 
-    # Calculate the time range: 30 minutes before and 5 hours after
-    start_time = event_time - timedelta(minutes=30)
+    # Jan 13, 2025, 1445 UTC
+    #event_time = datetime(2025, 1, 13, 14, 45, tzinfo=timezone.utc)
+
+    # Jan 13, 2025, 1215 UTC
+    #event_time = datetime(2025, 1, 13, 12, 15, tzinfo=timezone.utc)
+
+    # Jan 13, 2025, 1845 UTC
+    #event_time = datetime(2025, 1, 13, 18, 45, tzinfo=timezone.utc)
+
+    #coin_symbol = "KAS"
+    #coin_symbol = "FARTCOIN"
+    #coin_symbol = "TURBO"
+
+
+
+
+
+
+
+    # Calculate the time range: 1 hour before and 5 hours after
+    start_time = event_time - timedelta(hours=1)
     end_time = event_time + timedelta(hours=5)
 
     try:
-        coin_symbol = "KAS"
         coin = Coin.objects.get(symbol=coin_symbol)
 
         metrics = coin.metrics.filter(timestamp__gte=start_time, timestamp__lte=end_time)
@@ -1506,6 +1524,17 @@ def analyze_recent_metrics():
     except Exception as e:
         # Handle other exceptions
         return JsonResponse({"status": "error", "message": str(e)})
+
+
+
+
+
+
+
+
+
+
+
 
 
 
