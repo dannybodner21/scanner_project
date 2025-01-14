@@ -6766,14 +6766,43 @@ def analyze_recent_metrics():
     # XRP at Nov 09, 2024 21:00:00 - 120% up
 
     # KAS on Jan 13, 2025 at 1445 - about to go up 20%
+<<<<<<< HEAD
+=======
+    # FARTCOIN on Jan 13, 2025 at 1215 - about to go up 60%
+    # TURBO on Jan 13, 2025 at 1845 - about to go up 14%
+    # ACT on Jan 13, 2025 at 1900 - about to go up 16%
+>>>>>>> 2bcfd4a (who cares)
 
 
     # Define the event time
     # Jan 13, 2025, 1445 UTC
     event_time = datetime(2025, 1, 13, 14, 45, tzinfo=timezone.utc)
 
+<<<<<<< HEAD
     # Calculate the time range: 30 minutes before and 5 hours after
     start_time = event_time - timedelta(minutes=30)
+=======
+    #python manage.py analyze_recent_metrics
+
+    # Jan 13, 2025, 1215 UTC
+    #event_time = datetime(2025, 1, 13, 12, 15, tzinfo=timezone.utc)
+
+    # Jan 13, 2025, 1845 UTC
+    #event_time = datetime(2025, 1, 13, 18, 45, tzinfo=timezone.utc)
+
+    #coin_symbol = "KAS"
+    #coin_symbol = "FARTCOIN"
+    #coin_symbol = "TURBO"
+
+
+
+
+
+
+
+    # Calculate the time range: 1 hour before and 5 hours after
+    start_time = event_time - timedelta(hours=1)
+>>>>>>> 2bcfd4a (who cares)
     end_time = event_time + timedelta(hours=5)
 
     try:
