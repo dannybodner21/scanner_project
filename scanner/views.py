@@ -1240,8 +1240,14 @@ def index(request):
             curr = filtered_metrics[i]
 
             # Ensure both 5 and 10-minute price changes are increasing
-            if (curr.price_change_5min > prev.price_change_5min + threshold and
-                curr.price_change_10min > prev.price_change_10min + threshold):
+            if (
+                prev.price_change_5min is not None and
+                curr.price_change_5min is not None and
+                prev.price_change_10min is not None and
+                curr.price_change_10min is not None and
+                curr.price_change_5min > prev.price_change_5min + threshold and
+                curr.price_change_10min > prev.price_change_10min + threshold
+            ):
 
                 # Check for relative volume
                 if secondary_trigger_metrics[0].five_min_relative_volume > 1.8:
