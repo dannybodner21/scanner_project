@@ -315,9 +315,6 @@
   </section>
 
 
-
-
-
   <script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js?site=67624bd2e2bb68861c119a32" type="text/javascript" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
 
   <script>
@@ -354,15 +351,16 @@
     }
 
 
-    // Add event listeners to table rows
-    document.querySelectorAll("#volume-table tr").forEach((row) => {
-        row.addEventListener("click", function () {
-            const symbol = this.getAttribute("data-symbol");
-            if (symbol) {
-                loadTradingView(symbol);
-            }
-        });
+    document.querySelector('#volume-table').addEventListener('click', function (event) {
+        // Check if the clicked element is a row
+        const row = event.target.closest('tr');
+        if (row && row.dataset.symbol) {
+            const symbol = row.dataset.symbol;
+            // Call the function to update the TradingView chart
+            loadTradingView(symbol);
+        }
     });
+
 
     // Initialize the widget with a default symbol
     document.addEventListener("DOMContentLoaded", () => {
@@ -383,32 +381,6 @@
             // Clear and rebuild the table rows using the returned data
             let rows = '';
             data.sorted_volumes.forEach((crypto) => {
-
-              /*
-                rows += `<tr>
-                            <td style="color:black; border:0.5px solid black;">${crypto.rank}</td>
-                            <td style="color:black; border:0.5px solid black;">${crypto.symbol}</td>
-                            <td style="color:black; border:0.5px solid black;">${crypto.price_change_24h_percentage}</td>
-                            <td style="color:black; border:0.5px solid black;">${crypto.daily_relative_volume}</td>
-                            <td style="color:green; border:0.5px solid black;text-align:left;">
-                              <ul>
-                                <li>${crypto.volumes[0]}</li>
-                                <li>${crypto.volumes[1]}</li>
-                                <li>${crypto.volumes[2]}</li>
-                                <li>${crypto.volumes[3]}</li>
-                                <li>${crypto.volumes[4]}</li>
-                                <li>${crypto.volumes[5]}</li>
-                                <li>${crypto.volumes[6]}</li>
-                                <li>${crypto.volumes[7]}</li>
-                                <li>${crypto.volumes[8]}</li>
-                                <li>${crypto.volumes[9]}</li>
-                                <li>${crypto.volumes[10]}</li>
-                                <li>${crypto.volumes[11]}</li>
-                                <li>${crypto.volumes[12]}</li>
-                              </ul>
-                            </td>
-                         </tr>`;
-                */
 
                 rows += `<tr data-symbol="${ crypto.exchange }">
                   <td class="table_card">
@@ -431,17 +403,6 @@
                   </td>
                 </tr>`;
             });
-
-
-
-
-
-
-
-
-
-
-
 
 
             // Update the table body
@@ -477,7 +438,7 @@
 
 
     // Call the function every 5 min
-    setInterval(updateTable, 300000);
+    setInterval(updateTable, 60000);
 
 
   </script>
