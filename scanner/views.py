@@ -2127,12 +2127,16 @@ def load_coins():
 
     specific_coins = ["PHA","GMT","BAN","BLUE","FWOG","VIRTUAL","TOKEN","W","ORDER","NS","FORTH","GRASS","ACX","F","SSV","THE","USTC","SUN","MERL","PUFFER","COOK","MORPHO","L3","ZBCN","FIRE","AI","HIPPO","DAR","POWRBOBA","SUNDOG","LUNA2","ETHFI","REZ","REN","LDO","MDT","AUDIO","FXS","1CAT","PENDLE","XRD","STEEM","TOSHI","AIDOGE","UNI","PORTAL","PEOPLE","LUNC","CLOUD","DYDX","GIGA","XEM","ID","PRIME","ETHW","EDU","PHB","CATI","MEW","APE","RPL","LEVER","XCN","PEAQ","JST","BONK","REEF","ICX","XAI","PIXEL","TRX","CATS","IOTX","BOME","POPCAT","DOP1","RATS","OGN","JTO","IMX","MAVIA","MAV","UXLINK","CTC","METIS","HNT","MAJOR","LIT","BENDOG","KNC","BRETT","MYRO","KAVA","FARTCOIN","OP","KDA","MKR","GMX","ASTR","IO","SATS","REQ","GODS","MOCA","DBR","RAYDIUM","AIOZ","SYN","ZRX","MANEKI","SWELL","UMA","IDEX","LINA","BADGER","PEIPEI","RUNE","SNT","SYS","ZRC","GLM","ENS","STMX","CFX","KEY","BAKE","BNX","OM","AUCTION","GAS","SAGA","VOXEL","LISTA","LSK","SC","OL","KAS","TNSR","ALT","SCRT","FLOKI","MTL","AMB","ARB","CORE","XMR","ORDI","STRK","RSS3","BCH","CYBER","ALPHA","CRV","RARE","DODO","YGG","MEME","VRA","ONG","NFP","LAI","NYAN","SPELL","ARK","BIGTIME","POLYX","OMNI","WOO","HOT","PERP","ACH","DYM","FLOW","BICO","ADA","C98","HIFI","MAGIC","CTK","BSW","ARPA","BLUR","DATA","ZETA","AR","CVX","COMBO","FLUX","SXP","AXS","MINA","WLD","DOGS","CHILLGUY","MASK","FIDA","TLM","BANANA","DOG","JOE","HOOK","CAKE","QI","COS","TRB","XVS","MANTA","NULS","DEGEN","A8","CELO","AVAIL","API3","NTRN","RDNT","YFI","NOT","EIGEN","SLF","SNX","MNT","FTN","POL","CVC","WAXP","CKB","SILLY","BAL","FLM","RIF","ETC","ORBS","CHZ","SLERF","IOTA","ZIL","NEO","OXT","MBL","STX","KSM","1INCH","ILV","MAX","RON","VANRY","CRO","ACE","TAI","AGLD","NEAR","EGLD","T","ANKR","ZK","NKN","GTC","CTSI","NMR","PYTH","CHESS","TON","BNB","XION","ALICE","ARKM","PAXG","ONT","QTUM","FOXY","OMG","OSMO","TAO","NEIROETH","HFT","MANA","GLMR","ROSE","TWT","QUICK","RVN","IOST","SKL","AEVO","ETH","SEP","WAVES","WIF","THETA","COMP","BEL","STORJ","EOS","LRC","GRIFFAIN","GRT","ATOM","GALA","SEND","COTI","AGI","ENJ","G","HMSTR","DENT","DUSK","RSR","CHR","BAND","FIL","XRP","DOGE","KAIA","TRU","DOT","SLP","BSV","TAIKO","STG","VTHO","MOVR","ONDO","BTC","LUMIA","FB","LOOKS","CELR","DGB","SUSHI","LTC","AXL","BEAM","SAND","SEI","MYRIA","ENA","XTZ","LINK","VELODROME","INJ","APT","SOL","TIA","ICP","KMNO","AKT","RENDER","LUCE","VET","AVAX","XLM","SUI","STPT","MOBILE","BLAST","PNUT","SPEC","RAD","BAT","SUPER","ACT","JUP","SAFE","ALEO","PIRATE","FTM","DASH","ZRO","CETUS","ALGO","AAVE","TROY","ONE","XNO","DEEP","ZEUS","MOODENG","HBAR","PRCL","CARV","ATH","JASMY","GEMS","GME","GOAT","AIXBT","LQTY","MON","DRIFT","XVG","MOVE","PENGU","ZEC","SPX","LPT","MOTHER","COW","VELO","ZEN","URO","RIFSOL","DEXE","MASA","PEPE","BTT","XEC","SHIB","LADYS","X","BABYDOGE","NEIROCTO","WEN","MOG","CAT","TURBO"]
 
+<<<<<<< HEAD
     params = {
         "symbol": ",".join(specific_coins),
         "convert": "USD",
     }
 
     try:
+=======
+    chunk_size = 100
+>>>>>>> 08765d1 (who cares)
 
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
@@ -2142,6 +2146,7 @@ def load_coins():
         top_cryptos = []
         for crypto in data["data"]:
 
+<<<<<<< HEAD
             Coin.objects.update_or_create(
                 name=crypto["name"],
                 defaults={
@@ -2155,6 +2160,54 @@ def load_coins():
             )
 
         print("Top coins fetched and updated successfully.")
+=======
+        try:
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            data = response.json().get("data", {})
+
+            top_cryptos = []
+
+            for symbol in specific_coins:
+                coin_data = data.get(symbol)
+                if coin_data:
+                    name = coin_data.get("name")
+                    price = coin_data["quote"]["USD"].get("price")
+                    market_cap = coin_data["quote"]["USD"].get("market_cap")
+
+                    market_pairs = coin_data.get("market_pairs", [])
+                    exchanges = [
+                        pair["exchange"]["name"]
+                        for pair in market_pairs
+                        if pair.get("quote_currency", {}).get("symbol") == "USDT"
+                    ]
+
+                    if len(exchanges) > 0:
+                        exchange = exchanges[0]
+                    else:
+                        exchange = "BINANCE"
+
+                    exchange = exchange.upper()
+                    exchange_info = exchange + ":" + coin_data.get("symbol") + "USDT"
+
+                    Coin.objects.update_or_create(
+                        name=name,
+                        defaults={
+                            "symbol": coin_data.get("symbol"),
+                            "market_cap_rank": coin_data.get("cmc_rank"),
+                            "last_updated": datetime.strptime(
+                                coin_data.get("last_updated"), "%Y-%m-%dT%H:%M:%S.%fZ"
+                            ),
+                            "cmc_id": coin_data.get("id"),
+                            "exchange": exchange_info,
+                        },
+                    )
+
+            print("Top coins fetched and updated successfully.")
+
+        except Exception as e:
+            print(f"Error fetching data: {e}")
+>>>>>>> 08765d1 (who cares)
 
     except Exception as e:
         print(f"Error fetching data: {e}")
@@ -2982,6 +3035,7 @@ def index(request):
 
         coin_name = coin.name
         coin_symbol = coin.symbol
+        coin_exchange = coin.exchange
 
         if hasattr(shortIntervalData, 'price') and shortIntervalData.price != None:
             coin_price = round(shortIntervalData.price, 7)
@@ -3141,6 +3195,134 @@ def index(request):
                             trigger = coin.symbol + " : TRIGGER TEN HIT !!!"
                             true_triggers_two.append(trigger)
 
+<<<<<<< HEAD
+=======
+
+
+
+
+        # updated triggers ------------------------------------------
+
+        # PRIMARY TRIGGER - HIGH CONFIDENCE
+        # rolling rvol increased by 5-10% over 15-30 min period
+        # 5 min rvol > 1.3 or 20 min rvol > 1.0
+        # 5 min and 10 min price change are positive, while 1hr or
+        # 24hr price change is negative -5% to -20%
+
+        # rolling rvol change > 5% over 30 min
+        # rvol now - rvol 30 min ago / rvol 30 min ago * 100
+        primary_trigger_metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')[:8]
+
+        # Ensure we have enough data points
+        if len(primary_trigger_metrics) > 6:
+            primary_trigger_rvol_now = primary_trigger_metrics[0].rolling_relative_volume
+            primary_trigger_rvol_30min_ago = primary_trigger_metrics[6].rolling_relative_volume
+
+            # Calculate percentage change in rolling relative volume
+            if primary_trigger_rvol_30min_ago != 0:
+                primary_trigger_rvol_change = ((primary_trigger_rvol_now - primary_trigger_rvol_30min_ago) / primary_trigger_rvol_30min_ago) * 100
+            else:
+                primary_trigger_rvol_change = 0
+
+            # Trigger conditions
+            if primary_trigger_rvol_change > 5:
+                if (primary_trigger_metrics[0].five_min_relative_volume > 1.3 or
+                    primary_trigger_metrics[0].twenty_min_relative_volume > 1.0):
+                    if (primary_trigger_metrics[0].price_change_5min > 0.0 and
+                        primary_trigger_metrics[0].price_change_10min > 0.0):
+                        if (primary_trigger_metrics[0].price_change_1hr < -5 or
+                            primary_trigger_metrics[0].price_change_24hr < -5):
+
+                            # Primary trigger identified
+                            primary_trigger = f"{coin.symbol} : PRIMARY TRIGGER HIT | rvol > 5% !"
+                            if primary_trigger_rvol_change > 10:
+                                primary_trigger += " (rvol > 10% !!!!!!!!!!)"
+
+                            true_triggers_two.append(primary_trigger)
+
+
+
+        # SECONDARY TRIGGER - MEDIUM CONFIDENCE
+        # 24hr volume increasing steadily by 5-10% over 1-2 hours
+        # market cap is increasing
+        # 7day price change down 20% or more (oversold)
+        secondary_trigger_metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')[:13]
+        secondary_trigger_volumes = [metric.volume_24h for metric in secondary_trigger_metrics]
+        tolerance = 0
+
+        for i in range(1, len(secondary_trigger_metrics)):
+            # Calculate time difference in hours
+            time_diff = (secondary_trigger_metrics[i - 1].timestamp - secondary_trigger_metrics[i].timestamp).total_seconds() / 3600.0
+
+            # Check if the time difference is 1 hour
+            if time_diff >= 1:
+                # Calculate percentage change
+                prev_volume = secondary_trigger_metrics[i].volume_24h
+                curr_volume = secondary_trigger_metrics[i - 1].volume_24h
+                if prev_volume != 0:
+                    percentage_change = (curr_volume - prev_volume) / prev_volume * 100
+                else:
+                    percentage_change = 0
+
+                # If the increase is greater than the threshold
+                if percentage_change > 5:
+                    # Check for increasing market cap
+                    secondary_trigger_market_caps = [metric.market_cap for metric in secondary_trigger_metrics]
+
+                    # Check for steady increase
+                    for j in range(1, len(secondary_trigger_market_caps)):
+                        try:
+                            market_cap_change = (secondary_trigger_market_caps[j] - secondary_trigger_market_caps[j - 1]) / secondary_trigger_market_caps[j - 1] * 100
+
+                            if market_cap_change < -tolerance:
+                                if secondary_trigger_metrics[0].price_change_7d < -20:
+                                    secondary_trigger = coin.symbol + " : SECONDARY TRIGGER HIT !!"
+                                    true_triggers_two.append(secondary_trigger)
+
+                        except:
+                            print("FAILED TO CALCULATE MARKET CAP PERCENTAGE CHANGE")
+
+
+        # AMPLIFYING TRIGGER - HIGH CONFIDENCE
+        # 5 min or 10 min price change is increasing
+        # 5 min rvol > 1.3
+
+        window_minutes = 30
+        threshold = 0.2
+
+        # Ensure metrics are ordered by timestamp (oldest to newest)
+        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+        latest_time = secondary_trigger_metrics[0].timestamp
+        window_start = latest_time - timedelta(minutes=window_minutes)
+
+        # Filter metrics within the time window
+        filtered_metrics = [m for m in metrics if m.timestamp >= window_start]
+
+        # Check for increasing 5-minute and 10-minute price changes
+        for i in range(1, len(filtered_metrics)):
+            prev = filtered_metrics[i - 1]
+            curr = filtered_metrics[i]
+
+            # Ensure both 5 and 10-minute price changes are increasing
+            if (
+                prev.price_change_5min is not None and
+                curr.price_change_5min is not None and
+                prev.price_change_10min is not None and
+                curr.price_change_10min is not None and
+                curr.price_change_5min > prev.price_change_5min + threshold and
+                curr.price_change_10min > prev.price_change_10min + threshold
+            ):
+
+                # Check for relative volume
+                if secondary_trigger_metrics[0].five_min_relative_volume > 1.5:
+                    amplifying_trigger = coin.symbol + " : AMPLIFYING TRIGGER HIT !!!"
+                    true_triggers_two.append(amplifying_trigger)
+
+
+
+
+>>>>>>> 08765d1 (who cares)
         if len(true_triggers_two) > 0:
             send_text(true_triggers_two)
 
@@ -3163,6 +3345,7 @@ def index(request):
                 "twenty_min_relative_volume": coin_twenty_min_relative_volume,
                 "price_change_5min": coin_price_change_5min,
                 "price_change_10min": coin_price_change_10min,
+                "exchange": coin_exchange,
                 "triggerOne": triggerOne,
                 "triggerTwo": triggerTwo,
                 "triggerThree": triggerThree,
@@ -3220,6 +3403,7 @@ def index(request):
                     "is_descending": is_descending,
                     "daily_relative_volume": coin_daily_relative_volume,
                     "price": coin_price,
+                    "exchange": coin_exchange,
                 })
 
 
