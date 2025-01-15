@@ -7,6 +7,7 @@ class Coin(models.Model):
     symbol = models.CharField(max_length=10)
     market_cap_rank = models.IntegerField(null=True, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
+    exchange = models.CharField(max_length=100)
 
     def __str__(self):
         return f"{self.name}"

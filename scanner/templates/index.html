@@ -137,7 +137,7 @@
         <tbody id="volume-table-body" style="padding:10px;">
           {% for coin in sorted_volumes %}
 
-              <tr data-symbol="BINANCE:{{ coin.symbol }}USDT">
+              <tr data-symbol="{{ coin.exchange }}">
                 <td class="table_card">
                   <div class="card_header">
                     <h3>{{ coin.rank }}. {{ coin.symbol }} ${{ coin.price }}</h3>
@@ -410,7 +410,7 @@
                          </tr>`;
                 */
 
-                rows += `<tr data-symbol="BINANCE:${ crypto.symbol }USDT">
+                rows += `<tr data-symbol="${ crypto.exchange }">
                   <td class="table_card">
                     <div class="card_header">
                       <h3>${ crypto.rank }. ${ crypto.symbol } $${ crypto.price }</h3>
