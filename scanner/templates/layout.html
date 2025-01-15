@@ -20,9 +20,32 @@
   </head>
 
   <body style="min-height: 100vh; margin: 0px">
-    <!--
+
+
+    <div class="nav-bar">
+        <div class="nav-wrapper">
+
+          <div class="logo-wrapper">
+            <img class="fif-logo" src="{% static 'images/FIF-Logo-01.png' %}" alt="Logo" class="navbar-logo">
+          </div>
+
+          <nav role="navigation" class="w-nav-menu">
+            <div class="nav-link-wrap">
+              <div class="navbar-center">
+                <span>Fiat Is Fake - Market Scanner</span>
+              </div>
+            </div>
+          </nav>
+
+        </div>
+    </div>
+
+
+
+
+<!--
     <nav
-      class="navbar navbar-expand-lg navbar-light bg-light justify-content-left"
+      class="navbar navbar-expand-lg justify-content-left"
       style="
         box-shadow:
           0 4px 8px 0 rgba(0, 0, 0, 0.2),
@@ -33,22 +56,26 @@
         z-index: 3;
         padding-top: 10px;
         padding-bottom: 10px;
-        background-color: white;
+        background-color: #162321;
+        color: white;
+        height: 100px;
       "
     >
-      <a class="navbar-brand" href="{% url 'index' %}">
-        Scanner
+
+      <a href="/" class="navbar-brand">
+        <img src="{% static 'images/FIF-Logo-01.png' %}" alt="Logo" class="navbar-logo">
       </a>
 
-      <div class="navbarLarge">
+      <div class="navbarLarge" style="text-align:center;">
         <ul class="navbar-nav mr-auto">
           <li class="nav-item">
-            <a class="nav-link">Welcome, {{ user.username }}!</a>
+            <a class="nav-link">Fiat Is Fake - Market Scanner</a>
           </li>
         </ul>
       </div>
     </nav>
-  -->
+-->
+
 
     <div style="min-height: 100vh">{% block body %} {% endblock %}</div>
 
