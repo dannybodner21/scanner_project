@@ -17,6 +17,32 @@ from django.http import HttpResponse
 
 
 
+def test_message():
+
+    chat_id_danny = '1077594551'
+    chat_id_ricki = '1054741134'
+    chat_ids = [chat_id_danny, chat_id_ricki]
+    bot_token = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+
+    message = " test "
+
+    for chat_id in chat_ids:
+
+        payload = {
+            "chat_id": chat_id,
+            "text": message,
+            "parse_mode": "Markdown",
+        }
+
+        response = requests.post(url, data=payload)
+
+        if response.status_code == 200:
+            print("Message sent successfully.")
+        else:
+            print(f"Failed to send message: {response.content}")
+
+
 # bot message notificagtions
 def send_text(true_triggers_two):
 
@@ -24,32 +50,32 @@ def send_text(true_triggers_two):
 
         # telegram bot information
         chat_id_danny = '1077594551'
-        chat_id_ricki = '1054741134'
-        chat_ids = [chat_id_danny, chat_id_ricki]
-        #chat_ids = [chat_id_danny]
+        #chat_id_ricki = '1054741134'
+        #chat_ids = [chat_id_danny, chat_id_ricki]
+        chat_ids = [chat_id_danny]
         bot_token = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
 
 
-    # send message to myself and Ricki
-    message = ""
-    for chat_id in chat_ids:
-        for trigger in true_triggers_two:
+        # send message to myself and Ricki
+        message = ""
+        for chat_id in chat_ids:
+            for trigger in true_triggers_two:
 
-            message += trigger + " "
+                message += trigger + " "
 
-            payload = {
-                "chat_id": chat_id,
-                "text": message,
-                "parse_mode": "Markdown",
-            }
+                payload = {
+                    "chat_id": chat_id,
+                    "text": message,
+                    "parse_mode": "Markdown",
+                }
 
-            response = requests.post(url, data=payload)
+                response = requests.post(url, data=payload)
 
-            if response.status_code == 200:
-                print("Message sent successfully.")
-            else:
-                print(f"Failed to send message: {response.content}")
+                if response.status_code == 200:
+                    print("Message sent successfully.")
+                else:
+                    print(f"Failed to send message: {response.content}")
 
     return
 
