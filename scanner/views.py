@@ -3146,9 +3146,11 @@ def index(request):
         # TRIGGER EIGHT - circulating supply down >5% in last 24 hours
         triggerEight = False
         circulating_supplies = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')
-        remaining_circulating_supplies = circulating_supplies[1:]
-        circulating_supply_now = circulating_supplies[0].circulating_supply
-        sum_circulating_supplies = sum(data.circulating_supply for data in remaining_circulating_supplies)
+        remaining_circulating_supplies = []
+        if len(circulating_supplies) > 2:
+            remaining_circulating_supplies = circulating_supplies[1:]
+            circulating_supply_now = circulating_supplies[0].circulating_supply
+            sum_circulating_supplies = sum(data.circulating_supply for data in remaining_circulating_supplies)
 
         if len(remaining_circulating_supplies) != 0:
             average_circulating_supply = sum_circulating_supplies / len(remaining_circulating_supplies)
