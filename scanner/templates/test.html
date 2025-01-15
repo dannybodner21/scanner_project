@@ -1,4 +1,3 @@
-
 {% extends "layout.html" %}
 
 {% block head %}
@@ -127,14 +126,14 @@
 
     <div class="left-column">
 
-      <table class="volume_table" style="border-radius: 20px; width:100%; overflow-y: auto;">
+      <table id="volume-table" class="volume_table" style="border-radius: 20px; width:100%; overflow-y: auto;">
         <thead>
           <th class="table_header">Relative Volume Scanner</th>
         </thead>
         <tbody id="volume-table-body" style="padding:10px;">
 
 
-                <tr>
+                <tr data-symbol="BINANCE:ETHUSDT">
                   <td class="table_card">
                     <div class="card_header">
                       <h3>1. BTC $100,000</h3>
@@ -145,7 +144,7 @@
                   </td>
                 </tr>
 
-                <tr>
+                <tr data-symbol="BINANCE:BTCUSDT">
                   <td class="table_card">
                     <div class="card_header">
                       <h3>1. BTC $100,000</h3>
@@ -155,7 +154,7 @@
                     <p class="card_item"><strong>RVOL Progression:</strong> 2.3 | 2.4 | 2.1 | 3.4 | 5.6 | 7.6</p>
                   </td>
                 </tr>
-                <tr>
+                <tr data-symbol="BINANCE:DOGEUSDT">
                   <td class="table_card">
                     <div class="card_header">
                       <h3>1. BTC $100,000</h3>
@@ -165,7 +164,7 @@
                     <p class="card_item"><strong>RVOL Progression:</strong> 2.3 | 2.4 | 2.1 | 3.4 | 5.6 | 7.6</p>
                   </td>
                 </tr>
-                <tr>
+                <tr data-symbol="BINANCE:DOTUSDT">
                   <td class="table_card">
                     <div class="card_header">
                       <h3>1. BTC $100,000</h3>
@@ -196,14 +195,13 @@
     <div class="right-column">
 
       <div class="custom-chart-container">
-        <!-- TradingView Widget BEGIN -->
-        <div class="tradingview-widget-container" style="height:100%;width:100%">
+        <div id="tradingview-container" class="tradingview-widget-container" style="height:100%;width:100%">
           <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
             {
               "autosize": true,
               "symbol": "BINANCE:BTCUSDT",
-              "interval": "D",
+              "interval": "5",
               "timezone": "Etc/UTC",
               "theme": "dark",
               "style": "1",
@@ -221,6 +219,54 @@
     </div>
 
   </section>
+
+  <script>
+    function loadTradingView(symbol) {
+
+        const container = document.getElementById("tradingview-container");
+
+        // Clear the existing widget
+        container.innerHTML = "";
+
+        // Create the new TradingView widget
+        const script = document.createElement("script");
+        script.type = "text/javascript";
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+        script.async = true;
+        script.innerHTML = JSON.stringify({
+            autosize: true,
+            symbol: symbol,
+            interval: "5",
+            timezone: "Etc/UTC",
+            theme: "dark",
+            style: "1",
+            locale: "en",
+            hide_side_toolbar: false,
+            allow_symbol_change: true,
+            save_image: false,
+            calendar: false,
+            support_host: "https://www.tradingview.com",
+        });
+
+        container.appendChild(script);
+    }
+
+    // Add event listeners to table rows
+    document.querySelectorAll("#volume-table tr").forEach((row) => {
+        row.addEventListener("click", function () {
+            const symbol = this.getAttribute("data-symbol");
+            if (symbol) {
+                loadTradingView(symbol);
+            }
+        });
+    });
+
+    // Initialize the widget with a default symbol
+    document.addEventListener("DOMContentLoaded", () => {
+        loadTradingView("BINANCE:BTCUSDT");
+    });
+</script>
+
 
 
 
