@@ -8,7 +8,7 @@ import asyncio
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData
+from scanner.models import Coin, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData, Trigger
 from datetime import datetime, timedelta, timezone
 from django.utils.timezone import now
 from django.http import JsonResponse
@@ -16,7 +16,7 @@ from django.http import HttpResponse
 
 
 
-
+# used to test if the telegram bot is sending messages properly
 def test_message():
 
     chat_id_danny = '1077594551'
@@ -76,6 +76,33 @@ def send_text(true_triggers_two):
                     print("Message sent successfully.")
                 else:
                     print(f"Failed to send message: {response.content}")
+
+    return
+
+
+# takes a trigger string and returns True if it already exists in the database
+def check_duplicate_triggers(trigger):
+
+    exists = Trigger.objects.filter(trigger_name=trigger).exists()
+
+    if exists:
+        return True
+    else:
+        return False
+
+
+# deletes triggers in the database that have been there longer than an hour
+def delete_old_triggers():
+
+    # time an hour ago
+    cutoff_time = now() - timedelta(hours=1)
+
+    # delete records older than 1 hour
+    Trigger.objects.filter(timestamp__lt=cutoff_time).delete()
+
+    # log the information
+    deleted_count, _ = Trigger.objects.filter(timestamp__lt=cutoff_time).delete()
+    print(f"{deleted_count} triggers deleted.")
 
     return
 
@@ -215,8 +242,6 @@ def load_coin_exchanges():
             # Update the exchange value
             coin.exchange = exchange_info
             coin.save()
-
-
 
             print("Top coins fetched and updated successfully.")
 
@@ -511,7 +536,6 @@ def calculate_five_min_relative_volume(coin):
 
 
 
-
 def calculate_meme_price_change_five_min(coin):
 
     # (price change over 5 min / price 5 min ago) * 100
@@ -596,13 +620,6 @@ def calculate_meme_five_min_relative_volume(coin):
         print(coin.symbol)
 
     return five_min_relative_volume
-
-
-
-
-
-
-
 
 
 
@@ -897,16 +914,16 @@ def meme_coin_triggers():
 # ====================================================================
 
 
-
-
 def five_min_update(request=None):
 
     # if the time is ~0000 delete old data
-    now = datetime.now()
-    if now.hour == 0 and now.minute <= 5:
+    #now = datetime.now()
+    #if now.hour == 0 and now.minute <= 5:
         #manually_clean_database()
-        print("not deleting right now...")
+        #print("not deleting right now...")
 
+    # delete old Triggers
+    delete_old_triggers()
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
@@ -922,9 +939,9 @@ def five_min_update(request=None):
     # API limit: Up to 100 IDs per call
     batch_size = 100
     for i in range(0, len(cmc_ids), batch_size):
-        cmc_id_batch = cmc_ids[i:i + batch_size]  # Create batches of 100 IDs
+        cmc_id_batch = cmc_ids[i:i + batch_size]
         params = {
-            "id": ",".join(map(str, cmc_id_batch)),  # Pass CMC IDs as a comma-separated string
+            "id": ",".join(map(str, cmc_id_batch)),
             "convert": "USD",
         }
 
@@ -945,8 +962,9 @@ def five_min_update(request=None):
                             crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
                         )
                         coin.save()
-                    except:
+                    except Exception as e:
                         print("FAILED IN GROUP 1")
+                        print(e)
 
                     try:
                         ShortIntervalData.objects.create(
@@ -958,8 +976,9 @@ def five_min_update(request=None):
                             volume_5min=crypto_data["quote"]["USD"]["volume_24h"],
                             circulating_supply=crypto_data["circulating_supply"]
                         )
-                    except:
+                    except Exception as e:
                         print("FAILED IN GROUP 2")
+                        print(e)
 
                     try:
                         metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')
@@ -1005,24 +1024,26 @@ def five_min_update(request=None):
                                 price=crypto_data["quote"]["USD"]["price"],
                                 volume_24h=crypto_data["quote"]["USD"]["volume_24h"],
                             )
+                            print("Created new historical data")
 
-                        except:
+                        except Exception as e:
                             print("Couldn't create new historical data")
+                            print(e)
 
         except Exception as e:
             print(f"Error updating tracked coins for batch {cmc_id_batch}: {e}")
 
 
     # wait 30 seconds before checking solana
-    print("pausing for 30 seconds before solana check")
-    time.sleep(30)
-    print("checking solana")
-    check_new_solana_listings()
-    fetch_memecoin_metrics()
-    print("done fetching solana data")
-    print("checking meme triggers")
-    meme_coin_triggers()
-    print("done checking meme triggers")
+    #print("pausing for 30 seconds before solana check")
+    #time.sleep(30)
+    #print("checking solana")
+    #check_new_solana_listings()
+    #fetch_memecoin_metrics()
+    #print("done fetching solana data")
+    #print("checking meme triggers")
+    #meme_coin_triggers()
+    #print("done checking meme triggers")
 
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
@@ -1308,7 +1329,22 @@ def index(request):
                                 else:
                                     primary_trigger += " (rvol > 5% !)"
 
-                                true_triggers_two.append(primary_trigger)
+                                exists = check_duplicate_triggers(primary_trigger)
+
+                                if exists == False:
+
+                                    true_triggers_two.append(primary_trigger)
+
+                                    # create and save the new Trigger element
+                                    try:
+                                        Trigger.objects.create(trigger_name=primary_trigger, timestamp=now())
+
+                                    except Exception as e:
+                                        print(f"Error creating new Trigger: {e}")
+
+
+
+
 
 
 
@@ -1347,7 +1383,19 @@ def index(request):
                             if market_cap_change < -tolerance:
                                 if secondary_trigger_metrics[0].price_change_7d < -20:
                                     secondary_trigger = coin.symbol + " : Secondary Trigger Hit !"
-                                    true_triggers_two.append(secondary_trigger)
+
+                                    exists = check_duplicate_triggers(secondary_trigger)
+
+                                    if exists == False:
+
+                                        true_triggers_two.append(secondary_trigger)
+
+                                        # create and save the new Trigger element
+                                        try:
+                                            Trigger.objects.create(trigger_name=secondary_trigger, timestamp=now())
+
+                                        except Exception as e:
+                                            print(f"Error creating new Trigger: {e}")
 
                         except:
                             print("FAILED TO CALCULATE MARKET CAP PERCENTAGE CHANGE")
@@ -1388,7 +1436,19 @@ def index(request):
                     # Check for relative volume
                     if secondary_trigger_metrics[0].five_min_relative_volume > 1.5:
                         amplifying_trigger = coin.symbol + " : Amplifying Trigger Hit !"
-                        true_triggers_two.append(amplifying_trigger)
+
+                        exists = check_duplicate_triggers(amplifying_trigger)
+
+                        if exists == False:
+
+                            true_triggers_two.append(amplifying_trigger)
+
+                            # create and save the new Trigger element
+                            try:
+                                Trigger.objects.create(trigger_name=amplifying_trigger, timestamp=now())
+
+                            except Exception as e:
+                                print(f"Error creating new Trigger: {e}")
 
 
         # MEGA TRIGGER 1 : Momentum + Volume Surge -----------------------------
@@ -1423,7 +1483,19 @@ def index(request):
 
                         if volume_change > 5:
                             mega_trigger_1 = coin.symbol + " : Mega Trigger 1 Hit !"
-                            true_triggers_two.append(mega_trigger_1)
+
+                            exists = check_duplicate_triggers(mega_trigger_1)
+
+                            if exists == False:
+
+                                true_triggers_two.append(mega_trigger_1)
+
+                                # create and save the new Trigger element
+                                try:
+                                    Trigger.objects.create(trigger_name=mega_trigger_1, timestamp=now())
+
+                                except Exception as e:
+                                    print(f"Error creating new Trigger: {e}")
 
 
                 # MEGA TRIGGER 2 : Capital Flow + Momentum Confirmation ----------------
@@ -1447,14 +1519,23 @@ def index(request):
                             secondary_trigger_metrics[0].price_change_1h > 0.5):
 
                             mega_trigger_2 = coin.symbol + " : Mega Trigger 2 Hit !"
-                            true_triggers_two.append(mega_trigger_2)
+
+                            exists = check_duplicate_triggers(mega_trigger_2)
+
+                            if exists == False:
+
+                                true_triggers_two.append(mega_trigger_2)
+
+                                # create and save the new Trigger element
+                                try:
+                                    Trigger.objects.create(trigger_name=mega_trigger_2, timestamp=now())
+
+                                except Exception as e:
+                                    print(f"Error creating new Trigger: {e}")
 
 
         if len(true_triggers_two) > 0:
             send_text(true_triggers_two)
-
-
-
 
 
         try:

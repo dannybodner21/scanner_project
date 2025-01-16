@@ -93,8 +93,8 @@ class MemeMetric(models.Model):
         return f"Metrics for {self.coin.name} at {self.timestamp}"
 
 
-class Triggers(models.Model):
-    trigger = models.CharField(max_length=200)
+class Trigger(models.Model):
+    trigger_name = models.CharField(max_length=200)
     timestamp = models.DateTimeField(auto_now=True)
 
     def __str__(self):
