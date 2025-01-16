@@ -1013,7 +1013,7 @@ def five_min_update(request=None):
                         print(e)
 
                     now = datetime.now()
-                    
+
                     if now.hour == 0 and now.minute <= 5:
 
                         timestamp = datetime.strptime(crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S")
@@ -1644,6 +1644,17 @@ def index(request):
         sorted_coins = top_cryptos
 
 
+    # get all the triggers from the database
+    current_triggers = Trigger.objects.all()
+    triggers = []
+
+    for trigger in current_triggers:
+        triggers.append({
+            "trigger_name": trigger.trigger_name,
+            "timestampe": trigger.timestamp,
+        })
+
+
 
     # If this is an Ajax automatic refresh:
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':  # Check if it's an AJAX request
@@ -1651,6 +1662,7 @@ def index(request):
         data = {
             "top_cryptos": sorted_coins,  # Ensure this is serializable
             "sorted_volumes": sorted_volumes,  # Ensure this is serializable
+            "triggers": triggers,
         }
         return JsonResponse(data, safe=False)
 
@@ -1658,7 +1670,8 @@ def index(request):
     # Render data to the HTML template
     return render(request, "index.html", {
         "top_cryptos": sorted_coins,
-        "sorted_volumes": sorted_volumes
+        "sorted_volumes": sorted_volumes,
+        "triggers": triggers,
     })
 
 

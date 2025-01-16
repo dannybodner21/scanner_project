@@ -133,12 +133,14 @@
       background-position: top left, top right, bottom left, bottom right;
       background-size: cover;
       background-attachment: fixed;
-
-      height: 300px;
+      height: auto;
+      padding-bottom: 30px;
     }
     .header-text {
       text-align: center;
       color: #1EC971;
+      font-size: 30px;
+      font-weight: 500;
     }
     .trigger-columns {
       margin-top: 30px;
@@ -149,10 +151,25 @@
     .trigger-column {
       flex: 1;
       margin: 0 10px;
-      padding: 20px;
-      background-color: white;
-      border: 1px solid orange;
+    }
+    .trigger-card {
+      padding: 10px;
       border-radius: 15px;
+      color: black;
+      height: auto;
+      background-color: #162321;
+      background-image: linear-gradient(to bottom right, #162321, #1a3027);
+      border: 1px solid rgba(23, 255, 135, 1);
+      box-shadow:
+        0 0 1px rgba(23, 255, 135, 1),
+        0 0 10px rgba(23, 255, 135, 0.5),
+        0 0 20px rgba(23, 255, 135, 0.1);
+    }
+    .trigger-text {
+      font-size: 20px;
+      color: white;
+      margin-top: 10px;
+      font-weight: 400;
     }
   </style>
 
@@ -164,17 +181,26 @@
   <section class="trigger-section">
     <h3 class="header-text">Current Triggers</h3>
     <div class="trigger-columns">
-      <div class="trigger-column">
-        Column
-      </div>
-      <div class="trigger-column">
-        Column
-      </div>
-      <div class="trigger-column">
-        Column
-      </div>
-    </div>
 
+      <div class="trigger-column">
+        <div class="trigger-card">
+          <h3 class="trigger-text"> BTC : Secondary Trigger Hit !</h3>
+        </div>
+      </div>
+
+      <div class="trigger-column">
+        <div class="trigger-card">
+          <h3 class="trigger-text"> BTC : Secondary Trigger Hit !</h3>
+        </div>
+      </div>
+
+      <div class="trigger-column">
+        <div class="trigger-card">
+          <h3 class="trigger-text"> BTC : Secondary Trigger Hit !</h3>
+        </div>
+      </div>
+
+    </div>
   </section>
 
   <section class="container" style="margin-top:30px;">
