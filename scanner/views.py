@@ -2007,7 +2007,8 @@ def find_metrics():
 
             for metric in metrics:
 
-                price_change = metric.price_change_10min
+                #price_change = metric.price_change_10min
+                price_change = metric.price_change_1hr
 
                 if price_change >= 5:
 
