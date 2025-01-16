@@ -1516,7 +1516,7 @@ def index(request):
 
                         if (market_cap_percent_change >= 0.5 and
                             secondary_trigger_metrics[0].price_change_5min > 0.3 and
-                            secondary_trigger_metrics[0].price_change_1h > 0.5):
+                            secondary_trigger_metrics[0].price_change_1hr > 0.5):
 
                             mega_trigger_2 = coin.symbol + " : Mega Trigger 2 Hit !"
 
