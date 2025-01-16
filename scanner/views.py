@@ -2009,11 +2009,11 @@ def find_metrics():
 
                 price_change = metric.price_change_10min
 
-                if price_change >= 10:
+                if price_change >= 5:
 
                     earlier_metric = Metrics.objects.filter(
                         coin=coin,
-                        timestamp=metric.timestamp - timedelta(minutes=12)
+                        timestamp=metric.timestamp - timedelta(minutes=15)
                     ).first()
 
                     relevant_metrics = [metric, earlier_metric]
