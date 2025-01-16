@@ -1295,54 +1295,58 @@ def index(request):
 
         # Ensure we have enough data points
         if len(primary_trigger_metrics) > 6:
-            primary_trigger_rvol_now = primary_trigger_metrics[0].rolling_relative_volume
-            primary_trigger_rvol_30min_ago = primary_trigger_metrics[6].rolling_relative_volume
-
-            # Calculate percentage change in rolling relative volume
-            if primary_trigger_rvol_30min_ago != 0:
-                primary_trigger_rvol_change = ((primary_trigger_rvol_now - primary_trigger_rvol_30min_ago) / primary_trigger_rvol_30min_ago) * 100
-            else:
-                primary_trigger_rvol_change = 0
-
-            # Trigger conditions
-
-            if (primary_trigger_rvol_change != None and
-                primary_trigger_metrics[0].five_min_relative_volume != None and
-                primary_trigger_metrics[0].twenty_min_relative_volume != None and
-                primary_trigger_metrics[0].price_change_5min != None and
-                primary_trigger_metrics[0].price_change_10min != None and
-                primary_trigger_metrics[0].price_change_1hr != None and
-                primary_trigger_metrics[0].price_change_24hr != None):
+            if hasattr(primary_trigger_metrics[0], 'rolling_relative_volume') and primary_trigger_metrics[0].rolling_relative_volume != None:
+                if hasattr(primary_trigger_metrics[6], 'rolling_relative_volume') and primary_trigger_metrics[6].rolling_relative_volume != None:
 
 
-                if primary_trigger_rvol_change > 5:
-                    if (primary_trigger_metrics[0].five_min_relative_volume > 1.3 or
-                        primary_trigger_metrics[0].twenty_min_relative_volume > 1.0):
+                    primary_trigger_rvol_now = primary_trigger_metrics[0].rolling_relative_volume
+                    primary_trigger_rvol_30min_ago = primary_trigger_metrics[6].rolling_relative_volume
 
-                        if (primary_trigger_metrics[0].price_change_5min > 0.0 and
-                            primary_trigger_metrics[0].price_change_10min > 0.0):
-                            if (primary_trigger_metrics[0].price_change_1hr < -5 or
-                                primary_trigger_metrics[0].price_change_24hr < -5):
+                    # Calculate percentage change in rolling relative volume
+                    if primary_trigger_rvol_30min_ago != 0:
+                        primary_trigger_rvol_change = ((primary_trigger_rvol_now - primary_trigger_rvol_30min_ago) / primary_trigger_rvol_30min_ago) * 100
+                    else:
+                        primary_trigger_rvol_change = 0
 
-                                # Primary trigger identified
-                                primary_trigger = f"{coin.symbol} : Primary Trigger Hit | "
-                                if primary_trigger_rvol_change > 10:
-                                    primary_trigger += " (rvol > 10% !)"
-                                else:
-                                    primary_trigger += " (rvol > 5% !)"
+                    # Trigger conditions
 
-                                exists = check_duplicate_triggers(primary_trigger)
+                    if (primary_trigger_rvol_change != None and
+                        primary_trigger_metrics[0].five_min_relative_volume != None and
+                        primary_trigger_metrics[0].twenty_min_relative_volume != None and
+                        primary_trigger_metrics[0].price_change_5min != None and
+                        primary_trigger_metrics[0].price_change_10min != None and
+                        primary_trigger_metrics[0].price_change_1hr != None and
+                        primary_trigger_metrics[0].price_change_24hr != None):
 
-                                if exists == False:
 
-                                    true_triggers_two.append(primary_trigger)
+                        if primary_trigger_rvol_change > 5:
+                            if (primary_trigger_metrics[0].five_min_relative_volume > 1.3 or
+                                primary_trigger_metrics[0].twenty_min_relative_volume > 1.0):
 
-                                    # create and save the new Trigger element
-                                    try:
-                                        Trigger.objects.create(trigger_name=primary_trigger, timestamp=now())
+                                if (primary_trigger_metrics[0].price_change_5min > 0.0 and
+                                    primary_trigger_metrics[0].price_change_10min > 0.0):
+                                    if (primary_trigger_metrics[0].price_change_1hr < -5 or
+                                        primary_trigger_metrics[0].price_change_24hr < -5):
 
-                                    except Exception as e:
-                                        print(f"Error creating new Trigger: {e}")
+                                        # Primary trigger identified
+                                        primary_trigger = f"{coin.symbol} : Primary Trigger Hit | "
+                                        if primary_trigger_rvol_change > 10:
+                                            primary_trigger += " (rvol > 10% !)"
+                                        else:
+                                            primary_trigger += " (rvol > 5% !)"
+
+                                        exists = check_duplicate_triggers(primary_trigger)
+
+                                        if exists == False:
+
+                                            true_triggers_two.append(primary_trigger)
+
+                                            # create and save the new Trigger element
+                                            try:
+                                                Trigger.objects.create(trigger_name=primary_trigger, timestamp=now())
+
+                                            except Exception as e:
+                                                print(f"Error creating new Trigger: {e}")
 
 
 
