@@ -1362,13 +1362,8 @@ def index(request):
                         true_triggers_two.append(amplifying_trigger)
 
 
-
-
         if len(true_triggers_two) > 0:
             send_text(true_triggers_two)
-        else:
-            print("===========================================")
-            print(" No triggers at this time.")
 
         try:
             top_cryptos.append({
