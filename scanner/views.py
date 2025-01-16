@@ -2004,4 +2004,73 @@ def analyze_recent_metrics(event_time, coin_symbol):
 
 
 
+
+def find_metrics(event_time, coin_symbol):
+
+    try:
+
+        # Get all coins
+        coins = Coin.objects.all()
+
+        for coin in coins:
+            # Get metrics for the coin, ordered by timestamp
+            metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+            for metric in metrics:
+
+                price_change = metric.price_change_10min
+
+                if price_change >= 10:
+
+                    earlier_metric = Metrics.objects.filter(
+                        coin=coin,
+                        timestamp=metric.timestamp - timedelta(minutes=12)
+                    ).first()
+
+                    relevant_metrics = [metric, earlier_metric]
+
+                    for metric in relevant_metrics:
+
+                        print("-------------------------------------------")
+                        print(f"Price spike detected for {coin.symbol}")
+                        print("timestamp: " + str(metric.timestamp))
+                        print("daily rvol: " + str(round(metric.daily_relative_volume, 2)))
+                        print("rolling rvol: " + str(round(metric.rolling_relative_volume, 2)))
+                        print("five min rvol: " + str(round(metric.five_min_relative_volume, 2)))
+                        print("20 min rvol: " + str(round(metric.twenty_min_relative_volume, 2)))
+                        print("5 min price change: " + str(round(metric.price_change_5min, 2)))
+                        print("10 min price change: " + str(round(metric.price_change_10min, 2)))
+                        print("1hr price change: " + str(round(metric.price_change_1hr, 2)))
+                        print("24hr price change: " + str(round(metric.price_change_24hr, 2)))
+                        print("7day price change: " + str(round(metric.price_change_7d, 2)))
+                        print("circulating supply: " + str(metric.circulating_supply))
+                        print("24hr volume: " + str(round(metric.volume_24h, 2)))
+                        print("last price: " + str(round(metric.last_price, 4)))
+                        print("market cap: " + str(metric.market_cap))
+
+
+        # Return the data as JSON
+        return JsonResponse({"status": "success"})
+
+    except Coin.DoesNotExist:
+        # Handle case where the coin does not exist
+        return JsonResponse({"status": "error", "message": f"Coin '{coin_name}' not found."})
+
+    except Exception as e:
+        # Handle other exceptions
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #
