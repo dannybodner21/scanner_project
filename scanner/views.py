@@ -1994,18 +1994,7 @@ def analyze_recent_metrics(event_time, coin_symbol):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-def find_metrics(event_time, coin_symbol):
+def find_metrics():
 
     try:
 
