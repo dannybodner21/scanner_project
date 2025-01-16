@@ -1133,6 +1133,18 @@ def index(request):
         true_triggers = []
         true_triggers_two = []
 
+        triggerOne = False
+        triggerTwo = False
+        triggerThree = False
+        triggerFour = False
+        triggerFive = False
+        triggerSix = False
+        triggerSeven = False
+        triggerEight = False
+        triggerNine = False
+        triggerTen = False
+
+        '''
         # TRIGGER ONE - price up 10% or more in last 24 hours
         triggerOne = False
         if coin_price_change_24h_percentage != None:
@@ -1213,6 +1225,8 @@ def index(request):
                 #true_triggers_two.append(trigger)
 
 
+
+
         # TRIGGER TEN -
         # rolling_relative_volume > 2.5 and increasing over 2 intervals
         # five_min_relative_volume > 1.7 for 2 consecutive intervals
@@ -1237,6 +1251,8 @@ def index(request):
 
                                 trigger = coin.symbol + " : TRIGGER TEN HIT !!!"
                                 true_triggers_two.append(trigger)
+
+        '''
 
 
 
@@ -1266,20 +1282,33 @@ def index(request):
                 primary_trigger_rvol_change = 0
 
             # Trigger conditions
-            if primary_trigger_rvol_change > 5:
-                if (primary_trigger_metrics[0].five_min_relative_volume > 1.3 or
-                    primary_trigger_metrics[0].twenty_min_relative_volume > 1.0):
-                    if (primary_trigger_metrics[0].price_change_5min > 0.0 and
-                        primary_trigger_metrics[0].price_change_10min > 0.0):
-                        if (primary_trigger_metrics[0].price_change_1hr < -5 or
-                            primary_trigger_metrics[0].price_change_24hr < -5):
 
-                            # Primary trigger identified
-                            primary_trigger = f"{coin.symbol} : PRIMARY TRIGGER HIT | rvol > 5% !"
-                            if primary_trigger_rvol_change > 10:
-                                primary_trigger += " (rvol > 10% !!!!!)"
+            if (primary_trigger_rvol_change != None and
+                primary_trigger_metrics[0].five_min_relative_volume != None and
+                primary_trigger_metrics[0].twenty_min_relative_volume != None and
+                primary_trigger_metrics[0].price_change_5min != None and
+                primary_trigger_metrics[0].price_change_10min != None and
+                primary_trigger_metrics[0].price_change_1hr != None and
+                primary_trigger_metrics[0].price_change_24hr != None):
 
-                            true_triggers_two.append(primary_trigger)
+
+                if primary_trigger_rvol_change > 5:
+                    if (primary_trigger_metrics[0].five_min_relative_volume > 1.3 or
+                        primary_trigger_metrics[0].twenty_min_relative_volume > 1.0):
+
+                        if (primary_trigger_metrics[0].price_change_5min > 0.0 and
+                            primary_trigger_metrics[0].price_change_10min > 0.0):
+                            if (primary_trigger_metrics[0].price_change_1hr < -5 or
+                                primary_trigger_metrics[0].price_change_24hr < -5):
+
+                                # Primary trigger identified
+                                primary_trigger = f"{coin.symbol} : Primary Trigger Hit | "
+                                if primary_trigger_rvol_change > 10:
+                                    primary_trigger += " (rvol > 10% !)"
+                                else:
+                                    primary_trigger += " (rvol > 5% !)"
+
+                                true_triggers_two.append(primary_trigger)
 
 
 
@@ -1287,7 +1316,7 @@ def index(request):
         # 24hr volume increasing steadily by 5-10% over 1-2 hours
         # market cap is increasing
         # 7day price change down 20% or more (oversold)
-        secondary_trigger_metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')[:13]
+        secondary_trigger_metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')[:14]
         secondary_trigger_volumes = [metric.volume_24h for metric in secondary_trigger_metrics]
         tolerance = 0
 
@@ -1317,7 +1346,7 @@ def index(request):
 
                             if market_cap_change < -tolerance:
                                 if secondary_trigger_metrics[0].price_change_7d < -20:
-                                    secondary_trigger = coin.symbol + " : SECONDARY TRIGGER HIT !!"
+                                    secondary_trigger = coin.symbol + " : Secondary Trigger Hit !"
                                     true_triggers_two.append(secondary_trigger)
 
                         except:
@@ -1332,7 +1361,7 @@ def index(request):
         threshold = 0.2
 
         # Ensure metrics are ordered by timestamp (oldest to newest)
-        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+        metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')[:8][::-1]
 
         if len(metrics) > 0:
             latest_time = secondary_trigger_metrics[0].timestamp
@@ -1358,12 +1387,75 @@ def index(request):
 
                     # Check for relative volume
                     if secondary_trigger_metrics[0].five_min_relative_volume > 1.5:
-                        amplifying_trigger = coin.symbol + " : AMPLIFYING TRIGGER HIT !!!"
+                        amplifying_trigger = coin.symbol + " : Amplifying Trigger Hit !"
                         true_triggers_two.append(amplifying_trigger)
+
+
+        # MEGA TRIGGER 1 : Momentum + Volume Surge -----------------------------
+
+        # Rolling RVOL > 1.3 (to confirm overall heightened trading activity).
+        # Five-minute RVOL > 1.35 (short-term activity spike).
+        # 5-minute price change > 0.3% (indicating immediate upward momentum).
+        # 10-minute price change > 0.5% (momentum sustained over a slightly longer period).
+        # 24-hour volume growth > 5% within the last hour (confirming increasing interest in the coin).
+
+        # secondary_trigger_metrics has most recent 14 metrics, most recent to oldest
+
+        if len(secondary_trigger_metrics) > 0:
+
+            if (secondary_trigger_metrics[0].rolling_relative_volume != None and
+                secondary_trigger_metrics[0].five_min_relative_volume != None and
+                secondary_trigger_metrics[0].price_change_5min != None and
+                secondary_trigger_metrics[0].price_change_10min != None):
+
+                if (secondary_trigger_metrics[0].rolling_relative_volume > 1.3 and
+                    secondary_trigger_metrics[0].five_min_relative_volume > 1.35 and
+                    secondary_trigger_metrics[0].price_change_5min > 0.3 and
+                    secondary_trigger_metrics[0].price_change_10min > 0.5):
+
+                    # check 24 hour volume growth over last hour
+                    # vol now - vol hour aga / vol hour ago * 100
+                    volume_now = secondary_trigger_metrics[0].volume_24h
+                    if len(secondary_trigger_metrics) > 12:
+                        volume_an_hour_ago = secondary_trigger_metrics[12].volume_24h
+                        x = volume_now - volume_an_hour_ago
+                        volume_change = (x / volume_an_hour_ago) * 100
+
+                        if volume_change > 5:
+                            mega_trigger_1 = coin.symbol + " : Mega Trigger 1 Hit !"
+                            true_triggers_two.append(mega_trigger_1)
+
+
+                # MEGA TRIGGER 2 : Capital Flow + Momentum Confirmation ----------------
+
+                # Rolling RVOL > 1.3 (to confirm sustained interest in the coin).
+                # Market cap increases by ≥ 0.5% within 10 minutes (capital inflow validation).
+                # 5-minute price change > 0.3% (indicating immediate bullish momentum).
+                # 1-hour price change > 0.5% (indicating the trend is part of a larger movement).
+
+                if (secondary_trigger_metrics[0].rolling_relative_volume > 1.3):
+
+                    # market cap increase by over 0.5% in ten minutes
+                    market_cap_now = secondary_trigger_metrics[0].market_cap
+                    if len(secondary_trigger_metrics) > 2:
+                        market_cap_ten_min_ago = secondary_trigger_metrics[2].market_cap
+                        y = market_cap_now - market_cap_ten_min_ago
+                        market_cap_percent_change = (y / market_cap_ten_min_ago) * 100
+
+                        if (market_cap_percent_change >= 0.5 and
+                            secondary_trigger_metrics[0].price_change_5min > 0.3 and
+                            secondary_trigger_metrics[0].price_change_1h > 0.5):
+
+                            mega_trigger_2 = coin.symbol + " : Mega Trigger 2 Hit !"
+                            true_triggers_two.append(mega_trigger_2)
 
 
         if len(true_triggers_two) > 0:
             send_text(true_triggers_two)
+
+
+
+
 
         try:
             top_cryptos.append({
@@ -1377,7 +1469,7 @@ def index(request):
                 "price_change_24h_percentage": coin_price_change_24h_percentage,
                 "price_change_7d": coin_price_change_7d,
                 "circulating_supply": coin_circulating_supply,
-                "circulating_supply_change": circulating_supply_change,
+                #"circulating_supply_change": circulating_supply_change,
                 "daily_relative_volume": coin_daily_relative_volume,
                 "rolling_relative_volume": coin_rolling_relative_volume,
                 "five_min_relative_volume": coin_five_min_relative_volume,
