@@ -7316,6 +7316,7 @@ def analyze_recent_metrics():
     python manage.py analyze_recent_metrics --coin_symbol="STMX" --event_time="2025-01-13 19:00:00"
 
 
+<<<<<<< HEAD
 
 
 
@@ -7369,6 +7370,9 @@ def analyze_recent_metrics():
 
 
 def find_metrics(event_time, coin_symbol):
+=======
+def find_metrics():
+>>>>>>> 981546e (who cares)
 
     try:
 
