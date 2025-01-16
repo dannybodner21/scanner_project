@@ -3436,9 +3436,12 @@ def index(request):
                         true_triggers_two.append(amplifying_trigger)
 
 
+<<<<<<< HEAD
 
 
 >>>>>>> 08765d1 (who cares)
+=======
+>>>>>>> 29caf2a (who cares)
         if len(true_triggers_two) > 0:
             send_text(true_triggers_two)
 
