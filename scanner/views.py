@@ -1963,7 +1963,22 @@ def analyze_recent_metrics(event_time, coin_symbol):
         ]
 
         for metric in metrics_data:
-            print(metric)
+            print("symbol: " + str(metric["Metric Name"]))
+            print("timestamp: " + str(metric["Timestamp"]))
+            print("daily rvol: " + str(metric["daily rvol"]))
+            print("rolling rvol: " + str(metric["rolling rvol"]))
+            print("five min rvol: " + str(metric["five min rvol"]))
+            print("20 min rvol: " + str(metric["20 min rvol"]))
+            print("5 min price change: " + str(metric["5 min price change"]))
+            print("10 min price change: " + str(metric["10 min price change"]))
+            print("1hr price change: " + str(metric["1hr price change"]))
+            print("24hr price change: " + str(metric["24hr price change"]))
+            print("7day price change: " + str(metric["7day price change"]))
+            print("circulaating supply: " + str(metric["circulaating supply"]))
+            print("24hr volume: " + str(metric["24hr volume"]))
+            print("last price: " + str(metric["last price"]))
+            print("market cap: " + str(metric["market cap"]))
+
 
         # Return the data as JSON
         return JsonResponse({"status": "success", "coin": coin_name, "metrics": metrics_data})
