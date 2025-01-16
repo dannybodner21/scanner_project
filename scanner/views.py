@@ -6749,8 +6749,13 @@ def analyze_recent_metrics(event_time, coin_symbol):
 
 
     # Calculate the time range: 1 hour before and 5 hours after
+<<<<<<< HEAD
     start_time = event_time - timedelta(minutes=15)
     end_time = event_time + timedelta(minutes=15)
+=======
+    start_time = event_time - timedelta(hours=1)
+    end_time = event_time + timedelta(hours=2)
+>>>>>>> c780980 (who cares)
 
     try:
         coin = Coin.objects.get(symbol=coin_symbol)
