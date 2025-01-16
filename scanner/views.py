@@ -1012,6 +1012,8 @@ def five_min_update(request=None):
                         print("FAILED IN GROUP 3")
                         print(e)
 
+                    now = datetime.now()
+                    
                     if now.hour == 0 and now.minute <= 5:
 
                         timestamp = datetime.strptime(crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S")
