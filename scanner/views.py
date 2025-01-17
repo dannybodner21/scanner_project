@@ -2059,37 +2059,43 @@ def find_metrics():
 
 def print_metrics(symbol):
 
-    coin = Coin.objects.get(symbol=symbol)
-    metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+    try:
+        # Fetch coin by symbol
+        coin = Coin.objects.get(symbol=symbol)
 
-    for chunk in metrics[:50]:
+        # Fetch metrics ordered by timestamp
+        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
-        for metric in metrics:
+        # Open output file for writing
+        with open('output.txt', 'w') as f:
+            for metric in metrics:
+                try:
+                    f.write(f"Timestamp: {metric.timestamp}\n")
+                    f.write(f"Daily RVOL: {round(metric.daily_relative_volume, 2)}\n")
+                    f.write(f"Rolling RVOL: {round(metric.rolling_relative_volume, 2)}\n")
+                    f.write(f"5-min RVOL: {round(metric.five_min_relative_volume, 2)}\n")
+                    f.write(f"20-min RVOL: {round(metric.twenty_min_relative_volume, 2)}\n")
+                    f.write(f"5-min Price Change: {round(metric.price_change_5min, 2)}%\n")
+                    f.write(f"10-min Price Change: {round(metric.price_change_10min, 2)}%\n")
+                    f.write(f"1-hour Price Change: {round(metric.price_change_1hr, 2)}%\n")
+                    f.write(f"24-hour Price Change: {round(metric.price_change_24hr, 2)}%\n")
+                    f.write(f"7-day Price Change: {round(metric.price_change_7d, 2)}%\n")
+                    f.write(f"Circulating Supply: {metric.circulating_supply}\n")
+                    f.write(f"24-hour Volume: {round(metric.volume_24h, 2)}\n")
+                    f.write(f"Last Price: {round(metric.last_price, 4)}\n")
+                    f.write(f"Market Cap: {metric.market_cap}\n")
+                    f.write("=" * 40 + "\n")  # Separator for readability
+                except Exception as e:
+                    print(f"Error processing metric at {metric.timestamp}: {e}")
 
-            try:
+        print("Metrics successfully written to 'output.txt'.")
 
-                print("-------------------------------------------")
-                print("timestamp: " + str(metric.timestamp))
-                print("daily rvol: " + str(round(metric.daily_relative_volume, 2)))
-                print("rolling rvol: " + str(round(metric.rolling_relative_volume, 2)))
-                print("five min rvol: " + str(round(metric.five_min_relative_volume, 2)))
-                print("20 min rvol: " + str(round(metric.twenty_min_relative_volume, 2)))
-                print("5 min price change: " + str(round(metric.price_change_5min, 2)))
-                print("10 min price change: " + str(round(metric.price_change_10min, 2)))
-                print("1hr price change: " + str(round(metric.price_change_1hr, 2)))
-                print("24hr price change: " + str(round(metric.price_change_24hr, 2)))
-                print("7day price change: " + str(round(metric.price_change_7d, 2)))
-                print("circulating supply: " + str(metric.circulating_supply))
-                print("24hr volume: " + str(round(metric.volume_24h, 2)))
-                print("last price: " + str(round(metric.last_price, 4)))
-                print("market cap: " + str(metric.market_cap))
+    except Coin.DoesNotExist:
+        print(f"Coin with symbol '{symbol}' does not exist.")
 
-            except:
-                print("=========")
-                print("there was some fucking problem somewhere")
-                print("=========")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
-        input("Press Enter to continue...")
 
 
 
