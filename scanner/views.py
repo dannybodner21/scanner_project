@@ -2057,6 +2057,39 @@ def find_metrics():
 
 
 
+def print_metrics(symbol):
+
+    coin = Coin.objects.get(symbol=symbol)
+    metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+    for metric in metrics:
+
+        try:
+
+            print("-------------------------------------------")
+            print("timestamp: " + str(metric.timestamp))
+            print("daily rvol: " + str(round(metric.daily_relative_volume, 2)))
+            print("rolling rvol: " + str(round(metric.rolling_relative_volume, 2)))
+            print("five min rvol: " + str(round(metric.five_min_relative_volume, 2)))
+            print("20 min rvol: " + str(round(metric.twenty_min_relative_volume, 2)))
+            print("5 min price change: " + str(round(metric.price_change_5min, 2)))
+            print("10 min price change: " + str(round(metric.price_change_10min, 2)))
+            print("1hr price change: " + str(round(metric.price_change_1hr, 2)))
+            print("24hr price change: " + str(round(metric.price_change_24hr, 2)))
+            print("7day price change: " + str(round(metric.price_change_7d, 2)))
+            print("circulating supply: " + str(metric.circulating_supply))
+            print("24hr volume: " + str(round(metric.volume_24h, 2)))
+            print("last price: " + str(round(metric.last_price, 4)))
+            print("market cap: " + str(metric.market_cap))
+
+        except:
+            print("=========")
+            print("there was some fucking problem somewhere")
+            print("=========")
+
+
+
+
 
 
 
