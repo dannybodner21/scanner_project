@@ -1518,7 +1518,10 @@ def index(request):
                     if len(secondary_trigger_metrics) > 2:
                         market_cap_ten_min_ago = secondary_trigger_metrics[2].market_cap
                         y = market_cap_now - market_cap_ten_min_ago
-                        market_cap_percent_change = (y / market_cap_ten_min_ago) * 100
+                        if market_cap_ten_min_ago and market_cap_ten_min_ago != 0:
+                            market_cap_percent_change = (y / market_cap_ten_min_ago) * 100
+                        else:
+                            market_cap_percent_change = 0
 
                         if (market_cap_percent_change >= 0.5 and
                             secondary_trigger_metrics[0].price_change_5min > 0.3 and
