@@ -1546,6 +1546,36 @@ def index(request):
                                     print(f"Error creating new Trigger: {e}")
 
 
+            # PRICE MOVEMENT TRIGGER
+            # 5 min price change > 0.5
+            # 10 min price change > 0.75
+            # 1 hr price change > 1.0
+            if (secondary_trigger_metrics[0].price_change_5min != None and
+                secondary_trigger_metrics[0].price_change_10min != None and
+                secondary_trigger_metrics[0].price_change_1hr != None):
+
+                if (secondary_trigger_metrics[0].price_change_5min > 0.5 and
+                    secondary_trigger_metrics[0].price_change_10min > 0.75 and
+                    secondary_trigger_metrics[0].price_change_1hr > 1.0):
+
+                    price_trigger = coin.symbol + " : Price Trigger Hit !"
+
+                    exists = check_duplicate_triggers(price_trigger)
+
+                    if exists == False:
+
+                        true_triggers_two.append(price_trigger)
+
+                        # create and save the new Trigger element
+                        try:
+                            Trigger.objects.create(trigger_name=price_trigger, timestamp=now())
+
+                        except Exception as e:
+                            print(f"Error creating new Trigger: {e}")
+
+
+
+
         if len(true_triggers_two) > 0:
             send_text(true_triggers_two)
 
