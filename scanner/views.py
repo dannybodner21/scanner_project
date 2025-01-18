@@ -2092,7 +2092,7 @@ def find_metrics():
 
 
 
-
+import csv
 def print_metrics(symbol):
 
     try:
@@ -2102,29 +2102,37 @@ def print_metrics(symbol):
         # Fetch metrics ordered by timestamp
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
-        # Open output file for writing
-        with open('output.txt', 'w') as f:
-            for metric in metrics:
-                try:
-                    f.write(f"Timestamp: {metric.timestamp}\n")
-                    f.write(f"Daily RVOL: {round(metric.daily_relative_volume, 2)}\n")
-                    f.write(f"Rolling RVOL: {round(metric.rolling_relative_volume, 2)}\n")
-                    f.write(f"5-min RVOL: {round(metric.five_min_relative_volume, 2)}\n")
-                    f.write(f"20-min RVOL: {round(metric.twenty_min_relative_volume, 2)}\n")
-                    f.write(f"5-min Price Change: {round(metric.price_change_5min, 2)}%\n")
-                    f.write(f"10-min Price Change: {round(metric.price_change_10min, 2)}%\n")
-                    f.write(f"1-hour Price Change: {round(metric.price_change_1hr, 2)}%\n")
-                    f.write(f"24-hour Price Change: {round(metric.price_change_24hr, 2)}%\n")
-                    f.write(f"7-day Price Change: {round(metric.price_change_7d, 2)}%\n")
-                    f.write(f"Circulating Supply: {metric.circulating_supply}\n")
-                    f.write(f"24-hour Volume: {round(metric.volume_24h, 2)}\n")
-                    f.write(f"Last Price: {round(metric.last_price, 4)}\n")
-                    f.write(f"Market Cap: {metric.market_cap}\n")
-                    f.write("=" * 40 + "\n")  # Separator for readability
-                except Exception as e:
-                    print(f"Error processing metric at {metric.timestamp}: {e}")
+        csv_file_name = f"{symbol}_metrics.csv"
+        with open(csv_file_name, mode='w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
 
-        print("Metrics successfully written to 'output.txt'.")
+            csvwriter.writerow([
+                "Timestamp", "Daily RVOL", "Rolling RVOL", "5-Min RVOL",
+                "20-Min RVOL", "5-Min Price Change", "10-Min Price Change",
+                "1-Hour Price Change", "24-Hour Price Change", "7-Day Price Change",
+                "Circulating Supply", "24-Hour Volume", "Last Price", "Market Cap"
+            ])
+
+        #with open('output.txt', 'w') as f:
+            for metric in metrics:
+                csvwriter.writerow([
+                    metric.timestamp,
+                    round(metric.daily_relative_volume, 2),
+                    round(metric.rolling_relative_volume, 2),
+                    round(metric.five_min_relative_volume, 2),
+                    round(metric.twenty_min_relative_volume, 2),
+                    round(metric.price_change_5min, 2),
+                    round(metric.price_change_10min, 2),
+                    round(metric.price_change_1hr, 2),
+                    round(metric.price_change_24hr, 2),
+                    round(metric.price_change_7d, 2),
+                    metric.circulating_supply,
+                    round(metric.volume_24h, 2),
+                    round(metric.last_price, 4),
+                    metric.market_cap
+                ])
+
+        print(f"CSV file '{csv_file_name}' created successfully.")
 
     except Coin.DoesNotExist:
         print(f"Coin with symbol '{symbol}' does not exist.")
