@@ -7,4 +7,5 @@ urlpatterns = [
     path('five-min-update/', views.five_min_update, name='five-min-update'),
 
     path('test/', views.test, name='test'),
+    path('download/<str:filename>/', views.download_file, name='download_file'),
 ]

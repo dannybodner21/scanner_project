@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from django.utils.timezone import now
 from django.http import JsonResponse
 from django.http import HttpResponse
+from django.http import FileResponse, Http404
 
 
 
@@ -427,14 +428,16 @@ def calculate_price_change_five_min(coin):
 
 def calculate_price_change_ten_min(coin):
 
-    # (price change over 10 min / price 10 min ago) * 100
+    # DOING 30 MIN PRICE CHANGE NOT 10 MIN
+
+    # (price now - price 10 min ago / price 10 min ago) * 100
 
     price_change_10min = None
 
-    prices = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:4]
+    prices = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:8]
 
     price_now = prices[0].price if len(prices) > 0 else None
-    price_ten_min_ago = prices[3].price if len(prices) > 3 else None
+    price_ten_min_ago = prices[6].price if len(prices) > 6 else None
 
     if price_now != None and price_ten_min_ago != None:
 
@@ -2098,6 +2101,143 @@ def print_metrics(symbol):
 
     except Exception as e:
         print(f"An error occurred: {e}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+def retrieve_metrics(symbol):
+
+    api_key = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    base_url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
+
+    headers = {
+        "Accepts": "application/json",
+        "X-CMC_PRO_API_KEY": api_key,
+    }
+
+    #coins = ["ADA", "LINK", "HBAR", "SOL", "XRP"]
+    coins = ["XRP"]
+
+    batch_size = 5
+    days = 5
+    interval = 5
+    price_change_threshold = 10
+
+    for start in range(0, len(coins), batch_size):
+        coins_batch = coins[start:start + batch_size]
+        print(f"Processing batch {start + 1} to {min(start + batch_size, len(coins))}")
+
+        for coin in coins_batch:
+            print(f"Processing {coin}")
+
+            # Define the time range for the last 10 days
+            end_time = datetime.utcnow()
+            start_time = end_time - timedelta(days=days)
+
+            # Fetch historical data
+            params = {
+                "symbol": coin,
+                "interval": interval,
+                "time_start": start_time.isoformat(),
+                "time_end": end_time.isoformat(),
+            }
+
+            try:
+                response = requests.get(base_url, headers=headers, params=params)
+                response.raise_for_status()
+                data = response.json()
+
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching data for {coin}: {e}")
+                continue
+
+            # Process the historical data
+            historical = data.get("data", {}).get("quotes", [])
+
+
+
+            for i in range(len(historical) - 6):  # Compare points 30 minutes apart
+                current = historical[i]
+                future = historical[i + 6]
+                # 5 min ago from future metric
+                five_min_ago = historical[i + 5]
+                # 10 min ago from future metric
+                ten_min_ago = historical[i + 4]
+                # 20 min ago from future metric
+                twenty_min_ago = historical[i + 2]
+
+                current_price = current["quote"]["USD"]["price"]
+                future_price = future["quote"]["USD"]["price"]
+                price_5min_ago = five_min_ago["quote"]["USD"]["price"]
+                price_10min_ago = ten_min_ago["quote"]["USD"]["price"]
+                volume_now = future["quote"]["USD"]["volume_24h"]
+                volume_5min_ago = five_min_ago["quote"]["USD"]["volume_24h"]
+                volume_20min_ago = twenty_min_ago["quote"]["USD"]["volume_24h"]
+
+                # Calculate price change
+                price_change = ((future_price - current_price) / current_price) * 100
+
+                if price_change > price_change_threshold:
+                    print(f"Significant price change detected for {coin}:")
+                    print(f"Future timestamp: {future['timestamp']}")
+                    print(f"Current Price: {current_price}")
+                    print(f"Future Price: {future_price}")
+                    print(f"Future volume: {future['quote']['USD']['volume_24h']}")
+                    print(f"Future market Cap: {future['quote']['USD']['market_cap']}")
+
+                    # 5 min price change
+                    # price now - price 5 min ago / price 5 min ago * 100
+                    x = future_price - price_5min_ago
+                    price_change_5min = (x / price_5min_ago) * 100
+                    print(f"Future's 5 min price change: {price_change_5min}")
+
+                    # 10 min price change
+                    # price now - price 10 min ago / price 10 min ago * 100
+                    x = future_price - price_10min_ago
+                    price_change_10min = (x / price_10min_ago) * 100
+                    print(f"Future's 10 min price change: {price_change_10min}")
+
+                    # 5 min relative volume
+                    x = volume_now - volume_5min_ago
+                    five_min_rvol = (x / volume_5min_ago) * 100
+                    print(f"Future's 5 min rvol: {five_min_rvol}")
+
+                    # 20 min relative volume
+                    x = volume_now - volume_20min_ago_min
+                    twenty_min_rvol = (x / volume_20min_ago_min) * 100
+                    print(f"Future's 20 min rvol: {twenty_min_rvol}")
+
+                    print(f"Future's 1hr price change: {future['quote']['USD']['percent_change_1h']}")
+                    print(f"Future's 24hr price change: {future['quote']['USD']['percent_change_24h']}")
+                    print(f"Future's 7d price change: {future['quote']['USD']['percent_change_7d']}")
+                    print(f"Future's 24hr volume: {future['quote']['USD']['volume_24h']}")
+                    print(f"Future's market cap: {future['quote']['USD']['market_cap']}")
+
+
+
+
+
+def download_file(request, filename):
+    try:
+        filepath = f'./{filename}'  # Adjust path if the file is stored in a subdirectory
+        return FileResponse(open(filepath, 'rb'), as_attachment=True)
+    except FileNotFoundError:
+        raise Http404("File does not exist")
+
+
+
+
+
+
 
 
 
