@@ -7066,6 +7066,14 @@ def find_metrics():
         return JsonResponse({"status": "error", "message": str(e)})
 
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+>>>>>>> 6da8277 (who cares)
 import csv
 def print_metrics(symbol):
 
@@ -7081,7 +7089,11 @@ def print_metrics(symbol):
             csvwriter = csv.writer(csvfile)
 
             csvwriter.writerow([
+<<<<<<< HEAD
                 "Timestamp", "Rolling RVOL", "5-Min RVOL",
+=======
+                "Timestamp", "Daily RVOL", "Rolling RVOL", "5-Min RVOL",
+>>>>>>> 6da8277 (who cares)
                 "20-Min RVOL", "5-Min Price Change", "10-Min Price Change",
                 "1-Hour Price Change", "24-Hour Price Change", "7-Day Price Change",
                 "Circulating Supply", "24-Hour Volume", "Last Price", "Market Cap"
@@ -7091,6 +7103,10 @@ def print_metrics(symbol):
             for metric in metrics:
                 csvwriter.writerow([
                     metric.timestamp,
+<<<<<<< HEAD
+=======
+                    round(metric.daily_relative_volume, 2),
+>>>>>>> 6da8277 (who cares)
                     round(metric.rolling_relative_volume, 2),
                     round(metric.five_min_relative_volume, 2),
                     round(metric.twenty_min_relative_volume, 2),
