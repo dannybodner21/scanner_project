@@ -2282,7 +2282,7 @@ def check_trigger(symbol):
             metrics[x].price_change_5min > 1
         ):
         '''
-        
+
         if (
             #metrics[x].volume_24h_growth >= 10 and
             metrics[x].rolling_relative_volume >= 1.3 and
@@ -2312,7 +2312,22 @@ def check_trigger(symbol):
 
 
 
+def print_coins():
 
+    coins = Coin.objects.filter(market_cap_rank__gt=200)
+
+    for coin in coins:
+        # Delete related HistoricalData, ShortIntervalData, Metrics
+        HistoricalData.objects.filter(coin=coin).delete()
+        ShortIntervalData.objects.filter(coin=coin).delete()
+        Metrics.objects.filter(coin=coin).delete()
+
+        # Finally, delete the coin itself
+        coin.delete()
+
+    print(f"Deleted {coins.count()} coins and their associated data.")
+
+            
 
 
 
