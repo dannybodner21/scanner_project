@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from datetime import datetime, timedelta, timezone
 import logging
-from scanner.views import print_metrics, retrieve_metrics
+from scanner.views import print_metrics, retrieve_metrics, check_trigger
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,7 @@ class Command(BaseCommand):
         coin_symbol = kwargs['coin_symbol']
 
         logger.info(f"Analyzing data...")
-        print_metrics(coin_symbol)
+        #print_metrics(coin_symbol)
         #retrieve_metrics(coin_symbol)
+        check_trigger(coin_symbol)
         logger.info("Task completed.")
