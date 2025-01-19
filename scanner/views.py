@@ -7485,15 +7485,6 @@ def print_metrics(symbol):
 
 
 
-
-
-
-
-
-
-
-
-
 def retrieve_metrics(symbol):
 
     api_key = '7dd5dd98-35d0-475d-9338-407631033cd9'
@@ -7604,14 +7595,49 @@ def retrieve_metrics(symbol):
 
 
 
-
-
 def download_file(request, filename):
     try:
         filepath = f'./{filename}'  # Adjust path if the file is stored in a subdirectory
         return FileResponse(open(filepath, 'rb'), as_attachment=True)
     except FileNotFoundError:
         raise Http404("File does not exist")
+
+
+
+
+
+
+
+def check_trigger(symbol):
+
+    coin = Coin.objects.get(symbol=symbol)
+    metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+    for x in range(len(metrics)):
+
+        # trigger to test
+        if (
+            metrics[x].rolling_relative_volume > 1.2 and
+            metrics[x].five_min_relative_volume > 1.3 and
+            metrics[x].twenty_min_relative_volume > 2.0 and
+            metrics[x].price_change_5min > 1
+        ):
+
+            print("------------------")
+            print(coin.symbol)
+            print(metrics[x].timestamp)
+            print(metrics[x].last_price)
+
+            for y in range(x + 1, len(metrics)):
+
+                print(metrics[y].last_price)
+
+
+
+
+
+
+
 
 
 
