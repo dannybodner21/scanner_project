@@ -2266,53 +2266,53 @@ def download_file(request, filename):
 
 
 
-
+# used to test out a trigger combination against the data we have in the db
 def check_trigger(symbol):
 
-    coin = Coin.objects.get(symbol=symbol)
-    metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+    #coin = Coin.objects.get(symbol=symbol)
 
-    for x in range(len(metrics)):
+    coins = Coin.objects.all()
 
-        # trigger to test
-        '''
-        if (
-            metrics[x].rolling_relative_volume > 1.2 and
-            metrics[x].five_min_relative_volume > 1.3 and
-            metrics[x].twenty_min_relative_volume > 2.0 and
-            metrics[x].price_change_5min > 1
-        ):
-        '''
+    for coin in coins:
 
-        if (
-            #metrics[x].volume_24h_growth >= 10 and
-            metrics[x].rolling_relative_volume >= 1.3 and
-            metrics[x].price_change_5min >= 0.75 and
-            metrics[x].price_change_10min >= 1.5 and
-            metrics[x].price_change_1hr <= -2 and
-            #metric.market_cap_growth_10min >= 0.5 and
-            3 <= metrics[x].price_change_24hr <= 10 and
-            0.8 <= metrics[x].daily_relative_volume <= 1.5 and
-            abs(metrics[x].five_min_relative_volume - metrics[x].twenty_min_relative_volume) <= 0.1
-            #abs(metric.last_price - metric.recent_local_low) <= 0.01 * metric.recent_local_low
-        ):
+        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+        for x in range(len(metrics)):
+
+            # trigger to test
+            '''
+            if (
+                metrics[x].rolling_relative_volume > 1.2 and
+                metrics[x].five_min_relative_volume > 1.3 and
+                metrics[x].twenty_min_relative_volume > 2.0 and
+                metrics[x].price_change_5min > 1
+            ):
+            '''
+
+            if (
+                #metrics[x].volume_24h_growth >= 10 and
+                metrics[x].rolling_relative_volume >= 1.3 and
+                metrics[x].price_change_5min >= 0.75 and
+                metrics[x].price_change_10min >= 1.5 and
+                metrics[x].price_change_1hr <= -2 and
+                #metric.market_cap_growth_10min >= 0.5 and
+                3 <= metrics[x].price_change_24hr <= 10 and
+                0.8 <= metrics[x].daily_relative_volume <= 1.5 and
+                abs(metrics[x].five_min_relative_volume - metrics[x].twenty_min_relative_volume) <= 0.1
+                #abs(metric.last_price - metric.recent_local_low) <= 0.01 * metric.recent_local_low
+            ):
+
+                print("------------------")
+                print(coin.symbol)
+                print(metrics[x].timestamp)
+                print(metrics[x].last_price)
+
+                for y in range(x + 1, len(metrics)):
+
+                    print(metrics[y].last_price)
 
 
-
-
-
-
-            print("------------------")
-            print(coin.symbol)
-            print(metrics[x].timestamp)
-            print(metrics[x].last_price)
-
-            for y in range(x + 1, len(metrics)):
-
-                print(metrics[y].last_price)
-
-
-
+# used to view coins and then delete the unneccessary ones
 def print_coins():
 
     coins = Coin.objects.filter(market_cap_rank__gt=200)
@@ -2391,6 +2391,17 @@ def index(request):
 
 
         # TRIGGER INFORMATION HERE...
+
+
+
+
+
+
+
+
+
+
+
 
 
         top_cryptos.append({
