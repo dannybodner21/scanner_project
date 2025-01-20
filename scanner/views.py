@@ -2311,22 +2311,33 @@ def check_trigger(symbol):
                 five_min_price_increase = False
                 current_five_min = metrics[x].price_change_5min
                 previous_five_min = metrics[x-1].price_change_5min
+                previous_five_min_two = metrics[x-2].price_change_5min
                 if (previous_five_min < current_five_min):
                     five_min_price_increase = True
+
+                # 5 min and 10 min price changes go negative, positive, positive
+                ten_min_price_increase = False
+                current_ten_min = metrics[x].price_change_10min
+                previous_ten_min = metrics[x-1].price_change_10min
+                previous_ten_min_two = metrics[x-2].price_change_10min
+                if (previous_ten_min_two < previous_ten_min < current_ten_min and
+                    previous_ten_min_two < 0):
+                    ten_min_price_increase = True
 
 
                 if (
                     #metrics[x].volume_24h_growth >= 10 and
 
 
-                    metrics[x].daily_relative_volume >= 2.0 and
+                    metrics[x].daily_relative_volume >= 1.1 and
                     metrics[x].rolling_relative_volume >= 1.6 and
                     metrics[x].five_min_relative_volume >= 1.3 and
                     metrics[x].price_change_5min >= 1 and
-                    metrics[x].price_change_10min >= 2 and
-                    #volume_growth >= 3 and
+                    metrics[x].price_change_10min >= 1.5 and
+                    metrics[x].price_change_24hr < 0 and
                     metrics[x].twenty_min_relative_volume >= 1 and
                     five_min_price_increase == True and
+                    ten_min_price_increase == True and
                     rvol_progression == True
 
                     #metrics[x].price_change_1hr > 0 and
@@ -2467,18 +2478,32 @@ def index(request):
             five_min_price_increase = False
             current_five_min = metrics_queryset[0].price_change_5min
             previous_five_min = metrics_queryset[1].price_change_5min
-            if (previous_five_min < current_five_min):
+            previous_five_min_two = metrics_queryset[2].price_change_5min
+            if (previous_five_min_two < previous_five_min < current_five_min and
+                previous_five_min_two < 0):
                 five_min_price_increase = True
+
+            # 5 min and 10 min price changes go negative, positive, positive
+            ten_min_price_increase = False
+            current_ten_min = metrics_queryset[0].price_change_10min
+            previous_ten_min = metrics_queryset[1].price_change_10min
+            previous_ten_min_two = metrics_queryset[2].price_change_10min
+            if (previous_ten_min_two < previous_ten_min < current_ten_min and
+                previous_ten_min_two < 0):
+                ten_min_price_increase = True
+
 
 
             if (
-                metrics_queryset[0].daily_relative_volume >= 2.0 and
+                metrics_queryset[0].daily_relative_volume >= 1.1 and
                 metrics_queryset[0].rolling_relative_volume >= 1.6 and
                 metrics_queryset[0].five_min_relative_volume >= 1.3 and
                 metrics_queryset[0].price_change_5min >= 1 and
-                metrics_queryset[0].price_change_10min >= 2 and
+                metrics_queryset[0].price_change_10min >= 1.5 and
                 metrics_queryset[0].twenty_min_relative_volume >= 1 and
+                metrics_queryset[0].price_change_24hr < 0 and
                 five_min_price_increase == True and
+                ten_min_price_increase == True and
                 rvol_progression == True
             ):
 
