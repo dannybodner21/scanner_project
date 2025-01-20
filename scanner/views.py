@@ -2294,14 +2294,17 @@ def check_trigger(symbol):
 
                 if (
                     #metrics[x].volume_24h_growth >= 10 and
-                    metrics[x].rolling_relative_volume >= 1.2 and
-                    metrics[x].price_change_5min >= 0.3 and
-                    metrics[x].price_change_10min >= 0.7 and
-                    metrics[x].price_change_1hr <= -2 and
+                    metrics[x].rolling_relative_volume >= 1.5 and
+                    #metrics[x].price_change_5min >= 0.3 and
+                    metrics[x].price_change_10min >= 1 and
+                    metrics[x].price_change_1hr > 0 and
+                    metrics[x].price_change_7d >= 15 and
+                    metrics[x].twenty_min_relative_volume >= 1.3
+
                     #metric.market_cap_growth_10min >= 0.5 and
-                    3 <= metrics[x].price_change_24hr <= 10 and
-                    0.8 <= metrics[x].daily_relative_volume <= 1.5 and
-                    abs(metrics[x].five_min_relative_volume - metrics[x].twenty_min_relative_volume) <= 0.1
+                    #3 <= metrics[x].price_change_24hr <= 10 and
+                    #0.8 <= metrics[x].daily_relative_volume <= 1.5 and
+                    #abs(metrics[x].five_min_relative_volume - metrics[x].twenty_min_relative_volume) <= 0.1
                     #abs(metric.last_price - metric.recent_local_low) <= 0.01 * metric.recent_local_low
                 ):
 
