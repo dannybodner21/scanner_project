@@ -98,4 +98,4 @@ class Trigger(models.Model):
     timestamp = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.trigger_name}"
+        return f"{self.trigger_name} at {self.timestamp}"
