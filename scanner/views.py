@@ -7729,9 +7729,15 @@ def check_trigger(symbol):
                     metrics[x].daily_relative_volume >= 2.0 and
                     metrics[x].rolling_relative_volume >= 1.6 and
                     metrics[x].five_min_relative_volume >= 1.3 and
+<<<<<<< HEAD
                     metrics[x].price_change_5min >= 1 and
                     metrics[x].price_change_10min >= 2 and
                     #volume_growth >= 3 and
+=======
+                    metrics[x].price_change_5min >= 0 and
+                    metrics[x].price_change_10min >= 1.5 and
+                    metrics[x].price_change_24hr < 0 and
+>>>>>>> e907c88 (who cares)
                     metrics[x].twenty_min_relative_volume >= 1 and
                     five_min_price_increase == True and
                     rvol_progression == True
@@ -7790,7 +7796,6 @@ def index(request):
     top_cryptos = []
     daily_relative_volumes = []
     sorted_volumes = []
-    true_triggers = []
 
     coins = Coin.objects.prefetch_related(
         Prefetch(
@@ -7807,9 +7812,10 @@ def index(request):
 
     for coin in coins:
 
+        true_triggers = []
+
         short_interval_data = coin.prefetched_short_interval_data[0] if coin.prefetched_short_interval_data else None
         metric = coin.prefetched_metrics[0] if coin.prefetched_metrics else None
-
 
         # Extract fields with default values
         coin_time = getattr(short_interval_data, 'timestamp', None)
@@ -7889,8 +7895,13 @@ def index(request):
                 metrics_queryset[0].daily_relative_volume >= 2.0 and
                 metrics_queryset[0].rolling_relative_volume >= 1.6 and
                 metrics_queryset[0].five_min_relative_volume >= 1.3 and
+<<<<<<< HEAD
                 metrics_queryset[0].price_change_5min >= 1 and
                 metrics_queryset[0].price_change_10min >= 2 and
+=======
+                metrics_queryset[0].price_change_5min >= 0 and
+                metrics_queryset[0].price_change_10min >= 1.5 and
+>>>>>>> e907c88 (who cares)
                 metrics_queryset[0].twenty_min_relative_volume >= 1 and
                 five_min_price_increase == True and
                 rvol_progression == True
