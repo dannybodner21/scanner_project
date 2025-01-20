@@ -2312,7 +2312,9 @@ def check_trigger(symbol):
                 current_five_min = metrics[x].price_change_5min
                 previous_five_min = metrics[x-1].price_change_5min
                 previous_five_min_two = metrics[x-2].price_change_5min
-                if (previous_five_min < current_five_min):
+                if (previous_five_min < current_five_min and
+                    previous_five_min < 0 and
+                    current_five_min > 0):
                     five_min_price_increase = True
 
                 # 5 min and 10 min price changes go negative, positive, positive
@@ -2320,15 +2322,12 @@ def check_trigger(symbol):
                 current_ten_min = metrics[x].price_change_10min
                 previous_ten_min = metrics[x-1].price_change_10min
                 previous_ten_min_two = metrics[x-2].price_change_10min
-                if (previous_ten_min_two < previous_ten_min < current_ten_min and
-                    previous_ten_min_two < 0):
+                if (previous_ten_min < current_ten_min and
+                    previous_ten_min < 0):
                     ten_min_price_increase = True
 
 
                 if (
-                    #metrics[x].volume_24h_growth >= 10 and
-
-
                     metrics[x].daily_relative_volume >= 1.1 and
                     metrics[x].rolling_relative_volume >= 1.6 and
                     metrics[x].five_min_relative_volume >= 1.3 and
@@ -2340,11 +2339,9 @@ def check_trigger(symbol):
                     ten_min_price_increase == True and
                     rvol_progression == True
 
+                    #metrics[x].volume_24h_growth >= 10 and
                     #metrics[x].price_change_1hr > 0 and
                     #metrics[x].price_change_7d >= 15 and
-
-
-
                     #metric.market_cap_growth_10min >= 0.5 and
                     #3 <= metrics[x].price_change_24hr <= 10 and
                     #0.8 <= metrics[x].daily_relative_volume <= 1.5 and
@@ -2353,6 +2350,20 @@ def check_trigger(symbol):
                 ):
 
                     print("------------------")
+                    print(coin.symbol)
+                    print(metrics[x].timestamp)
+                    print(metrics[x].last_price)
+
+                if (
+                    metrics[x].daily_relative_volume >= 2 and
+                    metrics[x].rolling_relative_volume >= 1.2 and
+                    metrics[x].five_min_relative_volume >= 1.3 and
+                    metrics[x].price_change_5min >= 0.7 and
+                    metrics[x].price_change_24hr < -5 and
+                    metrics[x].twenty_min_relative_volume >= 1 and
+                    rvol_progression == True
+                ):
+                    print("-----TRIGGER TWO-------------")
                     print(coin.symbol)
                     print(metrics[x].timestamp)
                     print(metrics[x].last_price)
@@ -2438,17 +2449,10 @@ def index(request):
         not_all_same = len(set(volumes)) > 1
 
 
-
-
-
-
-
-
-        # TRIGGER INFORMATION HERE...
+        # TRIGGER INFORMATION HERE ---------------------------------
 
         metrics = metrics_queryset[::-1]
         metrics = metrics[:5]
-
 
         if (metrics_queryset[0].rolling_relative_volume != None and
             metrics_queryset[0].price_change_5min != None and
@@ -2479,8 +2483,9 @@ def index(request):
             current_five_min = metrics_queryset[0].price_change_5min
             previous_five_min = metrics_queryset[1].price_change_5min
             previous_five_min_two = metrics_queryset[2].price_change_5min
-            if (previous_five_min_two < previous_five_min < current_five_min and
-                previous_five_min_two < 0):
+            if (previous_five_min < current_five_min and
+                previous_five_min < 0 and
+                current_five_min > 0):
                 five_min_price_increase = True
 
             # 5 min and 10 min price changes go negative, positive, positive
@@ -2488,11 +2493,9 @@ def index(request):
             current_ten_min = metrics_queryset[0].price_change_10min
             previous_ten_min = metrics_queryset[1].price_change_10min
             previous_ten_min_two = metrics_queryset[2].price_change_10min
-            if (previous_ten_min_two < previous_ten_min < current_ten_min and
-                previous_ten_min_two < 0):
+            if (previous_ten_min < current_ten_min and
+                previous_ten_min < 0):
                 ten_min_price_increase = True
-
-
 
             if (
                 metrics_queryset[0].daily_relative_volume >= 1.1 and
@@ -2507,21 +2510,45 @@ def index(request):
                 rvol_progression == True
             ):
 
-                updated_trigger = coin.symbol + " : New Trigger Hit !"
-
+                updated_trigger = coin.symbol + " : New Trigger 1 Hit !"
                 exists = check_duplicate_triggers(updated_trigger)
 
                 if exists == False:
 
                     true_triggers.append(updated_trigger)
 
-                    # create and save the new Trigger element
                     try:
                         Trigger.objects.create(trigger_name=updated_trigger, timestamp=now())
 
                     except Exception as e:
                         print(f"Error creating new Trigger: {e}")
 
+
+            if (
+                metrics_queryset[0].daily_relative_volume >= 2 and
+                metrics_queryset[0].rolling_relative_volume >= 1.2 and
+                metrics_queryset[0].five_min_relative_volume >= 1.3 and
+                metrics_queryset[0].price_change_5min >= 0.7 and
+                metrics_queryset[0].price_change_24hr < -5 and
+                metrics_queryset[0].twenty_min_relative_volume >= 1 and
+                rvol_progression == True
+            ):
+
+                updated_trigger_two = coin.symbol + " : New Trigger 2 Hit !"
+                exists = check_duplicate_triggers(updated_trigger_two)
+
+                if exists == False:
+
+                    true_triggers.append(updated_trigger_two)
+
+                    try:
+                        Trigger.objects.create(trigger_name=updated_trigger_two, timestamp=now())
+
+                    except Exception as e:
+                        print(f"Error creating new Trigger: {e}")
+
+        if len(true_triggers) > 0:
+            send_text(true_triggers)
 
 
         top_cryptos.append({
