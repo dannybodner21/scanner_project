@@ -14,6 +14,7 @@ from django.utils.timezone import now
 from django.http import JsonResponse
 from django.http import HttpResponse
 from django.http import FileResponse, Http404
+from django.db.models import Prefetch, OuterRef, Subquery
 
 
 
@@ -1054,7 +1055,7 @@ def five_min_update(request=None):
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
 
 
-def index(request):
+def index_original(request):
 
     # get all the coins in our databse
     top_cryptos = []
@@ -2334,9 +2335,119 @@ def print_coins():
 
 
 
+def index(request):
+
+    top_cryptos = []
+    daily_relative_volumes = []
+    sorted_volumes = []
+
+    coins = Coin.objects.prefetch_related(
+        Prefetch(
+            'short_interval_data',  # The related_name defined in ShortIntervalData
+            queryset=ShortIntervalData.objects.order_by('-timestamp'),
+            to_attr='prefetched_short_interval_data'  # Use a unique name
+        ),
+        Prefetch(
+            'metrics',  # The related_name defined in Metrics
+            queryset=Metrics.objects.order_by('-timestamp'),
+            to_attr='prefetched_metrics'  # Use a unique name
+        )
+    )
+
+    for coin in coins:
+
+        short_interval_data = coin.prefetched_short_interval_data[0] if coin.prefetched_short_interval_data else None
+        metric = coin.prefetched_metrics[0] if coin.prefetched_metrics else None
 
 
+        # Extract fields with default values
+        coin_time = getattr(short_interval_data, 'timestamp', None)
+        coin_price = round(getattr(short_interval_data, 'price', 0) or 0, 7) if short_interval_data else None
+        coin_market_cap = getattr(metric, 'market_cap', None)
+        coin_volume_24h_USD = round(getattr(metric, 'volume_24h', 0) or 0, 2) if metric else None
+        coin_price_change_1h = round(getattr(metric, 'price_change_1hr', 0) or 0, 2) if metric else None
+        coin_price_change_24h_percentage = round(getattr(metric, 'price_change_24hr', 0) or 0, 2) if metric else None
+        coin_price_change_7d = round(getattr(metric, 'price_change_7d', 0) or 0, 2) if metric else None
+        coin_circulating_supply = getattr(metric, 'circulating_supply', None)
+        coin_rolling_relative_volume = round(getattr(metric, 'rolling_relative_volume', 0) or 0, 2) if metric else None
+        coin_daily_relative_volume = round(getattr(metric, 'daily_relative_volume', 0) or 0, 2) if metric else None
+        coin_twenty_min_relative_volume = round(getattr(metric, 'twenty_min_relative_volume', 0) or 0, 2) if metric else None
+        coin_five_min_relative_volume = round(getattr(metric, 'five_min_relative_volume', 0) or 0, 2) if metric else None
+        coin_price_change_5min = round(getattr(metric, 'price_change_5min', 0) or 0, 2) if metric else None
+        coin_price_change_10min = round(getattr(metric, 'price_change_10min', 0) or 0, 2) if metric else None
 
+        # Calculate relative volume progression
+        metrics_queryset = coin.prefetched_metrics
+        relative_volumes = metrics_queryset[:73][::6] if metrics_queryset else []
+
+        volumes = [
+            round(volume.rolling_relative_volume, 2)
+            for volume in relative_volumes if volume.rolling_relative_volume is not None
+        ]
+
+        # Check volume progression
+        is_descending = all(volumes[i] >= volumes[i + 1] for i in range(len(volumes) - 1))
+        not_all_same = len(set(volumes)) > 1
+
+
+        # TRIGGER INFORMATION HERE...
+
+
+        top_cryptos.append({
+            "time": coin_time,
+            "name": coin.name,
+            "symbol": coin.symbol,
+            "price": coin_price,
+            "market_cap": coin_market_cap,
+            "volume_24h_USD": coin_volume_24h_USD,
+            "price_change_1h": coin_price_change_1h,
+            "price_change_24h_percentage": coin_price_change_24h_percentage,
+            "price_change_7d": coin_price_change_7d,
+            "circulating_supply": coin_circulating_supply,
+            "daily_relative_volume": coin_daily_relative_volume,
+            "rolling_relative_volume": coin_rolling_relative_volume,
+            "five_min_relative_volume": coin_five_min_relative_volume,
+            "twenty_min_relative_volume": coin_twenty_min_relative_volume,
+            "price_change_5min": coin_price_change_5min,
+            "price_change_10min": coin_price_change_10min,
+            "exchange": coin.exchange,
+        })
+
+        if is_descending and not_all_same:
+            daily_relative_volumes.append({
+                "rank": coin.market_cap_rank,
+                "symbol": coin.symbol,
+                "price_change_24h_percentage": coin_price_change_24h_percentage,
+                "volumes": volumes,
+                "is_descending": is_descending,
+                "daily_relative_volume": coin_daily_relative_volume,
+                "price": coin_price,
+                "exchange": coin.exchange,
+            })
+
+    sorted_coins = sorted(top_cryptos, key=lambda x: x["daily_relative_volume"] or 0, reverse=True)
+    sorted_volumes = sorted(daily_relative_volumes, key=lambda x: x["price_change_24h_percentage"] or 0, reverse=True)
+
+    triggers = list(Trigger.objects.values("trigger_name", "timestamp"))
+
+
+    # Handle AJAX request for partial updates
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+
+        data = {
+            "top_cryptos": sorted_coins,
+            "sorted_volumes": sorted_volumes,
+            "triggers": triggers,
+        }
+
+        return JsonResponse(data, safe=False)
+
+    # Render data to the HTML template
+    return render(request, "index.html", {
+        "top_cryptos": sorted_coins,
+        "sorted_volumes": sorted_volumes,
+        "triggers": triggers,
+    })
 
 
 
