@@ -1908,8 +1908,6 @@ def test(request):
     return render(request, "test.html")
 
 
-
-
 def analyze_recent_metrics(event_time, coin_symbol):
 
     # UTC TIME ZONE------------------------------------------------
@@ -2089,10 +2087,6 @@ def find_metrics():
 
 
 
-
-
-
-
 import csv
 def print_metrics(symbol):
 
@@ -2140,8 +2134,6 @@ def print_metrics(symbol):
 
     except Exception as e:
         print(f"An error occurred: {e}")
-
-
 
 
 def retrieve_metrics(symbol):
@@ -2302,9 +2294,9 @@ def check_trigger(symbol):
 
                 if (
                     #metrics[x].volume_24h_growth >= 10 and
-                    metrics[x].rolling_relative_volume >= 1.3 and
-                    metrics[x].price_change_5min >= 0.75 and
-                    metrics[x].price_change_10min >= 1.5 and
+                    metrics[x].rolling_relative_volume >= 1.2 and
+                    metrics[x].price_change_5min >= 0.3 and
+                    metrics[x].price_change_10min >= 0.7 and
                     metrics[x].price_change_1hr <= -2 and
                     #metric.market_cap_growth_10min >= 0.5 and
                     3 <= metrics[x].price_change_24hr <= 10 and
