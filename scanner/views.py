@@ -2269,7 +2269,7 @@ def check_trigger(symbol):
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
-        for x in range(len(metrics)):
+        for x in range(1, len(metrics)):
 
             # trigger to test
             '''
@@ -2292,14 +2292,28 @@ def check_trigger(symbol):
                 metrics[x].five_min_relative_volume != None and
                 metrics[x].twenty_min_relative_volume != None):
 
+                # 24 hour volume growth
+                # current volume - volume 5 min ago / volume 5 min ago * 100
+                current_volume = metrics[x].volume_24h
+                previous_volume = metrics[x-1].volume_24h
+                volume_growth = (current_volume - previous_volume) / previous_volume * 100
+
                 if (
                     #metrics[x].volume_24h_growth >= 10 and
+
+
+                    metrics[x].daily_relative_volume >= 1.5 and
                     metrics[x].rolling_relative_volume >= 1.5 and
-                    #metrics[x].price_change_5min >= 0.3 and
-                    metrics[x].price_change_10min >= 1 and
-                    metrics[x].price_change_1hr > 0 and
-                    metrics[x].price_change_7d >= 15 and
-                    metrics[x].twenty_min_relative_volume >= 1.3
+                    metrics[x].five_min_relative_volume >= 1.25 and
+                    metrics[x].price_change_5min >= 0.75 and
+                    metrics[x].price_change_10min >= 1.25 and
+                    volume_growth >= 3 and
+                    metrics[x].twenty_min_relative_volume > 1
+
+                    #metrics[x].price_change_1hr > 0 and
+                    #metrics[x].price_change_7d >= 15 and
+
+
 
                     #metric.market_cap_growth_10min >= 0.5 and
                     #3 <= metrics[x].price_change_24hr <= 10 and

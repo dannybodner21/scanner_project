@@ -26,7 +26,7 @@ class Command(BaseCommand):
         coin_symbol = kwargs['coin_symbol']
 
         logger.info(f"Analyzing data...")
-        print_metrics(coin_symbol)
+        #print_metrics(coin_symbol)
         #retrieve_metrics(coin_symbol)
-        #check_trigger(coin_symbol)
+        check_trigger(coin_symbol)
         logger.info("Task completed.")
