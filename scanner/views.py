@@ -1051,6 +1051,8 @@ def five_min_update(request=None):
     #meme_coin_triggers()
     #print("done checking meme triggers")
 
+    check_triggers()
+
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
 
@@ -2254,10 +2256,6 @@ def download_file(request, filename):
         raise Http404("File does not exist")
 
 
-
-
-
-
 # used to test out a trigger combination against the data we have in the db
 def check_trigger(symbol):
 
@@ -2369,7 +2367,6 @@ def check_trigger(symbol):
                     print(metrics[x].last_price)
 
 
-
 # used to view coins and then delete the unneccessary ones
 def print_coins():
 
@@ -2387,66 +2384,15 @@ def print_coins():
     print(f"Deleted {coins.count()} coins and their associated data.")
 
 
-def index(request):
+def check_triggers():
 
-    top_cryptos = []
-    daily_relative_volumes = []
-    sorted_volumes = []
-
-    coins = Coin.objects.prefetch_related(
-        Prefetch(
-            'short_interval_data',  # The related_name defined in ShortIntervalData
-            queryset=ShortIntervalData.objects.order_by('-timestamp'),
-            to_attr='prefetched_short_interval_data'  # Use a unique name
-        ),
-        Prefetch(
-            'metrics',  # The related_name defined in Metrics
-            queryset=Metrics.objects.order_by('-timestamp'),
-            to_attr='prefetched_metrics'  # Use a unique name
-        )
-    )
+    coins = Coin.objects.all()
 
     for coin in coins:
 
+        metrics_queryset = Metrics.objects.order_by('-timestamp')
+
         true_triggers = []
-
-        short_interval_data = coin.prefetched_short_interval_data[0] if coin.prefetched_short_interval_data else None
-        metric = coin.prefetched_metrics[0] if coin.prefetched_metrics else None
-
-        # Extract fields with default values
-        coin_time = getattr(short_interval_data, 'timestamp', None)
-        coin_price = round(getattr(short_interval_data, 'price', 0) or 0, 7) if short_interval_data else None
-        coin_market_cap = getattr(metric, 'market_cap', None)
-        coin_volume_24h_USD = round(getattr(metric, 'volume_24h', 0) or 0, 2) if metric else None
-        coin_price_change_1h = round(getattr(metric, 'price_change_1hr', 0) or 0, 2) if metric else None
-        coin_price_change_24h_percentage = round(getattr(metric, 'price_change_24hr', 0) or 0, 2) if metric else None
-        coin_price_change_7d = round(getattr(metric, 'price_change_7d', 0) or 0, 2) if metric else None
-        coin_circulating_supply = getattr(metric, 'circulating_supply', None)
-        coin_rolling_relative_volume = round(getattr(metric, 'rolling_relative_volume', 0) or 0, 2) if metric else None
-        coin_daily_relative_volume = round(getattr(metric, 'daily_relative_volume', 0) or 0, 2) if metric else None
-        coin_twenty_min_relative_volume = round(getattr(metric, 'twenty_min_relative_volume', 0) or 0, 2) if metric else None
-        coin_five_min_relative_volume = round(getattr(metric, 'five_min_relative_volume', 0) or 0, 2) if metric else None
-        coin_price_change_5min = round(getattr(metric, 'price_change_5min', 0) or 0, 2) if metric else None
-        coin_price_change_10min = round(getattr(metric, 'price_change_10min', 0) or 0, 2) if metric else None
-
-        # Calculate relative volume progression
-        metrics_queryset = coin.prefetched_metrics
-        relative_volumes = metrics_queryset[:73][::6] if metrics_queryset else []
-
-        volumes = [
-            round(volume.rolling_relative_volume, 2)
-            for volume in relative_volumes if volume.rolling_relative_volume is not None
-        ]
-
-        # Check volume progression
-        is_descending = all(volumes[i] >= volumes[i + 1] for i in range(len(volumes) - 1))
-        not_all_same = len(set(volumes)) > 1
-
-
-        # TRIGGER INFORMATION HERE ---------------------------------
-
-        #metrics = metrics_queryset[::-1]
-        #metrics = metrics[:5]
 
         if (metrics_queryset[0].rolling_relative_volume != None and
             metrics_queryset[0].price_change_5min != None and
@@ -2542,6 +2488,67 @@ def index(request):
         if len(true_triggers) > 0:
             send_text(true_triggers)
 
+    return
+
+
+
+def index(request):
+
+    top_cryptos = []
+    daily_relative_volumes = []
+    sorted_volumes = []
+
+    coins = Coin.objects.prefetch_related(
+        Prefetch(
+            'short_interval_data',  # The related_name defined in ShortIntervalData
+            queryset=ShortIntervalData.objects.order_by('-timestamp'),
+            to_attr='prefetched_short_interval_data'  # Use a unique name
+        ),
+        Prefetch(
+            'metrics',  # The related_name defined in Metrics
+            queryset=Metrics.objects.order_by('-timestamp'),
+            to_attr='prefetched_metrics'  # Use a unique name
+        )
+    )
+
+    for coin in coins:
+
+        short_interval_data = coin.prefetched_short_interval_data[0] if coin.prefetched_short_interval_data else None
+        metric = coin.prefetched_metrics[0] if coin.prefetched_metrics else None
+
+        # Extract fields with default values
+        coin_time = getattr(short_interval_data, 'timestamp', None)
+        coin_price = round(getattr(short_interval_data, 'price', 0) or 0, 7) if short_interval_data else None
+        coin_market_cap = getattr(metric, 'market_cap', None)
+        coin_volume_24h_USD = round(getattr(metric, 'volume_24h', 0) or 0, 2) if metric else None
+        coin_price_change_1h = round(getattr(metric, 'price_change_1hr', 0) or 0, 2) if metric else None
+        coin_price_change_24h_percentage = round(getattr(metric, 'price_change_24hr', 0) or 0, 2) if metric else None
+        coin_price_change_7d = round(getattr(metric, 'price_change_7d', 0) or 0, 2) if metric else None
+        coin_circulating_supply = getattr(metric, 'circulating_supply', None)
+        coin_rolling_relative_volume = round(getattr(metric, 'rolling_relative_volume', 0) or 0, 2) if metric else None
+        coin_daily_relative_volume = round(getattr(metric, 'daily_relative_volume', 0) or 0, 2) if metric else None
+        coin_twenty_min_relative_volume = round(getattr(metric, 'twenty_min_relative_volume', 0) or 0, 2) if metric else None
+        coin_five_min_relative_volume = round(getattr(metric, 'five_min_relative_volume', 0) or 0, 2) if metric else None
+        coin_price_change_5min = round(getattr(metric, 'price_change_5min', 0) or 0, 2) if metric else None
+        coin_price_change_10min = round(getattr(metric, 'price_change_10min', 0) or 0, 2) if metric else None
+
+        # Calculate relative volume progression
+        metrics_queryset = coin.prefetched_metrics
+        relative_volumes = metrics_queryset[:73][::6] if metrics_queryset else []
+
+        volumes = [
+            round(volume.rolling_relative_volume, 2)
+            for volume in relative_volumes if volume.rolling_relative_volume is not None
+        ]
+
+        # Check volume progression
+        is_descending = all(volumes[i] >= volumes[i + 1] for i in range(len(volumes) - 1))
+        not_all_same = len(set(volumes)) > 1
+
+
+        # TRIGGER INFORMATION HERE ---------------------------------
+
+        #check_triggers(metrics_queryset)
 
         top_cryptos.append({
             "time": coin_time,
