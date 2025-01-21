@@ -2453,6 +2453,9 @@ def check_triggers(metrics_queryset):
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
 
+        else:
+            print("No Trigger 1")
+
 
         if (
             metrics_queryset[0].daily_relative_volume >= 2 and
@@ -2476,6 +2479,8 @@ def check_triggers(metrics_queryset):
 
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
+        else:
+            print("No Trigger 2")
 
 
     if len(true_triggers) > 0:
