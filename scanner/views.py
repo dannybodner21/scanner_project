@@ -2499,8 +2499,7 @@ def index(request):
                 metrics_queryset[0].twenty_min_relative_volume >= 1 and
                 metrics_queryset[0].price_change_24hr < 0 and
                 five_min_price_increase == True and
-                ten_min_price_increase == True and
-                rvol_progression == True
+                ten_min_price_increase == True
             ):
 
                 updated_trigger = coin.symbol + " : New Trigger 1 Hit !"
