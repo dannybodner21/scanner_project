@@ -2432,13 +2432,12 @@ def check_triggers(metrics_queryset):
 
         if (
             metrics_queryset[0].daily_relative_volume >= 1.1 and
-            metrics_queryset[0].rolling_relative_volume >= 1.6 and
+            metrics_queryset[0].rolling_relative_volume >= 1.4 and
             metrics_queryset[0].five_min_relative_volume >= 1.3 and
             metrics_queryset[0].price_change_5min >= 0 and
-            metrics_queryset[0].twenty_min_relative_volume >= 1 and
+            metrics_queryset[1].price_change_5min < 0 and
             metrics_queryset[0].price_change_24hr < 0 and
-            five_min_price_increase == True and
-            ten_min_price_increase == True
+            five_min_price_increase == True
         ):
 
             updated_trigger = coin.symbol + " : New Trigger 1 Hit !"
