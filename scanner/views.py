@@ -2478,13 +2478,8 @@ def check_triggers(metrics_queryset):
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
 
-        print("in the function")
 
     if len(true_triggers) > 0:
-        send_text(true_triggers)
-
-    else:
-        true_triggers.append("testing shit")
         send_text(true_triggers)
 
 
@@ -2547,7 +2542,7 @@ def index(request):
 
         # TRIGGER INFORMATION HERE ---------------------------------
 
-        check_triggers(metrics_queryset)
+        check_triggers(metrics_queryset[:6])
 
         top_cryptos.append({
             "time": coin_time,
