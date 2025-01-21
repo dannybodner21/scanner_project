@@ -7735,7 +7735,7 @@ def check_trigger(symbol):
                     #volume_growth >= 3 and
 =======
                     metrics[x].price_change_5min >= 0 and
-                    metrics[x].price_change_10min >= 1.5 and
+                    #metrics[x].price_change_10min >= 1.5 and
                     metrics[x].price_change_24hr < 0 and
 >>>>>>> e907c88 (who cares)
                     metrics[x].twenty_min_relative_volume >= 1 and
@@ -7784,12 +7784,15 @@ def print_coins():
 
     print(f"Deleted {coins.count()} coins and their associated data.")
 
+<<<<<<< HEAD
             
 
 
 
 
 
+=======
+>>>>>>> 500608e (who cares)
 
 def index(request):
 
@@ -7858,6 +7861,7 @@ def index(request):
         metrics = metrics_queryset[::-1]
         metrics = metrics[:5]
 
+<<<<<<< HEAD
 
         if (metrics_queryset[0].rolling_relative_volume != None and
             metrics_queryset[0].price_change_5min != None and
@@ -7867,24 +7871,35 @@ def index(request):
             metrics_queryset[0].daily_relative_volume != None and
             metrics_queryset[0].five_min_relative_volume != None and
             metrics_queryset[0].twenty_min_relative_volume != None):
+=======
+        if (metrics[0].rolling_relative_volume != None and
+            metrics[0].price_change_5min != None and
+            metrics[0].price_change_10min != None and
+            metrics[0].price_change_1hr != None and
+            metrics[0].price_change_24hr != None and
+            metrics[0].daily_relative_volume != None and
+            metrics[0].five_min_relative_volume != None and
+            metrics[0].twenty_min_relative_volume != None):
+>>>>>>> 500608e (who cares)
 
             # 24 hour volume growth
             # current volume - volume 5 min ago / volume 5 min ago * 100
-            current_volume = metrics_queryset[0].volume_24h
-            previous_volume = metrics_queryset[1].volume_24h
+            current_volume = metrics[0].volume_24h
+            previous_volume = metrics[1].volume_24h
             volume_growth = (current_volume - previous_volume) / previous_volume * 100
 
             # 5 min relative volume progression
             # current and previous 2 are increasing or equivalent
             rvol_progression = False
-            current_rvol = metrics_queryset[0].five_min_relative_volume
-            one_previous_rvol = metrics_queryset[1].five_min_relative_volume
-            two_previous_rvol = metrics_queryset[2].five_min_relative_volume
+            current_rvol = metrics[0].five_min_relative_volume
+            one_previous_rvol = metrics[1].five_min_relative_volume
+            two_previous_rvol = metrics[2].five_min_relative_volume
             if (two_previous_rvol <= one_previous_rvol <= current_rvol):
                 rvol_progression = True
 
             # 5 min price change is greater than previous
             five_min_price_increase = False
+<<<<<<< HEAD
             current_five_min = metrics_queryset[0].price_change_5min
             previous_five_min = metrics_queryset[1].price_change_5min
             if (previous_five_min < current_five_min):
@@ -7903,6 +7918,33 @@ def index(request):
                 metrics_queryset[0].price_change_10min >= 1.5 and
 >>>>>>> e907c88 (who cares)
                 metrics_queryset[0].twenty_min_relative_volume >= 1 and
+=======
+            current_five_min = metrics[0].price_change_5min
+            previous_five_min = metrics[1].price_change_5min
+            previous_five_min_two = metrics[2].price_change_5min
+            if (previous_five_min < current_five_min and
+                previous_five_min < 0 and
+                current_five_min > 0):
+                five_min_price_increase = True
+
+            # 5 min and 10 min price changes go negative, positive, positive
+            ten_min_price_increase = False
+            current_ten_min = metrics[0].price_change_10min
+            previous_ten_min = metrics[1].price_change_10min
+            previous_ten_min_two = metrics[2].price_change_10min
+            if (previous_ten_min < current_ten_min and
+                previous_ten_min < 0):
+                ten_min_price_increase = True
+
+            if (
+                metrics[0].daily_relative_volume >= 1.1 and
+                metrics[0].rolling_relative_volume >= 1.6 and
+                metrics[0].five_min_relative_volume >= 1.3 and
+                metrics[0].price_change_5min >= 0 and
+                #metrics[0].price_change_10min >= 1.5 and
+                metrics[0].twenty_min_relative_volume >= 1 and
+                metrics[0].price_change_24hr < 0 and
+>>>>>>> 500608e (who cares)
                 five_min_price_increase == True and
                 rvol_progression == True
             ):
@@ -7923,6 +7965,35 @@ def index(request):
                         print(f"Error creating new Trigger: {e}")
 
 
+<<<<<<< HEAD
+=======
+            if (
+                metrics[0].daily_relative_volume >= 2 and
+                metrics[0].rolling_relative_volume >= 1.2 and
+                metrics[0].five_min_relative_volume >= 1.3 and
+                metrics[0].price_change_5min >= 0.7 and
+                metrics[0].price_change_24hr < -5 and
+                metrics[0].twenty_min_relative_volume >= 1 and
+                rvol_progression == True
+            ):
+
+                updated_trigger_two = coin.symbol + " : New Trigger 2 Hit !"
+                exists = check_duplicate_triggers(updated_trigger_two)
+
+                if exists == False:
+
+                    true_triggers.append(updated_trigger_two)
+
+                    try:
+                        Trigger.objects.create(trigger_name=updated_trigger_two, timestamp=now())
+
+                    except Exception as e:
+                        print(f"Error creating new Trigger: {e}")
+
+        if len(true_triggers) > 0:
+            send_text(true_triggers)
+
+>>>>>>> 500608e (who cares)
 
         top_cryptos.append({
             "time": coin_time,
