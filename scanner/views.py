@@ -7860,7 +7860,37 @@ def check_triggers(metrics_queryset):
                     print(f"Error creating new Trigger: {e}")
 >>>>>>> 8750fa4 (who cares)
 
+        else:
+            print("No Trigger 1")
 
+
+<<<<<<< HEAD
+=======
+        if (
+            metrics_queryset[0].daily_relative_volume >= 2 and
+            metrics_queryset[0].rolling_relative_volume >= 1.2 and
+            metrics_queryset[0].five_min_relative_volume >= 1.3 and
+            metrics_queryset[0].price_change_5min >= 0.7 and
+            metrics_queryset[0].price_change_24hr < -5 and
+            metrics_queryset[0].twenty_min_relative_volume >= 1 and
+            rvol_progression == True
+        ):
+
+            updated_trigger_two = coin.symbol + " : New Trigger 2 Hit !"
+            exists = check_duplicate_triggers(updated_trigger_two)
+
+            if exists == False:
+
+                true_triggers.append(updated_trigger_two)
+
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_two, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
+        else:
+            print("No Trigger 2")
+>>>>>>> 15cdad5 (who cares)
 
 
 
