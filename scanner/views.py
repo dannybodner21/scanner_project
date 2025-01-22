@@ -17,6 +17,117 @@ from django.http import FileResponse, Http404
 from django.db.models import Prefetch, OuterRef, Subquery
 
 
+# used to test out a trigger combination against the data we have in the db
+def check_trigger(symbol):
+
+    #coin = Coin.objects.get(symbol=symbol)
+
+    coins = Coin.objects.all()
+
+    for coin in coins:
+
+        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+        for x in range(6, len(metrics)):
+
+            if (metrics[x].rolling_relative_volume != None and
+                metrics[x].price_change_5min != None and
+                metrics[x].price_change_10min != None and
+                metrics[x].price_change_1hr != None and
+                metrics[x].price_change_24hr != None and
+                metrics[x].daily_relative_volume != None and
+                metrics[x].five_min_relative_volume != None and
+                metrics[x].twenty_min_relative_volume != None):
+
+                # 24 hour volume growth
+                # current volume - volume 5 min ago / volume 5 min ago * 100
+                current_volume = metrics[x].volume_24h
+                previous_volume = metrics[x-1].volume_24h
+                volume_growth = (current_volume - previous_volume) / previous_volume * 100
+
+                # 5 min relative volume progression
+                # current and previous 2 are increasing or equivalent
+                rvol_progression = False
+                current_rvol = metrics[x].five_min_relative_volume
+                one_previous_rvol = metrics[x-1].five_min_relative_volume
+                two_previous_rvol = metrics[x-2].five_min_relative_volume
+                if (two_previous_rvol <= one_previous_rvol <= current_rvol):
+                    rvol_progression = True
+
+                # 5 min price change is greater than previous
+                five_min_price_increase = False
+                current_five_min = metrics[x].price_change_5min
+                previous_five_min = metrics[x-1].price_change_5min
+                previous_five_min_two = metrics[x-2].price_change_5min
+                if (previous_five_min < current_five_min and
+                    previous_five_min < 0 and
+                    current_five_min > 0):
+                    five_min_price_increase = True
+
+                # 5 min and 10 min price changes go negative, positive, positive
+                ten_min_price_increase = False
+                current_ten_min = metrics[x].price_change_10min
+                previous_ten_min = metrics[x-1].price_change_10min
+                previous_ten_min_two = metrics[x-2].price_change_10min
+                if (previous_ten_min < current_ten_min and
+                    previous_ten_min < 0):
+                    ten_min_price_increase = True
+
+
+                if (
+                    metrics[x].daily_relative_volume >= 1.1 and
+                    metrics[x].rolling_relative_volume >= 1.6 and
+                    metrics[x].five_min_relative_volume >= 1.3 and
+                    metrics[x].price_change_5min >= 0 and
+                    #metrics[x].price_change_10min >= 1.5 and
+                    metrics[x].price_change_24hr < 0 and
+                    metrics[x].twenty_min_relative_volume >= 1 and
+                    five_min_price_increase == True and
+                    ten_min_price_increase == True and
+                    rvol_progression == True
+
+                    #metrics[x].volume_24h_growth >= 10 and
+                    #metrics[x].price_change_1hr > 0 and
+                    #metrics[x].price_change_7d >= 15 and
+                    #metric.market_cap_growth_10min >= 0.5 and
+                    #3 <= metrics[x].price_change_24hr <= 10 and
+                    #0.8 <= metrics[x].daily_relative_volume <= 1.5 and
+                    #abs(metrics[x].five_min_relative_volume - metrics[x].twenty_min_relative_volume) <= 0.1
+                    #abs(metric.last_price - metric.recent_local_low) <= 0.01 * metric.recent_local_low
+                ):
+
+                    print("------------------")
+                    print(coin.symbol)
+                    print(metrics[x].timestamp)
+
+                if (
+                    metrics[x].daily_relative_volume >= 2 and
+                    metrics[x].rolling_relative_volume >= 1.2 and
+                    metrics[x].five_min_relative_volume >= 1.3 and
+                    metrics[x].price_change_5min >= 0.7 and
+                    metrics[x].price_change_24hr < -5 and
+                    metrics[x].twenty_min_relative_volume >= 1 and
+                    rvol_progression == True
+                ):
+                    print("-----TRIGGER TWO-------------")
+                    print(coin.symbol)
+                    print(metrics[x].timestamp)
+
+                if (
+                    metrics[x].price_change_1hr >= metrics[x-1].price_change_1hr and
+                    metrics[x-1].price_change_1hr >= metrics[x-2].price_change_1hr and
+                    metrics[x-2].price_change_1hr >= metrics[x-3].price_change_1hr and
+                    metrics[x].price_change_5min > 0.5 and
+                    metrics[x].rolling_relative_volume >= 1.5 and
+                    metrics[x].five_min_relative_volume > (metrics[x].rolling_relative_volume + 0.2)
+                ):
+                    print("-----TRIGGER THREE-------------")
+                    print(coin.symbol)
+                    print(metrics[x].timestamp)
+
+
+
+
 
 # used to test if the telegram bot is sending messages properly
 def test_message():
@@ -2209,115 +2320,6 @@ def download_file(request, filename):
         return FileResponse(open(filepath, 'rb'), as_attachment=True)
     except FileNotFoundError:
         raise Http404("File does not exist")
-
-
-# used to test out a trigger combination against the data we have in the db
-def check_trigger(symbol):
-
-    #coin = Coin.objects.get(symbol=symbol)
-
-    coins = Coin.objects.all()
-
-    for coin in coins:
-
-        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
-
-        for x in range(6, len(metrics)):
-
-            if (metrics[x].rolling_relative_volume != None and
-                metrics[x].price_change_5min != None and
-                metrics[x].price_change_10min != None and
-                metrics[x].price_change_1hr != None and
-                metrics[x].price_change_24hr != None and
-                metrics[x].daily_relative_volume != None and
-                metrics[x].five_min_relative_volume != None and
-                metrics[x].twenty_min_relative_volume != None):
-
-                # 24 hour volume growth
-                # current volume - volume 5 min ago / volume 5 min ago * 100
-                current_volume = metrics[x].volume_24h
-                previous_volume = metrics[x-1].volume_24h
-                volume_growth = (current_volume - previous_volume) / previous_volume * 100
-
-                # 5 min relative volume progression
-                # current and previous 2 are increasing or equivalent
-                rvol_progression = False
-                current_rvol = metrics[x].five_min_relative_volume
-                one_previous_rvol = metrics[x-1].five_min_relative_volume
-                two_previous_rvol = metrics[x-2].five_min_relative_volume
-                if (two_previous_rvol <= one_previous_rvol <= current_rvol):
-                    rvol_progression = True
-
-                # 5 min price change is greater than previous
-                five_min_price_increase = False
-                current_five_min = metrics[x].price_change_5min
-                previous_five_min = metrics[x-1].price_change_5min
-                previous_five_min_two = metrics[x-2].price_change_5min
-                if (previous_five_min < current_five_min and
-                    previous_five_min < 0 and
-                    current_five_min > 0):
-                    five_min_price_increase = True
-
-                # 5 min and 10 min price changes go negative, positive, positive
-                ten_min_price_increase = False
-                current_ten_min = metrics[x].price_change_10min
-                previous_ten_min = metrics[x-1].price_change_10min
-                previous_ten_min_two = metrics[x-2].price_change_10min
-                if (previous_ten_min < current_ten_min and
-                    previous_ten_min < 0):
-                    ten_min_price_increase = True
-
-
-                if (
-                    metrics[x].daily_relative_volume >= 1.1 and
-                    metrics[x].rolling_relative_volume >= 1.6 and
-                    metrics[x].five_min_relative_volume >= 1.3 and
-                    metrics[x].price_change_5min >= 0 and
-                    #metrics[x].price_change_10min >= 1.5 and
-                    metrics[x].price_change_24hr < 0 and
-                    metrics[x].twenty_min_relative_volume >= 1 and
-                    five_min_price_increase == True and
-                    ten_min_price_increase == True and
-                    rvol_progression == True
-
-                    #metrics[x].volume_24h_growth >= 10 and
-                    #metrics[x].price_change_1hr > 0 and
-                    #metrics[x].price_change_7d >= 15 and
-                    #metric.market_cap_growth_10min >= 0.5 and
-                    #3 <= metrics[x].price_change_24hr <= 10 and
-                    #0.8 <= metrics[x].daily_relative_volume <= 1.5 and
-                    #abs(metrics[x].five_min_relative_volume - metrics[x].twenty_min_relative_volume) <= 0.1
-                    #abs(metric.last_price - metric.recent_local_low) <= 0.01 * metric.recent_local_low
-                ):
-
-                    print("------------------")
-                    print(coin.symbol)
-                    print(metrics[x].timestamp)
-
-                if (
-                    metrics[x].daily_relative_volume >= 2 and
-                    metrics[x].rolling_relative_volume >= 1.2 and
-                    metrics[x].five_min_relative_volume >= 1.3 and
-                    metrics[x].price_change_5min >= 0.7 and
-                    metrics[x].price_change_24hr < -5 and
-                    metrics[x].twenty_min_relative_volume >= 1 and
-                    rvol_progression == True
-                ):
-                    print("-----TRIGGER TWO-------------")
-                    print(coin.symbol)
-                    print(metrics[x].timestamp)
-
-                if (
-                    metrics[x].price_change_1hr >= metrics[x-1].price_change_1hr and
-                    metrics[x-1].price_change_1hr >= metrics[x-2].price_change_1hr and
-                    metrics[x-2].price_change_1hr >= metrics[x-3].price_change_1hr and
-                    metrics[x-3].price_change_1hr >= metrics[x-4].price_change_1hr and
-                    metrics[x-4].price_change_1hr >= metrics[x-5].price_change_1hr and
-                    metrics[x-5].price_change_1hr >= metrics[x-6].price_change_1hr
-                ):
-                    print("-----TRIGGER THREE-------------")
-                    print(coin.symbol)
-                    print(metrics[x].timestamp)
 
 
 # used to view coins and then delete the unneccessary ones
