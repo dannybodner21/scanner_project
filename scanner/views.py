@@ -4,7 +4,7 @@ import urllib.request
 import os
 import requests
 import asyncio
-
+import decimal
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
@@ -24,9 +24,24 @@ def check_trigger(symbol):
 
     coins = Coin.objects.all()
 
+    amount_of_trades = 0
+    successful_trades = 0
+    failed_trades = 0
+    trigger_one_trades = 0
+    trigger_two_trades = 0
+    trigger_three_trades = 0
+    trigger_short_trades = 0
+
     for coin in coins:
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+        average_volume = 0
+        for metric in metrics:
+            average_volume += metric.volume_24h
+
+        average_volume = average_volume / len(metrics)
+        average_volume = average_volume * decimal.Decimal(1.15)
 
         for x in range(6, len(metrics)):
 
@@ -96,9 +111,60 @@ def check_trigger(symbol):
                     #abs(metric.last_price - metric.recent_local_low) <= 0.01 * metric.recent_local_low
                 ):
 
-                    print("------------------")
-                    print(coin.symbol)
-                    print(metrics[x].timestamp)
+                    #print("-------TRIGGER ONE-----------")
+                    #print(coin.symbol)
+                    #print(metrics[x].timestamp)
+
+                    amount_of_trades += 1
+                    trigger_one_trades += 1
+
+                    # check if the trigger was right
+                    # right means the price went up over 5% in the next 5 hours
+                    # and it didnt go below 2% from the trigger price
+                    trigger_price = metrics[x].last_price
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+
+                    # try to go through remaining metrics
+                    take_profit_hit = False
+                    stop_loss_hit = False
+                    take_profit_timestamp = None
+                    stop_loss_timestamp = None
+                    try:
+                        for y in range(x, len(metrics)):
+                            if (metrics[y].last_price >= take_profit_price):
+                                take_profit_hit = True
+                                take_profit_timestamp = metrics[y].timestamp
+
+                            if (metrics[y].last_price <= stop_loss_price):
+                                stop_loss_hit = True
+                                stop_loss_timestamp = metrics[y].timestamp
+
+                        if (take_profit_hit == True):
+                            if (stop_loss_hit == True):
+                                # compare timestamps
+                                if (take_profit_timestamp < stop_loss_timestamp):
+                                    # successful trade
+                                    successful_trades += 1
+                                else:
+                                    # failed trade
+                                    failed_trades += 1
+                            else:
+                                # successful trade
+                                successful_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == True):
+                            # failed trade
+                            failed_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == False):
+                            amount_of_trades -= 1
+                            trigger_one_trades -= 1
+
+                    except:
+                        print("failed in trigger 1")
+
+
 
                 if (
                     metrics[x].daily_relative_volume >= 2 and
@@ -109,23 +175,196 @@ def check_trigger(symbol):
                     metrics[x].twenty_min_relative_volume >= 1 and
                     rvol_progression == True
                 ):
-                    print("-----TRIGGER TWO-------------")
-                    print(coin.symbol)
-                    print(metrics[x].timestamp)
+                    #print("-----TRIGGER TWO-------------")
+                    #print(coin.symbol)
+                    #print(metrics[x].timestamp)
+
+                    amount_of_trades += 1
+                    trigger_two_trades += 1
+
+                    trigger_price = metrics[x].last_price
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                    take_profit_hit = False
+                    stop_loss_hit = False
+                    take_profit_timestamp = None
+                    stop_loss_timestamp = None
+                    try:
+                        for y in range(x, len(metrics)):
+                            if (metrics[y].last_price >= take_profit_price):
+                                take_profit_hit = True
+                                take_profit_timestamp = metrics[y].timestamp
+
+                            if (metrics[y].last_price <= stop_loss_price):
+                                stop_loss_hit = True
+                                stop_loss_timestamp = metrics[y].timestamp
+
+                        if (take_profit_hit == True):
+                            if (stop_loss_hit == True):
+                                # compare timestamps
+                                if (take_profit_timestamp < stop_loss_timestamp):
+                                    # successful trade
+                                    successful_trades += 1
+                                else:
+                                    # failed trade
+                                    failed_trades += 1
+                            else:
+                                # successful trade
+                                successful_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == True):
+                            # failed trade
+                            failed_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == False):
+                            amount_of_trades -= 1
+                            trigger_two_trades -= 1
+
+                    except:
+                        print("failed in trigger 2")
+
+
+
+                # rolling 5 min price change
+                rolling_one = metrics[x].price_change_5min
+                rolling_two = metrics[x-1].price_change_5min
+                rolling_three = metrics[x-2].price_change_5min
+                rolling_price_change_5min = (rolling_one+rolling_two+rolling_three) / 3
+
+                # rate of change 5 min rvol
+                rvol_one = metrics[x].five_min_relative_volume
+                rvol_two = metrics[x-1].five_min_relative_volume
+                rate_of_change_rvol = (rvol_one - rvol_two) / rvol_two * 100
 
                 if (
-                    metrics[x].price_change_1hr >= metrics[x-1].price_change_1hr and
-                    metrics[x-1].price_change_1hr >= metrics[x-2].price_change_1hr and
-                    metrics[x-2].price_change_1hr >= metrics[x-3].price_change_1hr and
-                    metrics[x].price_change_5min > 0.5 and
-                    metrics[x].rolling_relative_volume >= 1.5 and
-                    metrics[x].five_min_relative_volume > (metrics[x].rolling_relative_volume + 0.2)
+                    rolling_price_change_5min > 1.5 and
+                    metrics[x].volume_24h > average_volume and
+                    metrics[x].five_min_relative_volume > 1.4 and
+                    rate_of_change_rvol > 1.6
+
                 ):
-                    print("-----TRIGGER THREE-------------")
-                    print(coin.symbol)
-                    print(metrics[x].timestamp)
+                    #print("-----TRIGGER THREE-------------")
+                    #print(coin.symbol)
+                    #print(metrics[x].timestamp)
+
+                    amount_of_trades += 1
+                    trigger_three_trades == 1
+
+                    trigger_price = metrics[x].last_price
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                    take_profit_hit = False
+                    stop_loss_hit = False
+                    take_profit_timestamp = None
+                    stop_loss_timestamp = None
+                    try:
+                        for y in range(x, len(metrics)):
+                            if (metrics[y].last_price >= take_profit_price):
+                                take_profit_hit = True
+                                take_profit_timestamp = metrics[y].timestamp
+
+                            if (metrics[y].last_price <= stop_loss_price):
+                                stop_loss_hit = True
+                                stop_loss_timestamp = metrics[y].timestamp
+
+                        if (take_profit_hit == True):
+                            if (stop_loss_hit == True):
+                                # compare timestamps
+                                if (take_profit_timestamp < stop_loss_timestamp):
+                                    # successful trade
+                                    successful_trades += 1
+                                else:
+                                    # failed trade
+                                    failed_trades += 1
+                            else:
+                                # successful trade
+                                successful_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == True):
+                            # failed trade
+                            failed_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == False):
+                            amount_of_trades -= 1
+                            trigger_three_trades -= 1
+
+                    except:
+                        print("failed in trigger 3")
 
 
+                # SHORT Trigger
+                if (
+                    metrics[x].volume_24h > average_volume and
+                    rolling_price_change_5min < -1.2 and
+                    metrics[x].five_min_relative_volume > 1.5
+                ):
+                    #print("-----SHORT TRIGGER-------------")
+                    #print(coin.symbol)
+                    #print(metrics[x].timestamp)
+
+                    amount_of_trades += 1
+                    trigger_short_trades += 1
+                    trigger_price = metrics[x].last_price
+                    stop_loss_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price - (trigger_price * decimal.Decimal(0.05))
+                    take_profit_hit = False
+                    stop_loss_hit = False
+                    take_profit_timestamp = None
+                    stop_loss_timestamp = None
+                    try:
+                        for y in range(x, len(metrics)):
+                            if (metrics[y].last_price <= take_profit_price):
+                                take_profit_hit = True
+                                take_profit_timestamp = metrics[y].timestamp
+
+                            if (metrics[y].last_price >= stop_loss_price):
+                                stop_loss_hit = True
+                                stop_loss_timestamp = metrics[y].timestamp
+
+                        if (take_profit_hit == True):
+                            if (stop_loss_hit == True):
+                                # compare timestamps
+                                if (take_profit_timestamp < stop_loss_timestamp):
+                                    # successful trade
+                                    successful_trades += 1
+                                else:
+                                    # failed trade
+                                    failed_trades += 1
+                            else:
+                                # successful trade
+                                successful_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == True):
+                            # failed trade
+                            failed_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == False):
+                            amount_of_trades -= 1
+                            trigger_short_trades -= 1
+
+                    except:
+                        print("failed in short trigger")
+
+    print("Results: ")
+    print("Amount of trades: ")
+    print(amount_of_trades)
+    print("Successful trades: ")
+    print(successful_trades)
+    print("Failed trades: ")
+    print(failed_trades)
+    print("Trigger One: ")
+    print(trigger_one_trades)
+    print("Trigger Two: ")
+    print(trigger_two_trades)
+    print("Trigger Three: ")
+    print(trigger_three_trades)
+    print("Trigger Short: ")
+    print(trigger_short_trades)
+    print("Successful trade percentage")
+    success_percentage = 0
+    if (amount_of_trades != 0):
+        success_percentage = successful_trades / amount_of_trades
+    print(success_percentage)
 
 
 
