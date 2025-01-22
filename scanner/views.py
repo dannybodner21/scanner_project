@@ -2222,19 +2222,7 @@ def check_trigger(symbol):
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
-        for x in range(2, len(metrics)):
-
-            # trigger to test
-            '''
-            if (
-                metrics[x].rolling_relative_volume > 1.2 and
-                metrics[x].five_min_relative_volume > 1.3 and
-                metrics[x].twenty_min_relative_volume > 2.0 and
-                metrics[x].price_change_5min > 1
-            ):
-            '''
-
-
+        for x in range(6, len(metrics)):
 
             if (metrics[x].rolling_relative_volume != None and
                 metrics[x].price_change_5min != None and
@@ -2305,7 +2293,6 @@ def check_trigger(symbol):
                     print("------------------")
                     print(coin.symbol)
                     print(metrics[x].timestamp)
-                    print(metrics[x].last_price)
 
                 if (
                     metrics[x].daily_relative_volume >= 2 and
@@ -2319,7 +2306,18 @@ def check_trigger(symbol):
                     print("-----TRIGGER TWO-------------")
                     print(coin.symbol)
                     print(metrics[x].timestamp)
-                    print(metrics[x].last_price)
+
+                if (
+                    metrics[x].price_change_1hr >= metrics[x-1].price_change_1hr and
+                    metrics[x-1].price_change_1hr >= metrics[x-2].price_change_1hr and
+                    metrics[x-2].price_change_1hr >= metrics[x-3].price_change_1hr and
+                    metrics[x-3].price_change_1hr >= metrics[x-4].price_change_1hr and
+                    metrics[x-4].price_change_1hr >= metrics[x-5].price_change_1hr and
+                    metrics[x-5].price_change_1hr >= metrics[x-6].price_change_1hr
+                ):
+                    print("-----TRIGGER THREE-------------")
+                    print(coin.symbol)
+                    print(metrics[x].timestamp)
 
 
 # used to view coins and then delete the unneccessary ones
@@ -2432,6 +2430,10 @@ def check_triggers(metrics_queryset):
 
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
+
+
+
+
 
 
     if len(true_triggers) > 0:
