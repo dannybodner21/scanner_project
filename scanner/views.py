@@ -28,9 +28,13 @@ def check_trigger(symbol):
     successful_trades = 0
     failed_trades = 0
     trigger_one_trades = 0
+    trigger_one_success = 0
     trigger_two_trades = 0
+    trigger_two_success = 0
     trigger_three_trades = 0
+    trigger_three_success = 0
     trigger_short_trades = 0
+    trigger_short_success = 0
 
     for coin in coins:
 
@@ -90,7 +94,7 @@ def check_trigger(symbol):
 
 
                 if (
-                    metrics[x].daily_relative_volume >= 1.1 and
+                    metrics[x].daily_relative_volume >= 1.6 and
                     metrics[x].rolling_relative_volume >= 1.6 and
                     metrics[x].five_min_relative_volume >= 1.3 and
                     metrics[x].price_change_5min >= 0 and
@@ -146,12 +150,14 @@ def check_trigger(symbol):
                                 if (take_profit_timestamp < stop_loss_timestamp):
                                     # successful trade
                                     successful_trades += 1
+                                    trigger_one_success += 1
                                 else:
                                     # failed trade
                                     failed_trades += 1
                             else:
                                 # successful trade
                                 successful_trades += 1
+                                trigger_one_success += 1
 
                         if (take_profit_hit == False and stop_loss_hit == True):
                             # failed trade
@@ -205,12 +211,14 @@ def check_trigger(symbol):
                                 if (take_profit_timestamp < stop_loss_timestamp):
                                     # successful trade
                                     successful_trades += 1
+                                    trigger_two_success += 1
                                 else:
                                     # failed trade
                                     failed_trades += 1
                             else:
                                 # successful trade
                                 successful_trades += 1
+                                trigger_two_success += 1
 
                         if (take_profit_hit == False and stop_loss_hit == True):
                             # failed trade
@@ -273,12 +281,14 @@ def check_trigger(symbol):
                                 if (take_profit_timestamp < stop_loss_timestamp):
                                     # successful trade
                                     successful_trades += 1
+                                    trigger_three_success += 1
                                 else:
                                     # failed trade
                                     failed_trades += 1
                             else:
                                 # successful trade
                                 successful_trades += 1
+                                trigger_three_success += 1
 
                         if (take_profit_hit == False and stop_loss_hit == True):
                             # failed trade
@@ -327,12 +337,14 @@ def check_trigger(symbol):
                                 if (take_profit_timestamp < stop_loss_timestamp):
                                     # successful trade
                                     successful_trades += 1
+                                    trigger_short_success += 1
                                 else:
                                     # failed trade
                                     failed_trades += 1
                             else:
                                 # successful trade
                                 successful_trades += 1
+                                trigger_short_success += 1
 
                         if (take_profit_hit == False and stop_loss_hit == True):
                             # failed trade
@@ -346,26 +358,37 @@ def check_trigger(symbol):
                         print("failed in short trigger")
 
     print("Results: ")
-    print("Amount of trades: ")
-    print(amount_of_trades)
-    print("Successful trades: ")
-    print(successful_trades)
-    print("Failed trades: ")
-    print(failed_trades)
-    print("Trigger One: ")
-    print(trigger_one_trades)
-    print("Trigger Two: ")
-    print(trigger_two_trades)
-    print("Trigger Three: ")
-    print(trigger_three_trades)
-    print("Trigger Short: ")
-    print(trigger_short_trades)
-    print("Successful trade percentage")
+    print(f"Amount of trades: {amount_of_trades}")
+    print(f"Successful trades: {successful_trades}")
+    print(f"Failed trades: {failed_trades}")
+    print(f"Trigger One: {trigger_one_trades}")
+    print(f"Trigger Two: {trigger_two_trades}")
+    print(f"Trigger Three: {trigger_three_trades}")
+    print(f"Trigger Short: {trigger_short_trades}")
     success_percentage = 0
     if (amount_of_trades != 0):
-        success_percentage = successful_trades / amount_of_trades
-    print(success_percentage)
+        success_percentage = (successful_trades / amount_of_trades) * 100
+    print(f"Successful trade percentage: {success_percentage}%")
 
+    trigger_one_success_percentage = 0
+    if (trigger_one_trades != 0):
+        trigger_one_success_percentage = (trigger_one_success / trigger_one_trades) * 100
+    print(f"Trigger One Success: {trigger_one_success_percentage}%")
+
+    trigger_two_success_percentage = 0
+    if (trigger_two_trades != 0):
+        trigger_two_success_percentage = (trigger_two_success / trigger_two_trades) * 100
+    print(f"Trigger Two Success: {trigger_two_success_percentage}%")
+
+    trigger_three_success_percentage = 0
+    if (trigger_three_trades != 0):
+        trigger_three_success_percentage = (trigger_three_success / trigger_three_trades) * 100
+    print(f"Trigger Three Success: {trigger_three_success_percentage}%")
+
+    trigger_short_success_percentage = 0
+    if (trigger_short_trades != 0):
+        trigger_short_success_percentage = (trigger_short_success / trigger_short_trades) * 100
+    print(f"Trigger Shore Success: {trigger_short_success_percentage}%")
 
 
 # used to test if the telegram bot is sending messages properly
