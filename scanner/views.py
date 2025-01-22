@@ -431,113 +431,71 @@ def calculate_price_change_ten_min(coin):
 
     # DOING 30 MIN PRICE CHANGE NOT 10 MIN
 
-    # (price now - price 10 min ago / price 10 min ago) * 100
+    # (price now - price 30 min ago / price 30 min ago) * 100
 
-    price_change_10min = None
+    price_change_30min = None
 
-    prices = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:8]
+    prices = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:7]
 
-    price_now = prices[0].price if len(prices) > 0 else None
-    price_ten_min_ago = prices[6].price if len(prices) > 6 else None
+    if (len(prices) == 7):
 
-    if price_now != None and price_ten_min_ago != None:
+        price_now = prices[0].price
+        price_thirty_min_ago = prices[6].price
 
-        price_difference = price_now - price_ten_min_ago
-        price_change_10min = (price_difference / price_ten_min_ago) * 100 if price_ten_min_ago != 0 else None
-        return price_change_10min
+        if price_now != None and price_thirty_min_ago != None:
+
+            price_difference = price_now - price_thirty_min_ago
+            price_change_30min = (price_difference / price_thirty_min_ago) * 100 if price_thirty_min_ago != 0 else None
+            return price_change_30min
 
     else:
-        return None
+        return price_change_30min
 
 
 def calculate_twenty_min_relative_volume(coin):
 
     twenty_min_relative_volume = None
+    volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:5]
 
-    # volume now / volume 20 min ago - trying this instead of average volume over last 20 min
+    if (len(volumes) == 5):
 
-    try:
-
-        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:8]
-
-        volume_now = volumes[0].volume_5min if len(volumes) > 0 else None
-
+        volume_now = volumes[0].volume_5min
         remaining_volumes = volumes[1:]
 
         sum = 0
         for volume in remaining_volumes:
             sum += volume.volume_5min
 
-        if len(remaining_volumes) != 0:
-            average = sum / len(remaining_volumes)
+        average = sum / len(remaining_volumes)
+        twenty_min_relative_volume = (volume_now / average) if average != 0 else None
+        return twenty_min_relative_volume
 
-        else:
-            average = None
-
-
-        #volume_twenty_min_ago = volumes[20].volume_5min if len(volumes) > 20 else None
-
-        if volume_now != None and average != None:
-
-            twenty_min_relative_volume = (volume_now / average) if average != 0 else None
-            return twenty_min_relative_volume
-
-        else:
-            return None
-
-    except Exception as e:
-        print(f"There was a problem calculating 20 min relative volume for: {e}")
-        print(coin.symbol)
-
-    return twenty_min_relative_volume
+    else:
+        return twenty_min_relative_volume
 
 
 def calculate_five_min_relative_volume(coin):
 
     five_min_relative_volume = None
 
-    # volume now / volume 5 min ago - trying this instead of average volume over last 5 min
+    volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:2]
 
-    try:
+    if len(volumes) == 2:
 
-        volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')[:4]
-        #volumes = ShortIntervalData.objects.filter(coin=coin).order_by('-timestamp')
+        volume_now = volumes[0].volume_5min
+        previous_volume = volumes[1].volume_5min
 
-        # Extract the most recent and second most recent, if available
-        volume_now = volumes[0].volume_5min if len(volumes) > 0 else None
-
-        remaining_volumes = volumes[1:]
-
-        sum = 0
-        for volume in remaining_volumes:
-            sum += volume.volume_5min
-
-        if len(remaining_volumes) != 0:
-            average = sum / len(volumes)
-
-        else:
-            average = None
-
-        #volume_five_min_ago = volumes[200].volume_5min if len(volumes) > 60 else None
-
-        if volume_now != None and average != None and average != 0:
-
-            five_min_relative_volume = (volume_now / average)
+        if (volume_now != None and previous_volume != None):
+            five_min_relative_volume = (volume_now / previous_volume)
             return five_min_relative_volume
 
-        else:
-            print("problem in five min relative volume")
-            print(coin.symbol)
-            print(volume_now)
-            print(average)
-            return None
-
-    except Exception as e:
-        print(f"There was a problem calculating 5 min relative volume for: {e}")
+    else:
+        print("problem in five min relative volume")
         print(coin.symbol)
+        return None
 
-    return five_min_relative_volume
 
+# ======================================================================
 
 
 def calculate_meme_price_change_five_min(coin):
@@ -559,6 +517,7 @@ def calculate_meme_price_change_five_min(coin):
     price_change_5min = ((price_now - price_five_min_ago) / price_five_min_ago) * 100
     return price_change_5min
 
+
 def calculate_meme_price_change_ten_min(coin):
 
     # (price change over 10 min / price 10 min ago) * 100
@@ -578,6 +537,7 @@ def calculate_meme_price_change_ten_min(coin):
 
     else:
         return None
+
 
 def calculate_meme_five_min_relative_volume(coin):
 
@@ -626,8 +586,8 @@ def calculate_meme_five_min_relative_volume(coin):
     return five_min_relative_volume
 
 
-
 # =======================================================================
+
 
 # stop everything
 # python3 manage.py makemigrations
@@ -2028,8 +1988,6 @@ def analyze_recent_metrics(event_time, coin_symbol):
         return JsonResponse({"status": "error", "message": str(e)})
 
 
-
-
 def find_metrics():
 
     try:
@@ -2085,7 +2043,6 @@ def find_metrics():
     except Exception as e:
         # Handle other exceptions
         return JsonResponse({"status": "error", "message": str(e)})
-
 
 
 import csv
@@ -2244,7 +2201,6 @@ def retrieve_metrics(symbol):
                     print(f"Future's 7d price change: {future['quote']['USD']['percent_change_7d']}")
                     print(f"Future's 24hr volume: {future['quote']['USD']['volume_24h']}")
                     print(f"Future's market cap: {future['quote']['USD']['market_cap']}")
-
 
 
 def download_file(request, filename):
@@ -2453,9 +2409,6 @@ def check_triggers(metrics_queryset):
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
 
-        else:
-            print("No Trigger 1")
-
 
         if (
             metrics_queryset[0].daily_relative_volume >= 2 and
@@ -2479,8 +2432,6 @@ def check_triggers(metrics_queryset):
 
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
-        else:
-            print("No Trigger 2")
 
 
     if len(true_triggers) > 0:
