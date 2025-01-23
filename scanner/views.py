@@ -8318,8 +8318,11 @@ def print_coins():
 
 def check_triggers(metrics_queryset):
 
+<<<<<<< HEAD
     print("inside check triggers")
 
+=======
+>>>>>>> ee451f0 (who cares)
     true_triggers = []
 
     if (metrics_queryset[0].rolling_relative_volume != None and
@@ -8375,7 +8378,7 @@ def check_triggers(metrics_queryset):
             five_min_price_increase == True
         ):
 
-            updated_trigger = metrics_queryset[0].coin + " : New Trigger 1 Hit !"
+            updated_trigger = str(metrics_queryset[0].coin) + " : New Trigger 1 Hit !"
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
@@ -8405,7 +8408,7 @@ def check_triggers(metrics_queryset):
             rvol_progression == True
         ):
 
-            updated_trigger_two = metrics_queryset[0].coin + " : New Trigger 2 Hit !"
+            updated_trigger_two = str(metrics_queryset[0].coin) + " : New Trigger 2 Hit !"
             exists = check_duplicate_triggers(updated_trigger_two)
 
             if exists == False:
@@ -8448,7 +8451,7 @@ def check_triggers(metrics_queryset):
 =======
 
 
-            updated_trigger_three = metrics_queryset[0].coin + " : New Trigger 3 Hit !"
+            updated_trigger_three = str(metrics_queryset[0].coin) + " : New Trigger 3 Hit !"
             exists = check_duplicate_triggers(updated_trigger_three)
 
             if exists == False:
@@ -8474,7 +8477,7 @@ def check_triggers(metrics_queryset):
             metrics_queryset[1].price_change_1hr < metrics_queryset[2].price_change_1hr
         ):
 
-            updated_trigger_four = metrics_queryset[0].coin + " : SHORT Trigger Hit !"
+            updated_trigger_four = str(metrics_queryset[0].coin) + " : SHORT Trigger Hit !"
             exists = check_duplicate_triggers(updated_trigger_four)
 
             if exists == False:
@@ -8487,8 +8490,11 @@ def check_triggers(metrics_queryset):
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
 
+<<<<<<< HEAD
     print("end of the trigger function")
 
+=======
+>>>>>>> ee451f0 (who cares)
 
     if len(true_triggers) > 0:
         send_text(true_triggers)
