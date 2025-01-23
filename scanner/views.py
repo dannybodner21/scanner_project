@@ -244,10 +244,43 @@ def check_trigger(symbol):
 
 
                 if (
-                    rolling_price_change_5min > 1.5
-                    #metrics[x].volume_24h > average_volume and
-                    #metrics[x].five_min_relative_volume > 1.4 and
-                    #rate_of_change_rvol > 1.6
+                    # 59 trades at 72% success rate
+                    #metrics[x].price_change_24hr < -5 and
+                    #metrics[x].rolling_relative_volume >= 2.1 and
+                    #metrics[x].price_change_5min < 0 and
+                    #metrics[x].price_change_10min < 0 and
+                    #metrics[x].price_change_1hr > 0 and
+                    #metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
+                    #metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
+
+                    # 122 trades at 59% success rate
+                    #metrics[x].price_change_24hr < -5 and
+                    #metrics[x].rolling_relative_volume >= 2.1 and
+                    #metrics[x-1].price_change_5min < metrics[x].price_change_5min and
+                    #metrics[x-2].price_change_5min < metrics[x-1].price_change_5min and
+                    #metrics[x-1].price_change_10min < metrics[x].price_change_10min and
+                    #metrics[x].price_change_1hr > 0 and
+                    #metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
+                    #metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
+
+                    # 145 trades at 61% success rate
+                    #metrics[x].price_change_24hr < -5 and
+                    #metrics[x].rolling_relative_volume >= 2.1 and
+                    #metrics[x-1].price_change_5min < metrics[x].price_change_5min and
+                    #metrics[x-2].price_change_5min < metrics[x-1].price_change_5min and
+                    #metrics[x].price_change_1hr > 0 and
+                    #metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
+                    #metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
+
+                    # 117 trades at 63% success rate
+                    metrics[x].price_change_24hr < -5 and
+                    metrics[x].rolling_relative_volume >= 2.1 and
+                    metrics[x-1].price_change_5min < metrics[x].price_change_5min and
+                    metrics[x-2].price_change_5min < metrics[x-1].price_change_5min and
+                    metrics[x].price_change_10min > 0 and
+                    metrics[x].price_change_1hr > 0 and
+                    metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
+                    metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
 
                 ):
                     #print("-----TRIGGER THREE-------------")
@@ -255,24 +288,28 @@ def check_trigger(symbol):
                     #print(metrics[x].timestamp)
 
                     amount_of_trades += 1
-                    trigger_three_trades == 1
+                    trigger_three_trades += 1
 
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.01))
                     take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
                     stop_loss_timestamp = None
+                    success = False
                     try:
                         for y in range(x, len(metrics)):
                             if (metrics[y].last_price >= take_profit_price):
                                 take_profit_hit = True
                                 take_profit_timestamp = metrics[y].timestamp
+                                break
 
+                        for y in range(x, len(metrics)):
                             if (metrics[y].last_price <= stop_loss_price):
                                 stop_loss_hit = True
                                 stop_loss_timestamp = metrics[y].timestamp
+                                break
 
                         if (take_profit_hit == True):
                             if (stop_loss_hit == True):
@@ -281,6 +318,7 @@ def check_trigger(symbol):
                                     # successful trade
                                     successful_trades += 1
                                     trigger_three_success += 1
+                                    success = True
                                 else:
                                     # failed trade
                                     failed_trades += 1
@@ -288,6 +326,7 @@ def check_trigger(symbol):
                                 # successful trade
                                 successful_trades += 1
                                 trigger_three_success += 1
+                                success = True
 
                         if (take_profit_hit == False and stop_loss_hit == True):
                             # failed trade
@@ -297,15 +336,23 @@ def check_trigger(symbol):
                             amount_of_trades -= 1
                             trigger_three_trades -= 1
 
+                        print(success)
+
                     except:
                         print("failed in trigger 3")
 
 
                 # SHORT Trigger
                 if (
-                    metrics[x].volume_24h > average_volume and
-                    rolling_price_change_5min < -1.2 and
-                    metrics[x].five_min_relative_volume > 1.5
+                    metrics[x].daily_relative_volume > 1.2 and
+                    metrics[x].rolling_relative_volume >= 1.85 and
+                    metrics[x].price_change_5min < metrics[x-1].price_change_5min and
+                    metrics[x-1].price_change_5min < metrics[x-2].price_change_5min and
+                    metrics[x].price_change_1hr > 1 and
+                    metrics[x].price_change_10min < metrics[x-1].price_change_10min and
+                    metrics[x-1].price_change_10min < metrics[x-2].price_change_10min and
+                    metrics[x].price_change_1hr < metrics[x-1].price_change_1hr and
+                    metrics[x-1].price_change_1hr < metrics[x-2].price_change_1hr
                 ):
                     #print("-----SHORT TRIGGER-------------")
                     #print(coin.symbol)
@@ -415,7 +462,7 @@ def check_trigger_two():
         average_volume = average_volume / len(metrics)
         average_volume = average_volume * decimal.Decimal(1.15)
 
-        for j in range(6, len(metrics)):
+        for x in range(6, len(metrics)):
 
             if (metrics[x].rolling_relative_volume != None and
                 metrics[x].price_change_5min != None and
@@ -2758,6 +2805,8 @@ def print_coins():
 
 def check_triggers(metrics_queryset):
 
+    print("inside check triggers")
+
     true_triggers = []
 
     if (metrics_queryset[0].rolling_relative_volume != None and
@@ -2813,7 +2862,7 @@ def check_triggers(metrics_queryset):
             five_min_price_increase == True
         ):
 
-            updated_trigger = coin.symbol + " : New Trigger 1 Hit !"
+            updated_trigger = metrics_queryset[0].coin + " : New Trigger 1 Hit !"
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
@@ -2837,7 +2886,7 @@ def check_triggers(metrics_queryset):
             rvol_progression == True
         ):
 
-            updated_trigger_two = coin.symbol + " : New Trigger 2 Hit !"
+            updated_trigger_two = metrics_queryset[0].coin + " : New Trigger 2 Hit !"
             exists = check_duplicate_triggers(updated_trigger_two)
 
             if exists == False:
@@ -2851,8 +2900,68 @@ def check_triggers(metrics_queryset):
                     print(f"Error creating new Trigger: {e}")
 
 
+        if (
+            #metrics_queryset[0].price_change_24hr < -5 and
+            #metrics_queryset[0].daily_relative_volume > 1.15 and
+            #metrics_queryset[0].rolling_relative_volume >= 1.9 and
+            #metrics_queryset[0].price_change_5min < 0 and
+            #metrics_queryset[0].price_change_10min < 0 and
+            #metrics_queryset[0].price_change_1hr > 0 and
+            #metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
+            #metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
+
+            metrics_queryset[0].price_change_24hr < -5 and
+            metrics_queryset[0].rolling_relative_volume >= 2.1 and
+            metrics_queryset[1].price_change_5min < metrics_queryset[0].price_change_5min and
+            metrics_queryset[2].price_change_5min < metrics_queryset[1].price_change_5min and
+            metrics_queryset[0].price_change_10min > 0 and
+            metrics_queryset[0].price_change_1hr > 0 and
+            metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
+            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
+        ):
 
 
+
+            updated_trigger_three = metrics_queryset[0].coin + " : New Trigger 3 Hit !"
+            exists = check_duplicate_triggers(updated_trigger_three)
+
+            if exists == False:
+
+                true_triggers.append(updated_trigger_three)
+
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_three, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
+
+
+        if (
+            metrics_queryset[0].daily_relative_volume > 1.2 and
+            metrics_queryset[0].rolling_relative_volume >= 1.85 and
+            metrics_queryset[0].price_change_5min < metrics_queryset[1].price_change_5min and
+            metrics_queryset[1].price_change_5min < metrics_queryset[2].price_change_5min and
+            metrics_queryset[0].price_change_1hr > 1 and
+            metrics_queryset[0].price_change_10min < metrics_queryset[1].price_change_10min and
+            metrics_queryset[1].price_change_10min < metrics_queryset[2].price_change_10min and
+            metrics_queryset[0].price_change_1hr < metrics_queryset[1].price_change_1hr and
+            metrics_queryset[1].price_change_1hr < metrics_queryset[2].price_change_1hr
+        ):
+
+            updated_trigger_four = metrics_queryset[0].coin + " : SHORT Trigger Hit !"
+            exists = check_duplicate_triggers(updated_trigger_four)
+
+            if exists == False:
+
+                true_triggers.append(updated_trigger_four)
+
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_four, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
+
+    print("end of the trigger function")
 
 
     if len(true_triggers) > 0:
@@ -2917,7 +3026,7 @@ def index(request):
 
 
         # TRIGGER INFORMATION HERE ---------------------------------
-
+        print("-------- about to check triggers --------")
         check_triggers(metrics_queryset[:6])
 
         top_cryptos.append({
