@@ -283,9 +283,9 @@ def check_trigger(symbol):
                     metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
 
                 ):
-                    #print("-----TRIGGER THREE-------------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
+                    print("-----TRIGGER THREE-------------")
+                    print(coin.symbol)
+                    print(metrics[x].timestamp)
 
                     amount_of_trades += 1
                     trigger_three_trades += 1
@@ -354,9 +354,9 @@ def check_trigger(symbol):
                     metrics[x].price_change_1hr < metrics[x-1].price_change_1hr and
                     metrics[x-1].price_change_1hr < metrics[x-2].price_change_1hr
                 ):
-                    #print("-----SHORT TRIGGER-------------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
+                    print("-----SHORT TRIGGER-------------")
+                    print(coin.symbol)
+                    print(metrics[x].timestamp)
 
                     amount_of_trades += 1
                     trigger_short_trades += 1
@@ -2861,7 +2861,7 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_24hr < 0 and
             five_min_price_increase == True
         ):
-
+            print("TRIGGER 1 passed")
             trigger_passed = True
             updated_trigger = str(metrics_queryset[0].coin) + " : New Trigger 1 Hit !"
             exists = check_duplicate_triggers(updated_trigger)
@@ -2886,7 +2886,7 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].twenty_min_relative_volume >= 1 and
             rvol_progression == True
         ):
-
+            print("TRIGGER 2 passed")
             trigger_passed = True
             updated_trigger_two = str(metrics_queryset[0].coin) + " : New Trigger 2 Hit !"
             exists = check_duplicate_triggers(updated_trigger_two)
@@ -2921,7 +2921,7 @@ def check_triggers(metrics_queryset):
             metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
             metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
         ):
-
+            print("TRIGGER 3 passed")
             trigger_passed = True
             updated_trigger_three = str(metrics_queryset[0].coin) + " : New Trigger 3 Hit !"
             exists = check_duplicate_triggers(updated_trigger_three)
@@ -2948,7 +2948,7 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_1hr < metrics_queryset[1].price_change_1hr and
             metrics_queryset[1].price_change_1hr < metrics_queryset[2].price_change_1hr
         ):
-
+            print("TRIGGER 4 passed")
             trigger_passed = True
             updated_trigger_four = str(metrics_queryset[0].coin) + " : SHORT Trigger Hit !"
             exists = check_duplicate_triggers(updated_trigger_four)
