@@ -36,6 +36,16 @@ def check_trigger(symbol):
     trigger_short_trades = 0
     trigger_short_success = 0
 
+    count_15 = 0
+    count_16 = 0
+    count_17 = 0
+    count_18 = 0
+    count_19 = 0
+    count_20 = 0
+    count_21 = 0
+    count_22 = 0
+    count_23 = 0
+
     for coin in coins:
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
@@ -168,6 +178,25 @@ def check_trigger(symbol):
                     except:
                         print("failed in trigger 1")
 
+                    day = metrics[x].timestamp.day
+                    if day == 15:
+                        count_15 += 1
+                    elif day == 16:
+                        count_16 += 1
+                    elif day == 17:
+                        count_17 += 1
+                    elif day == 18:
+                        count_18 += 1
+                    elif day == 19:
+                        count_19 += 1
+                    elif day == 20:
+                        count_20 += 1
+                    elif day == 21:
+                        count_21 += 1
+                    elif day == 22:
+                        count_22 += 1
+                    elif day == 23:
+                        count_23 += 1
 
 
                 if (
@@ -228,6 +257,26 @@ def check_trigger(symbol):
 
                     except:
                         print("failed in trigger 2")
+
+                    day = metrics[x].timestamp.day
+                    if day == 15:
+                        count_15 += 1
+                    elif day == 16:
+                        count_16 += 1
+                    elif day == 17:
+                        count_17 += 1
+                    elif day == 18:
+                        count_18 += 1
+                    elif day == 19:
+                        count_19 += 1
+                    elif day == 20:
+                        count_20 += 1
+                    elif day == 21:
+                        count_21 += 1
+                    elif day == 22:
+                        count_22 += 1
+                    elif day == 23:
+                        count_23 += 1
 
 
 
@@ -341,6 +390,26 @@ def check_trigger(symbol):
                     except:
                         print("failed in trigger 3")
 
+                    day = metrics[x].timestamp.day
+                    if day == 15:
+                        count_15 += 1
+                    elif day == 16:
+                        count_16 += 1
+                    elif day == 17:
+                        count_17 += 1
+                    elif day == 18:
+                        count_18 += 1
+                    elif day == 19:
+                        count_19 += 1
+                    elif day == 20:
+                        count_20 += 1
+                    elif day == 21:
+                        count_21 += 1
+                    elif day == 22:
+                        count_22 += 1
+                    elif day == 23:
+                        count_23 += 1
+
 
                 # SHORT Trigger
                 if (
@@ -403,6 +472,26 @@ def check_trigger(symbol):
                     except:
                         print("failed in short trigger")
 
+                    day = metrics[x].timestamp.day
+                    if day == 15:
+                        count_15 += 1
+                    elif day == 16:
+                        count_16 += 1
+                    elif day == 17:
+                        count_17 += 1
+                    elif day == 18:
+                        count_18 += 1
+                    elif day == 19:
+                        count_19 += 1
+                    elif day == 20:
+                        count_20 += 1
+                    elif day == 21:
+                        count_21 += 1
+                    elif day == 22:
+                        count_22 += 1
+                    elif day == 23:
+                        count_23 += 1
+
     print("Results: ")
     print(f"Amount of trades: {amount_of_trades}")
     print(f"Successful trades: {successful_trades}")
@@ -435,6 +524,17 @@ def check_trigger(symbol):
     if (trigger_short_trades != 0):
         trigger_short_success_percentage = (trigger_short_success / trigger_short_trades) * 100
     print(f"Trigger Short Success: {trigger_short_success_percentage}%")
+
+    print(f"Day 15: {count_15}")
+    print(f"Day 16: {count_16}")
+    print(f"Day 17: {count_17}")
+    print(f"Day 18: {count_18}")
+    print(f"Day 19: {count_19}")
+    print(f"Day 20: {count_20}")
+    print(f"Day 21: {count_21}")
+    print(f"Day 22: {count_22}")
+    print(f"Day 23: {count_23}")
+
 
 
 def check_trigger_two():
