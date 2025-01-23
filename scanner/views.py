@@ -2807,6 +2807,8 @@ def check_triggers(metrics_queryset):
 
     true_triggers = []
 
+    trigger_passed = False
+
     if (metrics_queryset[0].rolling_relative_volume != None and
         metrics_queryset[0].price_change_5min != None and
         metrics_queryset[0].price_change_10min != None and
@@ -2860,6 +2862,7 @@ def check_triggers(metrics_queryset):
             five_min_price_increase == True
         ):
 
+            trigger_passed = True
             updated_trigger = str(metrics_queryset[0].coin) + " : New Trigger 1 Hit !"
             exists = check_duplicate_triggers(updated_trigger)
 
@@ -2884,6 +2887,7 @@ def check_triggers(metrics_queryset):
             rvol_progression == True
         ):
 
+            trigger_passed = True
             updated_trigger_two = str(metrics_queryset[0].coin) + " : New Trigger 2 Hit !"
             exists = check_duplicate_triggers(updated_trigger_two)
 
@@ -2918,8 +2922,7 @@ def check_triggers(metrics_queryset):
             metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
         ):
 
-
-
+            trigger_passed = True
             updated_trigger_three = str(metrics_queryset[0].coin) + " : New Trigger 3 Hit !"
             exists = check_duplicate_triggers(updated_trigger_three)
 
@@ -2946,6 +2949,7 @@ def check_triggers(metrics_queryset):
             metrics_queryset[1].price_change_1hr < metrics_queryset[2].price_change_1hr
         ):
 
+            trigger_passed = True
             updated_trigger_four = str(metrics_queryset[0].coin) + " : SHORT Trigger Hit !"
             exists = check_duplicate_triggers(updated_trigger_four)
 
@@ -2959,6 +2963,12 @@ def check_triggers(metrics_queryset):
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
 
+    if trigger_passed == True:
+        print("at least one trigger passed")
+        message = "at least one trigger passed"
+        true_triggers.append(message)
+    else:
+        print("no triggers passed")
 
     if len(true_triggers) > 0:
         send_text(true_triggers)
