@@ -494,9 +494,9 @@ def check_trigger(symbol):
 
 
                 if (
-                    # 59 trades at 72% success rate
+                    # 202 trades at 57% success rate
                     metrics[x].price_change_24hr < -5 and
-                    metrics[x].rolling_relative_volume >= 2.1 and
+                    (metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
                     metrics[x].price_change_5min < 0 and
                     metrics[x].price_change_10min < 0 and
                     metrics[x].price_change_1hr > 0 and
@@ -3162,6 +3162,32 @@ def check_triggers(metrics_queryset):
 
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
+
+
+        if (
+            metrics_queryset[0].price_change_24hr < -5 and
+            (metrics_queryset[0].rolling_relative_volume >= 2.1 or metrics_queryset[0].daily_relative_volume >= 1.3) and
+            metrics_queryset[0].price_change_5min < 0 and
+            metrics_queryset[0].price_change_10min < 0 and
+            metrics_queryset[0].price_change_1hr > 0 and
+            metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
+            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
+        ):
+            print("TRIGGER 5 passed")
+            trigger_passed = True
+            updated_trigger_five = str(metrics_queryset[0].coin) + " : Trigger Five Hit !"
+            exists = check_duplicate_triggers(updated_trigger_five)
+
+            if exists == False:
+
+                true_triggers.append(updated_trigger_five)
+
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_five, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
+
 
     if trigger_passed == True:
         print("at least one trigger passed")
