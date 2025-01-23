@@ -2805,8 +2805,6 @@ def print_coins():
 
 def check_triggers(metrics_queryset):
 
-    print("inside check triggers")
-
     true_triggers = []
 
     if (metrics_queryset[0].rolling_relative_volume != None and
@@ -2961,8 +2959,9 @@ def check_triggers(metrics_queryset):
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
 
-    print("end of the trigger function")
-
+        if (metrics_queryset[0].coin == "Bitcoin"):
+            testing = "everything works."
+            true_triggers.append(testing)
 
     if len(true_triggers) > 0:
         send_text(true_triggers)
@@ -3026,7 +3025,6 @@ def index(request):
 
 
         # TRIGGER INFORMATION HERE ---------------------------------
-        print("-------- about to check triggers --------")
         check_triggers(metrics_queryset[:6])
 
         top_cryptos.append({
