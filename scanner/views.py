@@ -2805,6 +2805,8 @@ def print_coins():
 
 def check_triggers(metrics_queryset):
 
+    print(metrics_queryset[0].coin)
+
     true_triggers = []
 
     if (metrics_queryset[0].rolling_relative_volume != None and
