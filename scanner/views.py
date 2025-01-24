@@ -203,6 +203,10 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
+                        print("-------TRIGGER ONE-----------")
+                        print(coin.symbol)
+                        print(metrics[x].timestamp)
+
                     elif day == 25:
                         count_25 += 1
 
@@ -288,6 +292,10 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
+                        print("-------TRIGGER TWO-----------")
+                        print(coin.symbol)
+                        print(metrics[x].timestamp)
+
                     elif day == 25:
                         count_25 += 1
 
@@ -423,6 +431,10 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
+                        print("-------TRIGGER THREE-----------")
+                        print(coin.symbol)
+                        print(metrics[x].timestamp)
+
                     elif day == 25:
                         count_25 += 1
 
@@ -510,6 +522,10 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
+                        print("-------TRIGGER SHORT-----------")
+                        print(coin.symbol)
+                        print(metrics[x].timestamp)
+
                     elif day == 25:
                         count_25 += 1
 
@@ -603,6 +619,10 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
+                        print("-------TRIGGER FIVE-----------")
+                        print(coin.symbol)
+                        print(metrics[x].timestamp)
+
                     elif day == 25:
                         count_25 += 1
 
