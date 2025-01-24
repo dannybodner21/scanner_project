@@ -3073,7 +3073,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 1 passed")
             trigger_passed = True
-            updated_trigger = str(metrics_queryset[0].coin) + " : New Trigger 1 Hit !"
+            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 Hit !"
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
@@ -3098,7 +3098,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 2 passed")
             trigger_passed = True
-            updated_trigger_two = str(metrics_queryset[0].coin) + " : New Trigger 2 Hit !"
+            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 Hit !"
             exists = check_duplicate_triggers(updated_trigger_two)
 
             if exists == False:
@@ -3133,7 +3133,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 3 passed")
             trigger_passed = True
-            updated_trigger_three = str(metrics_queryset[0].coin) + " : New Trigger 3 Hit !"
+            updated_trigger_three = str(metrics_queryset[0].coin.symbol) + " : Trigger 3 Hit !"
             exists = check_duplicate_triggers(updated_trigger_three)
 
             if exists == False:
@@ -3160,7 +3160,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 4 passed")
             trigger_passed = True
-            updated_trigger_four = str(metrics_queryset[0].coin) + " : SHORT Trigger Hit !"
+            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit !"
             exists = check_duplicate_triggers(updated_trigger_four)
 
             if exists == False:
@@ -3185,7 +3185,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 5 passed")
             trigger_passed = True
-            updated_trigger_five = str(metrics_queryset[0].coin) + " : Trigger Five Hit !"
+            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit !"
             exists = check_duplicate_triggers(updated_trigger_five)
 
             if exists == False:
