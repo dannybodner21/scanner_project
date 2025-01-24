@@ -47,6 +47,8 @@ def check_trigger(symbol):
     count_21 = 0
     count_22 = 0
     count_23 = 0
+    count_24 = 0
+    count_25 = 0
 
     for coin in coins:
 
@@ -199,9 +201,11 @@ def check_trigger(symbol):
                         count_22 += 1
                     elif day == 23:
                         count_23 += 1
-                        print("-----TRIGGER ONE-------------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                    elif day == 24:
+                        count_24 += 1
+                    elif day == 25:
+                        count_25 += 1
+
 
 
                 if (
@@ -282,9 +286,11 @@ def check_trigger(symbol):
                         count_22 += 1
                     elif day == 23:
                         count_23 += 1
-                        print("-----TRIGGER TWO-------------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                    elif day == 24:
+                        count_24 += 1
+                    elif day == 25:
+                        count_25 += 1
+
 
 
 
@@ -415,9 +421,11 @@ def check_trigger(symbol):
                         count_22 += 1
                     elif day == 23:
                         count_23 += 1
-                        print("-----TRIGGER THREE-------------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                    elif day == 24:
+                        count_24 += 1
+                    elif day == 25:
+                        count_25 += 1
+
 
 
                 # SHORT Trigger
@@ -500,9 +508,11 @@ def check_trigger(symbol):
                         count_22 += 1
                     elif day == 23:
                         count_23 += 1
-                        print("-----TRIGGER SHORT-------------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                    elif day == 24:
+                        count_24 += 1
+                    elif day == 25:
+                        count_25 += 1
+
 
 
                 if (
@@ -591,9 +601,10 @@ def check_trigger(symbol):
                         count_22 += 1
                     elif day == 23:
                         count_23 += 1
-                        print("-----TRIGGER FIVE-------------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                    elif day == 24:
+                        count_24 += 1
+                    elif day == 25:
+                        count_25 += 1
 
 
     print("Results: ")
@@ -644,6 +655,8 @@ def check_trigger(symbol):
     print(f"Day 21: {count_21}")
     print(f"Day 22: {count_22}")
     print(f"Day 23: {count_23}")
+    print(f"Day 24: {count_24}")
+    print(f"Day 25: {count_25}")
 
 
 
@@ -1046,7 +1059,23 @@ def load_coins():
         "X-CMC_PRO_API_KEY": API_KEY,
     }
 
+    '''
     specific_coins = ["PHA","GMT","BAN","BLUE","FWOG","VIRTUAL","TOKEN","W","ORDER","NS","FORTH","GRASS","ACX","F","SSV","THE","USTC","SUN","MERL","PUFFER","COOK","MORPHO","L3","ZBCN","FIRE","AI","HIPPO","DAR","POWRBOBA","SUNDOG","LUNA2","ETHFI","REZ","REN","LDO","MDT","AUDIO","FXS","1CAT","PENDLE","XRD","STEEM","TOSHI","AIDOGE","UNI","PORTAL","PEOPLE","LUNC","CLOUD","DYDX","GIGA","XEM","ID","PRIME","ETHW","EDU","PHB","CATI","MEW","APE","RPL","LEVER","XCN","PEAQ","JST","BONK","REEF","ICX","XAI","PIXEL","TRX","CATS","IOTX","BOME","POPCAT","DOP1","RATS","OGN","JTO","IMX","MAVIA","MAV","UXLINK","CTC","METIS","HNT","MAJOR","LIT","BENDOG","KNC","BRETT","MYRO","KAVA","FARTCOIN","OP","KDA","MKR","GMX","ASTR","IO","SATS","REQ","GODS","MOCA","DBR","RAYDIUM","AIOZ","SYN","ZRX","MANEKI","SWELL","UMA","IDEX","LINA","BADGER","PEIPEI","RUNE","SNT","SYS","ZRC","GLM","ENS","STMX","CFX","KEY","BAKE","BNX","OM","AUCTION","GAS","SAGA","VOXEL","LISTA","LSK","SC","OL","KAS","TNSR","ALT","SCRT","FLOKI","MTL","AMB","ARB","CORE","XMR","ORDI","STRK","RSS3","BCH","CYBER","ALPHA","CRV","RARE","DODO","YGG","MEME","VRA","ONG","NFP","LAI","NYAN","SPELL","ARK","BIGTIME","POLYX","OMNI","WOO","HOT","PERP","ACH","DYM","FLOW","BICO","ADA","C98","HIFI","MAGIC","CTK","BSW","ARPA","BLUR","DATA","ZETA","AR","CVX","COMBO","FLUX","SXP","AXS","MINA","WLD","DOGS","CHILLGUY","MASK","FIDA","TLM","BANANA","DOG","JOE","HOOK","CAKE","QI","COS","TRB","XVS","MANTA","NULS","DEGEN","A8","CELO","AVAIL","API3","NTRN","RDNT","YFI","NOT","EIGEN","SLF","SNX","MNT","FTN","POL","CVC","WAXP","CKB","SILLY","BAL","FLM","RIF","ETC","ORBS","CHZ","SLERF","IOTA","ZIL","NEO","OXT","MBL","STX","KSM","1INCH","ILV","MAX","RON","VANRY","CRO","ACE","TAI","AGLD","NEAR","EGLD","T","ANKR","ZK","NKN","GTC","CTSI","NMR","PYTH","CHESS","TON","BNB","XION","ALICE","ARKM","PAXG","ONT","QTUM","FOXY","OMG","OSMO","TAO","NEIROETH","HFT","MANA","GLMR","ROSE","TWT","QUICK","RVN","IOST","SKL","AEVO","ETH","SEP","WAVES","WIF","THETA","COMP","BEL","STORJ","EOS","LRC","GRIFFAIN","GRT","ATOM","GALA","SEND","COTI","AGI","ENJ","G","HMSTR","DENT","DUSK","RSR","CHR","BAND","FIL","XRP","DOGE","KAIA","TRU","DOT","SLP","BSV","TAIKO","STG","VTHO","MOVR","ONDO","BTC","LUMIA","FB","LOOKS","CELR","DGB","SUSHI","LTC","AXL","BEAM","SAND","SEI","MYRIA","ENA","XTZ","LINK","VELODROME","INJ","APT","SOL","TIA","ICP","KMNO","AKT","RENDER","LUCE","VET","AVAX","XLM","SUI","STPT","MOBILE","BLAST","PNUT","SPEC","RAD","BAT","SUPER","ACT","JUP","SAFE","ALEO","PIRATE","FTM","DASH","ZRO","CETUS","ALGO","AAVE","TROY","ONE","XNO","DEEP","ZEUS","MOODENG","HBAR","PRCL","CARV","ATH","JASMY","GEMS","GME","GOAT","AIXBT","LQTY","MON","DRIFT","XVG","MOVE","PENGU","ZEC","SPX","LPT","MOTHER","COW","VELO","ZEN","URO","RIFSOL","DEXE","MASA","PEPE","BTT","XEC","SHIB","LADYS","X","BABYDOGE","NEIROCTO","WEN","MOG","CAT","TURBO"]
+    '''
+
+    '''
+    # updated coin list as of January 24, 2025
+    specific_coins = ['GMT', 'VIRTUAL', 'W', 'GRASS', 'MORPHO', 'ETHFI', 'LDO', 'PENDLE', 'UNI', 'LUNC', 'DYDX', 'GIGA', 'ID', 'PRIME', 'EDU', 'MEW', 'APE', 'JST', 'BONK', 'TRX', 'IOTX', 'BOME', 'POPCAT', 'JTO', 'IMX', 'CTC', 'HNT', 'BRETT', 'KAVA', 'FARTCOIN', 'OP', 'MKR', 'ASTR', 'IO', 'MOCA', 'AIOZ', 'ZRX', 'RUNE', 'GLM', 'ENS', 'CFX', 'OM', 'GAS', 'SC', 'KAS', 'FLOKI', 'ARB', 'CORE', 'XMR', 'ORDI', 'STRK', 'BCH', 'CRV', 'MEME', 'WOO', 'HOT', 'FLOW', 'ADA', 'BLUR', 'AR', 'CVX', 'AXS', 'MINA', 'WLD', 'CAKE', 'MANTA', 'CELO', 'NOT', 'EIGEN', 'SNX', 'MNT', 'POL', 'CKB', 'ETC', 'CHZ', 'IOTA', 'ZIL', 'NEO', 'STX', 'KSM', '1INCH', 'RON', 'CRO', 'NEAR', 'EGLD', 'ANKR', 'ZK', 'PYTH', 'TON', 'BNB', 'PAXG', 'QTUM', 'TAO', 'MANA', 'ROSE', 'TWT', 'ETH', 'WIF', 'THETA', 'COMP', 'EOS', 'GRT', 'ATOM', 'GALA', 'ENJ', 'RSR', 'FIL', 'XRP', 'DOGE', 'KAIA', 'DOT', 'BSV', 'ONDO', 'BTC', 'SUSHI', 'LTC', 'AXL', 'BEAM', 'SAND', 'SEI', 'ENA', 'XTZ', 'LINK', 'INJ', 'APT', 'SOL', 'TIA', 'ICP', 'AKT', 'RENDER', 'VET', 'AVAX', 'XLM', 'SUI', 'PNUT', 'BAT', 'SUPER', 'JUP', 'SAFE', 'FTM', 'DASH', 'ZRO', 'ALGO', 'AAVE', 'ONE', 'HBAR', 'ATH', 'JASMY', 'GOAT', 'AIXBT', 'MOVE', 'PENGU', 'ZEC', 'SPX', 'LPT', 'ZEN', 'DEXE', 'PEPE', 'BTT', 'XEC', 'SHIB', 'MOG', 'TURBO']
+    '''
+
+    # difference between the two
+    '''
+    removed = ['LOOKS', 'STMX', 'BICO', 'RDNT', 'ALT', 'YFI', 'PERP', 'MOODENG', 'IDEX', 'PEAQ', 'CAT', 'XNO', 'G', 'BANANA', 'MOTHER', 'ZETA', 'ARK', 'LINA', 'PIXEL', 'PHA', 'OL', 'FB', 'F', 'MTL', 'AUDIO', 'VOXEL', 'SYN', 'BADGER', 'SSV', 'SAGA', 'AGI', 'RARE', 'ALPHA', 'ZRC', 'SUNDOG', 'ARPA', 'SLERF', 'CHESS', 'AUCTION', 'SPELL', 'SXP', 'LRC', 'AEVO', 'DBR', 'ORDER', 'ONT', 'LADYS', 'HIPPO', 'HFT', 'GMX', 'KNC', 'HMSTR', 'SYS', 'DAR', 'DOP1', 'CARV', 'XVG', 'MYRIA', 'AI', 'USTC', 'LUCE', 'THE', 'FIDA', 'IOST', 'REN', 'WAVES', 'SCRT', 'ALICE', 'SKL', 'AMB', 'WEN', 'GTC', 'VTHO', 'QUICK', 'X', 'SLF', 'ICX', 'OXT', 'ZBCN', 'GRIFFAIN', 'BLAST', 'FLM', 'MAVIA', 'GEMS', 'CLOUD', 'GODS', 'PORTAL', 'BIGTIME', 'PEIPEI', 'OMG', 'SUN', 'STPT', 'VELODROME', 'PEOPLE', 'PHB', 'LISTA', 'OGN', 'HOOK', 'ILV', 'FXS', 'ACH', 'XRD', 'REQ', 'TOKEN', 'NS', 'RSS3', 'TRB', 'OMNI', 'PRCL', 'UXLINK', 'C98', 'BAND', 'LQTY', 'TAI', 'FOXY', 'SPEC', 'AVAIL', 'PIRATE', 'DRIFT', 'SWELL', 'POLYX', 'MAX', 'SATS', 'URO', 'MYRO', 'UMA', 'XAI', 'COW', 'COTI', 'FWOG', 'REEF', 'MOVR', 'VANRY', 'BENDOG', 'RAD', 'GLMR', 'MASA', 'DOGS', 'RIFSOL', 'KDA', 'DOG', 'KMNO', 'ACX', 'XEM', 'BLUE', 'BEL', 'DEEP', 'BAN', 'NFP', 'SEND', 'BSW', 'TROY', 'ZEUS', 'LIT', 'LEVER', 'KEY', 'REZ', 'BAL', 'CELR', 'DGB', 'L3', 'MERL', 'CTK', 'FTN', 'FORTH', 'DATA', 'ACE', 'LUNA2', 'XVS', 'SLP', 'LUMIA', 'DENT', 'SILLY', 'NEIROETH', 'MBL', 'TOSHI', 'MASK', 'AIDOGE', 'PUFFER', 'POWRBOBA', 'T', 'NYAN', 'CTSI', 'YGG', 'STG', 'RPL', 'RATS', 'LSK', 'METIS', 'NMR', 'BNX', 'JOE', 'ORBS', 'BAKE', 'RIF', 'ARKM', 'HIFI', 'TAIKO', 'ETHW', 'COS', 'TRU', 'MANEKI', 'CHR', 'FIRE', 'DYM', 'VELO', 'GME', 'NULS', 'ONG', 'DEGEN', 'CATS', 'MOBILE', 'XCN', 'MON', 'QI', 'CYBER', 'TNSR', 'API3', 'OSMO', 'COMBO', 'TLM', 'CVC', 'NEIROCTO', 'STEEM', 'NTRN', 'FLUX', 'AGLD', 'MDT', 'STORJ', 'RVN', 'DUSK', 'BABYDOGE', 'NKN', 'WAXP', 'A8', 'SEP', 'COOK']
+    '''
+
+    # coins worth adding back
+    specific_coins = ['MAV','MAGIC','MAJOR','ACT','SNT','VRA','ALEO','LAI','CETUS','RAYDIUM']
+
 
     chunk_size = 100
 
@@ -2472,7 +2501,13 @@ def gather_daily_historical_data():
         "X-CMC_PRO_API_KEY": API_KEY,
     }
 
-    coins = Coin.objects.all()
+    #coins = Coin.objects.all()
+
+    specific_coins = ['MAV','MAGIC','MAJOR','ACT','SNT','VRA','ALEO','LAI','CETUS','RAYDIUM']
+    coins = list(Coin.objects.filter(symbol__in=specific_coins))
+
+    print(coins)
+
     coins_in_group_of_fifteen = []
     coin_group = []
     count = 0
