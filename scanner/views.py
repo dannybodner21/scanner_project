@@ -37,6 +37,8 @@ def check_trigger(symbol):
     trigger_short_success = 0
     trigger_five_trades = 0
     trigger_five_success = 0
+    trigger_six_trades = 0
+    trigger_six_success = 0
 
     count_15 = 0
     count_16 = 0
@@ -203,9 +205,9 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
-                        print("-------TRIGGER ONE-----------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                        #print("-------TRIGGER ONE-----------")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
 
                     elif day == 25:
                         count_25 += 1
@@ -292,9 +294,9 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
-                        print("-------TRIGGER TWO-----------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                        #print("-------TRIGGER TWO-----------")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
 
                     elif day == 25:
                         count_25 += 1
@@ -431,9 +433,9 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
-                        print("-------TRIGGER THREE-----------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                        #print("-------TRIGGER THREE-----------")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
 
                     elif day == 25:
                         count_25 += 1
@@ -522,9 +524,9 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
-                        print("-------TRIGGER SHORT-----------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                        #print("-------TRIGGER SHORT-----------")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
 
                     elif day == 25:
                         count_25 += 1
@@ -619,12 +621,106 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
-                        print("-------TRIGGER FIVE-----------")
+                        #print("-------TRIGGER FIVE-----------")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
+
+                    elif day == 25:
+                        count_25 += 1
+
+
+
+                # TRIGGER SIX
+                if (
+                    metrics[x].daily_relative_volume >= 2 and
+                    metrics[x].rolling_relative_volume >= 1.2 and
+                    metrics[x].five_min_relative_volume >= 1.3 and
+                    metrics[x].price_change_5min >= 0.7 and
+                    metrics[x].price_change_24hr < -5 and
+                    metrics[x].twenty_min_relative_volume >= 1 and
+                    rvol_progression == True
+                ):
+                    #print("-----TRIGGER SIX-------------")
+                    #print(coin.symbol)
+                    #print(metrics[x].timestamp)
+
+                    amount_of_trades += 1
+                    trigger_six_trades += 1
+
+                    trigger_price = metrics[x].last_price
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.10))
+                    take_profit_hit = False
+                    stop_loss_hit = False
+                    take_profit_timestamp = None
+                    stop_loss_timestamp = None
+                    try:
+                        for y in range(x, len(metrics)):
+                            if (metrics[y].last_price >= take_profit_price):
+                                take_profit_hit = True
+                                take_profit_timestamp = metrics[y].timestamp
+
+                            if (metrics[y].last_price <= stop_loss_price):
+                                stop_loss_hit = True
+                                stop_loss_timestamp = metrics[y].timestamp
+
+                        if (take_profit_hit == True):
+                            if (stop_loss_hit == True):
+                                # compare timestamps
+                                if (take_profit_timestamp < stop_loss_timestamp):
+                                    # successful trade
+                                    successful_trades += 1
+                                    trigger_six_success += 1
+                                else:
+                                    # failed trade
+                                    failed_trades += 1
+                            else:
+                                # successful trade
+                                successful_trades += 1
+                                trigger_six_success += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == True):
+                            # failed trade
+                            failed_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == False):
+                            amount_of_trades -= 1
+                            trigger_six_trades -= 1
+
+                    except:
+                        print("failed in trigger 6")
+
+                    '''
+                    day = metrics[x].timestamp.day
+                    if day == 15:
+                        count_15 += 1
+                    elif day == 16:
+                        count_16 += 1
+                    elif day == 17:
+                        count_17 += 1
+                    elif day == 18:
+                        count_18 += 1
+                    elif day == 19:
+                        count_19 += 1
+                    elif day == 20:
+                        count_20 += 1
+                    elif day == 21:
+                        count_21 += 1
+                    elif day == 22:
+                        count_22 += 1
+                    elif day == 23:
+                        count_23 += 1
+                    elif day == 24:
+                        count_24 += 1
+                        print("-------TRIGGER TWO-----------")
                         print(coin.symbol)
                         print(metrics[x].timestamp)
 
                     elif day == 25:
                         count_25 += 1
+                    '''
+
+
 
 
     print("Results: ")
@@ -636,6 +732,7 @@ def check_trigger(symbol):
     print(f"Trigger Three: {trigger_three_trades}")
     print(f"Trigger Short: {trigger_short_trades}")
     print(f"Trigger Five: {trigger_five_trades}")
+    print(f"Trigger Six: {trigger_six_trades}")
     success_percentage = 0
     if (amount_of_trades != 0):
         success_percentage = (successful_trades / amount_of_trades) * 100
@@ -665,6 +762,11 @@ def check_trigger(symbol):
     if (trigger_five_trades != 0):
         trigger_five_success_percentage = (trigger_five_success / trigger_five_trades) * 100
     print(f"Trigger Five Success: {trigger_five_success_percentage}%")
+
+    trigger_six_success_percentage = 0
+    if (trigger_six_trades != 0):
+        trigger_six_success_percentage = (trigger_six_success / trigger_six_trades) * 100
+    print(f"Trigger Six Success: {trigger_six_success_percentage}%")
 
     print(f"Day 15: {count_15}")
     print(f"Day 16: {count_16}")
@@ -3128,7 +3230,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 1 passed")
             trigger_passed = True
-            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 Hit !"
+            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: 45%"
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
@@ -3153,7 +3255,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 2 passed")
             trigger_passed = True
-            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 Hit !"
+            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 (LONG) Accuracy: 72%"
             exists = check_duplicate_triggers(updated_trigger_two)
 
             if exists == False:
@@ -3188,7 +3290,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 3 passed")
             trigger_passed = True
-            updated_trigger_three = str(metrics_queryset[0].coin.symbol) + " : Trigger 3 Hit !"
+            updated_trigger_three = str(metrics_queryset[0].coin.symbol) + " : Trigger 3 Hit (LONG) Accuracy: 63%"
             exists = check_duplicate_triggers(updated_trigger_three)
 
             if exists == False:
@@ -3215,7 +3317,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 4 passed")
             trigger_passed = True
-            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit !"
+            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit (SHORT) Accuracy: 65%"
             exists = check_duplicate_triggers(updated_trigger_four)
 
             if exists == False:
@@ -3240,7 +3342,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 5 passed")
             trigger_passed = True
-            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit !"
+            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit (LONG) Accuracy: 55%"
             exists = check_duplicate_triggers(updated_trigger_five)
 
             if exists == False:
