@@ -8377,8 +8377,14 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_24hr < 0 and
             five_min_price_increase == True
         ):
+<<<<<<< HEAD
 
             updated_trigger = str(metrics_queryset[0].coin) + " : New Trigger 1 Hit !"
+=======
+            print("TRIGGER 1 passed")
+            trigger_passed = True
+            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 Hit !"
+>>>>>>> 825cfe1 (who cares)
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
@@ -8407,8 +8413,14 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].twenty_min_relative_volume >= 1 and
             rvol_progression == True
         ):
+<<<<<<< HEAD
 
             updated_trigger_two = str(metrics_queryset[0].coin) + " : New Trigger 2 Hit !"
+=======
+            print("TRIGGER 2 passed")
+            trigger_passed = True
+            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 Hit !"
+>>>>>>> 825cfe1 (who cares)
             exists = check_duplicate_triggers(updated_trigger_two)
 
             if exists == False:
@@ -8444,6 +8456,7 @@ def check_triggers(metrics_queryset):
             metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
             metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
         ):
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 =======
@@ -8452,6 +8465,11 @@ def check_triggers(metrics_queryset):
 
 
             updated_trigger_three = str(metrics_queryset[0].coin) + " : New Trigger 3 Hit !"
+=======
+            print("TRIGGER 3 passed")
+            trigger_passed = True
+            updated_trigger_three = str(metrics_queryset[0].coin.symbol) + " : Trigger 3 Hit !"
+>>>>>>> 825cfe1 (who cares)
             exists = check_duplicate_triggers(updated_trigger_three)
 
             if exists == False:
@@ -8476,8 +8494,14 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_1hr < metrics_queryset[1].price_change_1hr and
             metrics_queryset[1].price_change_1hr < metrics_queryset[2].price_change_1hr
         ):
+<<<<<<< HEAD
 
             updated_trigger_four = str(metrics_queryset[0].coin) + " : SHORT Trigger Hit !"
+=======
+            print("TRIGGER 4 passed")
+            trigger_passed = True
+            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit !"
+>>>>>>> 825cfe1 (who cares)
             exists = check_duplicate_triggers(updated_trigger_four)
 
             if exists == False:
@@ -8493,8 +8517,40 @@ def check_triggers(metrics_queryset):
 <<<<<<< HEAD
     print("end of the trigger function")
 
+<<<<<<< HEAD
 =======
 >>>>>>> ee451f0 (who cares)
+=======
+        if (
+            metrics_queryset[0].price_change_24hr < -5 and
+            (metrics_queryset[0].rolling_relative_volume >= 2.1 or metrics_queryset[0].daily_relative_volume >= 1.3) and
+            metrics_queryset[0].price_change_5min < 0 and
+            metrics_queryset[0].price_change_10min < 0 and
+            metrics_queryset[0].price_change_1hr > 0 and
+            metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
+            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
+        ):
+            print("TRIGGER 5 passed")
+            trigger_passed = True
+            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit !"
+            exists = check_duplicate_triggers(updated_trigger_five)
+
+            if exists == False:
+
+                true_triggers.append(updated_trigger_five)
+
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_five, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
+
+
+    if trigger_passed == True:
+        print("at least one trigger passed ===================================")
+    else:
+        print("no triggers passed")
+>>>>>>> 825cfe1 (who cares)
 
     if len(true_triggers) > 0:
         send_text(true_triggers)
