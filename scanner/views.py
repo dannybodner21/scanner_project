@@ -596,11 +596,6 @@ def check_trigger(symbol):
                         print(metrics[x].timestamp)
 
 
-
-
-
-
-
     print("Results: ")
     print(f"Amount of trades: {amount_of_trades}")
     print(f"Successful trades: {successful_trades}")
@@ -842,9 +837,9 @@ def send_text(true_triggers_two):
 
         # telegram bot information
         chat_id_danny = '1077594551'
-        #chat_id_ricki = '1054741134'
-        #chat_ids = [chat_id_danny, chat_id_ricki]
-        chat_ids = [chat_id_danny]
+        chat_id_ricki = '1054741134'
+        chat_ids = [chat_id_danny, chat_id_ricki]
+        #chat_ids = [chat_id_danny]
         bot_token = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
 
@@ -3205,9 +3200,7 @@ def check_triggers(metrics_queryset):
 
 
     if trigger_passed == True:
-        print("at least one trigger passed")
-        message = "at least one trigger passed"
-        true_triggers.append(message)
+        print("at least one trigger passed ===================================")
     else:
         print("no triggers passed")
 
