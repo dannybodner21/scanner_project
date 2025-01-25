@@ -3371,15 +3371,15 @@ def check_triggers(metrics_queryset):
 
         # TRIGGER SIX --------------------------------------------------
         if (
-            metrics[0].price_change_5min >= 0.6 and
-            metrics[0].price_change_24hr < -5 and
-            metrics[0].price_change_10min > metrics[1].price_change_10min and
-            metrics[0].rolling_relative_volume > metrics[1].rolling_relative_volume and
-            metrics[1].rolling_relative_volume > metrics[2].rolling_relative_volume and
-            metrics[2].rolling_relative_volume > metrics[3].rolling_relative_volume and
-            metrics[0].price_change_5min > metrics[1].price_change_5min and
-            metrics[0].five_min_relative_volume > metrics[1].five_min_relative_volume and
-            metrics[0].twenty_min_relative_volume >= metrics[1].twenty_min_relative_volume
+            metrics_queryset[0].price_change_5min >= 0.6 and
+            metrics_queryset[0].price_change_24hr < -5 and
+            metrics_queryset[0].price_change_10min > metrics_queryset[1].price_change_10min and
+            metrics_queryset[0].rolling_relative_volume > metrics_queryset[1].rolling_relative_volume and
+            metrics_queryset[1].rolling_relative_volume > metrics_queryset[2].rolling_relative_volume and
+            metrics_queryset[2].rolling_relative_volume > metrics_queryset[3].rolling_relative_volume and
+            metrics_queryset[0].price_change_5min > metrics_queryset[1].price_change_5min and
+            metrics_queryset[0].five_min_relative_volume > metrics_queryset[1].five_min_relative_volume and
+            metrics_queryset[0].twenty_min_relative_volume >= metrics_queryset[1].twenty_min_relative_volume
         ):
             print("TRIGGER 6 passed")
             trigger_passed = True
@@ -3463,6 +3463,7 @@ def index(request):
 
 
         # TRIGGER INFORMATION HERE ---------------------------------
+        
         check_triggers(metrics_queryset[:6])
 
         top_cryptos.append({
