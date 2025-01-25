@@ -3382,19 +3382,19 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].twenty_min_relative_volume >= metrics_queryset[1].twenty_min_relative_volume
         ):
             print("TRIGGER 6 passed")
-            trigger_passed = True
-            updated_trigger_six = str(metrics_queryset[0].coin.symbol) + " : Trigger Six Hit (LONG) Accuracy: ~60%"
-            exists = check_duplicate_triggers(updated_trigger_six)
+            #trigger_passed = True
+            #updated_trigger_six = str(metrics_queryset[0].coin.symbol) + " : Trigger Six Hit (LONG) Accuracy: ~60%"
+            #exists = check_duplicate_triggers(updated_trigger_six)
 
-            if exists == False:
+            #if exists == False:
 
-                true_triggers.append(updated_trigger_six)
+                #true_triggers.append(updated_trigger_six)
 
-                try:
-                    Trigger.objects.create(trigger_name=updated_trigger_six, timestamp=now())
+                #try:
+                    #Trigger.objects.create(trigger_name=updated_trigger_six, timestamp=now())
 
-                except Exception as e:
-                    print(f"Error creating new Trigger: {e}")
+                #except Exception as e:
+                    #print(f"Error creating new Trigger: {e}")
 
 
     if trigger_passed == True:
@@ -3463,7 +3463,7 @@ def index(request):
 
 
         # TRIGGER INFORMATION HERE ---------------------------------
-        
+
         check_triggers(metrics_queryset[:6])
 
         top_cryptos.append({
