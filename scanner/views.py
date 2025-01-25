@@ -51,6 +51,7 @@ def check_trigger(symbol):
     count_23 = 0
     count_24 = 0
     count_25 = 0
+    count_26 = 0
 
     for coin in coins:
 
@@ -211,6 +212,8 @@ def check_trigger(symbol):
 
                     elif day == 25:
                         count_25 += 1
+                    elif day == 26:
+                        count_26 += 1
 
 
 
@@ -300,6 +303,8 @@ def check_trigger(symbol):
 
                     elif day == 25:
                         count_25 += 1
+                    elif day == 26:
+                        count_26 += 1
 
 
 
@@ -439,6 +444,8 @@ def check_trigger(symbol):
 
                     elif day == 25:
                         count_25 += 1
+                    elif day == 26:
+                        count_26 += 1
 
 
 
@@ -530,6 +537,8 @@ def check_trigger(symbol):
 
                     elif day == 25:
                         count_25 += 1
+                    elif day == 26:
+                        count_26 += 1
 
 
 
@@ -627,30 +636,19 @@ def check_trigger(symbol):
 
                     elif day == 25:
                         count_25 += 1
+                    elif day == 26:
+                        count_26 += 1
 
 
 
                 # TRIGGER SIX
-                # below is currently at 63% success rate
+                # below is currently at 70% success rate
                 if (
-                    #metrics[x].daily_relative_volume > 1.25 and
-                    #metrics[x].five_min_relative_volume > 1.3 and
-                    #metrics[x].price_change_5min >= 0.7 and
-                    #metrics[x].price_change_24hr < -5 and
-                    #metrics[x].twenty_min_relative_volume >= 1 and
-                    #metrics[x].rolling_relative_volume > metrics[x-1].rolling_relative_volume and
-                    #metrics[x-1].rolling_relative_volume > metrics[x-2].rolling_relative_volume and
-                    #metrics[x-2].rolling_relative_volume > metrics[x-3].rolling_relative_volume
-
-                    metrics[x].price_change_5min >= 0.6 and
+                    metrics[x].daily_relative_volume >= 1.5 and
+                    metrics[x].rolling_relative_volume >= 1.5 and
+                    metrics[x].price_change_5min >= 0.7 and
                     metrics[x].price_change_24hr < -5 and
-                    metrics[x].price_change_10min > metrics[x-1].price_change_10min and
-                    metrics[x].rolling_relative_volume > metrics[x-1].rolling_relative_volume and
-                    metrics[x-1].rolling_relative_volume > metrics[x-2].rolling_relative_volume and
-                    metrics[x-2].rolling_relative_volume > metrics[x-3].rolling_relative_volume and
-                    metrics[x].price_change_5min > metrics[x-1].price_change_5min and
-                    metrics[x].five_min_relative_volume > metrics[x-1].five_min_relative_volume and
-                    metrics[x].twenty_min_relative_volume >= metrics[x-1].twenty_min_relative_volume
+                    metrics[x].price_change_1hr > 0
                 ):
                     #print("-----TRIGGER SIX-------------")
                     #print(coin.symbol)
@@ -724,12 +722,14 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
-                        print("-------TRIGGER SIX-----------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                        #print("-------TRIGGER SIX-----------")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
 
                     elif day == 25:
                         count_25 += 1
+                    elif day == 26:
+                        count_26 += 1
 
 
 
@@ -791,6 +791,7 @@ def check_trigger(symbol):
     print(f"Day 23: {count_23}")
     print(f"Day 24: {count_24}")
     print(f"Day 25: {count_25}")
+    print(f"Day 26: {count_26}")
 
 
 
@@ -1208,7 +1209,7 @@ def load_coins():
     '''
 
     # coins worth adding back
-    specific_coins = ['MAV','MAGIC','MAJOR','ACT','SNT','VRA','ALEO','LAI','CETUS','RAYDIUM']
+    specific_coins = ['','','','','','','','','','RAYDIUM']
 
 
     chunk_size = 100
@@ -3371,30 +3372,26 @@ def check_triggers(metrics_queryset):
 
         # TRIGGER SIX --------------------------------------------------
         if (
-            metrics_queryset[0].price_change_5min >= 0.6 and
+            metrics_queryset[0].daily_relative_volume >= 1.5 and
+            metrics_queryset[0].rolling_relative_volume >= 1.5 and
+            metrics_queryset[0].price_change_5min >= 0.7 and
             metrics_queryset[0].price_change_24hr < -5 and
-            metrics_queryset[0].price_change_10min > metrics_queryset[1].price_change_10min and
-            metrics_queryset[0].rolling_relative_volume > metrics_queryset[1].rolling_relative_volume and
-            metrics_queryset[1].rolling_relative_volume > metrics_queryset[2].rolling_relative_volume and
-            metrics_queryset[2].rolling_relative_volume > metrics_queryset[3].rolling_relative_volume and
-            metrics_queryset[0].price_change_5min > metrics_queryset[1].price_change_5min and
-            metrics_queryset[0].five_min_relative_volume > metrics_queryset[1].five_min_relative_volume and
-            metrics_queryset[0].twenty_min_relative_volume >= metrics_queryset[1].twenty_min_relative_volume
+            metrics_queryset[0].price_change_1hr > 0
         ):
             print("TRIGGER 6 passed")
-            #trigger_passed = True
-            #updated_trigger_six = str(metrics_queryset[0].coin.symbol) + " : Trigger Six Hit (LONG) Accuracy: ~60%"
-            #exists = check_duplicate_triggers(updated_trigger_six)
+            trigger_passed = True
+            updated_trigger_six = str(metrics_queryset[0].coin.symbol) + " : Trigger Six Hit (LONG) Accuracy: ~60%"
+            exists = check_duplicate_triggers(updated_trigger_six)
 
-            #if exists == False:
+            if exists == False:
 
-                #true_triggers.append(updated_trigger_six)
+                true_triggers.append(updated_trigger_six)
 
-                #try:
-                    #Trigger.objects.create(trigger_name=updated_trigger_six, timestamp=now())
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_six, timestamp=now())
 
-                #except Exception as e:
-                    #print(f"Error creating new Trigger: {e}")
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
 
 
     if trigger_passed == True:
