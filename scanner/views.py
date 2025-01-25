@@ -8813,6 +8813,38 @@ def check_triggers(metrics_queryset):
                     print(f"Error creating new Trigger: {e}")
 
 
+<<<<<<< HEAD
+=======
+
+        # TRIGGER SIX --------------------------------------------------
+        if (
+            metrics_queryset[0].price_change_5min >= 0.6 and
+            metrics_queryset[0].price_change_24hr < -5 and
+            metrics_queryset[0].price_change_10min > metrics_queryset[1].price_change_10min and
+            metrics_queryset[0].rolling_relative_volume > metrics_queryset[1].rolling_relative_volume and
+            metrics_queryset[1].rolling_relative_volume > metrics_queryset[2].rolling_relative_volume and
+            metrics_queryset[2].rolling_relative_volume > metrics_queryset[3].rolling_relative_volume and
+            metrics_queryset[0].price_change_5min > metrics_queryset[1].price_change_5min and
+            metrics_queryset[0].five_min_relative_volume > metrics_queryset[1].five_min_relative_volume and
+            metrics_queryset[0].twenty_min_relative_volume >= metrics_queryset[1].twenty_min_relative_volume
+        ):
+            print("TRIGGER 6 passed")
+            trigger_passed = True
+            updated_trigger_six = str(metrics_queryset[0].coin.symbol) + " : Trigger Six Hit (LONG) Accuracy: ~60%"
+            exists = check_duplicate_triggers(updated_trigger_six)
+
+            if exists == False:
+
+                true_triggers.append(updated_trigger_six)
+
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_six, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
+
+
+>>>>>>> 3d385b0 (who cares)
     if trigger_passed == True:
         print("at least one trigger passed ===================================")
     else:
@@ -9030,7 +9062,11 @@ def index(request):
 >>>>>>> 500608e (who cares)
 =======
         # TRIGGER INFORMATION HERE ---------------------------------
+<<<<<<< HEAD
         print("-------- about to check triggers --------")
+=======
+        
+>>>>>>> 3d385b0 (who cares)
         check_triggers(metrics_queryset[:6])
 >>>>>>> fd8f3f8 (who cares)
 
