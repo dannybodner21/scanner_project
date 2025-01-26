@@ -434,7 +434,7 @@ def check_trigger(symbol):
                     #print(coin.symbol)
                     #print(metrics[x].timestamp)
 
-                    trigger_three_hit == True
+                    trigger_three_hit = True
 
                     amount_of_trades += 1
                     trigger_three_trades += 1
@@ -527,7 +527,7 @@ def check_trigger(symbol):
                     #print(coin.symbol)
                     #print(metrics[x].timestamp)
 
-                    trigger_short_hit == True
+                    trigger_short_hit = True
 
                     amount_of_trades += 1
                     trigger_short_trades += 1
@@ -616,7 +616,7 @@ def check_trigger(symbol):
                     #print(coin.symbol)
                     #print(metrics[x].timestamp)
 
-                    trigger_five_hit == True
+                    trigger_five_hit = True
 
                     amount_of_trades += 1
                     trigger_five_trades += 1
@@ -705,7 +705,7 @@ def check_trigger(symbol):
                     #print(coin.symbol)
                     #print(metrics[x].timestamp)
 
-                    trigger_six_hit == True
+                    trigger_six_hit = True
 
                     amount_of_trades += 1
                     trigger_six_trades += 1
@@ -794,7 +794,7 @@ def check_trigger(symbol):
                     #print(coin.symbol)
                     #print(metrics[x].timestamp)
 
-                    trigger_seven_hit == True
+                    trigger_seven_hit = True
 
                     amount_of_trades += 1
                     trigger_seven_trades += 1
@@ -3692,8 +3692,8 @@ def check_triggers(metrics_queryset):
     else:
         print("no triggers passed")
 
-    if len(true_triggers) > 0:
-        send_text(true_triggers)
+    #if len(true_triggers) > 0:
+        #send_text(true_triggers)
 
     return
 
