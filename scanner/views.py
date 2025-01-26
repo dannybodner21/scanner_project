@@ -2061,6 +2061,25 @@ def five_min_update(request=None):
     #print("done checking meme triggers")
 
 
+    # check triggers here
+    print("=============================")
+    print("checking triggers")
+
+    coins = Coin.objects.prefetch_related(
+        Prefetch(
+            'metrics',  # The related_name defined in Metrics
+            queryset=Metrics.objects.order_by('-timestamp')[:6],  # Fetch the 6 most recent metrics
+            to_attr='prefetched_metrics'  # Use a unique name for the prefetched attribute
+        )
+    )
+
+    for coin in coins:
+
+        metrics_queryset = coin.prefetched_metrics
+        check_triggers(metrics_queryset)
+
+    print("done checking triggers")
+
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
 
@@ -3560,8 +3579,7 @@ def index(request):
 
 
         # TRIGGER INFORMATION HERE ---------------------------------
-
-        check_triggers(metrics_queryset[:6])
+        #check_triggers(metrics_queryset[:6])
 
         top_cryptos.append({
             "time": coin_time,
