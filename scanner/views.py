@@ -876,10 +876,10 @@ def calculate_all_metrics():
 <<<<<<< HEAD
 =======
                 if (
-                    metrics[x].daily_relative_volume >= 1.6 and
-                    metrics[x].rolling_relative_volume >= 1.6 and
-                    metrics[x].five_min_relative_volume >= 1.3 and
+                    metrics[x].daily_relative_volume >= 1.0 and
+                    metrics[x].rolling_relative_volume >= 2.5 and
                     metrics[x].price_change_5min >= 0 and
+<<<<<<< HEAD
                     metrics[x].price_change_24hr < 0 and
                     metrics[x].twenty_min_relative_volume >= 1 and
                     five_min_price_increase == True and
@@ -887,6 +887,27 @@ def calculate_all_metrics():
 >>>>>>> 0ba2bb4 (who cares)
 
     print(f"finished {coin.symbol}")
+=======
+                    metrics[x].price_change_24hr > 0 and
+                    rvol_progression == True and
+                    (
+                    (
+                    metrics[x].price_change_10min > metrics[x-1].price_change_10min and
+                    metrics[x-1].price_change_10min > metrics[x-2].price_change_10min and
+                    metrics[x-2].price_change_10min > metrics[x-3].price_change_10min and
+                    metrics[x-3].price_change_10min > metrics[x-4].price_change_10min and
+                    metrics[x-4].price_change_10min > metrics[x-5].price_change_10min
+                    ) or
+                    (
+                    metrics[x].price_change_1hr > metrics[x-1].price_change_1hr and
+                    metrics[x-1].price_change_1hr > metrics[x-2].price_change_1hr and
+                    metrics[x-2].price_change_1hr > metrics[x-3].price_change_1hr and
+                    metrics[x-3].price_change_1hr > metrics[x-4].price_change_1hr and
+                    metrics[x-4].price_change_1hr > metrics[x-5].price_change_1hr
+                    )
+                    )
+                ):
+>>>>>>> 018625b (who cares)
 
 <<<<<<< HEAD
     # Pause for 30 seconds
@@ -1700,7 +1721,7 @@ def calculate_five_min_relative_volume(coin, timestamp):
 
 
                 # TRIGGER SEVEN
-                # below is currently at x% success rate
+                # below is currently at 66% success rate
                 if (
                     metrics[x].daily_relative_volume >= 1.5 and
                     metrics[x].rolling_relative_volume >= 1.5 and
@@ -1785,9 +1806,9 @@ def calculate_five_min_relative_volume(coin, timestamp):
                         count_25 += 1
                     elif day == 26:
                         count_26 += 1
-                        print("-------TRIGGER SEVEN-----------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                        #print("-------TRIGGER SEVEN-----------")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
 
 
 
@@ -1860,6 +1881,19 @@ def calculate_five_min_relative_volume(coin, timestamp):
         trigger_five_success_percentage = (trigger_five_success / trigger_five_trades) * 100
     print(f"Trigger Five Success: {trigger_five_success_percentage}%")
 
+<<<<<<< HEAD
+=======
+    trigger_six_success_percentage = 0
+    if (trigger_six_trades != 0):
+        trigger_six_success_percentage = (trigger_six_success / trigger_six_trades) * 100
+    print(f"Trigger Six Success: {trigger_six_success_percentage}%")
+
+    trigger_seven_success_percentage = 0
+    if (trigger_seven_trades != 0):
+        trigger_seven_success_percentage = (trigger_seven_success / trigger_seven_trades) * 100
+    print(f"Trigger Seven Success: {trigger_seven_success_percentage}%")
+
+>>>>>>> 018625b (who cares)
     print(f"Day 15: {count_15}")
     print(f"Day 16: {count_16}")
     print(f"Day 17: {count_17}")
@@ -8859,13 +8893,27 @@ def check_triggers(metrics_queryset):
             ten_min_price_increase = True
 
         if (
-            metrics_queryset[0].daily_relative_volume >= 1.1 and
-            metrics_queryset[0].rolling_relative_volume >= 1.4 and
-            metrics_queryset[0].five_min_relative_volume >= 1.3 and
+            metrics_queryset[0].daily_relative_volume >= 1.0 and
+            metrics_queryset[0].rolling_relative_volume >= 2.5 and
             metrics_queryset[0].price_change_5min >= 0 and
-            metrics_queryset[1].price_change_5min < 0 and
-            metrics_queryset[0].price_change_24hr < 0 and
-            five_min_price_increase == True
+            metrics_queryset[0].price_change_24hr > 0 and
+            rvol_progression == True and
+            (
+            (
+            metrics_queryset[0].price_change_10min > metrics_queryset[1].price_change_10min and
+            metrics_queryset[1].price_change_10min > metrics_queryset[2].price_change_10min and
+            metrics_queryset[2].price_change_10min > metrics_queryset[3].price_change_10min and
+            metrics_queryset[3].price_change_10min > metrics_queryset[4].price_change_10min and
+            metrics_queryset[4].price_change_10min > metrics_queryset[5].price_change_10min
+            ) or
+            (
+            metrics_queryset[0].price_change_1hr > metrics_queryset[1].price_change_1hr and
+            metrics_queryset[1].price_change_1hr > metrics_queryset[2].price_change_1hr and
+            metrics_queryset[2].price_change_1hr > metrics_queryset[3].price_change_1hr and
+            metrics_queryset[3].price_change_1hr > metrics_queryset[4].price_change_1hr and
+            metrics_queryset[4].price_change_1hr > metrics_queryset[5].price_change_1hr
+            )
+            )
         ):
 <<<<<<< HEAD
 
@@ -8873,8 +8921,12 @@ def check_triggers(metrics_queryset):
 =======
             print("TRIGGER 1 passed")
             trigger_passed = True
+<<<<<<< HEAD
             updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 Hit !"
 >>>>>>> 825cfe1 (who cares)
+=======
+            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: 60%"
+>>>>>>> 018625b (who cares)
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
