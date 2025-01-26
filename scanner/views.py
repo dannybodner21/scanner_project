@@ -41,6 +41,8 @@ def check_trigger(symbol):
     trigger_six_success = 0
     trigger_seven_trades = 0
     trigger_seven_success = 0
+    trigger_eight_trades = 0
+    trigger_eight_success = 0
 
     count_1 = 0
     count_2 = 0
@@ -99,6 +101,8 @@ def check_trigger(symbol):
         trigger_six_hit = False
         trigger_seven_hit_counter = 0
         trigger_seven_hit = False
+        trigger_eight_hit_counter = 0
+        trigger_eight_hit = False
 
         for x in range(6, len(metrics)):
 
@@ -146,7 +150,7 @@ def check_trigger(symbol):
                     ten_min_price_increase = True
 
 
-                # TRIGGER 1 ---------------------------------------------
+                # TRIGGER 1 ----------------------------------------------------
                 if (trigger_one_hit == True):
                     trigger_one_hit_counter += 1
 
@@ -263,7 +267,7 @@ def check_trigger(symbol):
 
 
 
-                # TRIGGER 2 ---------------------------------------------------
+                # TRIGGER 2 ----------------------------------------------------
                 if (trigger_two_hit == True):
                     trigger_two_hit_counter += 1
 
@@ -363,7 +367,7 @@ def check_trigger(symbol):
 
 
 
-                # TRIGGER 3 -------------------------------------------------
+                # TRIGGER 3 ----------------------------------------------------
 
                 # rolling 5 min price change
                 rolling_one = metrics[x].price_change_5min
@@ -922,6 +926,111 @@ def check_trigger(symbol):
 
 
 
+
+                # TRIGGER 8 ----------------------------------------------------
+                if (trigger_eight_hit == True):
+                    trigger_eight_hit_counter += 1
+
+                if (trigger_eight_hit_counter > 13):
+                    trigger_eight_hit = False
+                    trigger_eight_hit_counter = 0
+
+                if (
+                    trigger_eight_hit == False and
+                    metrics[x].price_change_24hr < -10 and
+                    (metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
+                    metrics[x].price_change_5min < 0 and
+                    metrics[x].price_change_10min < 0 and
+                    metrics[x].price_change_1hr > 0 and
+                    metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
+                    metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
+                ):
+
+                    #print("-------TRIGGER EIGHT-----------")
+                    #print(coin.symbol)
+                    #print(metrics[x].timestamp)
+
+                    trigger_eight_hit = True
+
+                    amount_of_trades += 1
+                    trigger_eight_trades += 1
+
+                    trigger_price = metrics[x].last_price
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.015))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.045))
+
+                    # try to go through remaining metrics
+                    take_profit_hit = False
+                    stop_loss_hit = False
+                    take_profit_timestamp = None
+                    stop_loss_timestamp = None
+                    try:
+                        for y in range(x, len(metrics)):
+                            if (metrics[y].last_price >= take_profit_price):
+                                take_profit_hit = True
+                                take_profit_timestamp = metrics[y].timestamp
+
+                            if (metrics[y].last_price <= stop_loss_price):
+                                stop_loss_hit = True
+                                stop_loss_timestamp = metrics[y].timestamp
+
+                        if (take_profit_hit == True):
+                            if (stop_loss_hit == True):
+                                # compare timestamps
+                                if (take_profit_timestamp < stop_loss_timestamp):
+                                    # successful trade
+                                    successful_trades += 1
+                                    trigger_eight_success += 1
+                                else:
+                                    # failed trade
+                                    failed_trades += 1
+                            else:
+                                # successful trade
+                                successful_trades += 1
+                                trigger_eight_success += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == True):
+                            # failed trade
+                            failed_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == False):
+                            amount_of_trades -= 1
+                            trigger_eight_trades -= 1
+
+                    except:
+                        print("failed in trigger 8")
+
+                    day = metrics[x].timestamp.day
+                    if day == 15:
+                        count_15 += 1
+                    elif day == 16:
+                        count_16 += 1
+                    elif day == 17:
+                        count_17 += 1
+                    elif day == 18:
+                        count_18 += 1
+                    elif day == 19:
+                        count_19 += 1
+                    elif day == 20:
+                        count_20 += 1
+                    elif day == 21:
+                        count_21 += 1
+                    elif day == 22:
+                        count_22 += 1
+                    elif day == 23:
+                        count_23 += 1
+                    elif day == 24:
+                        count_24 += 1
+                    elif day == 25:
+                        count_25 += 1
+                    elif day == 26:
+                        count_26 += 1
+                    elif day == 27:
+                        count_27 += 1
+
+
+
+
     print("Results: ")
     print(f"Amount of trades: {amount_of_trades}")
     print(f"Successful trades: {successful_trades}")
@@ -933,6 +1042,7 @@ def check_trigger(symbol):
     print(f"Trigger Five: {trigger_five_trades}")
     print(f"Trigger Six: {trigger_six_trades}")
     print(f"Trigger Seven: {trigger_seven_trades}")
+    print(f"Trigger Eight: {trigger_eight_trades}")
     success_percentage = 0
     if (amount_of_trades != 0):
         success_percentage = (successful_trades / amount_of_trades) * 100
@@ -972,6 +1082,11 @@ def check_trigger(symbol):
     if (trigger_seven_trades != 0):
         trigger_seven_success_percentage = (trigger_seven_success / trigger_seven_trades) * 100
     print(f"Trigger Seven Success: {trigger_seven_success_percentage}%")
+
+    trigger_eight_success_percentage = 0
+    if (trigger_eight_trades != 0):
+        trigger_eight_success_percentage = (trigger_eight_success / trigger_eight_trades) * 100
+    print(f"Trigger Eight Success: {trigger_eight_success_percentage}%")
 
     print(f"Day 15: {count_15}")
     print(f"Day 16: {count_16}")
