@@ -816,14 +816,13 @@ def check_trigger(symbol):
                         count_23 += 1
                     elif day == 24:
                         count_24 += 1
-                        #print("-------TRIGGER SIX-----------")
-                        #print(coin.symbol)
-                        #print(metrics[x].timestamp)
-
                     elif day == 25:
                         count_25 += 1
                     elif day == 26:
                         count_26 += 1
+                        print("-------TRIGGER SEVEN-----------")
+                        print(coin.symbol)
+                        print(metrics[x].timestamp)
 
 
 
@@ -839,7 +838,7 @@ def check_trigger(symbol):
     print(f"Trigger Short: {trigger_short_trades}")
     print(f"Trigger Five: {trigger_five_trades}")
     print(f"Trigger Six: {trigger_six_trades}")
-    print(f"Trigger Sevem: {trigger_seven_trades}")
+    print(f"Trigger Seven: {trigger_seven_trades}")
     success_percentage = 0
     if (amount_of_trades != 0):
         success_percentage = (successful_trades / amount_of_trades) * 100
@@ -3508,6 +3507,31 @@ def check_triggers(metrics_queryset):
 
                 try:
                     Trigger.objects.create(trigger_name=updated_trigger_six, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
+
+
+        # TRIGGER SEVEN --------------------------------------------------
+        if (
+            metrics_queryset[0].daily_relative_volume >= 1.5 and
+            metrics_queryset[0].rolling_relative_volume >= 1.5 and
+            metrics_queryset[0].price_change_5min >= 0.7 and
+            metrics_queryset[0].price_change_24hr > 4 and
+            metrics_queryset[0].price_change_7d > 10 and
+            metrics_queryset[0].price_change_1hr > 0
+        ):
+            print("TRIGGER 7 passed")
+            trigger_passed = True
+            updated_trigger_seven = str(metrics_queryset[0].coin.symbol) + " : Trigger Seven Hit (LONG) Accuracy: ~66%"
+            exists = check_duplicate_triggers(updated_trigger_seven)
+
+            if exists == False:
+
+                true_triggers.append(updated_trigger_seven)
+
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_seven, timestamp=now())
 
                 except Exception as e:
                     print(f"Error creating new Trigger: {e}")
