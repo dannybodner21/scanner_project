@@ -166,15 +166,12 @@ def check_trigger(symbol):
                     metrics[x].price_change_10min > metrics[x-1].price_change_10min and
                     metrics[x-1].price_change_10min > metrics[x-2].price_change_10min and
                     metrics[x-2].price_change_10min > metrics[x-3].price_change_10min and
-                    metrics[x-3].price_change_10min > metrics[x-4].price_change_10min and
-                    metrics[x-4].price_change_10min > metrics[x-5].price_change_10min
+                    metrics[x-3].price_change_10min > metrics[x-4].price_change_10min
                     ) or
                     (
                     metrics[x].price_change_1hr > metrics[x-1].price_change_1hr and
                     metrics[x-1].price_change_1hr > metrics[x-2].price_change_1hr and
-                    metrics[x-2].price_change_1hr > metrics[x-3].price_change_1hr and
-                    metrics[x-3].price_change_1hr > metrics[x-4].price_change_1hr and
-                    metrics[x-4].price_change_1hr > metrics[x-5].price_change_1hr
+                    metrics[x-2].price_change_1hr > metrics[x-3].price_change_1hr
                     )
                     )
                 ):
@@ -523,10 +520,11 @@ def check_trigger(symbol):
                     trigger_short_hit = False
                     trigger_short_hit_counter = 0
 
+                # 65% success rate
                 if (
                     trigger_short_hit == False and
                     metrics[x].daily_relative_volume > 1.2 and
-                    metrics[x].rolling_relative_volume >= 1.85 and
+                    metrics[x].rolling_relative_volume >= 2.0 and
                     metrics[x].price_change_5min < metrics[x-1].price_change_5min and
                     metrics[x-1].price_change_5min < metrics[x-2].price_change_5min and
                     metrics[x].price_change_1hr > 1 and
@@ -624,9 +622,9 @@ def check_trigger(symbol):
                     trigger_five_hit_counter = 0
 
                 if (
-                    # 202 trades at 54% success rate
+                    # 80% success rate
                     trigger_five_hit == False and
-                    metrics[x].price_change_24hr < -5 and
+                    metrics[x].price_change_24hr < -10 and
                     (metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
                     metrics[x].price_change_5min < 0 and
                     metrics[x].price_change_10min < 0 and
@@ -3462,21 +3460,18 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_10min > metrics_queryset[1].price_change_10min and
             metrics_queryset[1].price_change_10min > metrics_queryset[2].price_change_10min and
             metrics_queryset[2].price_change_10min > metrics_queryset[3].price_change_10min and
-            metrics_queryset[3].price_change_10min > metrics_queryset[4].price_change_10min and
-            metrics_queryset[4].price_change_10min > metrics_queryset[5].price_change_10min
+            metrics_queryset[3].price_change_10min > metrics_queryset[4].price_change_10min
             ) or
             (
             metrics_queryset[0].price_change_1hr > metrics_queryset[1].price_change_1hr and
             metrics_queryset[1].price_change_1hr > metrics_queryset[2].price_change_1hr and
-            metrics_queryset[2].price_change_1hr > metrics_queryset[3].price_change_1hr and
-            metrics_queryset[3].price_change_1hr > metrics_queryset[4].price_change_1hr and
-            metrics_queryset[4].price_change_1hr > metrics_queryset[5].price_change_1hr
+            metrics_queryset[2].price_change_1hr > metrics_queryset[3].price_change_1hr
             )
             )
         ):
             print("TRIGGER 1 passed")
             trigger_passed = True
-            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: 60%"
+            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: 63%"
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
@@ -3501,7 +3496,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 2 passed")
             trigger_passed = True
-            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 (LONG) Accuracy: 72%"
+            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 (LONG) Accuracy: 66%"
             exists = check_duplicate_triggers(updated_trigger_two)
 
             if exists == False:
@@ -3552,7 +3547,7 @@ def check_triggers(metrics_queryset):
 
         if (
             metrics_queryset[0].daily_relative_volume > 1.2 and
-            metrics_queryset[0].rolling_relative_volume >= 1.85 and
+            metrics_queryset[0].rolling_relative_volume >= 2.0 and
             metrics_queryset[0].price_change_5min < metrics_queryset[1].price_change_5min and
             metrics_queryset[1].price_change_5min < metrics_queryset[2].price_change_5min and
             metrics_queryset[0].price_change_1hr > 1 and
@@ -3561,7 +3556,7 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_1hr < metrics_queryset[1].price_change_1hr and
             metrics_queryset[1].price_change_1hr < metrics_queryset[2].price_change_1hr
         ):
-            print("TRIGGER 4 passed")
+            print("TRIGGER short passed")
             trigger_passed = True
             updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit (SHORT) Accuracy: 65%"
             exists = check_duplicate_triggers(updated_trigger_four)
@@ -3578,7 +3573,7 @@ def check_triggers(metrics_queryset):
 
 
         if (
-            metrics_queryset[0].price_change_24hr < -5 and
+            metrics_queryset[0].price_change_24hr < -10 and
             (metrics_queryset[0].rolling_relative_volume >= 2.1 or metrics_queryset[0].daily_relative_volume >= 1.3) and
             metrics_queryset[0].price_change_5min < 0 and
             metrics_queryset[0].price_change_10min < 0 and
@@ -3588,7 +3583,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 5 passed")
             trigger_passed = True
-            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit (LONG) Accuracy: 55%"
+            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit (LONG) Accuracy: 80%"
             exists = check_duplicate_triggers(updated_trigger_five)
 
             if exists == False:
