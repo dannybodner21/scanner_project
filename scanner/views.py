@@ -160,10 +160,11 @@ def check_trigger(symbol):
 
                 if (
                     trigger_one_hit == False and
-                    metrics[x].daily_relative_volume >= 1.0 and
+                    metrics[x].daily_relative_volume >= 1.3 and
                     metrics[x].rolling_relative_volume >= 2.5 and
-                    metrics[x].price_change_5min >= 0 and
-                    metrics[x].price_change_24hr > 0 and
+                    #metrics[x].price_change_5min < 0 and
+                    #metrics[x].price_change_24hr > 0 and
+                    metrics[x].price_change_10min > metrics[x-1].price_change_10min and
                     rvol_progression == True and
                     (
                     (
@@ -265,12 +266,10 @@ def check_trigger(symbol):
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].daily_relative_volume >= 2 and
-                    metrics[x].rolling_relative_volume >= 1.2 and
-                    metrics[x].five_min_relative_volume >= 1.3 and
+                    metrics[x].daily_relative_volume >= 1.75 and
+                    metrics[x].rolling_relative_volume >= 1.5 and
                     metrics[x].price_change_5min >= 0.7 and
                     metrics[x].price_change_24hr < -5 and
-                    metrics[x].twenty_min_relative_volume >= 1 and
                     rvol_progression == True
                 ):
                     #print("-----TRIGGER TWO-------------")
@@ -310,31 +309,6 @@ def check_trigger(symbol):
                         else:
                             amount_of_trades -= 1
                             trigger_two_trades -= 1
-
-                        '''
-                        if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
-                                    # successful trade
-                                    successful_trades += 1
-                                    trigger_two_success += 1
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-                                trigger_two_success += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
-                            failed_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == False):
-                            amount_of_trades -= 1
-                            trigger_two_trades -= 1
-                        '''
 
                     except:
                         print("failed in trigger 2")
@@ -446,7 +420,6 @@ def check_trigger(symbol):
                     stop_loss_hit = False
                     take_profit_timestamp = None
                     stop_loss_timestamp = None
-                    success = False
 
                     try:
                         for y in range(x, len(metrics)):
@@ -783,11 +756,9 @@ def check_trigger(symbol):
                 # below is currently at 66% success rate
                 if (
                     trigger_seven_hit == False and
-                    metrics[x].daily_relative_volume >= 1.5 and
+                    metrics[x].daily_relative_volume >= 2.0 and
                     metrics[x].rolling_relative_volume >= 1.5 and
-                    metrics[x].price_change_5min >= 0.7 and
-                    metrics[x].price_change_24hr > 4 and
-                    metrics[x].price_change_7d > 10 and
+                    metrics[x].price_change_5min >= 0.8 and
                     metrics[x].price_change_1hr > 0
                 ):
                     #print("-----TRIGGER SEVEN-------------")
@@ -892,8 +863,8 @@ def check_trigger(symbol):
                     trigger_eight_trades += 1
 
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.015))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.045))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
 
                     # try to go through remaining metrics
                     take_profit_hit = False
@@ -3492,7 +3463,7 @@ def check_triggers(metrics_queryset):
         if (
             metrics_queryset[0].daily_relative_volume >= 1.0 and
             metrics_queryset[0].rolling_relative_volume >= 2.5 and
-            metrics_queryset[0].price_change_5min >= 0 and
+            #metrics_queryset[0].price_change_5min >= 0 and
             metrics_queryset[0].price_change_24hr > 0 and
             rvol_progression == True and
             (
@@ -3510,33 +3481,31 @@ def check_triggers(metrics_queryset):
             )
         ):
             print("TRIGGER 1 passed")
-            trigger_passed = True
-            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: 63%"
-            exists = check_duplicate_triggers(updated_trigger)
+            #trigger_passed = True
+            #updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: 63%"
+            #exists = check_duplicate_triggers(updated_trigger)
 
-            if exists == False:
+            #if exists == False:
 
-                true_triggers.append(updated_trigger)
+                #true_triggers.append(updated_trigger)
 
-                try:
-                    Trigger.objects.create(trigger_name=updated_trigger, timestamp=now())
+                #try:
+                    #Trigger.objects.create(trigger_name=updated_trigger, timestamp=now())
 
-                except Exception as e:
-                    print(f"Error creating new Trigger: {e}")
+                #except Exception as e:
+                    #print(f"Error creating new Trigger: {e}")
 
 
         if (
-            metrics_queryset[0].daily_relative_volume >= 2 and
-            metrics_queryset[0].rolling_relative_volume >= 1.2 and
-            metrics_queryset[0].five_min_relative_volume >= 1.3 and
+            metrics_queryset[0].daily_relative_volume >= 1.75 and
+            metrics_queryset[0].rolling_relative_volume >= 1.5 and
             metrics_queryset[0].price_change_5min >= 0.7 and
             metrics_queryset[0].price_change_24hr < -5 and
-            metrics_queryset[0].twenty_min_relative_volume >= 1 and
             rvol_progression == True
         ):
             print("TRIGGER 2 passed")
             trigger_passed = True
-            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 (LONG) Accuracy: 66%"
+            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 (LONG) Accuracy: ~0%"
             exists = check_duplicate_triggers(updated_trigger_two)
 
             if exists == False:
@@ -3551,15 +3520,6 @@ def check_triggers(metrics_queryset):
 
 
         if (
-            #metrics_queryset[0].price_change_24hr < -5 and
-            #metrics_queryset[0].daily_relative_volume > 1.15 and
-            #metrics_queryset[0].rolling_relative_volume >= 1.9 and
-            #metrics_queryset[0].price_change_5min < 0 and
-            #metrics_queryset[0].price_change_10min < 0 and
-            #metrics_queryset[0].price_change_1hr > 0 and
-            #metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
-            #metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
-
             metrics_queryset[0].price_change_24hr < -5 and
             metrics_queryset[0].rolling_relative_volume >= 2.1 and
             metrics_queryset[1].price_change_5min < metrics_queryset[0].price_change_5min and
@@ -3571,7 +3531,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 3 passed")
             trigger_passed = True
-            updated_trigger_three = str(metrics_queryset[0].coin.symbol) + " : Trigger 3 Hit (LONG) Accuracy: 63%"
+            updated_trigger_three = str(metrics_queryset[0].coin.symbol) + " : Trigger 3 Hit (LONG) Accuracy: ~64%"
             exists = check_duplicate_triggers(updated_trigger_three)
 
             if exists == False:
@@ -3598,7 +3558,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER short passed")
             trigger_passed = True
-            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit (SHORT) Accuracy: 65%"
+            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit (SHORT) Accuracy: ~60%"
             exists = check_duplicate_triggers(updated_trigger_four)
 
             if exists == False:
@@ -3623,7 +3583,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 5 passed")
             trigger_passed = True
-            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit (LONG) Accuracy: 80%"
+            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit (LONG) Accuracy: ~82%"
             exists = check_duplicate_triggers(updated_trigger_five)
 
             if exists == False:
@@ -3648,7 +3608,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 6 passed")
             trigger_passed = True
-            updated_trigger_six = str(metrics_queryset[0].coin.symbol) + " : Trigger Six Hit (LONG) Accuracy: ~60%"
+            updated_trigger_six = str(metrics_queryset[0].coin.symbol) + " : Trigger Six Hit (LONG) Accuracy: ~78%"
             exists = check_duplicate_triggers(updated_trigger_six)
 
             if exists == False:
@@ -3664,16 +3624,14 @@ def check_triggers(metrics_queryset):
 
         # TRIGGER SEVEN --------------------------------------------------
         if (
-            metrics_queryset[0].daily_relative_volume >= 1.5 and
+            metrics_queryset[0].daily_relative_volume >= 2.0 and
             metrics_queryset[0].rolling_relative_volume >= 1.5 and
-            metrics_queryset[0].price_change_5min >= 0.7 and
-            metrics_queryset[0].price_change_24hr > 4 and
-            metrics_queryset[0].price_change_7d > 10 and
+            metrics_queryset[0].price_change_5min >= 0.8 and
             metrics_queryset[0].price_change_1hr > 0
         ):
             print("TRIGGER 7 passed")
             trigger_passed = True
-            updated_trigger_seven = str(metrics_queryset[0].coin.symbol) + " : Trigger Seven Hit (LONG) Accuracy: ~66%"
+            updated_trigger_seven = str(metrics_queryset[0].coin.symbol) + " : Trigger Seven Hit (LONG) Accuracy: ~80%"
             exists = check_duplicate_triggers(updated_trigger_seven)
 
             if exists == False:
@@ -3687,13 +3645,39 @@ def check_triggers(metrics_queryset):
                     print(f"Error creating new Trigger: {e}")
 
 
+        # TRIGGER EIGHT --------------------------------------------------
+        if (
+            metrics_queryset[0].price_change_24hr < -10 and
+            (metrics_queryset[0].rolling_relative_volume >= 2.1 or metrics_queryset[0].daily_relative_volume >= 1.3) and
+            metrics_queryset[0].price_change_5min < 0 and
+            metrics_queryset[0].price_change_10min < 0 and
+            metrics_queryset[0].price_change_1hr > 0 and
+            metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
+            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
+        ):
+            print("TRIGGER 8 passed")
+            trigger_passed = True
+            updated_trigger_eight = str(metrics_queryset[0].coin.symbol) + " : Trigger Eight Hit (LONG) Accuracy: ~82%"
+            exists = check_duplicate_triggers(updated_trigger_eight)
+
+            if exists == False:
+
+                true_triggers.append(updated_trigger_eight)
+
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_eight, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
+
+
     if trigger_passed == True:
         print("at least one trigger passed ===================================")
     else:
         print("no triggers passed")
 
-    #if len(true_triggers) > 0:
-        #send_text(true_triggers)
+    if len(true_triggers) > 0:
+        send_text(true_triggers)
 
     return
 
