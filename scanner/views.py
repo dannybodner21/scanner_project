@@ -3530,17 +3530,24 @@ def index(request):
     daily_relative_volumes = []
     sorted_volumes = []
 
-    # snag coins with rolling rvol greater than 1
-    coins = Coin.objects.filter(rolling_relative_volume__gt=1).prefetch_related(
+    # snag coins with top 25 rolling rvol
+    latest_metrics = Metrics.objects.filter(coin=OuterRef('pk')).order_by('-timestamp')
+
+    # Query top coins based on their most recent rolling_relative_volume
+    coins = Coin.objects.annotate(
+        latest_rvol=Subquery(latest_metrics.values('rolling_relative_volume')[:1])
+    ).filter(
+        latest_rvol__gt=1  # Include only coins with rolling_relative_volume > 1
+    ).order_by('-latest_rvol')[:25].prefetch_related(
         Prefetch(
-            'short_interval_data',  # The related_name defined in ShortIntervalData
-            queryset=ShortIntervalData.objects.order_by('-timestamp'),
-            to_attr='prefetched_short_interval_data'  # Use a unique name
+            'metrics',  # Prefetch metrics
+            queryset=Metrics.objects.order_by('-timestamp')[:80],  # Get the 6 most recent metrics
+            to_attr='prefetched_metrics'
         ),
         Prefetch(
-            'metrics',  # The related_name defined in Metrics
-            queryset=Metrics.objects.order_by('-timestamp'),
-            to_attr='prefetched_metrics'  # Use a unique name
+            'short_interval_data',  # Prefetch short interval data
+            queryset=ShortIntervalData.objects.order_by('-timestamp')[:80],  # Get the 6 most recent short interval data
+            to_attr='prefetched_short_interval_data'
         )
     )
 
