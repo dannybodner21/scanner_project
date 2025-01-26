@@ -3530,7 +3530,8 @@ def index(request):
     daily_relative_volumes = []
     sorted_volumes = []
 
-    coins = Coin.objects.prefetch_related(
+    # snag coins with rolling rvol greater than 1
+    coins = Coin.objects.filter(rolling_relative_volume__gt=1).prefetch_related(
         Prefetch(
             'short_interval_data',  # The related_name defined in ShortIntervalData
             queryset=ShortIntervalData.objects.order_by('-timestamp'),
@@ -3613,7 +3614,7 @@ def index(request):
                 "exchange": coin.exchange,
             })
 
-    sorted_coins = sorted(top_cryptos, key=lambda x: x["daily_relative_volume"] or 0, reverse=True)
+    sorted_coins = sorted(top_cryptos, key=lambda x: x["rolling_relative_volume"] or 0, reverse=True)
     sorted_volumes = sorted(daily_relative_volumes, key=lambda x: x["price_change_24h_percentage"] or 0, reverse=True)
 
     triggers = list(Trigger.objects.values("trigger_name", "timestamp"))
