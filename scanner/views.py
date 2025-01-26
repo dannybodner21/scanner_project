@@ -113,23 +113,27 @@ def check_trigger(symbol):
 
 
                 if (
-                    metrics[x].daily_relative_volume >= 1.6 and
-                    metrics[x].rolling_relative_volume >= 1.6 and
-                    metrics[x].five_min_relative_volume >= 1.3 and
+                    metrics[x].daily_relative_volume >= 1.0 and
+                    metrics[x].rolling_relative_volume >= 2.5 and
                     metrics[x].price_change_5min >= 0 and
-                    metrics[x].price_change_24hr < 0 and
-                    metrics[x].twenty_min_relative_volume >= 1 and
-                    five_min_price_increase == True and
-                    rvol_progression == True
-
-                    #metrics[x].volume_24h_growth >= 10 and
-                    #metrics[x].price_change_1hr > 0 and
-                    #metrics[x].price_change_7d >= 15 and
-                    #metric.market_cap_growth_10min >= 0.5 and
-                    #3 <= metrics[x].price_change_24hr <= 10 and
-                    #0.8 <= metrics[x].daily_relative_volume <= 1.5 and
-                    #abs(metrics[x].five_min_relative_volume - metrics[x].twenty_min_relative_volume) <= 0.1
-                    #abs(metric.last_price - metric.recent_local_low) <= 0.01 * metric.recent_local_low
+                    metrics[x].price_change_24hr > 0 and
+                    rvol_progression == True and
+                    (
+                    (
+                    metrics[x].price_change_10min > metrics[x-1].price_change_10min and
+                    metrics[x-1].price_change_10min > metrics[x-2].price_change_10min and
+                    metrics[x-2].price_change_10min > metrics[x-3].price_change_10min and
+                    metrics[x-3].price_change_10min > metrics[x-4].price_change_10min and
+                    metrics[x-4].price_change_10min > metrics[x-5].price_change_10min
+                    ) or
+                    (
+                    metrics[x].price_change_1hr > metrics[x-1].price_change_1hr and
+                    metrics[x-1].price_change_1hr > metrics[x-2].price_change_1hr and
+                    metrics[x-2].price_change_1hr > metrics[x-3].price_change_1hr and
+                    metrics[x-3].price_change_1hr > metrics[x-4].price_change_1hr and
+                    metrics[x-4].price_change_1hr > metrics[x-5].price_change_1hr
+                    )
+                    )
                 ):
 
                     #print("-------TRIGGER ONE-----------")
@@ -735,7 +739,7 @@ def check_trigger(symbol):
 
 
                 # TRIGGER SEVEN
-                # below is currently at x% success rate
+                # below is currently at 66% success rate
                 if (
                     metrics[x].daily_relative_volume >= 1.5 and
                     metrics[x].rolling_relative_volume >= 1.5 and
@@ -820,9 +824,9 @@ def check_trigger(symbol):
                         count_25 += 1
                     elif day == 26:
                         count_26 += 1
-                        print("-------TRIGGER SEVEN-----------")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                        #print("-------TRIGGER SEVEN-----------")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
 
 
 
@@ -877,7 +881,7 @@ def check_trigger(symbol):
     trigger_seven_success_percentage = 0
     if (trigger_seven_trades != 0):
         trigger_seven_success_percentage = (trigger_seven_success / trigger_seven_trades) * 100
-    print(f"Trigger Sevem Success: {trigger_seven_success_percentage}%")
+    print(f"Trigger Seven Success: {trigger_seven_success_percentage}%")
 
     print(f"Day 15: {count_15}")
     print(f"Day 16: {count_16}")
@@ -3351,17 +3355,31 @@ def check_triggers(metrics_queryset):
             ten_min_price_increase = True
 
         if (
-            metrics_queryset[0].daily_relative_volume >= 1.1 and
-            metrics_queryset[0].rolling_relative_volume >= 1.4 and
-            metrics_queryset[0].five_min_relative_volume >= 1.3 and
+            metrics_queryset[0].daily_relative_volume >= 1.0 and
+            metrics_queryset[0].rolling_relative_volume >= 2.5 and
             metrics_queryset[0].price_change_5min >= 0 and
-            metrics_queryset[1].price_change_5min < 0 and
-            metrics_queryset[0].price_change_24hr < 0 and
-            five_min_price_increase == True
+            metrics_queryset[0].price_change_24hr > 0 and
+            rvol_progression == True and
+            (
+            (
+            metrics_queryset[0].price_change_10min > metrics_queryset[1].price_change_10min and
+            metrics_queryset[1].price_change_10min > metrics_queryset[2].price_change_10min and
+            metrics_queryset[2].price_change_10min > metrics_queryset[3].price_change_10min and
+            metrics_queryset[3].price_change_10min > metrics_queryset[4].price_change_10min and
+            metrics_queryset[4].price_change_10min > metrics_queryset[5].price_change_10min
+            ) or
+            (
+            metrics_queryset[0].price_change_1hr > metrics_queryset[1].price_change_1hr and
+            metrics_queryset[1].price_change_1hr > metrics_queryset[2].price_change_1hr and
+            metrics_queryset[2].price_change_1hr > metrics_queryset[3].price_change_1hr and
+            metrics_queryset[3].price_change_1hr > metrics_queryset[4].price_change_1hr and
+            metrics_queryset[4].price_change_1hr > metrics_queryset[5].price_change_1hr
+            )
+            )
         ):
             print("TRIGGER 1 passed")
             trigger_passed = True
-            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: 45%"
+            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: 60%"
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
