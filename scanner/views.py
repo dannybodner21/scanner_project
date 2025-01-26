@@ -1601,10 +1601,202 @@ def calculate_five_min_relative_volume(coin, timestamp):
                         count_24 += 1
                     elif day == 25:
                         count_25 += 1
+<<<<<<< HEAD
+=======
+                    elif day == 26:
+                        count_26 += 1
+
+
+
+                # TRIGGER SIX
+                # below is currently at 70% success rate
+                if (
+                    metrics[x].daily_relative_volume >= 1.5 and
+                    metrics[x].rolling_relative_volume >= 1.5 and
+                    metrics[x].price_change_5min >= 0.7 and
+                    metrics[x].price_change_24hr < -5 and
+                    metrics[x].price_change_1hr > 0
+                ):
+                    #print("-----TRIGGER SIX-------------")
+                    #print(coin.symbol)
+                    #print(metrics[x].timestamp)
+
+                    amount_of_trades += 1
+                    trigger_six_trades += 1
+
+                    trigger_price = metrics[x].last_price
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                    take_profit_hit = False
+                    stop_loss_hit = False
+                    take_profit_timestamp = None
+                    stop_loss_timestamp = None
+                    try:
+                        for y in range(x, len(metrics)):
+                            if (metrics[y].last_price >= take_profit_price):
+                                take_profit_hit = True
+                                take_profit_timestamp = metrics[y].timestamp
+
+                            if (metrics[y].last_price <= stop_loss_price):
+                                stop_loss_hit = True
+                                stop_loss_timestamp = metrics[y].timestamp
+
+                        if (take_profit_hit == True):
+                            if (stop_loss_hit == True):
+                                # compare timestamps
+                                if (take_profit_timestamp < stop_loss_timestamp):
+                                    # successful trade
+                                    successful_trades += 1
+                                    trigger_six_success += 1
+                                else:
+                                    # failed trade
+                                    failed_trades += 1
+                            else:
+                                # successful trade
+                                successful_trades += 1
+                                trigger_six_success += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == True):
+                            # failed trade
+                            failed_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == False):
+                            amount_of_trades -= 1
+                            trigger_six_trades -= 1
+
+                    except:
+                        print("failed in trigger 6")
+
+
+                    day = metrics[x].timestamp.day
+                    if day == 15:
+                        count_15 += 1
+                    elif day == 16:
+                        count_16 += 1
+                    elif day == 17:
+                        count_17 += 1
+                    elif day == 18:
+                        count_18 += 1
+                    elif day == 19:
+                        count_19 += 1
+                    elif day == 20:
+                        count_20 += 1
+                    elif day == 21:
+                        count_21 += 1
+                    elif day == 22:
+                        count_22 += 1
+                    elif day == 23:
+                        count_23 += 1
+                    elif day == 24:
+                        count_24 += 1
+                        #print("-------TRIGGER SIX-----------")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
+
+                    elif day == 25:
+                        count_25 += 1
+                    elif day == 26:
+                        count_26 += 1
+
+
+                # TRIGGER SEVEN
+                # below is currently at x% success rate
+                if (
+                    metrics[x].daily_relative_volume >= 1.5 and
+                    metrics[x].rolling_relative_volume >= 1.5 and
+                    metrics[x].price_change_5min >= 0.7 and
+                    metrics[x].price_change_24hr > 4 and
+                    metrics[x].price_change_7d > 10 and
+                    metrics[x].price_change_1hr > 0
+                ):
+                    #print("-----TRIGGER SEVEN-------------")
+                    #print(coin.symbol)
+                    #print(metrics[x].timestamp)
+
+                    amount_of_trades += 1
+                    trigger_seven_trades += 1
+
+                    trigger_price = metrics[x].last_price
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                    take_profit_hit = False
+                    stop_loss_hit = False
+                    take_profit_timestamp = None
+                    stop_loss_timestamp = None
+                    try:
+                        for y in range(x, len(metrics)):
+                            if (metrics[y].last_price >= take_profit_price):
+                                take_profit_hit = True
+                                take_profit_timestamp = metrics[y].timestamp
+
+                            if (metrics[y].last_price <= stop_loss_price):
+                                stop_loss_hit = True
+                                stop_loss_timestamp = metrics[y].timestamp
+
+                        if (take_profit_hit == True):
+                            if (stop_loss_hit == True):
+                                # compare timestamps
+                                if (take_profit_timestamp < stop_loss_timestamp):
+                                    # successful trade
+                                    successful_trades += 1
+                                    trigger_seven_success += 1
+                                else:
+                                    # failed trade
+                                    failed_trades += 1
+                            else:
+                                # successful trade
+                                successful_trades += 1
+                                trigger_seven_success += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == True):
+                            # failed trade
+                            failed_trades += 1
+
+                        if (take_profit_hit == False and stop_loss_hit == False):
+                            amount_of_trades -= 1
+                            trigger_seven_trades -= 1
+
+                    except:
+                        print("failed in trigger 7")
+
+
+                    day = metrics[x].timestamp.day
+                    if day == 15:
+                        count_15 += 1
+                    elif day == 16:
+                        count_16 += 1
+                    elif day == 17:
+                        count_17 += 1
+                    elif day == 18:
+                        count_18 += 1
+                    elif day == 19:
+                        count_19 += 1
+                    elif day == 20:
+                        count_20 += 1
+                    elif day == 21:
+                        count_21 += 1
+                    elif day == 22:
+                        count_22 += 1
+                    elif day == 23:
+                        count_23 += 1
+                    elif day == 24:
+                        count_24 += 1
+                    elif day == 25:
+                        count_25 += 1
+                    elif day == 26:
+                        count_26 += 1
+                        print("-------TRIGGER SEVEN-----------")
+                        print(coin.symbol)
+                        print(metrics[x].timestamp)
+
+
+
+>>>>>>> d26c226 (who cares)
 
 
 >>>>>>> 044fd48 (who cares)
     print("Results: ")
+<<<<<<< HEAD
     print("Amount of trades: ")
     print(amount_of_trades)
     print("Successful trades: ")
@@ -1620,6 +1812,18 @@ def calculate_five_min_relative_volume(coin, timestamp):
     print("Trigger Short: ")
     print(trigger_short_trades)
     print("Successful trade percentage")
+=======
+    print(f"Amount of trades: {amount_of_trades}")
+    print(f"Successful trades: {successful_trades}")
+    print(f"Failed trades: {failed_trades}")
+    print(f"Trigger One: {trigger_one_trades}")
+    print(f"Trigger Two: {trigger_two_trades}")
+    print(f"Trigger Three: {trigger_three_trades}")
+    print(f"Trigger Short: {trigger_short_trades}")
+    print(f"Trigger Five: {trigger_five_trades}")
+    print(f"Trigger Six: {trigger_six_trades}")
+    print(f"Trigger Seven: {trigger_seven_trades}")
+>>>>>>> d26c226 (who cares)
     success_percentage = 0
     if (amount_of_trades != 0):
 <<<<<<< HEAD
@@ -8863,7 +9067,35 @@ def check_triggers(metrics_queryset):
                     #print(f"Error creating new Trigger: {e}")
 
 
+<<<<<<< HEAD
 >>>>>>> 3d385b0 (who cares)
+=======
+        # TRIGGER SEVEN --------------------------------------------------
+        if (
+            metrics_queryset[0].daily_relative_volume >= 1.5 and
+            metrics_queryset[0].rolling_relative_volume >= 1.5 and
+            metrics_queryset[0].price_change_5min >= 0.7 and
+            metrics_queryset[0].price_change_24hr > 4 and
+            metrics_queryset[0].price_change_7d > 10 and
+            metrics_queryset[0].price_change_1hr > 0
+        ):
+            print("TRIGGER 7 passed")
+            trigger_passed = True
+            updated_trigger_seven = str(metrics_queryset[0].coin.symbol) + " : Trigger Seven Hit (LONG) Accuracy: ~66%"
+            exists = check_duplicate_triggers(updated_trigger_seven)
+
+            if exists == False:
+
+                true_triggers.append(updated_trigger_seven)
+
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger_seven, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
+
+
+>>>>>>> d26c226 (who cares)
     if trigger_passed == True:
         print("at least one trigger passed ===================================")
     else:
