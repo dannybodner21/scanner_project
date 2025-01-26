@@ -66,6 +66,9 @@ def check_trigger(symbol):
         average_volume = average_volume / len(metrics)
         average_volume = average_volume * decimal.Decimal(1.15)
 
+        trigger_one_hit_counter = 0
+        trigger_one_hit = False
+
         for x in range(6, len(metrics)):
 
             if (metrics[x].rolling_relative_volume != None and
@@ -140,89 +143,94 @@ def check_trigger(symbol):
                     #print(coin.symbol)
                     #print(metrics[x].timestamp)
 
-                    amount_of_trades += 1
-                    trigger_one_trades += 1
+                    trigger_one_hit = True
 
-                    # check if the trigger was right
-                    # right means the price went up over 5% in the next 5 hours
-                    # and it didnt go below 2% from the trigger price
-                    trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                    if (trigger_one_hit):
 
-                    # try to go through remaining metrics
-                    take_profit_hit = False
-                    stop_loss_hit = False
-                    take_profit_timestamp = None
-                    stop_loss_timestamp = None
-                    try:
-                        for y in range(x, len(metrics)):
-                            if (metrics[y].last_price >= take_profit_price):
-                                take_profit_hit = True
-                                take_profit_timestamp = metrics[y].timestamp
+                        amount_of_trades += 1
+                        trigger_one_trades += 1
 
-                            if (metrics[y].last_price <= stop_loss_price):
-                                stop_loss_hit = True
-                                stop_loss_timestamp = metrics[y].timestamp
+                        # check if the trigger was right
+                        # right means the price went up over 5% in the next 5 hours
+                        # and it didnt go below 2% from the trigger price
+                        trigger_price = metrics[x].last_price
+                        stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
 
-                        if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
+                        # try to go through remaining metrics
+                        take_profit_hit = False
+                        stop_loss_hit = False
+                        take_profit_timestamp = None
+                        stop_loss_timestamp = None
+                        try:
+                            for y in range(x, len(metrics)):
+                                if (metrics[y].last_price >= take_profit_price):
+                                    take_profit_hit = True
+                                    take_profit_timestamp = metrics[y].timestamp
+
+                                if (metrics[y].last_price <= stop_loss_price):
+                                    stop_loss_hit = True
+                                    stop_loss_timestamp = metrics[y].timestamp
+
+                            if (take_profit_hit == True):
+                                if (stop_loss_hit == True):
+                                    # compare timestamps
+                                    if (take_profit_timestamp < stop_loss_timestamp):
+                                        # successful trade
+                                        successful_trades += 1
+                                        trigger_one_success += 1
+                                    else:
+                                        # failed trade
+                                        failed_trades += 1
+                                else:
                                     # successful trade
                                     successful_trades += 1
                                     trigger_one_success += 1
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-                                trigger_one_success += 1
 
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
-                            failed_trades += 1
+                            if (take_profit_hit == False and stop_loss_hit == True):
+                                # failed trade
+                                failed_trades += 1
 
-                        if (take_profit_hit == False and stop_loss_hit == False):
-                            amount_of_trades -= 1
-                            trigger_one_trades -= 1
+                            if (take_profit_hit == False and stop_loss_hit == False):
+                                amount_of_trades -= 1
+                                trigger_one_trades -= 1
 
-                    except:
-                        print("failed in trigger 1")
+                        except:
+                            print("failed in trigger 1")
 
-                    day = metrics[x].timestamp.day
-                    if day == 15:
-                        count_15 += 1
-                    elif day == 16:
-                        count_16 += 1
-                    elif day == 17:
-                        count_17 += 1
-                    elif day == 18:
-                        count_18 += 1
-                    elif day == 19:
-                        count_19 += 1
-                    elif day == 20:
-                        count_20 += 1
-                    elif day == 21:
-                        count_21 += 1
-                    elif day == 22:
-                        count_22 += 1
-                    elif day == 23:
-                        count_23 += 1
-                    elif day == 24:
-                        count_24 += 1
-                        #print("-------TRIGGER ONE-----------")
-                        #print(coin.symbol)
-                        #print(metrics[x].timestamp)
+                        day = metrics[x].timestamp.day
+                        if day == 15:
+                            count_15 += 1
+                        elif day == 16:
+                            count_16 += 1
+                        elif day == 17:
+                            count_17 += 1
+                        elif day == 18:
+                            count_18 += 1
+                        elif day == 19:
+                            count_19 += 1
+                        elif day == 20:
+                            count_20 += 1
+                        elif day == 21:
+                            count_21 += 1
+                        elif day == 22:
+                            count_22 += 1
+                        elif day == 23:
+                            count_23 += 1
+                        elif day == 24:
+                            count_24 += 1
+                        elif day == 25:
+                            count_25 += 1
+                        elif day == 26:
+                            count_26 += 1
 
-                    elif day == 25:
-                        count_25 += 1
-                    elif day == 26:
-                        count_26 += 1
+                        trigger_one_hit_counter += 1
+                        if (trigger_one_hit_counter == 13):
+                            trigger_one_hit = False
+                            trigger_one_hit_counter = 0
 
 
-
+                # TRIGGER 2 ---------------------------------------------------
                 if (
                     metrics[x].daily_relative_volume >= 2 and
                     metrics[x].rolling_relative_volume >= 1.2 and
