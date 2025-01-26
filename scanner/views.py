@@ -206,31 +206,19 @@ def check_trigger(symbol):
                             if (metrics[y].last_price >= take_profit_price):
                                 take_profit_hit = True
                                 take_profit_timestamp = metrics[y].timestamp
+                                break
 
                             if (metrics[y].last_price <= stop_loss_price):
                                 stop_loss_hit = True
                                 stop_loss_timestamp = metrics[y].timestamp
+                                break
 
                         if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
-                                    # successful trade
-                                    successful_trades += 1
-                                    trigger_one_success += 1
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-                                trigger_one_success += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
+                            successful_trades += 1
+                            trigger_one_success += 1
+                        elif (stop_loss_hit == True):
                             failed_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == False):
+                        else:
                             amount_of_trades -= 1
                             trigger_one_trades -= 1
 
@@ -301,16 +289,29 @@ def check_trigger(symbol):
                     stop_loss_hit = False
                     take_profit_timestamp = None
                     stop_loss_timestamp = None
+
                     try:
                         for y in range(x, len(metrics)):
                             if (metrics[y].last_price >= take_profit_price):
                                 take_profit_hit = True
                                 take_profit_timestamp = metrics[y].timestamp
+                                break
 
                             if (metrics[y].last_price <= stop_loss_price):
                                 stop_loss_hit = True
                                 stop_loss_timestamp = metrics[y].timestamp
+                                break
 
+                        if (take_profit_hit == True):
+                            successful_trades += 1
+                            trigger_two_success += 1
+                        elif (stop_loss_hit == True):
+                            failed_trades += 1
+                        else:
+                            amount_of_trades -= 1
+                            trigger_two_trades -= 1
+
+                        '''
                         if (take_profit_hit == True):
                             if (stop_loss_hit == True):
                                 # compare timestamps
@@ -333,6 +334,7 @@ def check_trigger(symbol):
                         if (take_profit_hit == False and stop_loss_hit == False):
                             amount_of_trades -= 1
                             trigger_two_trades -= 1
+                        '''
 
                     except:
                         print("failed in trigger 2")
@@ -445,6 +447,7 @@ def check_trigger(symbol):
                     take_profit_timestamp = None
                     stop_loss_timestamp = None
                     success = False
+
                     try:
                         for y in range(x, len(metrics)):
                             if (metrics[y].last_price >= take_profit_price):
@@ -452,34 +455,17 @@ def check_trigger(symbol):
                                 take_profit_timestamp = metrics[y].timestamp
                                 break
 
-                        for y in range(x, len(metrics)):
                             if (metrics[y].last_price <= stop_loss_price):
                                 stop_loss_hit = True
                                 stop_loss_timestamp = metrics[y].timestamp
                                 break
 
                         if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
-                                    # successful trade
-                                    successful_trades += 1
-                                    trigger_three_success += 1
-                                    success = True
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-                                trigger_three_success += 1
-                                success = True
-
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
+                            successful_trades += 1
+                            trigger_three_success += 1
+                        elif (stop_loss_hit == True):
                             failed_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == False):
+                        else:
                             amount_of_trades -= 1
                             trigger_three_trades -= 1
 
@@ -552,36 +538,25 @@ def check_trigger(symbol):
                     stop_loss_hit = False
                     take_profit_timestamp = None
                     stop_loss_timestamp = None
+
                     try:
                         for y in range(x, len(metrics)):
                             if (metrics[y].last_price <= take_profit_price):
                                 take_profit_hit = True
                                 take_profit_timestamp = metrics[y].timestamp
+                                break
 
                             if (metrics[y].last_price >= stop_loss_price):
                                 stop_loss_hit = True
                                 stop_loss_timestamp = metrics[y].timestamp
+                                break
 
                         if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
-                                    # successful trade
-                                    successful_trades += 1
-                                    trigger_short_success += 1
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-                                trigger_short_success += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
+                            successful_trades += 1
+                            trigger_short_success += 1
+                        elif (stop_loss_hit == True):
                             failed_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == False):
+                        else:
                             amount_of_trades -= 1
                             trigger_short_trades -= 1
 
@@ -654,6 +629,7 @@ def check_trigger(symbol):
                     take_profit_timestamp = None
                     stop_loss_timestamp = None
                     success = False
+
                     try:
                         for y in range(x, len(metrics)):
                             if (metrics[y].last_price >= take_profit_price):
@@ -661,34 +637,17 @@ def check_trigger(symbol):
                                 take_profit_timestamp = metrics[y].timestamp
                                 break
 
-                        for y in range(x, len(metrics)):
                             if (metrics[y].last_price <= stop_loss_price):
                                 stop_loss_hit = True
                                 stop_loss_timestamp = metrics[y].timestamp
                                 break
 
                         if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
-                                    # successful trade
-                                    successful_trades += 1
-                                    trigger_five_success += 1
-                                    success = True
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-                                trigger_five_success += 1
-                                success = True
-
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
+                            successful_trades += 1
+                            trigger_five_success += 1
+                        elif (stop_loss_hit == True):
                             failed_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == False):
+                        else:
                             amount_of_trades -= 1
                             trigger_five_trades -= 1
 
@@ -758,36 +717,25 @@ def check_trigger(symbol):
                     stop_loss_hit = False
                     take_profit_timestamp = None
                     stop_loss_timestamp = None
+
                     try:
                         for y in range(x, len(metrics)):
                             if (metrics[y].last_price >= take_profit_price):
                                 take_profit_hit = True
                                 take_profit_timestamp = metrics[y].timestamp
+                                break
 
                             if (metrics[y].last_price <= stop_loss_price):
                                 stop_loss_hit = True
                                 stop_loss_timestamp = metrics[y].timestamp
+                                break
 
                         if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
-                                    # successful trade
-                                    successful_trades += 1
-                                    trigger_six_success += 1
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-                                trigger_six_success += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
+                            successful_trades += 1
+                            trigger_six_success += 1
+                        elif (stop_loss_hit == True):
                             failed_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == False):
+                        else:
                             amount_of_trades -= 1
                             trigger_six_trades -= 1
 
@@ -863,31 +811,19 @@ def check_trigger(symbol):
                             if (metrics[y].last_price >= take_profit_price):
                                 take_profit_hit = True
                                 take_profit_timestamp = metrics[y].timestamp
+                                break
 
                             if (metrics[y].last_price <= stop_loss_price):
                                 stop_loss_hit = True
                                 stop_loss_timestamp = metrics[y].timestamp
+                                break
 
                         if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
-                                    # successful trade
-                                    successful_trades += 1
-                                    trigger_seven_success += 1
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-                                trigger_seven_success += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
+                            successful_trades += 1
+                            trigger_seven_success += 1
+                        elif (stop_loss_hit == True):
                             failed_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == False):
+                        else:
                             amount_of_trades -= 1
                             trigger_seven_trades -= 1
 
@@ -964,36 +900,25 @@ def check_trigger(symbol):
                     stop_loss_hit = False
                     take_profit_timestamp = None
                     stop_loss_timestamp = None
+
                     try:
                         for y in range(x, len(metrics)):
                             if (metrics[y].last_price >= take_profit_price):
                                 take_profit_hit = True
                                 take_profit_timestamp = metrics[y].timestamp
+                                break
 
                             if (metrics[y].last_price <= stop_loss_price):
                                 stop_loss_hit = True
                                 stop_loss_timestamp = metrics[y].timestamp
+                                break
 
                         if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
-                                    # successful trade
-                                    successful_trades += 1
-                                    trigger_eight_success += 1
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-                                trigger_eight_success += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
+                            successful_trades += 1
+                            trigger_eight_success += 1
+                        elif (stop_loss_hit == True):
                             failed_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == False):
+                        else:
                             amount_of_trades -= 1
                             trigger_eight_trades -= 1
 
