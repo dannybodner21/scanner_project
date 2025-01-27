@@ -1507,7 +1507,6 @@ def delete_old_data_custom():
     print("Data older than January 20, 2025 has been deleted from Metrics, and ShortIntervalData.")
 
 
-
 # once a day delete unneeded data from database
 def delete_old_data():
 
@@ -2908,12 +2907,9 @@ def gather_daily_historical_data():
         "X-CMC_PRO_API_KEY": API_KEY,
     }
 
-    #coins = Coin.objects.all()
+    coins = Coin.objects.all()
 
-    specific_coins = ['MAV','MAGIC','MAJOR','ACT','SNT','VRA','ALEO','LAI','CETUS','RAYDIUM']
     coins = list(Coin.objects.filter(symbol__in=specific_coins))
-
-    print(coins)
 
     coins_in_group_of_fifteen = []
     coin_group = []
