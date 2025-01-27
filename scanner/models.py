@@ -29,6 +29,8 @@ class HistoricalData(models.Model):
     date = models.DateField()  # Store daily data
     price = models.DecimalField(max_digits=20, decimal_places=8)
     volume_24h = models.DecimalField(max_digits=20, decimal_places=2)
+    daily_high = models.DecimalField(max_digits=20, decimal_places=8)
+    daily_low = models.DecimalField(max_digits=20, decimal_places=8)
 
     def __str__(self):
         return f"Historical data for {self.coin.name} at {self.date}"

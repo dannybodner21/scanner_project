@@ -1015,158 +1015,49 @@ def check_trigger(symbol):
 
 
 
-def check_trigger_two():
+# used to get daily high and low from a 24 hour period
+def update_historical_data():
 
-    #coins = Coin.objects.all()
-    coin = Coin.objects.get(symbol="XRP")
+    # Define the target date
+    target_date = datetime(2025, 1, 26)
+    next_date = target_date + timedelta(days=1)
 
-    metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+    # Get all coins
+    coins = Coin.objects.all()
 
-    variable = 0.5
-    best_variable = variable
-    best_success_rate = 0
+    for coin in coins:
+        # Ensure a HistoricalData entry exists for the target date
+        historical_data, created = HistoricalData.objects.get_or_create(
+            coin=coin,
+            date=target_date,
+            defaults={
+                'daily_high': 0,
+                'daily_low': 0,
+                'price': 0.0,
+                'volume_24h': 0.0,
+            }
+        )
 
-    for i in range(1, 200):
+        # Query Metrics for the target date
+        metrics = Metrics.objects.filter(
+            coin=coin,
+            timestamp__gte=target_date,
+            timestamp__lt=next_date
+        )
 
-        amount_of_trades = 0
-        successful_trades = 0
-        failed_trades = 0
-        success_rate = 0
+        if metrics.exists():
+            # Calculate the highest and lowest prices for the day
+            daily_high = metrics.aggregate(Max('last_price'))['last_price__max']
+            daily_low = metrics.aggregate(Min('last_price'))['last_price__min']
 
-        average_volume = 0
-        for metric in metrics:
-            average_volume += metric.volume_24h
+            # Update the HistoricalData entry
+            historical_data.daily_high = daily_high
+            historical_data.daily_low = daily_low
+            historical_data.save()
 
-        average_volume = average_volume / len(metrics)
-        average_volume = average_volume * decimal.Decimal(1.15)
-
-        for x in range(6, len(metrics)):
-
-            if (metrics[x].rolling_relative_volume != None and
-                metrics[x].price_change_5min != None and
-                metrics[x].price_change_10min != None and
-                metrics[x].price_change_1hr != None and
-                metrics[x].price_change_24hr != None and
-                metrics[x].daily_relative_volume != None and
-                metrics[x].five_min_relative_volume != None and
-                metrics[x].twenty_min_relative_volume != None):
-
-                # 24 hour volume growth
-                # current volume - volume 5 min ago / volume 5 min ago * 100
-                current_volume = metrics[x].volume_24h
-                previous_volume = metrics[x-1].volume_24h
-                volume_growth = (current_volume - previous_volume) / previous_volume * 100
-
-                # 5 min relative volume progression
-                # current and previous 2 are increasing or equivalent
-                rvol_progression = False
-                current_rvol = metrics[x].five_min_relative_volume
-                one_previous_rvol = metrics[x-1].five_min_relative_volume
-                two_previous_rvol = metrics[x-2].five_min_relative_volume
-                if (two_previous_rvol <= one_previous_rvol <= current_rvol):
-                    rvol_progression = True
-
-                # 5 min price change is greater than previous
-                five_min_price_increase = False
-                current_five_min = metrics[x].price_change_5min
-                previous_five_min = metrics[x-1].price_change_5min
-                previous_five_min_two = metrics[x-2].price_change_5min
-                if (previous_five_min < current_five_min and
-                    previous_five_min < 0 and
-                    current_five_min > 0):
-                    five_min_price_increase = True
-
-                # 5 min and 10 min price changes go negative, positive, positive
-                ten_min_price_increase = False
-                current_ten_min = metrics[x].price_change_10min
-                previous_ten_min = metrics[x-1].price_change_10min
-                previous_ten_min_two = metrics[x-2].price_change_10min
-                if (previous_ten_min < current_ten_min and
-                    previous_ten_min < 0):
-                    ten_min_price_increase = True
-
-                # rolling 5 min price change
-                rolling_one = metrics[x].price_change_5min
-                rolling_two = metrics[x-1].price_change_5min
-                rolling_three = metrics[x-2].price_change_5min
-                rolling_price_change_5min = (rolling_one+rolling_two+rolling_three) / 3
-
-                # rate of change 5 min rvol
-                rvol_one = metrics[x].five_min_relative_volume
-                rvol_two = metrics[x-1].five_min_relative_volume
-                rate_of_change_rvol = (rvol_one - rvol_two) / rvol_two * 100
-
-
-                if (
-                    rolling_price_change_5min > variable
-                    #metrics[x].volume_24h > average_volume and
-                    #metrics[x].five_min_relative_volume > 1.4 and
-                    #rate_of_change_rvol > 1.6
-                ):
-
-
-                    amount_of_trades += 1
-
-                    trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
-                    take_profit_hit = False
-                    stop_loss_hit = False
-                    take_profit_timestamp = None
-                    stop_loss_timestamp = None
-                    try:
-                        for y in range(x, len(metrics)):
-                            if (metrics[y].last_price >= take_profit_price):
-                                take_profit_hit = True
-                                take_profit_timestamp = metrics[y].timestamp
-
-                            if (metrics[y].last_price <= stop_loss_price):
-                                stop_loss_hit = True
-                                stop_loss_timestamp = metrics[y].timestamp
-
-                        if (take_profit_hit == True):
-                            if (stop_loss_hit == True):
-                                # compare timestamps
-                                if (take_profit_timestamp < stop_loss_timestamp):
-                                    # successful trade
-                                    successful_trades += 1
-                                else:
-                                    # failed trade
-                                    failed_trades += 1
-                            else:
-                                # successful trade
-                                successful_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == True):
-                            # failed trade
-                            failed_trades += 1
-
-                        if (take_profit_hit == False and stop_loss_hit == False):
-                            amount_of_trades -= 1
-
-
-
-                    except:
-                        print("failed in trigger 3")
-
-
-        success_percentage = 0
-        if (amount_of_trades != 0):
-            success_percentage = (successful_trades / amount_of_trades) * 100
-
-        if (success_percentage > best_success_rate):
-            best_variable = variable
-            best_success_rate = success_percentage
-
-        variable += 0.01
-
-    print("Results: ")
-    print(f"Amount of trades: {amount_of_trades}")
-    print(f"Successful trades: {successful_trades}")
-    print(f"Failed trades: {failed_trades}")
-    print(f"Successful trade percentage: {best_success_rate}%")
-    print(f"Final variable value: {best_variable}%")
-
+            print(f"Updated HistoricalData for {coin.name} on {target_date.date()} - High: {daily_high}, Low: {daily_low}")
+        else:
+            print(f"No Metrics data found for {coin.name} on {target_date.date()}")
 
 
 
@@ -2908,8 +2799,6 @@ def gather_daily_historical_data():
     }
 
     coins = Coin.objects.all()
-
-    coins = list(Coin.objects.filter(symbol__in=specific_coins))
 
     coins_in_group_of_fifteen = []
     coin_group = []
