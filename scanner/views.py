@@ -1016,8 +1016,50 @@ def check_trigger(symbol):
 
 
 # used to get daily high and low from a 24 hour period
+from django.db.models import Max, Min
 def update_historical_data():
 
+    target_date = datetime(2025, 1, 27)
+    next_date = target_date + timedelta(days=1)
+
+    coins = Coin.objects.all()
+
+    for coin in coins:
+
+        existing_data = HistoricalData.objects.filter(coin=coin, date=target_date).exists()
+
+        if not existing_data:
+            # Get the most recent historical data for the coin
+            recent_data = HistoricalData.objects.filter(coin=coin).order_by('-date').first()
+
+            if recent_data:
+                # Use the data from the most recent record to create a new entry for the target date
+                HistoricalData.objects.create(
+                    coin=coin,
+                    date=target_date,
+                    daily_high=recent_data.daily_high,
+                    daily_low=recent_data.daily_low,
+                    price=recent_data.price,
+                    volume_24h=recent_data.volume_24h,
+                )
+                print(f"Created new HistoricalData for {coin.name} on {target_date} based on recent data.")
+            else:
+                # If no recent data exists, create a default entry for the coin
+                HistoricalData.objects.create(
+                    coin=coin,
+                    date=target_date,
+                    daily_high=0,
+                    daily_low=0,
+                    price=0.0,
+                    volume_24h=0.0,
+                )
+                print(f"Created default HistoricalData for {coin.name} on {target_date}.")
+        else:
+            print(f"HistoricalData for {coin.name} on {target_date} already exists. No action taken.")
+
+
+
+'''
     # Define the target date
     target_date = datetime(2025, 1, 26)
     next_date = target_date + timedelta(days=1)
@@ -1059,7 +1101,7 @@ def update_historical_data():
         else:
             print(f"No Metrics data found for {coin.name} on {target_date.date()}")
 
-
+'''
 
 
 # used to test if the telegram bot is sending messages properly
@@ -1994,6 +2036,7 @@ def five_min_update(request=None):
                     crypto_data = data["data"][str(cmc_id)]
 
                     coin = Coin.objects.get(cmc_id=cmc_id)
+                    current_price = crypto_data["quote"]["USD"]["price"]
 
                     try:
                         coin.market_cap_rank = crypto_data["cmc_rank"]
@@ -2052,11 +2095,10 @@ def five_min_update(request=None):
                         print(e)
 
                     now = datetime.now()
+                    timestamp = datetime.strptime(crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S")
+                    date = timestamp.date()
 
                     if now.hour == 0 and now.minute <= 5:
-
-                        timestamp = datetime.strptime(crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S")
-                        date = timestamp.date()
 
                         try:
                             HistoricalData.objects.create(
@@ -2066,10 +2108,24 @@ def five_min_update(request=None):
                                 volume_24h=crypto_data["quote"]["USD"]["volume_24h"],
                             )
                             print("Created new historical data")
+                            myArray = ["created new historical data"]
+                            send_text(myArray
+
+                            )
 
                         except Exception as e:
                             print("Couldn't create new historical data")
                             print(e)
+
+
+
+                    # check for new high or low and update the daily
+                    #daily_data = HistoricalData.objects.get(coin=coin, date=date)
+                    #previous_high = daily_data.daily_high
+                    #previous_low = daily_data.daily_low
+
+
+
 
         except Exception as e:
             print(f"Error updating tracked coins for batch {cmc_id_batch}: {e}")
