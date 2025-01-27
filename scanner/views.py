@@ -160,25 +160,36 @@ def check_trigger(symbol):
 
                 if (
                     trigger_one_hit == False and
-                    metrics[x].daily_relative_volume >= 1.3 and
-                    metrics[x].rolling_relative_volume >= 2.5 and
+                    #metrics[x].daily_relative_volume >= 1.3 and
+                    #metrics[x].rolling_relative_volume >= 2.5 and
                     #metrics[x].price_change_5min < 0 and
                     #metrics[x].price_change_24hr > 0 and
-                    metrics[x].price_change_10min > metrics[x-1].price_change_10min and
-                    rvol_progression == True and
-                    (
-                    (
-                    metrics[x].price_change_10min > metrics[x-1].price_change_10min and
-                    metrics[x-1].price_change_10min > metrics[x-2].price_change_10min and
-                    metrics[x-2].price_change_10min > metrics[x-3].price_change_10min and
-                    metrics[x-3].price_change_10min > metrics[x-4].price_change_10min
-                    ) or
-                    (
-                    metrics[x].price_change_1hr > metrics[x-1].price_change_1hr and
-                    metrics[x-1].price_change_1hr > metrics[x-2].price_change_1hr and
-                    metrics[x-2].price_change_1hr > metrics[x-3].price_change_1hr
-                    )
-                    )
+                    #metrics[x].price_change_10min > metrics[x-1].price_change_10min and
+                    #rvol_progression == True and
+                    #(
+                    #(
+                    #metrics[x].price_change_10min > metrics[x-1].price_change_10min and
+                    #metrics[x-1].price_change_10min > metrics[x-2].price_change_10min and
+                    #metrics[x-2].price_change_10min > metrics[x-3].price_change_10min and
+                    #metrics[x-3].price_change_10min > metrics[x-4].price_change_10min
+                    #) or
+                    #(
+                    #metrics[x].price_change_1hr > metrics[x-1].price_change_1hr and
+                    #metrics[x-1].price_change_1hr > metrics[x-2].price_change_1hr and
+                    #metrics[x-2].price_change_1hr > metrics[x-3].price_change_1hr
+                    #)
+                    #)
+
+
+                    1.0 < metrics[x].daily_relative_volume < 2.0 and
+                    -1.0 <= metrics[x-1].price_change_5min <= 1.0 and
+                    -1.0 <= metrics[x-2].price_change_5min <= 1.0 and
+                    -1.0 <= metrics[x-3].price_change_5min <= 1.0 and
+                    -1.0 <= metrics[x-4].price_change_5min <= 1.0 and
+                    metrics[x].price_change_5min > 1.0
+
+
+
                 ):
 
                     #print("-------TRIGGER ONE-----------")
@@ -1481,6 +1492,22 @@ def load_coins():
             print(f"Error fetching data: {e}")
 
 
+def delete_old_data_custom():
+    # Define the cutoff date
+    cutoff_date = datetime(2025, 1, 20)
+
+    # Delete Metrics entries
+    Metrics.objects.filter(timestamp__lt=cutoff_date).delete()
+
+    HistoricalData.objects.filter(date__lt=cutoff_date).delete()
+
+    # Delete ShortIntervalData entries
+    ShortIntervalData.objects.filter(timestamp__lt=cutoff_date).delete()
+
+    print("Data older than January 20, 2025 has been deleted from Metrics, and ShortIntervalData.")
+
+
+
 # once a day delete unneeded data from database
 def delete_old_data():
 
@@ -2188,6 +2215,23 @@ def five_min_update(request=None):
         check_triggers(metrics_queryset)
 
     print("done checking triggers")
+
+
+
+    # now we want to track the coin after a trigger went off for it
+    # every five minutes
+    #     - take note of the coin price at the time of the trigger
+    #     - get the most recent price of the coin
+    #     - compare it against the price at the time the trigger went off
+    #     - send telegram message when the current price is 1% up or down
+    #     - and other messsages as the price moves so I know what do to
+    #     - without having to stare at the chart
+
+
+
+
+
+
 
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})

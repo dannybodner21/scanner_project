@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from datetime import datetime
 import logging
-from scanner.views import print_coins
+from scanner.views import delete_old_data_custom
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +10,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
 
-        logger.info(f"Doing the task...")
-        print_coins()
-        logger.info("Task completed.")
+        logger.info(f"doing shit...")
+        delete_old_data_custom()
+        logger.info("done.")

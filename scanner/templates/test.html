@@ -361,7 +361,386 @@
 
 
 
+<script>
 
+  document.addEventListener("DOMContentLoaded", function () {
+
+    const homeLoadingDiv = document.querySelector('#home-loading-div');
+    const noActivitiesDiv = document.querySelector('#no-activities-div');
+    const noTeamMembersDiv = document.querySelector('#no-team-members-div');
+    noActivitiesDiv.style.display = "none";
+    noTeamMembersDiv.style.display = "none";
+    homeLoadingDiv.style.display = "flex";
+
+    window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
+        if (member) {
+
+          const userEmail = member.auth.email;
+
+          fetchAirtableUserID(userEmail)
+          	.then((airtableUserID) => {
+            	if (airtableUserID) {
+
+                fetchCustomUserID(airtableUserID).then((customUserID) => {
+
+                	if (customUserID) {
+
+                    // fetch user's Team Member info
+                    fetchTeamMemberData(customUserID);
+
+                    // fetch user's Activities info
+                    fetchActivitiesData(customUserID);
+
+                    homeLoadingDiv.style.display = "none";
+
+                  } else {
+                    console.error("No custom User ID found for this Airtable Record ID.");
+                  }
+                })
+
+            	} else {
+            		console.error("No Airtable User ID found for the logged-in user.");
+           	 	}
+
+           })
+           .catch((error) => {
+             console.error("Error retrieving the logged-in user's email:", error);
+           });
+       }
+    });
+
+  });
+
+
+  async function fetchAirtableUserID(email) {
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Users?filterByFormula={Email}="${email}"`;
+
+    try {
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Return the Airtable Record ID of the user
+      return data.records.length > 0 ? data.records[0].id : null;
+
+    } catch (error) {
+      console.error("Error fetching Airtable User ID:", error);
+      return null;
+    }
+  }
+
+  async function fetchCustomUserID(recordID) {
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Users/${recordID}`;
+
+    try {
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Return the custom User ID
+      return data.fields["ID"];
+
+    } catch (error) {
+      console.error("Error fetching custom User ID:", error);
+      return null;
+    }
+  }
+
+  async function fetchTeamMemberTimeEntries(teamMemberID) {
+
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Time%20Entries?filterByFormula={ID (from Team Members)}="${teamMemberID}"`;
+    let totalTime = 0;
+
+    try {
+      // Fetch Team Member's Time Entries from Airtable
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.records && data.records.length > 0) {
+        for (const record of data.records) {
+
+          const timeEntryTime = record.fields["Time"];
+          if (timeEntryTime) {
+            totalTime += timeEntryTime;
+          }
+
+        }
+        console.log("Time Entries retrieved successfully.");
+
+      } else {
+
+        // No Time Entries found
+        console.warn("No Time Entries found for this user.");
+        return '00:00';
+
+      }
+
+      const timeEntryHours = Math.floor(totalTime / 3600);
+      const timeEntryMinutes = Math.floor((totalTime % 3600) / 60);
+      const formattedTimeEntryHours = String(timeEntryHours).padStart(2, "0");
+      const formattedTimeEntryMinutes = String(timeEntryMinutes).padStart(2, "0");
+      const finalTimeEntryTime = `${formattedTimeEntryHours}:${formattedTimeEntryMinutes}`;
+      return finalTimeEntryTime;
+
+    } catch (error) {
+
+      console.error("Error fetching Time Entries:", error);
+
+    }
+	}
+
+
+  async function fetchActivitiesData(userID) {
+
+    // get all of the User's Activities
+    // display a list of all Activities with associated total time from Time Entries
+    // i.e. Activity 1 | Total Time: 21:32
+
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Activities?filterByFormula={Users}="${userID}"`;
+    const noActivitiesDiv = document.querySelector('#no-activities-div');
+    const homeDisplaySection = document.querySelector('#home-display-section');
+
+    try {
+      // Fetch User's Activities from Airtable
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // create div to hold activity data
+      const mainActivitiesDiv = document.createElement("div");
+      mainActivitiesDiv.classList.add("display-div");
+
+      if (data.records && data.records.length > 0) {
+        for (const record of data.records) {
+
+          const newActivityDiv = document.createElement("div");
+          newActivityDiv.style.margin = "5px";
+          newActivityDiv.style.padding = "20px";
+
+          // Activity name
+          const activityNameElement = document.createElement("p");
+          activityNameElement.style.fontSize = "18px";
+          activityNameElement.style.fontWeight = "700";
+          activityNameElement.style.color = "black";
+          activityNameElement.style.margin = "5px 0";
+          const activityName = record.fields["Name"];
+
+          if (activityName) {
+            activityNameElement.textContent = activityName;
+            newActivityDiv.appendChild(activityNameElement);
+          }
+
+          // Activity group name
+          const activityGroupNameElement = document.createElement("p");
+          activityGroupNameElement.style.fontSize = "18px";
+          activityGroupNameElement.style.fontWeight = "700";
+          activityGroupNameElement.style.color = "black";
+          activityGroupNameElement.style.margin = "5px 0";
+          const activityGroupName = record.fields["Name (from Activities Group)"];
+
+          if (activityGroupName) {
+            activityGroupNameElement.textContent = activityGroupName;
+            newActivityDiv.appendChild(activityGroupNameElement);
+          }
+
+          // Activity total time from Time Entries
+          const activityTotalTimeElement = document.createElement("p");
+          activityTotalTimeElement.style.fontSize = "18px";
+          activityTotalTimeElement.style.fontWeight = "700";
+          activityTotalTimeElement.style.color = "black";
+          activityTotalTimeElement.style.margin = "5px 0";
+          const activityTimes = record.fields["Time Entry Times"];
+
+          let totalTime = 0;
+          if (activityTimes && activityTimes.length > 0) {
+            for (let i = 0; i < activityTimes.length; i++) {
+              // add up the times
+              totalTime += activityTimes[i];
+            }
+
+            const timeEntryHours = Math.floor(totalTime / 3600);
+            const timeEntryMinutes = Math.floor((totalTime % 3600) / 60);
+            const formattedTimeEntryHours = String(timeEntryHours).padStart(2, "0");
+            const formattedTimeEntryMinutes = String(timeEntryMinutes).padStart(2, "0");
+            const finalTimeEntryTime = `${formattedTimeEntryHours}:${formattedTimeEntryMinutes}`;
+
+            activityTotalTimeElement.textContent = finalTimeEntryTime;
+            newActivityDiv.appendChild(activityTotalTimeElement);
+
+          } else {
+            // no time entries for this activity
+            //activityTotalTimeElement.textContent = "No Time Entries for this Activity.";
+            activityTotalTimeElement.textContent = "00:00";
+            newActivityDiv.appendChild(activityTotalTimeElement);
+          }
+
+          if (mainActivitiesDiv) {
+            mainActivitiesDiv.appendChild(newActivityDiv);
+          }
+
+        }
+
+        if (homeDisplaySection) {
+          homeDisplaySection.appendChild(mainActivitiesDiv);
+        } else {
+          console.error("Section with ID 'home-display-section' not found.");
+        }
+
+        console.log("Activities retrieved successfully.");
+
+      } else {
+
+        // No Activities found
+        noActivitiesDiv.style.display = "flex";
+        console.warn("No Activities found for this user.");
+
+      }
+
+    } catch (error) {
+
+      console.error("Error fetching Time Entries:", error);
+
+    }
+	}
+
+
+  async function fetchTeamMemberData(userID) {
+
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Team%20Members?filterByFormula={Users}="${userID}"`;
+		const noTeamMembersDiv = document.querySelector('#no-team-members-div');
+    const homeDisplaySection = document.querySelector('#home-display-section');
+
+    try {
+      // Fetch User's Categories from Airtable
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // create div to hold team member data
+      const mainTeamMemberDiv = document.createElement("div");
+      mainTeamMemberDiv.classList.add("display-div");
+
+      // Display stuff
+      if (data.records && data.records.length > 0) {
+        for (const record of data.records) {
+
+          // get team members
+          // - name
+          // - total time from all that member's time entries
+
+          const newTeamMemberDiv = document.createElement("div");
+
+          // Full Name
+          const teamMemberNameElement = document.createElement("p");
+          teamMemberNameElement.style.fontSize = "18px";
+          teamMemberNameElement.style.fontWeight = "700";
+          teamMemberNameElement.style.color = "black";
+          teamMemberNameElement.style.margin = "5px 0";
+          const teamMemberName = record.fields["Full Name"];
+
+          if (teamMemberName) {
+            teamMemberNameElement.textContent = teamMemberName;
+            newTeamMemberDiv.appendChild(teamMemberNameElement);
+          }
+
+          // get the team member's time entries using the 'New Time Entry' field
+          const teamMemberTimeElement = document.createElement("p");
+          teamMemberTimeElement.style.fontSize = "18px";
+          teamMemberTimeElement.style.fontWeight = "700";
+          teamMemberTimeElement.style.color = "black";
+          teamMemberTimeElement.style.margin = "5px 0";
+          const teamMemberID = record.fields["ID"];
+
+          console.log("team member name");
+          console.log(teamMemberName);
+          console.log("team member ID");
+          console.log(teamMemberID);
+
+          // get the team member's total time etry time in seconds
+          const teamMemberTotalTimeString = await fetchTeamMemberTimeEntries(teamMemberID);
+          console.log("team member total time");
+          console.log(teamMemberTotalTimeString);
+
+          if (teamMemberTotalTimeString) {
+            teamMemberTimeElement.textContent = teamMemberTotalTimeString;
+            newTeamMemberDiv.appendChild(teamMemberTimeElement);
+          }
+
+          if (mainTeamMemberDiv) {
+            mainTeamMemberDiv.appendChild(newTeamMemberDiv);
+          }
+
+        }
+
+        if (homeDisplaySection) {
+          homeDisplaySection.appendChild(mainTeamMemberDiv);
+        } else {
+          console.error("Section with ID 'home-display-section' not found.");
+        }
+
+        console.log("Home Team Member data displayed successfully.");
+
+      } else {
+
+        // No Team Members to display - this should never happen
+        noTeamMembersDiv.style.display = "flex";
+        console.warn("No Team Members to display for this user.");
+
+      }
+    } catch (error) {
+
+      console.error("Error fetching data:", error);
+
+    }
+	}
+
+</script>
 
 
 
