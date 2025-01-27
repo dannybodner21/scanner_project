@@ -9,7 +9,7 @@ from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
 from scanner.models import Coin, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData, Trigger
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
 from django.http import HttpResponse
@@ -80,6 +80,18 @@ def check_trigger(symbol):
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
+        # get high and low of the 26th and compare against prices on the 27th
+        #specific_date = date(2025, 1, 26)
+        #historical_data = HistoricalData.objects.filter(coin=coin, date=specific_date).first()
+        #daily_high = None
+        #daily_low = None
+        #if historical_data:
+            #daily_high = historical_data.daily_high
+            #daily_low = historical_data.daily_high
+
+
+
+
         average_volume = 0
         for metric in metrics:
             average_volume += metric.volume_24h
@@ -114,6 +126,8 @@ def check_trigger(symbol):
                 metrics[x].daily_relative_volume != None and
                 metrics[x].five_min_relative_volume != None and
                 metrics[x].twenty_min_relative_volume != None):
+
+
 
                 # 24 hour volume growth
                 # current volume - volume 5 min ago / volume 5 min ago * 100
@@ -160,36 +174,11 @@ def check_trigger(symbol):
 
                 if (
                     trigger_one_hit == False and
-                    #metrics[x].daily_relative_volume >= 1.3 and
-                    #metrics[x].rolling_relative_volume >= 2.5 and
-                    #metrics[x].price_change_5min < 0 and
-                    #metrics[x].price_change_24hr > 0 and
-                    #metrics[x].price_change_10min > metrics[x-1].price_change_10min and
-                    #rvol_progression == True and
-                    #(
-                    #(
-                    #metrics[x].price_change_10min > metrics[x-1].price_change_10min and
-                    #metrics[x-1].price_change_10min > metrics[x-2].price_change_10min and
-                    #metrics[x-2].price_change_10min > metrics[x-3].price_change_10min and
-                    #metrics[x-3].price_change_10min > metrics[x-4].price_change_10min
-                    #) or
-                    #(
-                    #metrics[x].price_change_1hr > metrics[x-1].price_change_1hr and
-                    #metrics[x-1].price_change_1hr > metrics[x-2].price_change_1hr and
-                    #metrics[x-2].price_change_1hr > metrics[x-3].price_change_1hr
-                    #)
-                    #)
-
-
-                    1.0 < metrics[x].daily_relative_volume < 2.0 and
-                    -1.0 <= metrics[x-1].price_change_5min <= 1.0 and
-                    -1.0 <= metrics[x-2].price_change_5min <= 1.0 and
-                    -1.0 <= metrics[x-3].price_change_5min <= 1.0 and
-                    -1.0 <= metrics[x-4].price_change_5min <= 1.0 and
-                    metrics[x].price_change_5min > 1.0
-
-
-
+                    metrics[x].daily_relative_volume >= 1.5 and
+                    metrics[x].rolling_relative_volume >= 1.5 and
+                    metrics[x].price_change_5min >= 0.7 and
+                    metrics[x].price_change_24hr < -5 and
+                    metrics[x].price_change_1hr > 0
                 ):
 
                     #print("-------TRIGGER ONE-----------")
@@ -375,34 +364,6 @@ def check_trigger(symbol):
                     trigger_three_hit_counter = 0
 
                 if (
-                    # 59 trades at 72% success rate
-                    #metrics[x].price_change_24hr < -5 and
-                    #metrics[x].rolling_relative_volume >= 2.1 and
-                    #metrics[x].price_change_5min < 0 and
-                    #metrics[x].price_change_10min < 0 and
-                    #metrics[x].price_change_1hr > 0 and
-                    #metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
-                    #metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
-
-                    # 122 trades at 59% success rate
-                    #metrics[x].price_change_24hr < -5 and
-                    #metrics[x].rolling_relative_volume >= 2.1 and
-                    #metrics[x-1].price_change_5min < metrics[x].price_change_5min and
-                    #metrics[x-2].price_change_5min < metrics[x-1].price_change_5min and
-                    #metrics[x-1].price_change_10min < metrics[x].price_change_10min and
-                    #metrics[x].price_change_1hr > 0 and
-                    #metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
-                    #metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
-
-                    # 145 trades at 61% success rate
-                    #metrics[x].price_change_24hr < -5 and
-                    #metrics[x].rolling_relative_volume >= 2.1 and
-                    #metrics[x-1].price_change_5min < metrics[x].price_change_5min and
-                    #metrics[x-2].price_change_5min < metrics[x-1].price_change_5min and
-                    #metrics[x].price_change_1hr > 0 and
-                    #metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
-                    #metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
-
                     # 117 trades at 63% success rate
                     trigger_three_hit == False and
                     metrics[x].price_change_24hr < -5 and
@@ -2106,6 +2067,8 @@ def five_min_update(request=None):
                                 date=date,
                                 price=crypto_data["quote"]["USD"]["price"],
                                 volume_24h=crypto_data["quote"]["USD"]["volume_24h"],
+                                daily_high=crypto_data["quote"]["USD"]["price"],
+                                daily_low=crypto_data["quote"]["USD"]["price"],
                             )
                             print("Created new historical data")
                             myArray = ["created new historical data"]
@@ -2119,12 +2082,25 @@ def five_min_update(request=None):
 
 
 
+                    '''
                     # check for new high or low and update the daily
-                    #daily_data = HistoricalData.objects.get(coin=coin, date=date)
-                    #previous_high = daily_data.daily_high
-                    #previous_low = daily_data.daily_low
+                    # make sure there is historical data
+                    existing_data = HistoricalData.objects.filter(coin=coin, date=date).exists()
 
+                    if (existing_data):
+                        daily_data = HistoricalData.objects.get(coin=coin, date=date)
+                        previous_high = daily_data.daily_high
+                        previous_low = daily_data.daily_low
+                        if (current_price > previous_high):
+                            # update daily high
+                            daily_data.daily_high = current_price
+                            daily_data.save()
 
+                        if (current_price < previous_low):
+                            # update daily low
+                            daily_data.daily_low = current_price
+                            daily_data.save()
+                    '''
 
 
         except Exception as e:
