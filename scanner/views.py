@@ -253,6 +253,14 @@ def check_trigger(symbol):
                         count_26 += 1
                     elif day == 27:
                         count_27 += 1
+                    elif day == 28:
+                        count_28 += 1
+                    elif day == 29:
+                        count_29 += 1
+                    elif day == 30:
+                        count_30 += 1
+                    elif day == 31:
+                        count_31 += 1
 
 
 
@@ -340,6 +348,14 @@ def check_trigger(symbol):
                         count_26 += 1
                     elif day == 27:
                         count_27 += 1
+                    elif day == 28:
+                        count_28 += 1
+                    elif day == 29:
+                        count_29 += 1
+                    elif day == 30:
+                        count_30 += 1
+                    elif day == 31:
+                        count_31 += 1
 
 
 
@@ -444,6 +460,14 @@ def check_trigger(symbol):
                         count_26 += 1
                     elif day == 27:
                         count_27 += 1
+                    elif day == 28:
+                        count_28 += 1
+                    elif day == 29:
+                        count_29 += 1
+                    elif day == 30:
+                        count_30 += 1
+                    elif day == 31:
+                        count_31 += 1
 
 
 
@@ -535,6 +559,14 @@ def check_trigger(symbol):
                         count_26 += 1
                     elif day == 27:
                         count_27 += 1
+                    elif day == 28:
+                        count_28 += 1
+                    elif day == 29:
+                        count_29 += 1
+                    elif day == 30:
+                        count_30 += 1
+                    elif day == 31:
+                        count_31 += 1
 
 
                 # TRIGGER 5 ----------------------------------------------------
@@ -627,6 +659,14 @@ def check_trigger(symbol):
                         count_26 += 1
                     elif day == 27:
                         count_27 += 1
+                    elif day == 28:
+                        count_28 += 1
+                    elif day == 29:
+                        count_29 += 1
+                    elif day == 30:
+                        count_30 += 1
+                    elif day == 31:
+                        count_31 += 1
 
 
 
@@ -716,6 +756,14 @@ def check_trigger(symbol):
                         count_26 += 1
                     elif day == 27:
                         count_27 += 1
+                    elif day == 28:
+                        count_28 += 1
+                    elif day == 29:
+                        count_29 += 1
+                    elif day == 30:
+                        count_30 += 1
+                    elif day == 31:
+                        count_31 += 1
 
 
                 # TRIGGER SEVEN ------------------------------------------------
@@ -802,6 +850,14 @@ def check_trigger(symbol):
                         count_26 += 1
                     elif day == 27:
                         count_27 += 1
+                    elif day == 28:
+                        count_28 += 1
+                    elif day == 29:
+                        count_29 += 1
+                    elif day == 30:
+                        count_30 += 1
+                    elif day == 31:
+                        count_31 += 1
 
 
 
@@ -817,14 +873,15 @@ def check_trigger(symbol):
 
                 if (
                     trigger_eight_hit == False and
-                    metrics[x].price_change_24hr < -10 and
+                    metrics[x].price_change_5min > 500000
+                    #metrics[x].price_change_24hr < -10 and
                     #(metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
-                    metrics[x].rolling_relative_volume >= 2.1 and
-                    metrics[x].price_change_5min < 0 and
-                    metrics[x].price_change_10min < 0 and
-                    metrics[x].price_change_1hr > 0 and
-                    metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
-                    metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
+                    #metrics[x].rolling_relative_volume >= 2.1 and
+                    #metrics[x].price_change_5min < 0 and
+                    #metrics[x].price_change_10min < 0 and
+                    #metrics[x].price_change_1hr > 0 and
+                    #metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
+                    #metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
                 ):
 
                     #print("-------TRIGGER EIGHT-----------")
@@ -897,6 +954,14 @@ def check_trigger(symbol):
                         count_26 += 1
                     elif day == 27:
                         count_27 += 1
+                    elif day == 28:
+                        count_28 += 1
+                    elif day == 29:
+                        count_29 += 1
+                    elif day == 30:
+                        count_30 += 1
+                    elif day == 31:
+                        count_31 += 1
 
 
 
@@ -971,10 +1036,10 @@ def check_trigger(symbol):
     print(f"Day 25: {count_25}")
     print(f"Day 26: {count_26}")
     print(f"Day 27: {count_27}")
-    #print(f"Day 28: {count_28}")
-    #print(f"Day 29: {count_29}")
-    #print(f"Day 30: {count_30}")
-    #print(f"Day 31: {count_31}")
+    print(f"Day 28: {count_28}")
+    print(f"Day 29: {count_29}")
+    print(f"Day 30: {count_30}")
+    print(f"Day 31: {count_31}")
 
 
 
@@ -3481,39 +3546,25 @@ def check_triggers(metrics_queryset):
             ten_min_price_increase = True
 
         if (
-            metrics_queryset[0].daily_relative_volume >= 1.0 and
-            metrics_queryset[0].rolling_relative_volume >= 2.5 and
-            #metrics_queryset[0].price_change_5min >= 0 and
-            metrics_queryset[0].price_change_24hr > 0 and
-            rvol_progression == True and
-            (
-            (
-            metrics_queryset[0].price_change_10min > metrics_queryset[1].price_change_10min and
-            metrics_queryset[1].price_change_10min > metrics_queryset[2].price_change_10min and
-            metrics_queryset[2].price_change_10min > metrics_queryset[3].price_change_10min and
-            metrics_queryset[3].price_change_10min > metrics_queryset[4].price_change_10min
-            ) or
-            (
-            metrics_queryset[0].price_change_1hr > metrics_queryset[1].price_change_1hr and
-            metrics_queryset[1].price_change_1hr > metrics_queryset[2].price_change_1hr and
-            metrics_queryset[2].price_change_1hr > metrics_queryset[3].price_change_1hr
-            )
-            )
+            metrics_queryset[0].rolling_relative_volume >= 1.5 and
+            metrics_queryset[0].price_change_5min >= 0.7 and
+            metrics_queryset[0].price_change_24hr < -5 and
+            metrics_queryset[0].price_change_1hr > 0
         ):
             print("TRIGGER 1 passed")
-            #trigger_passed = True
-            #updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: 63%"
-            #exists = check_duplicate_triggers(updated_trigger)
+            trigger_passed = True
+            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: ~70%"
+            exists = check_duplicate_triggers(updated_trigger)
 
-            #if exists == False:
+            if exists == False:
 
-                #true_triggers.append(updated_trigger)
+                true_triggers.append(updated_trigger)
 
-                #try:
-                    #Trigger.objects.create(trigger_name=updated_trigger, timestamp=now())
+                try:
+                    Trigger.objects.create(trigger_name=updated_trigger, timestamp=now())
 
-                #except Exception as e:
-                    #print(f"Error creating new Trigger: {e}")
+                except Exception as e:
+                    print(f"Error creating new Trigger: {e}")
 
 
         if (
@@ -3525,7 +3576,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 2 passed")
             trigger_passed = True
-            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 (LONG) Accuracy: ~0%"
+            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 (LONG) Accuracy: ~50%"
             exists = check_duplicate_triggers(updated_trigger_two)
 
             if exists == False:
@@ -3551,7 +3602,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 3 passed")
             trigger_passed = True
-            updated_trigger_three = str(metrics_queryset[0].coin.symbol) + " : Trigger 3 Hit (LONG) Accuracy: ~64%"
+            updated_trigger_three = str(metrics_queryset[0].coin.symbol) + " : Trigger 3 Hit (LONG) Accuracy: ~60%"
             exists = check_duplicate_triggers(updated_trigger_three)
 
             if exists == False:
@@ -3578,7 +3629,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER short passed")
             trigger_passed = True
-            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit (SHORT) Accuracy: ~60%"
+            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit (SHORT) Accuracy: ~50%"
             exists = check_duplicate_triggers(updated_trigger_four)
 
             if exists == False:
@@ -3603,7 +3654,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 5 passed")
             trigger_passed = True
-            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit (LONG) Accuracy: ~82%"
+            updated_trigger_five = str(metrics_queryset[0].coin.symbol) + " : Trigger Five Hit (LONG) Accuracy: ~70%"
             exists = check_duplicate_triggers(updated_trigger_five)
 
             if exists == False:
@@ -3628,7 +3679,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 6 passed")
             trigger_passed = True
-            updated_trigger_six = str(metrics_queryset[0].coin.symbol) + " : Trigger Six Hit (LONG) Accuracy: ~78%"
+            updated_trigger_six = str(metrics_queryset[0].coin.symbol) + " : Trigger Six Hit (LONG) Accuracy: ~60%"
             exists = check_duplicate_triggers(updated_trigger_six)
 
             if exists == False:
@@ -3651,7 +3702,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 7 passed")
             trigger_passed = True
-            updated_trigger_seven = str(metrics_queryset[0].coin.symbol) + " : Trigger Seven Hit (LONG) Accuracy: ~80%"
+            updated_trigger_seven = str(metrics_queryset[0].coin.symbol) + " : Trigger Seven Hit (LONG) Accuracy: ~50%"
             exists = check_duplicate_triggers(updated_trigger_seven)
 
             if exists == False:
@@ -3667,7 +3718,7 @@ def check_triggers(metrics_queryset):
 
         # TRIGGER EIGHT --------------------------------------------------
         if (
-            metrics_queryset[0].price_change_24hr < -10 and
+            metrics_queryset[0].price_change_24hr < -1000000000 and
             (metrics_queryset[0].rolling_relative_volume >= 2.1 or metrics_queryset[0].daily_relative_volume >= 1.3) and
             metrics_queryset[0].price_change_5min < 0 and
             metrics_queryset[0].price_change_10min < 0 and
@@ -3677,7 +3728,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 8 passed")
             trigger_passed = True
-            updated_trigger_eight = str(metrics_queryset[0].coin.symbol) + " : Trigger Eight Hit (LONG) Accuracy: ~82%"
+            updated_trigger_eight = str(metrics_queryset[0].coin.symbol) + " : Trigger Eight Hit (LONG) Accuracy: ~70%"
             exists = check_duplicate_triggers(updated_trigger_eight)
 
             if exists == False:
