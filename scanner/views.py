@@ -2056,10 +2056,12 @@ def five_min_update(request=None):
                         print(e)
 
                     now = datetime.now()
-                    timestamp = datetime.strptime(crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S")
-                    date = timestamp.date()
+
 
                     if now.hour == 0 and now.minute <= 5:
+
+                        timestamp = datetime.strptime(crypto_data["last_updated"].rstrip("Z"), "%Y-%m-%dT%H:%M:%S.%f")
+                        date = timestamp.date()
 
                         try:
                             HistoricalData.objects.create(
@@ -2082,25 +2084,7 @@ def five_min_update(request=None):
 
 
 
-                    '''
-                    # check for new high or low and update the daily
-                    # make sure there is historical data
-                    existing_data = HistoricalData.objects.filter(coin=coin, date=date).exists()
 
-                    if (existing_data):
-                        daily_data = HistoricalData.objects.get(coin=coin, date=date)
-                        previous_high = daily_data.daily_high
-                        previous_low = daily_data.daily_low
-                        if (current_price > previous_high):
-                            # update daily high
-                            daily_data.daily_high = current_price
-                            daily_data.save()
-
-                        if (current_price < previous_low):
-                            # update daily low
-                            daily_data.daily_low = current_price
-                            daily_data.save()
-                    '''
 
 
         except Exception as e:
