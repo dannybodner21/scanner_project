@@ -123,7 +123,7 @@ def check_trigger(symbol):
                 metrics[x].price_change_10min != None and
                 metrics[x].price_change_1hr != None and
                 metrics[x].price_change_24hr != None and
-                metrics[x].daily_relative_volume != None and
+                #metrics[x].daily_relative_volume != None and
                 metrics[x].five_min_relative_volume != None and
                 metrics[x].twenty_min_relative_volume != None):
 
@@ -174,7 +174,7 @@ def check_trigger(symbol):
 
                 if (
                     trigger_one_hit == False and
-                    metrics[x].daily_relative_volume >= 1.5 and
+                    #metrics[x].daily_relative_volume >= 1.5 and
                     metrics[x].rolling_relative_volume >= 1.5 and
                     metrics[x].price_change_5min >= 0.7 and
                     metrics[x].price_change_24hr < -5 and
@@ -266,7 +266,7 @@ def check_trigger(symbol):
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].daily_relative_volume >= 1.75 and
+                    #metrics[x].daily_relative_volume >= 1.75 and
                     metrics[x].rolling_relative_volume >= 1.5 and
                     metrics[x].price_change_5min >= 0.7 and
                     metrics[x].price_change_24hr < -5 and
@@ -458,7 +458,7 @@ def check_trigger(symbol):
                 # 65% success rate
                 if (
                     trigger_short_hit == False and
-                    metrics[x].daily_relative_volume > 1.2 and
+                    #metrics[x].daily_relative_volume > 1.2 and
                     metrics[x].rolling_relative_volume >= 2.0 and
                     metrics[x].price_change_5min < metrics[x-1].price_change_5min and
                     metrics[x-1].price_change_5min < metrics[x-2].price_change_5min and
@@ -549,7 +549,8 @@ def check_trigger(symbol):
                     # 80% success rate
                     trigger_five_hit == False and
                     metrics[x].price_change_24hr < -10 and
-                    (metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
+                    #(metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
+                    metrics[x].rolling_relative_volume >= 2.1 and
                     metrics[x].price_change_5min < 0 and
                     metrics[x].price_change_10min < 0 and
                     metrics[x].price_change_1hr > 0 and
@@ -640,7 +641,7 @@ def check_trigger(symbol):
                 # below is currently at 70% success rate
                 if (
                     trigger_six_hit == False and
-                    metrics[x].daily_relative_volume >= 1.5 and
+                    #metrics[x].daily_relative_volume >= 1.5 and
                     metrics[x].rolling_relative_volume >= 1.5 and
                     metrics[x].price_change_5min >= 0.7 and
                     metrics[x].price_change_24hr < -5 and
@@ -728,7 +729,7 @@ def check_trigger(symbol):
                 # below is currently at 66% success rate
                 if (
                     trigger_seven_hit == False and
-                    metrics[x].daily_relative_volume >= 2.0 and
+                    #metrics[x].daily_relative_volume >= 2.0 and
                     metrics[x].rolling_relative_volume >= 1.5 and
                     metrics[x].price_change_5min >= 0.8 and
                     metrics[x].price_change_1hr > 0
@@ -817,7 +818,8 @@ def check_trigger(symbol):
                 if (
                     trigger_eight_hit == False and
                     metrics[x].price_change_24hr < -10 and
-                    (metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
+                    #(metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
+                    metrics[x].rolling_relative_volume >= 2.1 and
                     metrics[x].price_change_5min < 0 and
                     metrics[x].price_change_10min < 0 and
                     metrics[x].price_change_1hr > 0 and
@@ -2074,9 +2076,7 @@ def five_min_update(request=None):
                             )
                             print("Created new historical data")
                             myArray = ["created new historical data"]
-                            send_text(myArray
-
-                            )
+                            send_text(myArray)
 
                         except Exception as e:
                             print("Couldn't create new historical data")
