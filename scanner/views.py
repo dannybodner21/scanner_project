@@ -195,7 +195,7 @@ def check_trigger(symbol):
                     # and it didnt go below 2% from the trigger price
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
 
                     # try to go through remaining metrics
                     take_profit_hit = False
@@ -1956,6 +1956,81 @@ def meme_coin_triggers():
 
 
 # ====================================================================
+
+
+
+def daily_update(request=None):
+
+    API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+
+    headers = {
+        "Accepts": "application/json",
+        "X-CMC_PRO_API_KEY": API_KEY,
+    }
+
+    coins = Coin.objects.all()
+    cmc_ids = [coin.cmc_id for coin in coins]
+
+    batch_size = 50
+    for i in range(0, len(cmc_ids), batch_size):
+        cmc_id_batch = cmc_ids[i:i + batch_size]
+        params = {
+            "id": ",".join(map(str, cmc_id_batch)),
+            "convert": "USD",
+        }
+
+        try:
+            print("=============================")
+            print("daily update...")
+
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            for cmc_id in cmc_id_batch:
+                if str(cmc_id) in data["data"]:
+                    crypto_data = data["data"][str(cmc_id)]
+
+                    coin = Coin.objects.get(cmc_id=cmc_id)
+                    current_price = crypto_data["quote"]["USD"]["price"]
+                    timestamp = datetime.strptime(crypto_data["last_updated"].rstrip("Z"), "%Y-%m-%dT%H:%M:%S.%f")
+                    date = timestamp.date()
+
+                    try:
+                        HistoricalData.objects.update_or_create(
+                            coin=coin,,
+                            defaults={
+                                "date": date,
+                                "price": current_price,
+                                "volume_24h": crypto_data["quote"]["USD"]["volume_24h"],
+                                "daily_high": crypto_data["quote"]["USD"]["price"],
+                                "daily_low": crypto_data["quote"]["USD"]["price"],
+                            },
+                        )
+                        print("Created new historical data")
+
+                    except Exception as e:
+                        print("Couldn't create new historical data")
+                        print(e)
+
+
+
+        except Exception as e:
+            print(f"Error updating tracked coins for batch {cmc_id_batch}: {e}")
+
+
+    print("daily update complete")
+    myArray = ["daily update complete"]
+    send_text(myArray)
+
+
+    if request:
+        return JsonResponse({"status": "success", "message": "Update triggered successfully"})
+
+
+
+
 
 
 def five_min_update(request=None):
