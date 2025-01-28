@@ -1999,7 +1999,7 @@ def daily_update(request=None):
 
                     try:
                         HistoricalData.objects.update_or_create(
-                            coin=coin,,
+                            coin=coin,
                             defaults={
                                 "date": date,
                                 "price": current_price,
