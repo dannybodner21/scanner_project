@@ -146,13 +146,6 @@ def find_best_trigger():
 
 
 
-
-
-
-
-
-'''
-
     csv_file_name = "main_metrics.csv"
     with open(csv_file_name, mode='w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
@@ -178,47 +171,8 @@ def find_best_trigger():
                 result[10]
             ])
 
-'''
 
 
-
-
-    '''
-    stats = compute_statistics(results)
-
-    # Map metric keys to readable names
-    metric_names = {
-        3: "rolling_relative_volume",
-        4: "five_min_relative_volume",
-        5: "twenty_min_relative_volume",
-        6: "price_change_5min",
-        7: "price_change_10min",
-        8: "price_change_1hr",
-        9: "price_change_24hr",
-        10: "price_change_7d",
-    }
-
-    # Print the results
-    print("Summary Statistics for Metrics:")
-    for key, stat in stats.items():
-        metric_name = metric_names.get(key, f"Metric {key}")
-        print(f"{metric_name}:")
-        print(f"  Mean: {stat['mean']:.2f}")
-        print(f"  Median: {stat['median']:.2f}")
-        print(f"  Min: {stat['min']:.2f}")
-        print(f"  Max: {stat['max']:.2f}\n")
-
-
-
-    trigger_conditions = determine_trigger_ranges(stats)
-
-    # Print triggers
-    print("\nOptimal Trigger Conditions:")
-    for metric, values in trigger_conditions.items():
-        print(f"{metric}:")
-        print(f"  Min: {values['min']:.2f}")
-        print(f"  Max: {values['max']:.2f}")
-    '''
 
 
 
@@ -256,7 +210,7 @@ def brute_force():
     top_price_change_1hr = 0
 
 
-    for a in range(10, 41, 1):
+    for a in range(10, 31, 1):
         value_a = a / 10
         rolling_rvol_threshold = value_a
 
@@ -272,7 +226,7 @@ def brute_force():
                     value_d = d / 10
                     price_change_10min_threshold = value_d
 
-                    for e in range(-50, 51, 1):
+                    for e in range(-40, 41, 1):
                         value_e = e / 10
                         price_change_1hr_threshold = value_e
 
