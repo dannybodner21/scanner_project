@@ -361,6 +361,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 <script>
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -368,8 +378,10 @@
     const homeLoadingDiv = document.querySelector('#home-loading-div');
     const noActivitiesDiv = document.querySelector('#no-activities-div');
     const noTeamMembersDiv = document.querySelector('#no-team-members-div');
+    const noCategoriesDiv = document.querySelector('#no-categories-div');
     noActivitiesDiv.style.display = "none";
     noTeamMembersDiv.style.display = "none";
+    noCategoriesDiv.style.display = "none";
     homeLoadingDiv.style.display = "flex";
 
     window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
@@ -390,6 +402,9 @@
 
                     // fetch user's Activities info
                     fetchActivitiesData(customUserID);
+
+                    // fetch user's Categories info
+                    fetchCategoriesData(customUserID);
 
                     homeLoadingDiv.style.display = "none";
 
@@ -438,6 +453,7 @@
     }
   }
 
+
   async function fetchCustomUserID(recordID) {
     const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Users/${recordID}`;
 
@@ -463,6 +479,7 @@
       return null;
     }
   }
+
 
   async function fetchTeamMemberTimeEntries(teamMemberID) {
 
@@ -522,7 +539,6 @@
 
     // get all of the User's Activities
     // display a list of all Activities with associated total time from Time Entries
-    // i.e. Activity 1 | Total Time: 21:32
 
     const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Activities?filterByFormula={Users}="${userID}"`;
     const noActivitiesDiv = document.querySelector('#no-activities-div');
@@ -545,47 +561,74 @@
 
       // create div to hold activity data
       const mainActivitiesDiv = document.createElement("div");
-      mainActivitiesDiv.classList.add("display-div");
+      //mainActivitiesDiv.classList.add("display-div");
+      mainActivitiesDiv.style.display = "flex";
+      mainActivitiesDiv.style.flexDirection = "column";
+      mainActivitiesDiv.style.gap = "10px";
+      mainActivitiesDiv.style.height = "auto";
+      mainActivitiesDiv.style.padding = "20px";
+      mainActivitiesDiv.style.alignItems = "flex-start";
+
+      // section header
+      const activitiesHeader = document.createElement("h2");
+      activitiesHeader.style.fontSize = "24px";
+      activitiesHeader.style.fontWeight = "700";
+      activitiesHeader.style.color = "black";
+      activitiesHeader.textContent = "Activities Summary:";
+      mainActivitiesDiv.appendChild(activitiesHeader);
+
+      // div to hold all the children elements
+      const activitiesGrid = document.createElement("div");
+      activitiesGrid.style.display = "flex";
+      activitiesGrid.style.flexWrap = "wrap";
+      activitiesGrid.style.justifyContent = "space-between";
+      activitiesGrid.style.gap = "20px";
+      activitiesGrid.style.width = "100%";
 
       if (data.records && data.records.length > 0) {
         for (const record of data.records) {
 
           const newActivityDiv = document.createElement("div");
-          newActivityDiv.style.margin = "5px";
-          newActivityDiv.style.padding = "20px";
+          newActivityDiv.style.width = "250px";
+          newActivityDiv.style.height = "250px";
+          newActivityDiv.style.borderRadius = "15px";
+          newActivityDiv.style.backgroundColor = "white";
+          newActivityDiv.style.display = "flex";
+          newActivityDiv.style.alignItems = "center";
+          newActivityDiv.style.justifyContent = "left";
+          newActivityDiv.style.flexDirection = "column";
+          newActivityDiv.style.border = "1px solid #ccc";
+          newActivityDiv.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
 
           // Activity name
           const activityNameElement = document.createElement("p");
           activityNameElement.style.fontSize = "18px";
-          activityNameElement.style.fontWeight = "700";
+          activityNameElement.style.fontWeight = "500";
           activityNameElement.style.color = "black";
-          activityNameElement.style.margin = "5px 0";
           const activityName = record.fields["Name"];
 
           if (activityName) {
-            activityNameElement.textContent = activityName;
+            activityNameElement.textContent = "Activity Name: " + activityName;
             newActivityDiv.appendChild(activityNameElement);
           }
 
           // Activity group name
           const activityGroupNameElement = document.createElement("p");
           activityGroupNameElement.style.fontSize = "18px";
-          activityGroupNameElement.style.fontWeight = "700";
+          activityGroupNameElement.style.fontWeight = "500";
           activityGroupNameElement.style.color = "black";
-          activityGroupNameElement.style.margin = "5px 0";
           const activityGroupName = record.fields["Name (from Activities Group)"];
 
           if (activityGroupName) {
-            activityGroupNameElement.textContent = activityGroupName;
+            activityGroupNameElement.textContent = "Group: " + activityGroupName;
             newActivityDiv.appendChild(activityGroupNameElement);
           }
 
           // Activity total time from Time Entries
           const activityTotalTimeElement = document.createElement("p");
           activityTotalTimeElement.style.fontSize = "18px";
-          activityTotalTimeElement.style.fontWeight = "700";
+          activityTotalTimeElement.style.fontWeight = "500";
           activityTotalTimeElement.style.color = "black";
-          activityTotalTimeElement.style.margin = "5px 0";
           const activityTimes = record.fields["Time Entry Times"];
 
           let totalTime = 0;
@@ -601,23 +644,24 @@
             const formattedTimeEntryMinutes = String(timeEntryMinutes).padStart(2, "0");
             const finalTimeEntryTime = `${formattedTimeEntryHours}:${formattedTimeEntryMinutes}`;
 
-            activityTotalTimeElement.textContent = finalTimeEntryTime;
+            activityTotalTimeElement.textContent = "Total Time: " + finalTimeEntryTime;
             newActivityDiv.appendChild(activityTotalTimeElement);
 
           } else {
             // no time entries for this activity
             //activityTotalTimeElement.textContent = "No Time Entries for this Activity.";
-            activityTotalTimeElement.textContent = "00:00";
+						activityTotalTimeElement.textContent = "Total Time: 00:00";
             newActivityDiv.appendChild(activityTotalTimeElement);
           }
 
-          if (mainActivitiesDiv) {
-            mainActivitiesDiv.appendChild(newActivityDiv);
+          if (activitiesGrid) {
+            activitiesGrid.appendChild(newActivityDiv);
           }
 
         }
 
-        if (homeDisplaySection) {
+        if (homeDisplaySection && mainActivitiesDiv) {
+          mainActivitiesDiv.appendChild(activitiesGrid);
           homeDisplaySection.appendChild(mainActivitiesDiv);
         } else {
           console.error("Section with ID 'home-display-section' not found.");
@@ -639,6 +683,128 @@
 
     }
 	}
+
+
+  async function fetchCategoriesData(userID) {
+
+    // get all of the User's Categories
+    // display a list of all Categories with associated total time from Time Entries
+    // i.e. Category 1 | Total Time: 21:32
+
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Categories?filterByFormula={Users}="${userID}"`;
+    const noCategoriesDiv = document.querySelector('#no-categories-div');
+    const homeDisplaySection = document.querySelector('#home-display-section');
+
+    try {
+      // Fetch User's Activities from Airtable
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // create div to hold Activity data
+      const mainCategoriesDiv = document.createElement("div");
+      mainCategoriesDiv.classList.add("display-div");
+      mainCategoriesDiv.style.display = "flex";
+      mainCategoriesDiv.style.flexDirection = "column";
+      mainCategoriesDiv.style.gap = "10px";
+      mainCategoriesDiv.style.height = "auto";
+      mainCategoriesDiv.style.padding = "20px";
+      mainCategoriesDiv.style.alignItems = "flex-start";
+
+      // section header
+      const categoriesHeader = document.createElement("h2");
+      categoriesHeader.style.fontSize = "24px";
+      categoriesHeader.style.fontWeight = "700";
+      categoriesHeader.style.color = "black";
+      categoriesHeader.textContent = "Categories Summary:";
+      mainCategoriesDiv.appendChild(categoriesHeader);
+
+      if (data.records && data.records.length > 0) {
+        for (const record of data.records) {
+
+          const newCategoryDiv = document.createElement("div");
+          newCategoryDiv.style.margin = "5px";
+          newCategoryDiv.style.padding = "20px";
+
+          // Category name
+          const categoryNameElement = document.createElement("p");
+          categoryNameElement.style.fontSize = "18px";
+          categoryNameElement.style.fontWeight = "500";
+          categoryNameElement.style.color = "black";
+          const categoryName = record.fields["Name"];
+
+          if (categoryName) {
+            categoryNameElement.textContent = "Category Name: " + categoryName;
+            newCategoryDiv.appendChild(categoryNameElement);
+          }
+
+          // Category total time from Time Entries
+          const categoryTotalTimeElement = document.createElement("p");
+          categoryTotalTimeElement.style.fontSize = "18px";
+          categoryTotalTimeElement.style.fontWeight = "500";
+          categoryTotalTimeElement.style.color = "black";
+          const categoryTimes = record.fields["Time Entry Times"];
+
+          let categoryTotalTime = 0;
+          if (categoryTimes && categoryTimes.length > 0) {
+            for (let i = 0; i < categoryTimes.length; i++) {
+              // add up the times
+              categoryTotalTime += categoryTimes[i];
+            }
+
+            const categoryTimeEntryHours = Math.floor(categoryTotalTime / 3600);
+            const categoryTimeEntryMinutes = Math.floor((categoryTotalTime % 3600) / 60);
+            const categoryFormattedTimeEntryHours = String(categoryTimeEntryHours).padStart(2, "0");
+            const categoryFormattedTimeEntryMinutes = String(categoryTimeEntryMinutes).padStart(2, "0");
+            const categoryFinalTimeEntryTime = `${categoryFormattedTimeEntryHours}:${categoryFormattedTimeEntryMinutes}`;
+
+            categoryTotalTimeElement.textContent = "Total Time: " + categoryFinalTimeEntryTime;
+            newCategoryDiv.appendChild(categoryTotalTimeElement);
+
+          } else {
+            // no time entries for this category
+            //categoryTotalTimeElement.textContent = "No Time Entries for this Activity.";
+            categoryTotalTimeElement.textContent = "Total Time: 00:00";
+            newCategoryDiv.appendChild(categoryTotalTimeElement);
+          }
+
+          if (mainCategoriesDiv) {
+            mainCategoriesDiv.appendChild(newCategoryDiv);
+          }
+
+        }
+
+        if (homeDisplaySection) {
+          homeDisplaySection.appendChild(mainCategoriesDiv);
+        } else {
+          console.error("Section with ID 'home-display-section' not found.");
+        }
+
+        console.log("Categories retrieved successfully.");
+
+      } else {
+
+        // No Categories found
+        noCategoriesDiv.style.display = "flex";
+        console.warn("No Categories found for this user.");
+
+      }
+
+    } catch (error) {
+
+      console.error("Error fetching Time Entries:", error);
+
+    }
+  }
 
 
   async function fetchTeamMemberData(userID) {
@@ -665,6 +831,20 @@
       // create div to hold team member data
       const mainTeamMemberDiv = document.createElement("div");
       mainTeamMemberDiv.classList.add("display-div");
+      mainTeamMemberDiv.style.display = "flex";
+      mainTeamMemberDiv.style.flexDirection = "column";
+      mainTeamMemberDiv.style.gap = "10px";
+      mainTeamMemberDiv.style.height = "auto";
+      mainTeamMemberDiv.style.padding = "20px";
+      mainTeamMemberDiv.style.alignItems = "flex-start";
+
+      // section header
+      const teamMemberHeader = document.createElement("h2");
+      teamMemberHeader.style.fontSize = "24px";
+      teamMemberHeader.style.fontWeight = "700";
+      teamMemberHeader.style.color = "black";
+      teamMemberHeader.textContent = "Team Member Summary:";
+      mainTeamMemberDiv.appendChild(teamMemberHeader);
 
       // Display stuff
       if (data.records && data.records.length > 0) {
@@ -675,26 +855,27 @@
           // - total time from all that member's time entries
 
           const newTeamMemberDiv = document.createElement("div");
+          newTeamMemberDiv.style.marginLeft = "25px";
+          newTeamMemberDiv.style.marginTop = "25px";
 
           // Full Name
           const teamMemberNameElement = document.createElement("p");
           teamMemberNameElement.style.fontSize = "18px";
-          teamMemberNameElement.style.fontWeight = "700";
+          teamMemberNameElement.style.fontWeight = "500";
           teamMemberNameElement.style.color = "black";
-          teamMemberNameElement.style.margin = "5px 0";
           const teamMemberName = record.fields["Full Name"];
 
           if (teamMemberName) {
-            teamMemberNameElement.textContent = teamMemberName;
+            teamMemberNameElement.textContent = "Team Member Name: " + teamMemberName;
             newTeamMemberDiv.appendChild(teamMemberNameElement);
           }
 
           // get the team member's time entries using the 'New Time Entry' field
           const teamMemberTimeElement = document.createElement("p");
           teamMemberTimeElement.style.fontSize = "18px";
-          teamMemberTimeElement.style.fontWeight = "700";
+          teamMemberTimeElement.style.fontWeight = "500";
           teamMemberTimeElement.style.color = "black";
-          teamMemberTimeElement.style.margin = "5px 0";
+          teamMemberTimeElement.style.paddingTop = "10px";
           const teamMemberID = record.fields["ID"];
 
           console.log("team member name");
@@ -708,7 +889,7 @@
           console.log(teamMemberTotalTimeString);
 
           if (teamMemberTotalTimeString) {
-            teamMemberTimeElement.textContent = teamMemberTotalTimeString;
+            teamMemberTimeElement.textContent = "Total Time: " + teamMemberTotalTimeString;
             newTeamMemberDiv.appendChild(teamMemberTimeElement);
           }
 
@@ -741,12 +922,6 @@
 	}
 
 </script>
-
-
-
-
-
-
 
 
 

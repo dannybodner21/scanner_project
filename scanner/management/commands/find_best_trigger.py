@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from datetime import datetime
 import logging
 
-from scanner.views import find_best_trigger
+from scanner.views import find_best_trigger, brute_force
 
 logger = logging.getLogger(__name__)
 
@@ -12,5 +12,6 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
 
         logger.info(f"Working...")
-        find_best_trigger()
+        #find_best_trigger()
+        brute_force()
         logger.info("Done.")
