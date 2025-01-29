@@ -1376,8 +1376,8 @@ def send_text(true_triggers_two):
         # telegram bot information
         chat_id_danny = '1077594551'
         chat_id_ricki = '1054741134'
-        chat_ids = [chat_id_danny, chat_id_ricki]
-        #chat_ids = [chat_id_danny]
+        #chat_ids = [chat_id_danny, chat_id_ricki]
+        chat_ids = [chat_id_danny]
         bot_token = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
 
