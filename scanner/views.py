@@ -17,6 +17,79 @@ from django.http import FileResponse, Http404
 from django.db.models import Prefetch, OuterRef, Subquery
 
 
+
+def find_best_trigger():
+
+    coins = Coin.objects.all()
+
+    results = []
+
+    amount_of_trades = 0
+    successful_trades = 0
+    failed_trades = 0
+    trigger_one_trades = 0
+    trigger_one_success = 0
+
+    # for each coin
+    # find all the locations that preceeded a 5% increase in price before a 2% decrease
+
+    for coin in coins:
+
+        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+        trigger_one_hit_counter = 0
+        trigger_one_hit = False
+
+        for x in range(6, len(metrics)):
+
+            # go through every metric for every coin
+            # check if that location preceeded a 5% increase in price
+
+            trigger_price = metrics[x].last_price
+            stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+            take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+
+            take_profit_hit = False
+            stop_loss_hit = False
+
+            try:
+                for y in range(x, len(metrics)):
+                    if (metrics[y].last_price >= take_profit_price):
+                        take_profit_hit = True
+                        break
+
+                    if (metrics[y].last_price <= stop_loss_price):
+                        stop_loss_hit = True
+                        break
+
+                if (take_profit_hit == True):
+
+                    # successful entry point
+                    dict = {}
+                    dict[0] = coin.symbol
+                    dict[1] = metrics[x].timestamp
+                    dict[2] = metrics[x].rolling_relative_volume
+
+                    results.append(dict)
+
+            except Exception as e:
+                print(f"Error: {e}")
+
+
+
+    print("Results: ")
+    print(len(results))
+    for result in results:
+        print(result)
+
+
+
+
+
+
+
+
+
 # used to test out a trigger combination against the data we have in the db
 def check_trigger(symbol):
 
@@ -1040,7 +1113,6 @@ def check_trigger(symbol):
     print(f"Day 29: {count_29}")
     print(f"Day 30: {count_30}")
     print(f"Day 31: {count_31}")
-
 
 
 # used to get daily high and low from a 24 hour period
@@ -2198,33 +2270,6 @@ def five_min_update(request=None):
                         print(e)
 
                     now = datetime.now()
-
-
-                    if now.hour == 0 and now.minute <= 5:
-
-                        timestamp = datetime.strptime(crypto_data["last_updated"].rstrip("Z"), "%Y-%m-%dT%H:%M:%S.%f")
-                        date = timestamp.date()
-
-                        try:
-                            HistoricalData.objects.create(
-                                coin=coin,
-                                date=date,
-                                price=crypto_data["quote"]["USD"]["price"],
-                                volume_24h=crypto_data["quote"]["USD"]["volume_24h"],
-                                daily_high=crypto_data["quote"]["USD"]["price"],
-                                daily_low=crypto_data["quote"]["USD"]["price"],
-                            )
-                            print("Created new historical data")
-                            myArray = ["created new historical data"]
-                            send_text(myArray)
-
-                        except Exception as e:
-                            print("Couldn't create new historical data")
-                            print(e)
-
-
-
-
 
 
         except Exception as e:
