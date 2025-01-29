@@ -13,6 +13,6 @@ class Command(BaseCommand):
 
         logger.info(f"Working...")
         #find_best_trigger()
-        #brute_force()
-        brute_force_one()
+        brute_force()
+        #brute_force_one()
         logger.info("Done.")
