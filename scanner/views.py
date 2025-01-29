@@ -20,6 +20,28 @@ import statistics
 
 
 
+
+def compute_statistics(results):
+    metrics_keys = [3, 4, 5, 6, 7, 8, 9, 10]  # Metric keys in the dictionary
+    stats = {}
+
+    for key in metrics_keys:
+        # Extract all values for the given metric
+        values = [d[key] for d in results if d[key] is not None]  # Ensure non-null values
+
+        if values:
+            stats[key] = {
+                "mean": sum(values) / len(values),
+                "median": statistics.median(values),
+                "min": min(values),
+                "max": max(values)
+            }
+        else:
+            stats[key] = {"mean": None, "median": None, "min": None, "max": None}
+
+    return stats
+
+
 def find_best_trigger():
 
     coins = Coin.objects.all()
@@ -70,7 +92,6 @@ def find_best_trigger():
                     dict = {}
                     dict[0] = coin.symbol
                     dict[1] = metrics[x].timestamp
-                    #dict[2] = metrics[x].daily_relative_volume
                     dict[3] = metrics[x].rolling_relative_volume
                     dict[4] = metrics[x].five_min_relative_volume
                     dict[5] = metrics[x].twenty_min_relative_volume
@@ -86,9 +107,36 @@ def find_best_trigger():
             except Exception as e:
                 print(f"Error: {e}")
 
-    median_data = []
-    #median = statistics.median(data)
+    stats = compute_statistics(results)
 
+    # Map metric keys to readable names
+    metric_names = {
+        3: "rolling_relative_volume",
+        4: "five_min_relative_volume",
+        5: "twenty_min_relative_volume",
+        6: "price_change_5min",
+        7: "price_change_10min",
+        8: "price_change_1hr",
+        9: "price_change_24hr",
+        10: "price_change_7d",
+    }
+
+    # Print the results
+    print("Summary Statistics for Metrics:")
+    for key, stat in stats.items():
+        metric_name = metric_names.get(key, f"Metric {key}")
+        print(f"{metric_name}:")
+        print(f"  Mean: {stat['mean']:.2f}")
+        print(f"  Median: {stat['median']:.2f}")
+        print(f"  Min: {stat['min']:.2f}")
+        print(f"  Max: {stat['max']:.2f}\n")
+
+
+
+
+    #median_data = []
+    #median = statistics.median(data)
+    '''
 
     print("Results: ")
     total = len(results)
@@ -145,7 +193,7 @@ def find_best_trigger():
     print(f"median rolling rvol: {median}")
 
 
-
+    '''
 
 
 
