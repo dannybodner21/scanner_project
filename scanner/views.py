@@ -16,6 +16,8 @@ from django.http import HttpResponse
 from django.http import FileResponse, Http404
 from django.db.models import Prefetch, OuterRef, Subquery
 
+import statistics
+
 
 
 def find_best_trigger():
@@ -68,20 +70,79 @@ def find_best_trigger():
                     dict = {}
                     dict[0] = coin.symbol
                     dict[1] = metrics[x].timestamp
-                    dict[2] = metrics[x].rolling_relative_volume
+                    #dict[2] = metrics[x].daily_relative_volume
+                    dict[3] = metrics[x].rolling_relative_volume
+                    dict[4] = metrics[x].five_min_relative_volume
+                    dict[5] = metrics[x].twenty_min_relative_volume
+                    dict[6] = metrics[x].price_change_5min
+                    dict[7] = metrics[x].price_change_10min
+                    dict[8] = metrics[x].price_change_1hr
+                    dict[9] = metrics[x].price_change_24hr
+                    dict[10] = metrics[x].price_change_7d
 
                     results.append(dict)
+
 
             except Exception as e:
                 print(f"Error: {e}")
 
+    median_data = []
+    #median = statistics.median(data)
 
 
     print("Results: ")
-    print(len(results))
-    for result in results:
-        print(result)
+    total = len(results)
+    print(total)
 
+    #average_daily_rvol = 0
+    average_rolling_rvol = 0
+    average_five_min_rvol = 0
+    average_twenty_min_rvol = 0
+    average_price_change_5min = 0
+    average_price_change_10min = 0
+    average_price_change_1hr = 0
+    average_price_change_24hr = 0
+    average_price_change_7d = 0
+
+    for result in results:
+
+        #average_daily_rvol += result[2]
+        average_rolling_rvol += result[3]
+        average_five_min_rvol += result[4]
+        average_twenty_min_rvol += result[5]
+        average_price_change_5min += result[6]
+        average_price_change_10min += result[7]
+        average_price_change_1hr += result[8]
+        average_price_change_24hr += result[9]
+        average_price_change_7d += result[10]
+
+        median_data.append(result[3])
+
+    #average_daily_rvol = average_daily_rvol / total
+    average_rolling_rvol = average_rolling_rvol / total
+    average_five_min_rvol = average_five_min_rvol / total
+    average_twenty_min_rvol = average_twenty_min_rvol / total
+    average_price_change_5min = average_price_change_5min / total
+    average_price_change_10min = average_price_change_10min / total
+    average_price_change_1hr = average_price_change_1hr / total
+    average_price_change_24hr = average_price_change_24hr / total
+    average_price_change_7d = average_price_change_7d / total
+
+
+    median = statistics.median(median_data)
+
+
+    #print(f"average daily rvol: {average_daily_rvol}")
+    print(f"average rolling rvol: {average_rolling_rvol}")
+    print(f"average five min rvol: {average_five_min_rvol}")
+    print(f"average twenty min rvol: {average_twenty_min_rvol}")
+    print(f"average price change 5min: {average_price_change_5min}")
+    print(f"average price change 10min: {average_price_change_10min}")
+    print(f"average price change 1hr: {average_price_change_1hr}")
+    print(f"average price change 24hr: {average_price_change_24hr}")
+    print(f"average price change 7d: {average_price_change_7d}")
+
+    print(f"median rolling rvol: {median}")
 
 
 
@@ -247,11 +308,20 @@ def check_trigger(symbol):
 
                 if (
                     trigger_one_hit == False and
-                    #metrics[x].daily_relative_volume >= 1.5 and
-                    metrics[x].rolling_relative_volume >= 1.5 and
-                    metrics[x].price_change_5min >= 0.7 and
-                    metrics[x].price_change_24hr < -5 and
-                    metrics[x].price_change_1hr > 0
+                    #metrics[x].rolling_relative_volume >= 1.5 and
+                    #metrics[x].price_change_5min >= 0.7 and
+                    #metrics[x].price_change_24hr < -5 and
+                    #metrics[x].price_change_1hr > 0
+
+                    1 < metrics[x].rolling_relative_volume and
+                    #0.9 < metrics[x].five_min_relative_volume < 1.23 and
+                    0.9 < metrics[x].twenty_min_relative_volume and
+                    -0.07 < metrics[x].price_change_5min and
+                    -0.4 < metrics[x].price_change_10min < 0 and
+                    -0.4 < metrics[x].price_change_1hr < 0 and
+                    metrics[x].price_change_24hr < -4 and
+                    metrics[x].price_change_7d < -4
+
                 ):
 
                     #print("-------TRIGGER ONE-----------")
