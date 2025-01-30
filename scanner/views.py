@@ -31,13 +31,15 @@ def brute_force_short():
     successful_trades = 0
     failed_trades = 0
 
-    rolling_rvol_threshold = 0
-    five_min_rvol_threshold = 0
-    price_change_5min_threshold = 0
+    rolling_rvol_threshold = 1.7
+    five_min_rvol_threshold = 1.1
+    price_change_5min_threshold = 0.2
+    #price_change_10min_threshold = 0.8
     price_change_10min_threshold = 0
-    price_change_1hr_threshold = 0
-    price_change_24hr_threshold = 0
-    price_change_7d_threshold = 0
+    price_change_1hr_threshold = -0.6
+    #price_change_24hr_threshold = 1.5
+    price_change_24hr_threshold = 0.1
+    price_change_7d_threshold = 6.4
 
     top_percentage = 0
     top_rolling_rvol = 0
@@ -57,10 +59,10 @@ def brute_force_short():
     #price_change_7d_threshold = 0
 
 
-    for a in range(5, 40, 1):
+    for a in range(100, -50, -2):
         value_a = a / 10
 
-        rolling_rvol_threshold = value_a
+        price_change_7d_threshold = value_a
 
         amount_of_trades = 0
         successful_trades = 0
@@ -98,7 +100,7 @@ def brute_force_short():
                         metrics[x].price_change_10min >= price_change_10min_threshold and
                         metrics[x].price_change_1hr <= price_change_1hr_threshold and
                         metrics[x].price_change_24hr >= price_change_24hr_threshold and
-                        metrics[x].price_change_7d >= price_change_7d_threshold
+                        metrics[x].price_change_7d <= price_change_7d_threshold
                     ):
 
 
@@ -1142,18 +1144,34 @@ def check_trigger(symbol):
                     trigger_short_hit = False
                     trigger_short_hit_counter = 0
 
+                rolling_rvol_threshold = 1.7
+                five_min_rvol_threshold = 1.1
+                price_change_5min_threshold = 0.2
+                price_change_10min_threshold = 0
+                price_change_1hr_threshold = -0.6
+                price_change_24hr_threshold = 0.1
+                price_change_7d_threshold = 6.4
+
                 # 65% success rate
                 if (
                     trigger_short_hit == False and
                     #metrics[x].daily_relative_volume > 1.2 and
-                    metrics[x].rolling_relative_volume >= 2.0 and
-                    metrics[x].price_change_5min < metrics[x-1].price_change_5min and
-                    metrics[x-1].price_change_5min < metrics[x-2].price_change_5min and
-                    metrics[x].price_change_1hr > 1 and
-                    metrics[x].price_change_10min < metrics[x-1].price_change_10min and
-                    metrics[x-1].price_change_10min < metrics[x-2].price_change_10min and
-                    metrics[x].price_change_1hr < metrics[x-1].price_change_1hr and
-                    metrics[x-1].price_change_1hr < metrics[x-2].price_change_1hr
+                    #metrics[x].rolling_relative_volume >= 2.0 and
+                    #metrics[x].price_change_5min < metrics[x-1].price_change_5min and
+                    #metrics[x-1].price_change_5min < metrics[x-2].price_change_5min and
+                    #metrics[x].price_change_1hr > 1 and
+                    #metrics[x].price_change_10min < metrics[x-1].price_change_10min and
+                    #metrics[x-1].price_change_10min < metrics[x-2].price_change_10min and
+                    #metrics[x].price_change_1hr < metrics[x-1].price_change_1hr and
+                    #metrics[x-1].price_change_1hr < metrics[x-2].price_change_1hr
+
+                    metrics[x].rolling_relative_volume >= rolling_rvol_threshold and
+                    metrics[x].five_min_relative_volume >= five_min_rvol_threshold and
+                    metrics[x].price_change_5min <= price_change_5min_threshold and
+                    metrics[x].price_change_10min >= price_change_10min_threshold and
+                    metrics[x].price_change_1hr <= price_change_1hr_threshold and
+                    metrics[x].price_change_24hr >= price_change_24hr_threshold and
+                    metrics[x].price_change_7d <= price_change_7d_threshold
                 ):
                     #print("-----SHORT TRIGGER-------------")
                     #print(coin.symbol)
@@ -1195,7 +1213,7 @@ def check_trigger(symbol):
                     except:
                         print("failed in short trigger")
 
-                    '''
+
                     day = metrics[x].timestamp.day
                     if day == 15:
                         count_15 += 1
@@ -1231,7 +1249,7 @@ def check_trigger(symbol):
                         count_30 += 1
                     elif day == 31:
                         count_31 += 1
-                    '''
+
 
 
                 # TRIGGER 5 ----------------------------------------------------
@@ -4263,22 +4281,27 @@ def check_triggers(metrics_queryset):
                     print(f"Error creating new Trigger: {e}")
 
 
-        if (
-            #metrics_queryset[0].daily_relative_volume > 1.2 and
-            metrics_queryset[0].rolling_relative_volume >= 2.0 and
-            metrics_queryset[0].price_change_5min < metrics_queryset[1].price_change_5min and
-            metrics_queryset[1].price_change_5min < metrics_queryset[2].price_change_5min and
-            metrics_queryset[0].price_change_1hr > 1 and
-            metrics_queryset[0].price_change_10min < metrics_queryset[1].price_change_10min and
-            metrics_queryset[1].price_change_10min < metrics_queryset[2].price_change_10min and
-            metrics_queryset[0].price_change_1hr < metrics_queryset[1].price_change_1hr and
-            metrics_queryset[1].price_change_1hr < metrics_queryset[2].price_change_1hr and
 
-            metrics_queryset[0].price_change_5min > 10000000
+        rolling_rvol_threshold = 1.7
+        five_min_rvol_threshold = 1.1
+        price_change_5min_threshold = 0.2
+        price_change_10min_threshold = 0
+        price_change_1hr_threshold = -0.6
+        price_change_24hr_threshold = 0.1
+        price_change_7d_threshold = 6.4
+
+        if (
+            metrics_queryset[0].rolling_relative_volume >= rolling_rvol_threshold and
+            metrics_queryset[0].five_min_relative_volume >= five_min_rvol_threshold and
+            metrics_queryset[0].price_change_5min <= price_change_5min_threshold and
+            metrics_queryset[0].price_change_10min >= price_change_10min_threshold and
+            metrics_queryset[0].price_change_1hr <= price_change_1hr_threshold and
+            metrics_queryset[0].price_change_24hr >= price_change_24hr_threshold and
+            metrics_queryset[0].price_change_7d <= price_change_7d_threshold
         ):
             print("TRIGGER short passed")
             trigger_passed = True
-            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : SHORT Trigger Hit (SHORT) Accuracy: ~50%"
+            updated_trigger_four = str(metrics_queryset[0].coin.symbol) + " : Go SHORT."
             exists = check_duplicate_triggers(updated_trigger_four)
 
             if exists == False:
