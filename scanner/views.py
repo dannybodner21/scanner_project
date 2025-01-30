@@ -3976,7 +3976,7 @@ def check_triggers(metrics_queryset):
         metrics_queryset[0].price_change_10min != None and
         metrics_queryset[0].price_change_1hr != None and
         metrics_queryset[0].price_change_24hr != None and
-        #metrics_queryset[0].daily_relative_volume != None and
+        metrics_queryset[0].daily_relative_volume != None and
         metrics_queryset[0].five_min_relative_volume != None and
         metrics_queryset[0].twenty_min_relative_volume != None):
 
