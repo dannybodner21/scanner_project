@@ -659,13 +659,13 @@ def check_trigger(symbol):
 
                 if (
                     trigger_one_hit == False and
-                    metrics[x].rolling_relative_volume > 1.5 and
-                    metrics[x].five_min_relative_volume > 1.1 and
-                    metrics[x].price_change_5min > 0.8 and
-                    metrics[x].price_change_10min < 1.8 and
-                    metrics[x].price_change_1hr > -0.3 and
-                    metrics[x].price_change_24hr < -5.1 and
-                    metrics[x].price_change_7d < -0.9
+                    metrics[x].rolling_relative_volume >= 1.5 and
+                    metrics[x].five_min_relative_volume >= 1.1 and
+                    metrics[x].price_change_5min >= 0.8 and
+                    metrics[x].price_change_10min <= 1.8 and
+                    metrics[x].price_change_1hr >= -0.3 and
+                    metrics[x].price_change_24hr <= -5.1 and
+                    metrics[x].price_change_7d <= -0.9
                 ):
 
                     #print("-------TRIGGER ONE-----------")
@@ -3976,7 +3976,7 @@ def check_triggers(metrics_queryset):
         metrics_queryset[0].price_change_10min != None and
         metrics_queryset[0].price_change_1hr != None and
         metrics_queryset[0].price_change_24hr != None and
-        metrics_queryset[0].daily_relative_volume != None and
+        #metrics_queryset[0].daily_relative_volume != None and
         metrics_queryset[0].five_min_relative_volume != None and
         metrics_queryset[0].twenty_min_relative_volume != None):
 
@@ -4015,14 +4015,16 @@ def check_triggers(metrics_queryset):
             ten_min_price_increase = True
 
         if (
-            metrics_queryset[0].rolling_relative_volume >= 1.5 and
-            metrics_queryset[0].price_change_5min >= 0.7 and
-            metrics_queryset[0].price_change_24hr < -5 and
-            metrics_queryset[0].price_change_1hr > 0
+            metrics_queryset[0].rolling_relative_volume >= 1.4 and
+            metrics_queryset[0].price_change_5min >= 0.8 and
+            metrics_queryset[0].price_change_10min <= 1.9 and
+            metrics_queryset[0].price_change_1hr >= -0.4 and
+            metrics_queryset[0].price_change_24hr <= -4.1 and
+            metrics_queryset[0].price_change_7d <= -0.5
         ):
             print("TRIGGER 1 passed")
             trigger_passed = True
-            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : Trigger 1 (LONG) Accuracy: ~70%"
+            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : LONG"
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
@@ -4041,7 +4043,9 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].rolling_relative_volume >= 1.5 and
             metrics_queryset[0].price_change_5min >= 0.7 and
             metrics_queryset[0].price_change_24hr < -5 and
-            rvol_progression == True
+            rvol_progression == True and
+
+            metrics_queryset[0].price_change_5min > 10000000
         ):
             print("TRIGGER 2 passed")
             trigger_passed = True
@@ -4067,7 +4071,9 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_10min > 0 and
             metrics_queryset[0].price_change_1hr > 0 and
             metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
-            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
+            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr and
+
+            metrics_queryset[0].price_change_5min > 10000000
         ):
             print("TRIGGER 3 passed")
             trigger_passed = True
@@ -4094,7 +4100,9 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_10min < metrics_queryset[1].price_change_10min and
             metrics_queryset[1].price_change_10min < metrics_queryset[2].price_change_10min and
             metrics_queryset[0].price_change_1hr < metrics_queryset[1].price_change_1hr and
-            metrics_queryset[1].price_change_1hr < metrics_queryset[2].price_change_1hr
+            metrics_queryset[1].price_change_1hr < metrics_queryset[2].price_change_1hr and
+
+            metrics_queryset[0].price_change_5min > 10000000
         ):
             print("TRIGGER short passed")
             trigger_passed = True
@@ -4119,7 +4127,9 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_10min < 0 and
             metrics_queryset[0].price_change_1hr > 0 and
             metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
-            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
+            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr and
+
+            metrics_queryset[0].price_change_5min > 10000000
         ):
             print("TRIGGER 5 passed")
             trigger_passed = True
@@ -4144,7 +4154,9 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].rolling_relative_volume >= 1.5 and
             metrics_queryset[0].price_change_5min >= 0.7 and
             metrics_queryset[0].price_change_24hr < -5 and
-            metrics_queryset[0].price_change_1hr > 0
+            metrics_queryset[0].price_change_1hr > 0 and
+
+            metrics_queryset[0].price_change_5min > 10000000
         ):
             print("TRIGGER 6 passed")
             trigger_passed = True
@@ -4167,7 +4179,9 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].daily_relative_volume >= 2.0 and
             metrics_queryset[0].rolling_relative_volume >= 1.5 and
             metrics_queryset[0].price_change_5min >= 0.8 and
-            metrics_queryset[0].price_change_1hr > 0
+            metrics_queryset[0].price_change_1hr > 0 and
+
+            metrics_queryset[0].price_change_5min > 10000000
         ):
             print("TRIGGER 7 passed")
             trigger_passed = True
@@ -4193,7 +4207,9 @@ def check_triggers(metrics_queryset):
             metrics_queryset[0].price_change_10min < 0 and
             metrics_queryset[0].price_change_1hr > 0 and
             metrics_queryset[1].price_change_1hr < metrics_queryset[0].price_change_1hr and
-            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr
+            metrics_queryset[2].price_change_1hr < metrics_queryset[1].price_change_1hr and
+
+            metrics_queryset[0].price_change_5min > 10000000
         ):
             print("TRIGGER 8 passed")
             trigger_passed = True
