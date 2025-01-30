@@ -362,17 +362,20 @@ def brute_force():
     top_price_change_5min = 0
     top_price_change_10min = 0
     top_price_change_1hr = 0
+    top_price_change_24hr = 0
 
     rolling_rvol_threshold = 1.5
     five_min_rvol_threshold = 1.1
     price_change_5min_threshold = 0.8
     price_change_10min_threshold = 1.8
     price_change_1hr_threshold = -0.3
+    price_change_24hr_threshold = 0
 
 
-    for a in range(-10, 41, 1):
+    for a in range(-50, 51, 1):
         value_a = a / 10
-        rolling_rvol_threshold = value_a
+
+        price_change_24hr_threshold = value_a
 
         amount_of_trades = 0
         successful_trades = 0
@@ -408,7 +411,8 @@ def brute_force():
                         metrics[x].five_min_relative_volume > five_min_rvol_threshold and
                         metrics[x].price_change_5min > price_change_5min_threshold and
                         metrics[x].price_change_10min < price_change_10min_threshold and
-                        metrics[x].price_change_1hr > price_change_1hr_threshold
+                        metrics[x].price_change_1hr > price_change_1hr_threshold and
+                        metrics[x].price_change_24hr > price_change_24hr_threshold
                     ):
 
 
@@ -453,21 +457,24 @@ def brute_force():
         if (amount_of_trades != 0):
             success_percentage = (successful_trades / amount_of_trades) * 100
 
-        if (amount_of_trades > 30 and success_percentage > top_percentage):
+        if (amount_of_trades > 50 and success_percentage > top_percentage):
             top_percentage = success_percentage
             top_rolling_rvol = rolling_rvol_threshold
             top_five_min_rvol = five_min_rvol_threshold
             top_price_change_5min = price_change_5min_threshold
             top_price_change_10min = price_change_10min_threshold
             top_price_change_1hr = price_change_1hr_threshold
+            top_price_change_24hr = price_change_24hr_threshold
 
             print("Current Results:")
             print(f"top_percentage: {top_percentage}")
+            print(f"amount of trades: {amount_of_trades}")
             print(f"top_rolling_rvol: {top_rolling_rvol}")
             print(f"top_five_min_rvol: {top_five_min_rvol}")
             print(f"top_price_change_5min: {top_price_change_5min}")
             print(f"top_price_change_10min: {top_price_change_10min}")
             print(f"top_price_change_1hr: {top_price_change_1hr}")
+            print(f"top_price_change_24hr: {top_price_change_24hr}")
 
         else:
             print("not better yet")
@@ -476,24 +483,15 @@ def brute_force():
 
 
 
-
-
-
-
-
-
-
-
-
-
-
     print("Final Results:")
+    print(f"amount of trades: {amount_of_trades}")
     print(f"top_percentage: {top_percentage}")
     print(f"top_rolling_rvol: {top_rolling_rvol}")
     print(f"top_five_min_rvol: {top_five_min_rvol}")
     print(f"top_price_change_5min: {top_price_change_5min}")
     print(f"top_price_change_10min: {top_price_change_10min}")
     print(f"top_price_change_1hr: {top_price_change_1hr}")
+    print(f"top_price_change_24hr: {top_price_change_24hr}")
 
 
 
