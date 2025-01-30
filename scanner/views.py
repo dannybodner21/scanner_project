@@ -777,6 +777,8 @@ def check_trigger(symbol):
 
         for x in range(6, len(metrics)):
 
+            day = metrics[x].timestamp.day
+
             if (metrics[x].rolling_relative_volume != None and
                 metrics[x].price_change_5min != None and
                 metrics[x].price_change_10min != None and
@@ -784,7 +786,8 @@ def check_trigger(symbol):
                 metrics[x].price_change_24hr != None and
                 #metrics[x].daily_relative_volume != None and
                 metrics[x].five_min_relative_volume != None and
-                metrics[x].twenty_min_relative_volume != None):
+                metrics[x].twenty_min_relative_volume != None and
+                day != 20):
 
 
 
@@ -833,10 +836,10 @@ def check_trigger(symbol):
 
                 if (
                     trigger_one_hit == False and
-                    metrics[x].rolling_relative_volume >= 1.5 and
-                    metrics[x].five_min_relative_volume >= 1.1 and
-                    metrics[x].price_change_5min >= 0.8 and
-                    metrics[x].price_change_10min <= 1.8 and
+                    metrics[x].rolling_relative_volume >= 1.4 and
+                    #metrics[x].five_min_relative_volume >= 1.1 and
+                    metrics[x].price_change_5min >= 0.7 and
+                    metrics[x].price_change_10min <= 1.9 and
                     metrics[x].price_change_1hr >= -0.3 and
                     metrics[x].price_change_24hr <= -5.1 and
                     metrics[x].price_change_7d <= -0.9
@@ -1166,7 +1169,7 @@ def check_trigger(symbol):
                     #metrics[x-1].price_change_1hr < metrics[x-2].price_change_1hr
 
                     metrics[x].rolling_relative_volume >= rolling_rvol_threshold and
-                    metrics[x].five_min_relative_volume >= five_min_rvol_threshold and
+                    #metrics[x].five_min_relative_volume >= five_min_rvol_threshold and
                     metrics[x].price_change_5min <= price_change_5min_threshold and
                     metrics[x].price_change_10min >= price_change_10min_threshold and
                     metrics[x].price_change_1hr <= price_change_1hr_threshold and
@@ -4206,11 +4209,11 @@ def check_triggers(metrics_queryset):
 
         if (
             metrics_queryset[0].rolling_relative_volume >= 1.4 and
-            metrics_queryset[0].price_change_5min >= 0.8 and
+            metrics_queryset[0].price_change_5min >= 0.7 and
             metrics_queryset[0].price_change_10min <= 1.9 and
-            metrics_queryset[0].price_change_1hr >= -0.4 and
-            metrics_queryset[0].price_change_24hr <= -4.1 and
-            metrics_queryset[0].price_change_7d <= -0.5
+            metrics_queryset[0].price_change_1hr >= -0.3 and
+            metrics_queryset[0].price_change_24hr <= -5.1 and
+            metrics_queryset[0].price_change_7d <= -0.9
         ):
             print("TRIGGER 1 passed")
             trigger_passed = True
@@ -4292,7 +4295,7 @@ def check_triggers(metrics_queryset):
 
         if (
             metrics_queryset[0].rolling_relative_volume >= rolling_rvol_threshold and
-            metrics_queryset[0].five_min_relative_volume >= five_min_rvol_threshold and
+            #metrics_queryset[0].five_min_relative_volume >= five_min_rvol_threshold and
             metrics_queryset[0].price_change_5min <= price_change_5min_threshold and
             metrics_queryset[0].price_change_10min >= price_change_10min_threshold and
             metrics_queryset[0].price_change_1hr <= price_change_1hr_threshold and
