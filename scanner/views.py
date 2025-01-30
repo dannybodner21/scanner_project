@@ -377,7 +377,7 @@ def brute_force():
     for a in range(-50, -200, -1):
         value_a = a / 10
 
-        price_change_24hr_threshold = value_a
+        price_change_7d_threshold = value_a
 
         amount_of_trades = 0
         successful_trades = 0
@@ -659,25 +659,13 @@ def check_trigger(symbol):
 
                 if (
                     trigger_one_hit == False and
-                    #metrics[x].rolling_relative_volume >= 1.5 and
-                    #metrics[x].price_change_5min >= 0.7 and
-                    #metrics[x].price_change_24hr < -5 and
-                    #metrics[x].price_change_1hr > 0
-
-                    #1 < metrics[x].rolling_relative_volume and
-                    #0.9 < metrics[x].twenty_min_relative_volume and
-                    #-0.07 < metrics[x].price_change_5min and
-                    #-0.4 < metrics[x].price_change_10min < 0 and
-                    #-0.4 < metrics[x].price_change_1hr < 0 and
-                    #metrics[x].price_change_24hr < -4 and
-                    #metrics[x].price_change_7d < -4
-
-                    1.16 <= metrics[x].rolling_relative_volume <= 3.15 and
-                    metrics[x].five_min_relative_volume > 1.02 and
-                    metrics[x].price_change_5min > 2.21 and
-                    metrics[x].price_change_10min < -0.07 and
-                    metrics[x].price_change_1hr > 3.15
-
+                    metrics[x].rolling_relative_volume > 1.5 and
+                    metrics[x].five_min_relative_volume > 1.1 and
+                    metrics[x].price_change_5min > 0.8 and
+                    metrics[x].price_change_10min < 1.8 and
+                    metrics[x].price_change_1hr > -0.3 and
+                    metrics[x].price_change_24hr < -5.1 and
+                    metrics[x].price_change_7d < -0.9
                 ):
 
                     #print("-------TRIGGER ONE-----------")
@@ -820,6 +808,7 @@ def check_trigger(symbol):
                     except:
                         print("failed in trigger 2")
 
+                    '''
                     day = metrics[x].timestamp.day
                     if day == 15:
                         count_15 += 1
@@ -855,6 +844,7 @@ def check_trigger(symbol):
                         count_30 += 1
                     elif day == 31:
                         count_31 += 1
+                    '''
 
 
 
@@ -932,6 +922,7 @@ def check_trigger(symbol):
                     except:
                         print("failed in trigger 3")
 
+                    '''
                     day = metrics[x].timestamp.day
                     if day == 15:
                         count_15 += 1
@@ -967,6 +958,7 @@ def check_trigger(symbol):
                         count_30 += 1
                     elif day == 31:
                         count_31 += 1
+                    '''
 
 
 
@@ -1031,6 +1023,7 @@ def check_trigger(symbol):
                     except:
                         print("failed in short trigger")
 
+                    '''
                     day = metrics[x].timestamp.day
                     if day == 15:
                         count_15 += 1
@@ -1066,6 +1059,7 @@ def check_trigger(symbol):
                         count_30 += 1
                     elif day == 31:
                         count_31 += 1
+                    '''
 
 
                 # TRIGGER 5 ----------------------------------------------------
@@ -1131,6 +1125,7 @@ def check_trigger(symbol):
                     except:
                         print("failed in trigger 5")
 
+                    '''
                     day = metrics[x].timestamp.day
                     if day == 15:
                         count_15 += 1
@@ -1166,6 +1161,7 @@ def check_trigger(symbol):
                         count_30 += 1
                     elif day == 31:
                         count_31 += 1
+                    '''
 
 
 
@@ -1227,7 +1223,7 @@ def check_trigger(symbol):
                     except:
                         print("failed in trigger 6")
 
-
+                    '''
                     day = metrics[x].timestamp.day
                     if day == 15:
                         count_15 += 1
@@ -1263,6 +1259,7 @@ def check_trigger(symbol):
                         count_30 += 1
                     elif day == 31:
                         count_31 += 1
+                    '''
 
 
                 # TRIGGER SEVEN ------------------------------------------------
@@ -1321,7 +1318,7 @@ def check_trigger(symbol):
                     except:
                         print("failed in trigger 7")
 
-
+                    '''
                     day = metrics[x].timestamp.day
                     if day == 15:
                         count_15 += 1
@@ -1357,7 +1354,7 @@ def check_trigger(symbol):
                         count_30 += 1
                     elif day == 31:
                         count_31 += 1
-
+                    '''
 
 
 
@@ -1426,6 +1423,7 @@ def check_trigger(symbol):
                     except:
                         print("failed in trigger 8")
 
+                    '''
                     day = metrics[x].timestamp.day
                     if day == 15:
                         count_15 += 1
@@ -1461,7 +1459,7 @@ def check_trigger(symbol):
                         count_30 += 1
                     elif day == 31:
                         count_31 += 1
-
+                    '''
 
 
 
