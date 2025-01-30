@@ -185,15 +185,6 @@ def brute_force_short():
     print(f"top_price_change_7d: {top_price_change_7d}")
 
 
-
-
-
-
-
-
-
-
-
 def determine_trigger_ranges(stats):
 
     triggers = {}
@@ -249,7 +240,9 @@ def compute_statistics(results):
 
 def find_best_trigger():
 
-    coins = Coin.objects.all()
+    #coins = Coin.objects.all()
+
+    coin = Coin.objects.get(symbol="XRP")
 
     results = []
 
@@ -259,91 +252,63 @@ def find_best_trigger():
     trigger_one_trades = 0
     trigger_one_success = 0
 
-    # for each coin
-    # find all the locations that preceeded a 5% increase in price before a 2% decrease
+    metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
-    for coin in coins:
+    trigger_one_hit_counter = 0
+    trigger_one_hit = False
 
-        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+    for x in range(6, len(metrics)):
 
-        trigger_one_hit_counter = 0
-        trigger_one_hit = False
+        trigger_price = metrics[x].last_price
+        stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.70))
 
-        for x in range(6, len(metrics)):
+        take_profit_hit = False
+        stop_loss_hit = False
 
-            # go through every metric for every coin
-            # check if that location preceeded a 5% increase in price
+        try:
+            for y in range(x, len(metrics)):
+                if (metrics[y].last_price >= take_profit_price):
+                    take_profit_hit = True
+                    break
 
-            trigger_price = metrics[x].last_price
-            stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-            take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.10))
+                if (metrics[y].last_price <= stop_loss_price):
+                    stop_loss_hit = True
+                    break
 
-            take_profit_hit = False
-            stop_loss_hit = False
+            if (take_profit_hit == True):
 
-            try:
-                for y in range(x, len(metrics)):
-                    if (metrics[y].last_price >= take_profit_price):
-                        take_profit_hit = True
-                        break
+                # successful entry point
+                dict = {}
+                dict[0] = coin.symbol
+                dict[1] = metrics[x].timestamp
+                dict[3] = metrics[x].rolling_relative_volume
+                dict[4] = metrics[x].five_min_relative_volume
+                dict[5] = metrics[x].twenty_min_relative_volume
+                dict[6] = metrics[x].price_change_5min
+                dict[7] = metrics[x].price_change_10min
+                dict[8] = metrics[x].price_change_1hr
+                dict[9] = metrics[x].price_change_24hr
+                dict[10] = metrics[x].price_change_7d
 
-                    if (metrics[y].last_price <= stop_loss_price):
-                        stop_loss_hit = True
-                        break
-
-                if (take_profit_hit == True):
-
-                    # successful entry point
-                    dict = {}
-                    dict[0] = coin.symbol
-                    dict[1] = metrics[x].timestamp
-                    dict[3] = metrics[x].rolling_relative_volume
-                    dict[4] = metrics[x].five_min_relative_volume
-                    dict[5] = metrics[x].twenty_min_relative_volume
-                    dict[6] = metrics[x].price_change_5min
-                    dict[7] = metrics[x].price_change_10min
-                    dict[8] = metrics[x].price_change_1hr
-                    dict[9] = metrics[x].price_change_24hr
-                    dict[10] = metrics[x].price_change_7d
-
-                    results.append(dict)
+                results.append(dict)
 
 
-            except Exception as e:
-                print(f"Error: {e}")
-
+        except Exception as e:
+            print(f"Error: {e}")
 
 
     # results has all the metrics
-
-
-
-
-
-    csv_file_name = "main_metrics.csv"
-    with open(csv_file_name, mode='w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
-
-        csvwriter.writerow([
-            "Coin", "Timestamp", "Rolling RVOL", "5-Min RVOL",
-            "20-Min RVOL", "5-Min Price Change", "10-Min Price Change",
-            "1-Hour Price Change", "24-Hour Price Change", "7-Day Price Change"
-        ])
-
-    #with open('output.txt', 'w') as f:
-        for result in results:
-            csvwriter.writerow([
-                result[0],
-                result[1],
-                result[3],
-                result[4],
-                result[5],
-                result[6],
-                result[7],
-                result[8],
-                result[9],
-                result[10]
-            ])
+    for success in results:
+        print(f"timestamp: {success[1]}")
+        print(f"rolling_relative_volume: {success[3]}")
+        print(f"five_min_relative_volume: {success[4]}")
+        print(f"twenty_min_relative_volume: {success[5]}")
+        print(f"price_change_5min: {success[6]}")
+        print(f"price_change_10min: {success[7]}")
+        print(f"price_change_1hr: {success[8]}")
+        print(f"price_change_24hr: {success[9]}")
+        print(f"price_change_7d: {success[10]}")
 
 
 
@@ -400,6 +365,7 @@ def brute_force_one():
             trigger_one_hit_counter = 0
             trigger_one_hit = False
 
+            day = metrics[x].timestamp.day
 
             for x in range(6, len(metrics)):
 
@@ -409,7 +375,8 @@ def brute_force_one():
                     metrics[x].price_change_1hr != None and
                     metrics[x].price_change_24hr != None and
                     metrics[x].five_min_relative_volume != None and
-                    metrics[x].twenty_min_relative_volume != None):
+                    metrics[x].twenty_min_relative_volume != None and
+                    day != 20):
 
                     # TRIGGER 1 ----------------------------------------------------
                     if (trigger_one_hit == True):
@@ -503,13 +470,6 @@ def brute_force_one():
     print(f"top_price_change_1hr: {top_price_change_1hr}")
 
 
-
-
-
-
-
-
-
 def brute_force():
 
     # brute force try on every single trigger combination and save best results
@@ -524,11 +484,13 @@ def brute_force():
     successful_trades = 0
     failed_trades = 0
 
-    #rolling_rvol_threshold = 0
-    #five_min_rvol_threshold = 0
-    #price_change_5min_threshold = 0
-    #price_change_10min_threshold = 0
-    #price_change_1hr_threshold = 0
+    rolling_rvol_threshold = 1.4
+    five_min_rvol_threshold = 1.0
+    price_change_5min_threshold = 0.2
+    price_change_10min_threshold = 0.1
+    price_change_1hr_threshold = 0
+    price_change_24hr_threshold = -0.5
+    price_change_7d_threshold = 0.5
 
     top_percentage = 0
     top_rolling_rvol = 0
@@ -539,19 +501,19 @@ def brute_force():
     top_price_change_24hr = 0
     top_price_change_7d = 0
 
-    rolling_rvol_threshold = 1.5
-    five_min_rvol_threshold = 1.1
-    price_change_5min_threshold = 0.8
-    price_change_10min_threshold = 1.8
-    price_change_1hr_threshold = -0.3
-    price_change_24hr_threshold = -10.3
-    price_change_7d_threshold = 0
+    #rolling_rvol_threshold = 1.5
+    #five_min_rvol_threshold = 1.1
+    #price_change_5min_threshold = 0.8
+    #price_change_10min_threshold = 1.8
+    #price_change_1hr_threshold = -0.3
+    #price_change_24hr_threshold = -10.3
+    #price_change_7d_threshold = 0
 
 
-    for a in range(-50, -200, -1):
+    for a in range(-5, 20, 1):
         value_a = a / 10
 
-        price_change_7d_threshold = value_a
+        five_min_rvol_threshold = value_a
 
         amount_of_trades = 0
         successful_trades = 0
@@ -565,13 +527,16 @@ def brute_force():
 
             for x in range(6, len(metrics)):
 
+                day = metrics[x].timestamp.day
+
                 if (metrics[x].rolling_relative_volume != None and
                     metrics[x].price_change_5min != None and
                     metrics[x].price_change_10min != None and
                     metrics[x].price_change_1hr != None and
                     metrics[x].price_change_24hr != None and
                     metrics[x].five_min_relative_volume != None and
-                    metrics[x].twenty_min_relative_volume != None):
+                    metrics[x].twenty_min_relative_volume != None and
+                    day != 20):
 
                     # TRIGGER 1 ----------------------------------------------------
                     if (trigger_one_hit == True):
@@ -672,8 +637,6 @@ def brute_force():
     print(f"top_price_change_1hr: {top_price_change_1hr}")
     print(f"top_price_change_24hr: {top_price_change_24hr}")
     print(f"top_price_change_7d: {top_price_change_7d}")
-
-
 
 
 # used to test out a trigger combination against the data we have in the db
@@ -787,7 +750,7 @@ def check_trigger(symbol):
                 #metrics[x].daily_relative_volume != None and
                 metrics[x].five_min_relative_volume != None and
                 metrics[x].twenty_min_relative_volume != None and
-                day != 20):
+                day != 50):
 
 
 
@@ -837,12 +800,12 @@ def check_trigger(symbol):
                 if (
                     trigger_one_hit == False and
                     metrics[x].rolling_relative_volume >= 1.4 and
-                    #metrics[x].five_min_relative_volume >= 1.1 and
-                    metrics[x].price_change_5min >= 0.7 and
-                    metrics[x].price_change_10min <= 1.9 and
-                    metrics[x].price_change_1hr >= -0.3 and
-                    metrics[x].price_change_24hr <= -5.1 and
-                    metrics[x].price_change_7d <= -0.9
+                    metrics[x].five_min_relative_volume >= 1.0 and
+                    metrics[x].price_change_5min >= 0.2 and
+                    metrics[x].price_change_10min <= 0.1 and
+                    metrics[x].price_change_1hr >= 0 and
+                    metrics[x].price_change_24hr <= -0.5 and
+                    metrics[x].price_change_7d <= -.5
                 ):
 
                     #print("-------TRIGGER ONE-----------")
@@ -923,6 +886,8 @@ def check_trigger(symbol):
                         count_29 += 1
                     elif day == 30:
                         count_30 += 1
+                        print(coin.symbol)
+                        print(metrics[x].timestamp)
                     elif day == 31:
                         count_31 += 1
 
@@ -4217,7 +4182,7 @@ def check_triggers(metrics_queryset):
         ):
             print("TRIGGER 1 passed")
             trigger_passed = True
-            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : LONG"
+            updated_trigger = str(metrics_queryset[0].coin.symbol) + " : LONG (1)"
             exists = check_duplicate_triggers(updated_trigger)
 
             if exists == False:
@@ -4232,17 +4197,17 @@ def check_triggers(metrics_queryset):
 
 
         if (
-            #metrics_queryset[0].daily_relative_volume >= 1.75 and
-            metrics_queryset[0].rolling_relative_volume >= 1.5 and
-            metrics_queryset[0].price_change_5min >= 0.7 and
-            metrics_queryset[0].price_change_24hr < -5 and
-            rvol_progression == True and
-
-            metrics_queryset[0].price_change_5min > 10000000
+            metrics_queryset[0].rolling_relative_volume >= 1.4 and
+            metrics_queryset[0].five_min_relative_volume >= 1.0 and
+            metrics_queryset[0].price_change_5min >= 0.2 and
+            metrics_queryset[0].price_change_10min <= 0.1 and
+            metrics_queryset[0].price_change_1hr >= 0 and
+            metrics_queryset[0].price_change_24hr <= -0.5 and
+            metrics_queryset[0].price_change_7d <= 0.5
         ):
             print("TRIGGER 2 passed")
             trigger_passed = True
-            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Trigger 2 (LONG) Accuracy: ~50%"
+            updated_trigger_two = str(metrics_queryset[0].coin.symbol) + " : Go LONG (2)"
             exists = check_duplicate_triggers(updated_trigger_two)
 
             if exists == False:
