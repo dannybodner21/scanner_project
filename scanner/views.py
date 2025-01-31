@@ -261,7 +261,7 @@ def find_best_trigger():
 
         trigger_price = metrics[x].last_price
         stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.70))
+        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.07))
 
         take_profit_hit = False
         stop_loss_hit = False
@@ -479,7 +479,12 @@ def brute_force():
     # 3. if the trigger didn't go off more than 30 times, disregard
     # 4. if success rate is higher than previous, save it
 
-    coins = Coin.objects.all()
+    #coins = Coin.objects.all()
+
+    coin = Coin.objects.get(symbol="XRP")
+
+    coins = [coin]
+
     amount_of_trades = 0
     successful_trades = 0
     failed_trades = 0
@@ -1215,6 +1220,9 @@ def check_trigger(symbol):
                         count_29 += 1
                     elif day == 30:
                         count_30 += 1
+                        print("SHORT")
+                        print(coin.symbol)
+                        print(metrics[x].timestamp)
                     elif day == 31:
                         count_31 += 1
 
