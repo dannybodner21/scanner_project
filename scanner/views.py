@@ -515,10 +515,24 @@ def brute_force():
     #price_change_7d_threshold = 0
 
 
-    for a in range(-5, 20, 1):
+    rolling_rvol_threshold = 0
+    five_min_rvol_threshold = 0
+    price_change_5min_threshold = 0
+    price_change_10min_threshold = 0
+    price_change_1hr_threshold = 0
+    price_change_24hr_threshold = 0
+    price_change_7d_threshold = 0
+
+    start = 5
+    finish = 30
+    step = 1
+
+
+    for a in range(start, finish, step):
+        
         value_a = a / 10
 
-        five_min_rvol_threshold = value_a
+        rolling_rvol_threshold = value_a
 
         amount_of_trades = 0
         successful_trades = 0
@@ -541,7 +555,7 @@ def brute_force():
                     metrics[x].price_change_24hr != None and
                     metrics[x].five_min_relative_volume != None and
                     metrics[x].twenty_min_relative_volume != None and
-                    day != 20):
+                    day != 50):
 
                     # TRIGGER 1 ----------------------------------------------------
                     if (trigger_one_hit == True):
@@ -569,7 +583,7 @@ def brute_force():
 
                         trigger_price = metrics[x].last_price
                         stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.06))
+                        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
 
                         # try to go through remaining metrics
                         take_profit_hit = False
