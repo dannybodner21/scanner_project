@@ -19,6 +19,98 @@ from django.db.models import Prefetch, OuterRef, Subquery
 import statistics
 import csv
 
+import pandas as pd
+import decimal
+
+
+
+def create_main_csv():
+
+
+    output_file = "trade_triggers.csv"
+
+    # Define the required columns for the final CSV
+    columns = [
+        "Symbol", "Timestamp", "Rolling RVOL", "5-Min RVOL", "5-Min Price Change",
+        "10-Min Price Change", "1-Hour Price Change", "24-Hour Price Change",
+        "Last Price", "Trigger Type", "Trade_Success"
+    ]
+
+    # Create an empty list to store trade results
+    trade_results = []
+
+    coins = Coin.objects.all()[:20]  # Limit to 20 coins
+
+    for coin in coins:
+        
+        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+        for x in range(6, len(metrics)):
+            # Ensure all necessary metrics exist and are not None
+            if all([
+                metrics[x].rolling_relative_volume is not None,
+                metrics[x].price_change_5min is not None,
+                metrics[x].price_change_10min is not None,
+                metrics[x].price_change_1hr is not None,
+                metrics[x].price_change_24hr is not None,
+                metrics[x].five_min_relative_volume is not None,
+                metrics[x].twenty_min_relative_volume is not None
+            ]):
+                trigger_price = metrics[x].last_price
+                stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.06))
+
+                # Track if take-profit or stop-loss hits first
+                take_profit_hit = False
+                stop_loss_hit = False
+
+                try:
+                    for y in range(x, len(metrics)):
+                        if metrics[y].last_price >= take_profit_price:
+                            take_profit_hit = True
+                            break
+                        if metrics[y].last_price <= stop_loss_price:
+                            stop_loss_hit = True
+                            break
+
+                    # Determine trade success
+                    trade_success = 1 if take_profit_hit else 0 if stop_loss_hit else None
+
+                    if trade_success is not None:
+                        trade_results.append({
+                            "Symbol": coin.symbol,
+                            "Timestamp": metrics[x].timestamp,
+                            "Rolling RVOL": metrics[x].rolling_relative_volume,
+                            "5-Min RVOL": metrics[x].five_min_relative_volume,
+                            "5-Min Price Change": metrics[x].price_change_5min,
+                            "10-Min Price Change": metrics[x].price_change_10min,
+                            "1-Hour Price Change": metrics[x].price_change_1hr,
+                            "24-Hour Price Change": metrics[x].price_change_24hr,
+                            "Last Price": metrics[x].last_price,
+                            "Trigger Type": "long",
+                            "Trade_Success": trade_success
+                        })
+
+                except Exception as e:
+                    print(f"Error processing {coin.symbol} at {metrics[x].timestamp}: {e}")
+
+    # Convert the list to a DataFrame and save it
+    df_results = pd.DataFrame(trade_results, columns=columns)
+    df_results.to_csv(output_file, index=False)
+
+    print(f"Trade triggers saved to {output_file}")
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -183,59 +275,6 @@ def brute_force_short():
     print(f"top_price_change_1hr: {top_price_change_1hr}")
     print(f"top_price_change_24hr: {top_price_change_24hr}")
     print(f"top_price_change_7d: {top_price_change_7d}")
-
-
-def determine_trigger_ranges(stats):
-
-    triggers = {}
-
-    # Using median as a strong baseline, and allowing some flexibility with mean/min/max
-    triggers["rolling_relative_volume"] = {
-        "min": max(stats[3]["median"], 0.9),  # Ensure it's above 0.9
-        "max": stats[3]["max"]
-    }
-
-    triggers["five_min_relative_volume"] = {
-        "min": max(stats[4]["median"], 1.0),  # Should at least be 1.0
-        "max": stats[4]["max"]
-    }
-
-    triggers["price_change_5min"] = {
-        "min": stats[6]["median"],  # Can be negative, improving soon
-        "max": stats[6]["max"]
-    }
-
-    triggers["price_change_10min"] = {
-        "min": stats[7]["median"],  # Should be slightly negative, improving
-        "max": stats[7]["max"]
-    }
-
-    triggers["price_change_1hr"] = {
-        "min": stats[8]["median"],  # Should be improving, ideally > -0.2
-        "max": stats[8]["max"]
-    }
-
-    return triggers
-
-def compute_statistics(results):
-    metrics_keys = [3, 4, 5, 6, 7, 8, 9, 10]  # Metric keys in the dictionary
-    stats = {}
-
-    for key in metrics_keys:
-        # Extract all values for the given metric
-        values = [d[key] for d in results if d[key] is not None]  # Ensure non-null values
-
-        if values:
-            stats[key] = {
-                "mean": sum(values) / len(values),
-                "median": statistics.median(values),
-                "min": min(values),
-                "max": max(values)
-            }
-        else:
-            stats[key] = {"mean": None, "median": None, "min": None, "max": None}
-
-    return stats
 
 
 def find_best_trigger():
