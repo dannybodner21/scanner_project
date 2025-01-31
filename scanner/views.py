@@ -45,6 +45,10 @@ def create_main_csv():
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
+        trigger_one_hit_counter = 0
+        trigger_one_hit = False
+        take_profit_hit = False
+
         for x in range(6, len(metrics)):
             # Ensure all necessary metrics exist and are not None
             if all([
@@ -61,17 +65,46 @@ def create_main_csv():
                 take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.06))
 
                 # Track if take-profit or stop-loss hits first
-                take_profit_hit = False
+
                 stop_loss_hit = False
+
+                if (trigger_one_hit == True):
+                    trigger_one_hit_counter += 1
+
+                if (trigger_one_hit_counter >= 13):
+                    trigger_one_hit = False
+                    trigger_one_hit_counter = 0
+                    take_profit_hit = False
+
+                if (take_profit_hit):
+                    trade_results.append({
+                        "Symbol": coin.symbol,
+                        "Timestamp": metrics[x].timestamp,
+                        "Rolling RVOL": metrics[x].rolling_relative_volume,
+                        "5-Min RVOL": metrics[x].five_min_relative_volume,
+                        "5-Min Price Change": metrics[x].price_change_5min,
+                        "10-Min Price Change": metrics[x].price_change_10min,
+                        "1-Hour Price Change": metrics[x].price_change_1hr,
+                        "24-Hour Price Change": metrics[x].price_change_24hr,
+                        "Last Price": metrics[x].last_price,
+                        "Trigger Type": "long",
+                        "Trade_Success": 0
+                    })
+                    break
+
 
                 try:
                     for y in range(x, len(metrics)):
-                        if metrics[y].last_price >= take_profit_price:
+                        if (metrics[y].last_price >= take_profit_price and
+                            take_profit_hit == False):
                             take_profit_hit = True
                             break
                         if metrics[y].last_price <= stop_loss_price:
                             stop_loss_hit = True
                             break
+
+                    if take_profit_hit:
+                        trigger_one_hit = True
 
                     # Determine trade success
                     trade_success = 1 if take_profit_hit else 0 if stop_loss_hit else None
@@ -967,12 +1000,12 @@ def check_trigger(symbol):
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].rolling_relative_volume >= 1.2 and
+                    metrics[x].rolling_relative_volume >= 1.4 and
                     #metrics[x].price_change_24hr >= 0.0585 and
-                    metrics[x].price_change_10min >= 0.75 and
-                    metrics[x].five_min_relative_volume >= 1.5 and
+                    metrics[x].price_change_10min >= 1.0 and
+                    metrics[x].five_min_relative_volume >= 1.8 and
                     metrics[x].price_change_5min >= 0.5 and
-                    metrics[x].price_change_1hr >= 1.0
+                    metrics[x].price_change_1hr >= 0.5
                 ):
                     #print("-----TRIGGER TWO-------------")
                     #print(coin.symbol)
