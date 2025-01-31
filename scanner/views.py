@@ -533,135 +533,129 @@ def brute_force():
         value_a = a / 10
         rolling_rvol_threshold = value_a
 
-        for b in range(5, 25, 1):
+        for c in range(-10, 15, 1):
 
-            value_b = b / 10
-            five_min_rvol_threshold = value_b
+            value_c = c / 10
+            price_change_5min_threshold = value_c
 
-            for c in range(-10, 15, 1):
+                for e in range(10, 25, 1):
 
-                value_c = c / 10
-                price_change_5min_threshold = value_c
+                    value_e = e / 10
+                    price_change_1hr_threshold = value_e
+                    price_change_1hr_threshold = 1.9
 
-                for d in range(10, -10, -1):
+                    amount_of_trades = 0
+                    successful_trades = 0
+                    failed_trades = 0
 
-                    value_d = d / 10
-                    price_change_10min_threshold = value_d
+                    for coin in coins:
 
-                    for e in range(5, 30, 1):
+                        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+                        trigger_one_hit_counter = 0
+                        trigger_one_hit = False
 
-                        value_e = e / 10
-                        price_change_1hr_threshold = value_e
+                        for x in range(6, len(metrics)):
 
-                        amount_of_trades = 0
-                        successful_trades = 0
-                        failed_trades = 0
+                            day = metrics[x].timestamp.day
 
-                        for coin in coins:
+                            if (metrics[x].rolling_relative_volume != None and
+                                metrics[x].price_change_5min != None and
+                                metrics[x].price_change_10min != None and
+                                metrics[x].price_change_1hr != None and
+                                metrics[x].price_change_24hr != None and
+                                metrics[x].five_min_relative_volume != None and
+                                metrics[x].twenty_min_relative_volume != None and
+                                day != 50):
 
-                            metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
-                            trigger_one_hit_counter = 0
-                            trigger_one_hit = False
+                                # TRIGGER 1 ----------------------------------------------------
+                                if (trigger_one_hit == True):
+                                    trigger_one_hit_counter += 1
 
-                            for x in range(6, len(metrics)):
+                                if (trigger_one_hit_counter > 13):
+                                    trigger_one_hit = False
+                                    trigger_one_hit_counter = 0
 
-                                day = metrics[x].timestamp.day
-
-                                if (metrics[x].rolling_relative_volume != None and
-                                    metrics[x].price_change_5min != None and
-                                    metrics[x].price_change_10min != None and
-                                    metrics[x].price_change_1hr != None and
-                                    metrics[x].price_change_24hr != None and
-                                    metrics[x].five_min_relative_volume != None and
-                                    metrics[x].twenty_min_relative_volume != None and
-                                    day != 50):
-
-                                    # TRIGGER 1 ----------------------------------------------------
-                                    if (trigger_one_hit == True):
-                                        trigger_one_hit_counter += 1
-
-                                    if (trigger_one_hit_counter > 13):
-                                        trigger_one_hit = False
-                                        trigger_one_hit_counter = 0
-
-                                    if (
-                                        trigger_one_hit == False and
-                                        metrics[x].rolling_relative_volume > rolling_rvol_threshold and
-                                        metrics[x].five_min_relative_volume > five_min_rvol_threshold and
-                                        metrics[x].price_change_5min > price_change_5min_threshold and
-                                        metrics[x].price_change_10min < price_change_10min_threshold and
-                                        metrics[x].price_change_1hr > price_change_1hr_threshold
-                                        #metrics[x].price_change_24hr < price_change_24hr_threshold and
-                                        #metrics[x].price_change_7d < price_change_7d_threshold
-                                    ):
+                                if (
+                                    trigger_one_hit == False and
+                                    metrics[x].rolling_relative_volume > rolling_rvol_threshold and
+                                    #metrics[x].five_min_relative_volume > five_min_rvol_threshold and
+                                    metrics[x].price_change_5min > price_change_5min_threshold and
+                                    #metrics[x].price_change_10min < price_change_10min_threshold and
+                                    metrics[x].price_change_1hr > price_change_1hr_threshold
+                                    #metrics[x].price_change_24hr < price_change_24hr_threshold and
+                                    #metrics[x].price_change_7d < price_change_7d_threshold
+                                ):
 
 
-                                        trigger_one_hit = True
+                                    trigger_one_hit = True
 
-                                        amount_of_trades += 1
+                                    amount_of_trades += 1
 
-                                        trigger_price = metrics[x].last_price
-                                        stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                                        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                                    trigger_price = metrics[x].last_price
+                                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
 
-                                        # try to go through remaining metrics
-                                        take_profit_hit = False
-                                        stop_loss_hit = False
-                                        take_profit_timestamp = None
-                                        stop_loss_timestamp = None
-                                        try:
-                                            for y in range(x, len(metrics)):
-                                                if (metrics[y].last_price >= take_profit_price):
-                                                    take_profit_hit = True
-                                                    take_profit_timestamp = metrics[y].timestamp
-                                                    break
+                                    # try to go through remaining metrics
+                                    take_profit_hit = False
+                                    stop_loss_hit = False
+                                    take_profit_timestamp = None
+                                    stop_loss_timestamp = None
+                                    try:
+                                        for y in range(x, len(metrics)):
+                                            if (metrics[y].last_price >= take_profit_price):
+                                                take_profit_hit = True
+                                                take_profit_timestamp = metrics[y].timestamp
+                                                break
 
-                                                if (metrics[y].last_price <= stop_loss_price):
-                                                    stop_loss_hit = True
-                                                    stop_loss_timestamp = metrics[y].timestamp
-                                                    break
+                                            if (metrics[y].last_price <= stop_loss_price):
+                                                stop_loss_hit = True
+                                                stop_loss_timestamp = metrics[y].timestamp
+                                                break
 
-                                            if (take_profit_hit == True):
-                                                successful_trades += 1
-                                            elif (stop_loss_hit == True):
-                                                failed_trades += 1
-                                            else:
-                                                amount_of_trades -= 1
+                                        if (take_profit_hit == True):
+                                            successful_trades += 1
+                                        elif (stop_loss_hit == True):
+                                            failed_trades += 1
+                                        else:
+                                            amount_of_trades -= 1
 
-                                        except:
-                                            print("failed in trigger 1")
+                                    except:
+                                        print("failed in trigger 1")
 
 
-                        # check success rate
-                        success_percentage = 0
-                        if (amount_of_trades != 0):
-                            success_percentage = (successful_trades / amount_of_trades) * 100
+                    # check success rate
+                    success_percentage = 0
+                    if (amount_of_trades != 0):
+                        success_percentage = (successful_trades / amount_of_trades) * 100
 
-                        if (amount_of_trades >= 5 and success_percentage > top_percentage):
-                            top_percentage = success_percentage
-                            top_rolling_rvol = rolling_rvol_threshold
-                            top_five_min_rvol = five_min_rvol_threshold
-                            top_price_change_5min = price_change_5min_threshold
-                            top_price_change_10min = price_change_10min_threshold
-                            top_price_change_1hr = price_change_1hr_threshold
-                            #top_price_change_24hr = price_change_24hr_threshold
-                            #top_price_change_7d = price_change_7d_threshold
+                    if (amount_of_trades >= 5 and success_percentage > top_percentage):
+                        top_percentage = success_percentage
+                        top_rolling_rvol = rolling_rvol_threshold
+                        top_five_min_rvol = five_min_rvol_threshold
+                        top_price_change_5min = price_change_5min_threshold
+                        top_price_change_10min = price_change_10min_threshold
+                        top_price_change_1hr = price_change_1hr_threshold
+                        #top_price_change_24hr = price_change_24hr_threshold
+                        #top_price_change_7d = price_change_7d_threshold
 
-                            print("Current Results:")
-                            print(f"top_percentage: {top_percentage}")
-                            print(f"amount of trades: {amount_of_trades}")
-                            print(f"top_rolling_rvol: {top_rolling_rvol}")
-                            print(f"top_five_min_rvol: {top_five_min_rvol}")
-                            print(f"top_price_change_5min: {top_price_change_5min}")
-                            print(f"top_price_change_10min: {top_price_change_10min}")
-                            print(f"top_price_change_1hr: {top_price_change_1hr}")
-                            #print(f"top_price_change_24hr: {top_price_change_24hr}")
-                            #print(f"top_price_change_7d: {top_price_change_7d}")
+                        print("Current Results:")
+                        print(f"top_percentage: {top_percentage}")
+                        print(f"amount of trades: {amount_of_trades}")
+                        print(f"top_rolling_rvol: {top_rolling_rvol}")
+                        print(f"top_five_min_rvol: {top_five_min_rvol}")
+                        print(f"top_price_change_5min: {top_price_change_5min}")
+                        print(f"top_price_change_10min: {top_price_change_10min}")
+                        print(f"top_price_change_1hr: {top_price_change_1hr}")
+                        #print(f"top_price_change_24hr: {top_price_change_24hr}")
+                        #print(f"top_price_change_7d: {top_price_change_7d}")
 
-                        else:
-                            print("not better yet")
-                            print(f"amount of trades: {amount_of_trades}")
-                            print(f"success rate: {success_percentage}%")
+                    else:
+                        print("not better yet")
+                        #print(f"amount of trades: {amount_of_trades}")
+                        #print(f"success rate: {success_percentage}%")
+
+
+
 
 
 
