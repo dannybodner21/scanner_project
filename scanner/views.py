@@ -39,10 +39,10 @@ def create_main_csv():
     # Create an empty list to store trade results
     trade_results = []
 
-    coins = Coin.objects.all()[:20]  # Limit to 20 coins
+    coins = Coin.objects.all()  # Limit to 20 coins
 
     for coin in coins:
-        
+
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
         for x in range(6, len(metrics)):
@@ -99,15 +99,6 @@ def create_main_csv():
     df_results.to_csv(output_file, index=False)
 
     print(f"Trade triggers saved to {output_file}")
-
-
-
-
-
-
-
-
-
 
 
 
@@ -976,9 +967,12 @@ def check_trigger(symbol):
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].rolling_relative_volume > 0.07 and
-                    metrics[x].price_change_24hr > 0.08 and
-                    metrics[x].five_min_relative_volume > 0.03
+                    metrics[x].rolling_relative_volume > 0.0247 and
+                    metrics[x].price_change_24hr > 0.0585 and
+                    metrics[x].price_change_10min > 0.0091 and
+                    metrics[x].five_min_relative_volume > 0.0247 and
+                    metrics[x].price_change_5min > 0.0064 and
+                    metrics[x].price_change_1hr > 0.0035
                 ):
                     #print("-----TRIGGER TWO-------------")
                     #print(coin.symbol)
