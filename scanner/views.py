@@ -937,11 +937,9 @@ def check_trigger(symbol):
 
                 if (
                     trigger_two_hit == False and
-                    #metrics[x].daily_relative_volume >= 1.75 and
-                    metrics[x].rolling_relative_volume >= 1.5 and
-                    metrics[x].price_change_5min >= 0.7 and
-                    metrics[x].price_change_24hr < -5 and
-                    rvol_progression == True
+                    metrics[x].rolling_relative_volume > 0.07 and
+                    metrics[x].price_change_24hr > 0.08 and
+                    metrics[x].five_min_relative_volume > 0.03
                 ):
                     #print("-----TRIGGER TWO-------------")
                     #print(coin.symbol)
@@ -984,7 +982,7 @@ def check_trigger(symbol):
                     except:
                         print("failed in trigger 2")
 
-                    '''
+
                     day = metrics[x].timestamp.day
                     if day == 15:
                         count_15 += 1
@@ -1020,7 +1018,7 @@ def check_trigger(symbol):
                         count_30 += 1
                     elif day == 31:
                         count_31 += 1
-                    '''
+
 
 
 
