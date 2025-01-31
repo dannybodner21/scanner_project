@@ -950,8 +950,8 @@ def check_trigger(symbol):
                         count_29 += 1
                     elif day == 30:
                         count_30 += 1
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
                     elif day == 31:
                         count_31 += 1
 
@@ -967,12 +967,12 @@ def check_trigger(symbol):
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].rolling_relative_volume > 0.0247 and
-                    metrics[x].price_change_24hr > 0.0585 and
-                    metrics[x].price_change_10min > 0.0091 and
-                    metrics[x].five_min_relative_volume > 0.0247 and
-                    metrics[x].price_change_5min > 0.0064 and
-                    metrics[x].price_change_1hr > 0.0035
+                    metrics[x].rolling_relative_volume >= 1.2 and
+                    #metrics[x].price_change_24hr >= 0.0585 and
+                    metrics[x].price_change_10min >= 0.75 and
+                    metrics[x].five_min_relative_volume >= 1.5 and
+                    metrics[x].price_change_5min >= 0.5 and
+                    metrics[x].price_change_1hr >= 1.0
                 ):
                     #print("-----TRIGGER TWO-------------")
                     #print(coin.symbol)
@@ -1280,9 +1280,9 @@ def check_trigger(symbol):
                         count_29 += 1
                     elif day == 30:
                         count_30 += 1
-                        print("SHORT")
-                        print(coin.symbol)
-                        print(metrics[x].timestamp)
+                        #print("SHORT")
+                        #print(coin.symbol)
+                        #print(metrics[x].timestamp)
                     elif day == 31:
                         count_31 += 1
 
