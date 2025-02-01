@@ -1,5 +1,5 @@
 from django.contrib import admin
-from scanner.models import Coin, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData, Trigger
+from scanner.models import Coin, HighLowData, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData, Trigger
 
 admin.site.register(Coin)
 admin.site.register(HistoricalData)
@@ -9,3 +9,4 @@ admin.site.register(MemeCoin)
 admin.site.register(MemeMetric)
 admin.site.register(MemeShortIntervalData)
 admin.site.register(Trigger)
+admin.site.register(HighLowData)

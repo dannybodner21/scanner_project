@@ -28,7 +28,7 @@ class HighLowData(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="high_low_data")
     daily_high = models.DecimalField(max_digits=20, decimal_places=8)
     daily_low = models.DecimalField(max_digits=20, decimal_places=8)
-    timestamp = models.DateTimeField(auto_now=True)
+    timestamp = models.DateTimeField()
 
     def __str__(self):
         return f"{self.coin.symbol}, high: {self.daily_high}, low: {self.daily_low}, {self.timestamp}"

@@ -8,19 +8,19 @@ import decimal
 import statistics
 import csv
 import pandas as pd
+import finnhub
+
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData, Trigger
+from scanner.models import Coin, HighLowData, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
 from django.http import HttpResponse
 from django.http import FileResponse, Http404
 from django.db.models import Prefetch, OuterRef, Subquery
-
-import finnhub
-
+from django.db.models import Max, Min
 
 
 
@@ -29,26 +29,7 @@ def finn():
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
-    date_string = "2025-01-31"
-    date_obj = datetime.strptime(date_string, "%Y-%m-%d")
-    start_timestamp = int(datetime(date_obj.year, date_obj.month, date_obj.day, 0, 0).timestamp())
-    end_timestamp = int(datetime(date_obj.year, date_obj.month, date_obj.day, 23, 59, 59).timestamp())
-
-    symbol = "BINANCE:BTCUSDT"
-    resolution = "D"
-
-    highLowData = finnhub_client.crypto_candles(symbol, resolution, start_timestamp, end_timestamp)
-
-    if highLowData and highLowData["s"] == "ok":
-        high_price = max(highLowData["h"])
-        low_price = min(highLowData["l"])
-        print(f"BTCUSDT High: {high_price}, Low: {low_price} on January 31, 2025")
-    else:
-        print("Error fetching data.")
-
-
-
-    # collect yesterday's high and low price
+    # collect yesterday's high and low price -----------------------------------
     # loop through all coins
     coins = Coin.objects.all()
 
@@ -75,6 +56,25 @@ def finn():
         resolution = "D"
 
         highLowData = finnhub_client.crypto_candles(symbolString, resolution, start_timestamp, end_timestamp)
+
+        if highLowData and highLowData["s"] == "ok":
+            high_price = max(highLowData["h"])
+            low_price = min(highLowData["l"])
+
+            # save the high and low data
+            HighLowData.objects.create(
+                coin=coin,
+                daily_high=high_price,
+                daily_low=low_price,
+                timestamp=yesterday,
+            )
+
+        else:
+            print("Error fetching high low data.")
+
+
+
+
 
 
 
@@ -1881,8 +1881,6 @@ def update_historical_data():
                 HistoricalData.objects.create(
                     coin=coin,
                     date=target_date,
-                    daily_high=recent_data.daily_high,
-                    daily_low=recent_data.daily_low,
                     price=recent_data.price,
                     volume_24h=recent_data.volume_24h,
                 )
@@ -1892,8 +1890,6 @@ def update_historical_data():
                 HistoricalData.objects.create(
                     coin=coin,
                     date=target_date,
-                    daily_high=0,
-                    daily_low=0,
                     price=0.0,
                     volume_24h=0.0,
                 )
@@ -2839,8 +2835,6 @@ def daily_update(request=None):
                                 "date": date,
                                 "price": current_price,
                                 "volume_24h": crypto_data["quote"]["USD"]["volume_24h"],
-                                "daily_high": crypto_data["quote"]["USD"]["price"],
-                                "daily_low": crypto_data["quote"]["USD"]["price"],
                             },
                         )
                         print("Created new historical data")
