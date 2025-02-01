@@ -5,6 +5,9 @@ import os
 import requests
 import asyncio
 import decimal
+import statistics
+import csv
+import pandas as pd
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
@@ -16,11 +19,78 @@ from django.http import HttpResponse
 from django.http import FileResponse, Http404
 from django.db.models import Prefetch, OuterRef, Subquery
 
-import statistics
-import csv
+import finnhub
 
-import pandas as pd
-import decimal
+
+
+
+def finn():
+
+    FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
+    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+
+    date_string = "2025-01-31"
+    date_obj = datetime.strptime(date_string, "%Y-%m-%d")
+    start_timestamp = int(datetime(date_obj.year, date_obj.month, date_obj.day, 0, 0).timestamp())
+    end_timestamp = int(datetime(date_obj.year, date_obj.month, date_obj.day, 23, 59, 59).timestamp())
+
+    symbol = "BINANCE:BTCUSDT"
+    resolution = "D"
+
+    highLowData = finnhub_client.crypto_candles(symbol, resolution, start_timestamp, end_timestamp)
+
+    if highLowData and highLowData["s"] == "ok":
+        high_price = max(highLowData["h"])
+        low_price = min(highLowData["l"])
+        print(f"BTCUSDT High: {high_price}, Low: {low_price} on January 31, 2025")
+    else:
+        print("Error fetching data.")
+
+
+
+    # collect yesterday's high and low price
+    # loop through all coins
+    coins = Coin.objects.all()
+
+    for coin in coins:
+
+        # get the date for yesterday
+        yesterday = datetime.today() - timedelta(days=1)
+        yesterday_str = yesterday.strftime("%Y-%m-%d")
+        start_timestamp = int(datetime(date_obj.year, date_obj.month, date_obj.day, 0, 0).timestamp())
+        end_timestamp = int(datetime(date_obj.year, date_obj.month, date_obj.day, 23, 59, 59).timestamp())
+
+        # get coin symbol
+        symbol = coin.symbol.upper()
+
+        # get coin exchange
+        # options: "KRAKEN","HITBTC","COINBASE","GEMINI","POLONIEX","Binance",
+        #          "ZB","BITTREX","KUCOIN","OKEX","BITFINEX","HUOBI"
+
+        # format - "BINANCE:BTCUSDT"
+        exchange = coin.exchange.upper()
+
+        symbolString = exchange + ":" + symbol + "USDT"
+
+        resolution = "D"
+
+        highLowData = finnhub_client.crypto_candles(symbolString, resolution, start_timestamp, end_timestamp)
+
+
+
+
+    return
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -132,12 +202,6 @@ def create_main_csv():
     df_results.to_csv(output_file, index=False)
 
     print(f"Trade triggers saved to {output_file}")
-
-
-
-
-
-
 
 
 def brute_force_short():
@@ -372,8 +436,6 @@ def find_best_trigger():
         print(f"price_change_1hr: {success[8]}")
         print(f"price_change_24hr: {success[9]}")
         print(f"price_change_7d: {success[10]}")
-
-
 
 
 def brute_force_one():
@@ -1000,12 +1062,11 @@ def check_trigger(symbol):
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].rolling_relative_volume >= 1.4 and
-                    #metrics[x].price_change_24hr >= 0.0585 and
-                    metrics[x].price_change_10min >= 1.0 and
-                    metrics[x].five_min_relative_volume >= 1.8 and
-                    metrics[x].price_change_5min >= 0.5 and
-                    metrics[x].price_change_1hr >= 0.5
+                    metrics[x].price_change_24hr >= 0.0676 and
+                    metrics[x].five_min_relative_volume >= 0.0361 and
+                    metrics[x].rolling_relative_volume >= 0.0326 and
+                    metrics[x].price_change_1hr >= 0.0270
+
                 ):
                     #print("-----TRIGGER TWO-------------")
                     #print(coin.symbol)
@@ -1839,52 +1900,6 @@ def update_historical_data():
                 print(f"Created default HistoricalData for {coin.name} on {target_date}.")
         else:
             print(f"HistoricalData for {coin.name} on {target_date} already exists. No action taken.")
-
-
-
-'''
-    # Define the target date
-    target_date = datetime(2025, 1, 26)
-    next_date = target_date + timedelta(days=1)
-
-    # Get all coins
-    coins = Coin.objects.all()
-
-    for coin in coins:
-        # Ensure a HistoricalData entry exists for the target date
-        historical_data, created = HistoricalData.objects.get_or_create(
-            coin=coin,
-            date=target_date,
-            defaults={
-                'daily_high': 0,
-                'daily_low': 0,
-                'price': 0.0,
-                'volume_24h': 0.0,
-            }
-        )
-
-        # Query Metrics for the target date
-        metrics = Metrics.objects.filter(
-            coin=coin,
-            timestamp__gte=target_date,
-            timestamp__lt=next_date
-        )
-
-        if metrics.exists():
-            # Calculate the highest and lowest prices for the day
-            daily_high = metrics.aggregate(Max('last_price'))['last_price__max']
-            daily_low = metrics.aggregate(Min('last_price'))['last_price__min']
-
-            # Update the HistoricalData entry
-            historical_data.daily_high = daily_high
-            historical_data.daily_low = daily_low
-            historical_data.save()
-
-            print(f"Updated HistoricalData for {coin.name} on {target_date.date()} - High: {daily_high}, Low: {daily_low}")
-        else:
-            print(f"No Metrics data found for {coin.name} on {target_date.date()}")
-
-'''
 
 
 # used to test if the telegram bot is sending messages properly

@@ -24,13 +24,21 @@ class MemeCoin(models.Model):
         return f"{self.name}"
 
 
+class HighLowData(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="high_low_data")
+    daily_high = models.DecimalField(max_digits=20, decimal_places=8)
+    daily_low = models.DecimalField(max_digits=20, decimal_places=8)
+    timestamp = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.coin.symbol}, high: {self.daily_high}, low: {self.daily_low}, {self.timestamp}"
+
+
 class HistoricalData(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="historical_data")
     date = models.DateField()  # Store daily data
     price = models.DecimalField(max_digits=20, decimal_places=8)
     volume_24h = models.DecimalField(max_digits=20, decimal_places=2)
-    daily_high = models.DecimalField(max_digits=20, decimal_places=8)
-    daily_low = models.DecimalField(max_digits=20, decimal_places=8)
 
     def __str__(self):
         return f"Historical data for {self.coin.name} at {self.date}"
