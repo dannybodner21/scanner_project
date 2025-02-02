@@ -23,17 +23,19 @@ from django.db.models import Prefetch, OuterRef, Subquery
 from django.db.models import Max, Min
 
 
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import mplfinance as mpf
 
 def finn():
 
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
-    print(finnhub_client.pattern_recognition('BINANCE:DOTUSDT', 'D'))
-    #print(finnhub_client.support_resistance('BTC', 'D'))
-    #print(finnhub_client.aggregate_indicator('BTCUSDT', 'D'))
-    #print(finnhub_client.technical_indicator(symbol="AAPL", resolution='D', _from=1583098857, to=1584308457, indicator='rsi', indicator_fields={"timeperiod": 3}))
-    #print(finnhub_client.stock_social_sentiment('BTC'))
+    one_hour_signal = finnhub_client.aggregate_indicator('BINANCE:BTCUSDT', '60')
+
+    print(one_hour_signal)
 
 
 
@@ -43,11 +45,14 @@ def pattern_recognition():
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
-    # going through coins on Binance only to test it out
     coins = Coin.objects.all()
+
+    incomplete_patterns = []
+    bullish_patterns = []
 
     for coin in coins:
 
+        # going through coins on Binance only to test it out
         if "BINANCE" in coin.exchange:
 
 
@@ -56,12 +61,15 @@ def pattern_recognition():
 
             patterns = finnhub_client.pattern_recognition(symbol, '5')
 
+            # check for bullish signal on the 5, 15 and 1hr
+            five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
+            fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
+            one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
+
             """
             Filters out tradeable patterns:
-            - Keeps only incomplete patterns
-            - Ensures the entry price is near the current market price
+                - Keeps only incomplete patterns
             """
-            tradeable_patterns = []
 
             if "points" in patterns:
                 for pattern in patterns["points"]:
@@ -74,6 +82,11 @@ def pattern_recognition():
                         profit1 = pattern["profit1"]
                         stoploss = pattern["stoploss"]
 
+                        five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
+                        fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
+                        one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
+                        five_min_adx = five_min_signal["trend"]["adx"]
+
                         new_pattern = {
                             "coin": coin.symbol,
                             "patternname": patternname,
@@ -82,17 +95,21 @@ def pattern_recognition():
                             "entry": entry,
                             "profit1": profit1,
                             "stoploss": stoploss,
+                            "five_min_signal": five_min_signal,
+                            "fifteen_min_signal": fifteen_min_signal,
+                            "one_hour_signal": one_hour_signal,
+                            "five_min_adx": five_min_adx,
                         }
 
-                        tradeable_patterns.append(new_pattern)
+                        incomplete_patterns.append(new_pattern)
 
-                    else:
-                        print("----- COMPLETE ------------")
-                        print(coin.symbol)
-                        print(pattern)
+                    #else:
+                        #print("----- COMPLETE ------------")
+                        #print(coin.symbol)
+                        #print(pattern)
 
     # do whatever with the patterns
-    for pattern in tradeable_patterns:
+    for pattern in incomplete_patterns:
 
         print("----------------------------------------------")
         print(f"Coin: {pattern['coin']}")
@@ -102,6 +119,18 @@ def pattern_recognition():
         print(f"Anticipated Entry Price: ${pattern['entry']}")
         print(f"Recommended TP #1: ${pattern['profit1']}")
         print(f"Recommended SL: ${pattern['stoploss']}")
+        print(f"five_min_signal: {pattern['five_min_signal']}")
+        print(f"fifteen_min_signal: {pattern['fifteen_min_signal']}")
+        print(f"one_hour_signal: {pattern['one_hour_signal']}")
+        print(f"five_min_adx: {pattern['five_min_adx']}")
+
+
+
+
+
+
+
+
 
 
 
@@ -112,9 +141,21 @@ def pattern_recognition():
     ✔ Price is near support (bounce) or breaking resistance (breakout)
     ✔ Technical Rating is "BUY" or "STRONG BUY"
     ✔ Entry price is close to the trigger level
+    ✔ Bullish ADX reading
     ----------------------------------------------------------------------------
     '''
 
+    # bullish pattern detected
+    #    loop through all coins, get all the patterns
+    #    save the incomplete bullish patterns
+    # check price against support or resistance
+    #    if price is right above a support level
+    #    if price is right below a resistance level
+    # get the technical rating
+    #    use the aggregate indicator to get the signal
+    # check price against entry price
+    #    get entry price from pattern detection
+    # check the ADX reading
 
 
 def daily_high_low_data():
