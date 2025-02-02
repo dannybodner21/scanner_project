@@ -54,7 +54,7 @@ def pattern_recognition():
             #symbol = "BINANCE:BTCUSDT"
             symbol = coin.exchange
 
-            patterns = finnhub_client.scan_pattern(symbol)
+            patterns = finnhub_client.pattern_recognition(symbol, '5')
 
             """
             Filters out tradeable patterns:
@@ -75,6 +75,7 @@ def pattern_recognition():
                         stoploss = pattern["stoploss"]
 
                         new_pattern = {
+                            "coin": coin.symbol,
                             "patternname": patternname,
                             "patterntype": patterntype,
                             "status": status,
@@ -89,14 +90,13 @@ def pattern_recognition():
     for pattern in tradeable_patterns:
 
         print("----------------------------------------------")
-        print(pattern["patternname"])
-        print(pattern["patterntype"])
-        print(pattern["status"])
-        print(pattern["entry"])
-        print(pattern["profit1"])
-        print(pattern["stoploss"])
-
-
+        print(f"Coin: {pattern["coin"]}")
+        print(f"Pattern Name: {pattern["patternname"]}")
+        print(f"Pattern Type: {pattern["patterntype"]}")
+        print(f"Pattern Status: {pattern["status"]}")
+        print(f"Anticipated Entry Price: ${pattern["entry"]}")
+        print(f"Recommended TP #1: ${pattern["profit1"]}")
+        print(f"Recommended SL: ${pattern["stoploss"]}")
 
 
 
