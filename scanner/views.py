@@ -4309,7 +4309,7 @@ def check_high_low(metrics_queryset):
     current_price = metrics_queryset[0].last_price
 
     try:
-        high_low_data = HighLowData.objects.get(coin=metrics_queryset.coin, timestamp__date=yesterday.date())
+        high_low_data = HighLowData.objects.get(coin=metrics_queryset[0].coin, timestamp__date=yesterday.date())
         yesterdays_high = high_low_data.daily_high
         yesterdays_low = high_low_data.daily_low
 
