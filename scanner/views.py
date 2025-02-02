@@ -29,17 +29,84 @@ def finn():
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
+    print(finnhub_client.pattern_recognition('BINANCE:DOTUSDT', 'D'))
+    #print(finnhub_client.support_resistance('BTC', 'D'))
+    #print(finnhub_client.aggregate_indicator('BTCUSDT', 'D'))
+    #print(finnhub_client.technical_indicator(symbol="AAPL", resolution='D', _from=1583098857, to=1584308457, indicator='rsi', indicator_fields={"timeperiod": 3}))
+    #print(finnhub_client.stock_social_sentiment('BTC'))
+
+
+
+
+def pattern_recognition():
+
+    FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
+    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+
+    # going through coins on Binance only to test it out
+    coins = Coin.objects.all()
+
+    symbol = "BINANCE:BTCUSDT"
+
+    patterns = finnhub_client.scan_pattern(symbol)
+
+    """
+    Filters out tradeable patterns:
+    - Keeps only incomplete patterns
+    - Ensures the entry price is near the current market price
+    """
+    tradeable_patterns = []
+
+    if "points" in patterns:
+        for pattern in patterns["points"]:
+            if pattern["status"] == "incomplete":
+
+                patternname = pattern["patternname"]
+                patterntype = pattern["patterntype"]
+                status = pattern["status"]
+                entry = pattern["entry"]
+                profit1 = pattern["profit1"]
+                stoploss = pattern["stoploss"]
+
+                new_pattern = {
+                    "patternname": patternname,
+                    "patterntype": patterntype,
+                    "status": status,
+                    "entry": entry,
+                    "profit1": profit1,
+                    "stoploss": stoploss,
+                }
+
+                tradeable_patterns.append(new_pattern)
+
+
+
+
+
+
+
+def daily_high_low_data():
+
+    print("in daily high low data function -------------------------")
+
+    FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
+    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+
     # collect yesterday's high and low price -----------------------------------
     # loop through all coins
     coins = Coin.objects.all()
 
-    for coin in coins:
+    # 100 coins at a time (API limit is 150 calls/min)
+    batch_size = 100
+    total_coins = len(coins)
 
-        # get the date for yesterday
-        yesterday = datetime.today() - timedelta(days=1)
-        yesterday_str = yesterday.strftime("%Y-%m-%d")
-        start_timestamp = int(datetime(date_obj.year, date_obj.month, date_obj.day, 0, 0).timestamp())
-        end_timestamp = int(datetime(date_obj.year, date_obj.month, date_obj.day, 23, 59, 59).timestamp())
+    # get the date for yesterday
+    yesterday = datetime.today() - timedelta(days=1)
+    start_timestamp = int(datetime(yesterday.year, yesterday.month, yesterday.day, 0, 0).timestamp())
+    end_timestamp = int(datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59).timestamp())
+
+    #for coin in coins:
+    for index, coin in enumerate(coins, start=1):
 
         # get coin symbol
         symbol = coin.symbol.upper()
@@ -49,43 +116,55 @@ def finn():
         #          "ZB","BITTREX","KUCOIN","OKEX","BITFINEX","HUOBI"
 
         # format - "BINANCE:BTCUSDT"
-        exchange = coin.exchange.upper()
+        symbolString = coin.exchange.upper()
 
-        symbolString = exchange + ":" + symbol + "USDT"
+        if "KUCOIN" in symbolString:
+
+            symbolString = symbolString.replace("USDT", "-USDT")
+
+        elif "POLONIEX" in symbolString:
+
+            symbolString = symbolString.replace("USDT", "_USDT")
+
+        elif "OKX" in symbolString:
+
+            symbolString = symbolString.replace("USDT", "-USDT")
+            symbolString = symbolString.replace("OKX", "OKEX")
 
         resolution = "D"
 
-        highLowData = finnhub_client.crypto_candles(symbolString, resolution, start_timestamp, end_timestamp)
+        try:
+            highLowData = finnhub_client.crypto_candles(symbolString, resolution, start_timestamp, end_timestamp)
 
-        if highLowData and highLowData["s"] == "ok":
-            high_price = max(highLowData["h"])
-            low_price = min(highLowData["l"])
+            if highLowData and highLowData["s"] == "ok" and "h" in highLowData and "l" in highLowData:
+                if highLowData["h"] and highLowData["l"]:
+                    high_price = max(highLowData["h"])
+                    low_price = min(highLowData["l"])
 
-            # save the high and low data
-            HighLowData.objects.create(
-                coin=coin,
-                daily_high=high_price,
-                daily_low=low_price,
-                timestamp=yesterday,
-            )
+                    # save the high and low
+                    HighLowData.objects.create(
+                        coin=coin,
+                        daily_high=high_price,
+                        daily_low=low_price,
+                        timestamp=datetime(yesterday.year, yesterday.month, yesterday.day)
+                    )
 
-        else:
-            print("Error fetching high low data.")
+                    print(f"✅ {symbol}: High={high_price}, Low={low_price} saved for {yesterday.strftime('%Y-%m-%d')}")
 
+                else:
+                    print(f"⚠️ {symbol}: No valid high/low data available for {yesterday.strftime('%Y-%m-%d')}")
 
+            else:
+                print(f"❌ Error fetching high/low data for {symbol}")
 
+        except Exception as e:
+            print(f"❌ API error for {symbol}: {str(e)}")
 
-
-
-
+        if index % batch_size == 0 and index < total_coins:
+            print(f"⏳ Processed {index} coins, pausing for 60 seconds to respect API limits...")
+            time.sleep(60)
 
     return
-
-
-
-
-
-
 
 
 
@@ -2831,8 +2910,8 @@ def daily_update(request=None):
                     try:
                         HistoricalData.objects.update_or_create(
                             coin=coin,
+                            date=date,
                             defaults={
-                                "date": date,
                                 "price": current_price,
                                 "volume_24h": crypto_data["quote"]["USD"]["volume_24h"],
                             },
@@ -2848,18 +2927,15 @@ def daily_update(request=None):
         except Exception as e:
             print(f"Error updating tracked coins for batch {cmc_id_batch}: {e}")
 
+    # get yesterday's high and low data
+    daily_high_low_data()
 
     print("daily update complete")
     myArray = ["daily update complete"]
     send_text(myArray)
 
-
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
-
-
-
-
 
 
 def five_min_update(request=None):
@@ -2930,13 +3006,8 @@ def five_min_update(request=None):
                         print(e)
 
                     try:
+
                         metrics = Metrics.objects.filter(coin=coin).order_by('-timestamp')
-
-                        #if metrics.count() > 122:
-                            #metrics_to_delete = metrics[122:]  # Slice to get metrics beyond the 100th
-                            #metrics_to_delete.delete()
-
-                        #Metrics.objects.filter(coin=coin).delete()
                         metric = Metrics.objects.create(
                             coin=coin,
                             timestamp=datetime.strptime(
@@ -2997,6 +3068,9 @@ def five_min_update(request=None):
         metrics_queryset = coin.prefetched_metrics
         check_triggers(metrics_queryset)
 
+        # check if there is a new high or low for the day
+        check_high_low(metrics_queryset)
+
     print("done checking triggers")
 
 
@@ -3009,12 +3083,6 @@ def five_min_update(request=None):
     #     - send telegram message when the current price is 1% up or down
     #     - and other messsages as the price moves so I know what do to
     #     - without having to stare at the chart
-
-
-
-
-
-
 
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
@@ -4232,10 +4300,62 @@ def print_coins():
     print(f"Deleted {coins.count()} coins and their associated data.")
 
 
+def check_high_low(metrics_queryset):
+
+    # check for new high or low of the day
+
+    triggers = []
+    yesterday = datetime.today() - timedelta(days=1)
+    current_price = metrics_queryset[0].last_price
+
+    try:
+        high_low_data = HighLowData.objects.get(coin=metrics_queryset.coin, timestamp__date=yesterday.date())
+        yesterdays_high = high_low_data.daily_high
+        yesterdays_low = high_low_data.daily_low
+
+        if (current_price > yesterdays_high):
+
+            # new high of the day
+            trigger = str(metrics_queryset[0].coin.symbol) + " : new HIGH of the day"
+
+            exists = check_duplicate_triggers(trigger)
+            if exists == False:
+
+                triggers.append(trigger)
+
+                try:
+                    Trigger.objects.create(trigger_name=trigger, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new high/low Trigger: {e}")
+
+        elif (current_price < yesterdays_low):
+
+            # new low of the day
+            trigger = str(metrics_queryset[0].coin.symbol) + " : new LOW of the day"
+
+            exists = check_duplicate_triggers(trigger)
+            if exists == False:
+
+                triggers.append(trigger)
+
+                try:
+                    Trigger.objects.create(trigger_name=trigger, timestamp=now())
+
+                except Exception as e:
+                    print(f"Error creating new high/low Trigger: {e}")
+
+        if len(triggers) > 0:
+            send_text(triggers)
+
+
+    except HighLowData.DoesNotExist:
+        print(f"❌ No data found for {metrics_queryset.coin} on {yesterday.strftime('%Y-%m-%d')}")
+
+
 def check_triggers(metrics_queryset):
 
     true_triggers = []
-
     trigger_passed = False
 
     if (metrics_queryset[0].rolling_relative_volume != None and
