@@ -160,9 +160,11 @@ def daily_high_low_data():
         except Exception as e:
             print(f"❌ API error for {symbol}: {str(e)}")
 
+        '''
         if index % batch_size == 0 and index < total_coins:
             print(f"⏳ Processed {index} coins, pausing for 60 seconds to respect API limits...")
             time.sleep(60)
+        '''
 
     return
 

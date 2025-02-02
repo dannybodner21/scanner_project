@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from datetime import datetime
 import logging
 
-from scanner.views import finn, create_main_csv, find_best_trigger, brute_force, brute_force_one, brute_force_short
+from scanner.views import finn, daily_high_low_data, create_main_csv, find_best_trigger, brute_force, brute_force_one, brute_force_short
 
 logger = logging.getLogger(__name__)
 
@@ -17,5 +17,6 @@ class Command(BaseCommand):
         #brute_force_one()
         #brute_force_short()
         #create_main_csv()
-        finn()
+        #finn()
+        daily_high_low_data()
         logger.info("Done.")
