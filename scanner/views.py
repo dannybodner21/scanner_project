@@ -44,6 +44,7 @@ def pattern_recognition():
 
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+    finnhub_client._session.timeout = 60
 
     #coins = Coin.objects.all()
 
@@ -59,16 +60,16 @@ def pattern_recognition():
     SHIB = Coin.objects.get(symbol="SHIB")
 
     coins = []
-    coin.append(DOT)
-    coin.append(XRP)
-    coin.append(ORDI)
-    coin.append(SAND)
-    coin.append(UNI)
-    coin.append(DYDX)
-    coin.append(ALGO)
-    coin.append(DOGE)
-    coin.append(GRT)
-    coin.append(SHIB)
+    coins.append(DOT)
+    #coins.append(XRP)
+    #coins.append(ORDI)
+    #coins.append(SAND)
+    #coins.append(UNI)
+    #coins.append(DYDX)
+    #coins.append(ALGO)
+    #coins.append(DOGE)
+    #coins.append(GRT)
+    #coins.append(SHIB)
 
     incomplete_patterns = []
     bullish_patterns = []
@@ -79,57 +80,71 @@ def pattern_recognition():
         if "BINANCE" in coin.exchange:
 
 
-            #symbol = "BINANCE:BTCUSDT"
-            symbol = coin.exchange
+            try:
 
-            patterns = finnhub_client.pattern_recognition(symbol, '5')
+                #symbol = "BINANCE:BTCUSDT"
+                symbol = coin.exchange
 
-            # check for bullish signal on the 5, 15 and 1hr
-            five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
-            fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
-            one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
+                patterns = finnhub_client.pattern_recognition(symbol, '5')
 
-            """
-            Filters out tradeable patterns:
-                - Keeps only incomplete patterns
-            """
+                # check for bullish signal on the 5, 15 and 1hr
+                five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
+                fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
+                one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
 
-            if "points" in patterns:
-                for pattern in patterns["points"]:
-                    if pattern["status"] == "incomplete":
+                """
+                Filters out tradeable patterns:
+                    - Keeps only incomplete patterns
+                """
 
-                        patternname = pattern["patternname"]
-                        patterntype = pattern["patterntype"]
-                        status = pattern["status"]
-                        entry = pattern["entry"]
-                        profit1 = pattern["profit1"]
-                        stoploss = pattern["stoploss"]
+                if "points" in patterns:
+                    for pattern in patterns["points"]:
+                        if pattern["status"] == "incomplete":
 
-                        five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
-                        fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
-                        one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
-                        five_min_adx = five_min_aggregate["trend"]["adx"]
+                            patternname = pattern["patternname"]
+                            patterntype = pattern["patterntype"]
+                            status = pattern["status"]
+                            entry = pattern["entry"]
+                            profit1 = pattern["profit1"]
+                            stoploss = pattern["stoploss"]
 
-                        new_pattern = {
-                            "coin": coin.symbol,
-                            "patternname": patternname,
-                            "patterntype": patterntype,
-                            "status": status,
-                            "entry": entry,
-                            "profit1": profit1,
-                            "stoploss": stoploss,
-                            "five_min_signal": five_min_signal,
-                            "fifteen_min_signal": fifteen_min_signal,
-                            "one_hour_signal": one_hour_signal,
-                            "five_min_adx": five_min_adx,
-                        }
+                            five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
+                            fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
+                            one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
+                            five_min_adx = five_min_aggregate["trend"]["adx"]
 
-                        incomplete_patterns.append(new_pattern)
+                            new_pattern = {
+                                "coin": coin.symbol,
+                                "patternname": patternname,
+                                "patterntype": patterntype,
+                                "status": status,
+                                "entry": entry,
+                                "profit1": profit1,
+                                "stoploss": stoploss,
+                                "five_min_signal": five_min_signal,
+                                "fifteen_min_signal": fifteen_min_signal,
+                                "one_hour_signal": one_hour_signal,
+                                "five_min_adx": five_min_adx,
+                            }
 
-                    #else:
-                        #print("----- COMPLETE ------------")
-                        #print(coin.symbol)
-                        #print(pattern)
+                            incomplete_patterns.append(new_pattern)
+
+                        #else:
+                            #print("----- COMPLETE ------------")
+                            #print(coin.symbol)
+                            #print(pattern)
+
+
+
+            except requests.exceptions.ReadTimeout:
+                print(f"Timeout error fetching {symbol}. Skipping this round.")
+                return None
+
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching {symbol}: {e}")
+                return None
+
+
 
     # do whatever with the patterns
     for pattern in incomplete_patterns:
@@ -182,7 +197,7 @@ def pattern_recognition():
 
 
 
-    
+
 
 
 def daily_high_low_data():
