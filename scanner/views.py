@@ -35,7 +35,7 @@ def finn():
 
     one_hour_signal = finnhub_client.aggregate_indicator('BINANCE:BTCUSDT', '60')
 
-    print(one_hour_signal)
+    print(one_hour_signal["technicalAnalysis"])
 
 
 
@@ -45,7 +45,30 @@ def pattern_recognition():
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
-    coins = Coin.objects.all()
+    #coins = Coin.objects.all()
+
+    DOT = Coin.objects.get(symbol="DOT")
+    XRP = Coin.objects.get(symbol="XRP")
+    ORDI = Coin.objects.get(symbol="ORDI")
+    SAND = Coin.objects.get(symbol="SAND")
+    UNI = Coin.objects.get(symbol="UNI")
+    DYDX = Coin.objects.get(symbol="DYDX")
+    ALGO = Coin.objects.get(symbol="ALGO")
+    DOGE = Coin.objects.get(symbol="DOGE")
+    GRT = Coin.objects.get(symbol="GRT")
+    SHIB = Coin.objects.get(symbol="SHIB")
+
+    coins = []
+    coin.append(DOT)
+    coin.append(XRP)
+    coin.append(ORDI)
+    coin.append(SAND)
+    coin.append(UNI)
+    coin.append(DYDX)
+    coin.append(ALGO)
+    coin.append(DOGE)
+    coin.append(GRT)
+    coin.append(SHIB)
 
     incomplete_patterns = []
     bullish_patterns = []
@@ -85,7 +108,7 @@ def pattern_recognition():
                         five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
                         fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
                         one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
-                        five_min_adx = five_min_signal["trend"]["adx"]
+                        five_min_adx = five_min_aggregate["trend"]["adx"]
 
                         new_pattern = {
                             "coin": coin.symbol,
@@ -156,6 +179,10 @@ def pattern_recognition():
     # check price against entry price
     #    get entry price from pattern detection
     # check the ADX reading
+
+
+
+    
 
 
 def daily_high_low_data():
