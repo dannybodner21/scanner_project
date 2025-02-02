@@ -65,38 +65,38 @@ def pattern_recognition():
 
             if "points" in patterns:
                 for pattern in patterns["points"]:
-                    if pattern["status"] == "incomplete":
+                    #if pattern["status"] == "incomplete":
 
-                        patternname = pattern["patternname"]
-                        patterntype = pattern["patterntype"]
-                        status = pattern["status"]
-                        entry = pattern["entry"]
-                        profit1 = pattern["profit1"]
-                        stoploss = pattern["stoploss"]
+                    patternname = pattern["patternname"]
+                    patterntype = pattern["patterntype"]
+                    status = pattern["status"]
+                    entry = pattern["entry"]
+                    profit1 = pattern["profit1"]
+                    stoploss = pattern["stoploss"]
 
-                        new_pattern = {
-                            "coin": coin.symbol,
-                            "patternname": patternname,
-                            "patterntype": patterntype,
-                            "status": status,
-                            "entry": entry,
-                            "profit1": profit1,
-                            "stoploss": stoploss,
-                        }
+                    new_pattern = {
+                        "coin": coin.symbol,
+                        "patternname": patternname,
+                        "patterntype": patterntype,
+                        "status": status,
+                        "entry": entry,
+                        "profit1": profit1,
+                        "stoploss": stoploss,
+                    }
 
-                        tradeable_patterns.append(new_pattern)
+                    tradeable_patterns.append(new_pattern)
 
     # do whatever with the patterns
     for pattern in tradeable_patterns:
 
         print("----------------------------------------------")
-        print(f"Coin: {pattern["coin"]}")
-        print(f"Pattern Name: {pattern["patternname"]}")
-        print(f"Pattern Type: {pattern["patterntype"]}")
-        print(f"Pattern Status: {pattern["status"]}")
-        print(f"Anticipated Entry Price: ${pattern["entry"]}")
-        print(f"Recommended TP #1: ${pattern["profit1"]}")
-        print(f"Recommended SL: ${pattern["stoploss"]}")
+        print(f"Coin: {pattern['coin']}")
+        print(f"Pattern Name: {pattern['patternname']}")
+        print(f"Pattern Type: {pattern['patterntype']}")
+        print(f"Pattern Status: {pattern['status']}")
+        print(f"Anticipated Entry Price: ${pattern['entry']}")
+        print(f"Recommended TP #1: ${pattern['profit1']}")
+        print(f"Recommended SL: ${pattern['stoploss']}")
 
 
 
