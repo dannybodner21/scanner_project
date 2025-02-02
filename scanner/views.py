@@ -46,40 +46,55 @@ def pattern_recognition():
     # going through coins on Binance only to test it out
     coins = Coin.objects.all()
 
-    symbol = "BINANCE:BTCUSDT"
+    for coin in coins:
 
-    patterns = finnhub_client.scan_pattern(symbol)
-
-    """
-    Filters out tradeable patterns:
-    - Keeps only incomplete patterns
-    - Ensures the entry price is near the current market price
-    """
-    tradeable_patterns = []
-
-    if "points" in patterns:
-        for pattern in patterns["points"]:
-            if pattern["status"] == "incomplete":
-
-                patternname = pattern["patternname"]
-                patterntype = pattern["patterntype"]
-                status = pattern["status"]
-                entry = pattern["entry"]
-                profit1 = pattern["profit1"]
-                stoploss = pattern["stoploss"]
-
-                new_pattern = {
-                    "patternname": patternname,
-                    "patterntype": patterntype,
-                    "status": status,
-                    "entry": entry,
-                    "profit1": profit1,
-                    "stoploss": stoploss,
-                }
-
-                tradeable_patterns.append(new_pattern)
+        if "BINANCE" in coin.exchange:
 
 
+            #symbol = "BINANCE:BTCUSDT"
+            symbol = coin.exchange
+
+            patterns = finnhub_client.scan_pattern(symbol)
+
+            """
+            Filters out tradeable patterns:
+            - Keeps only incomplete patterns
+            - Ensures the entry price is near the current market price
+            """
+            tradeable_patterns = []
+
+            if "points" in patterns:
+                for pattern in patterns["points"]:
+                    if pattern["status"] == "incomplete":
+
+                        patternname = pattern["patternname"]
+                        patterntype = pattern["patterntype"]
+                        status = pattern["status"]
+                        entry = pattern["entry"]
+                        profit1 = pattern["profit1"]
+                        stoploss = pattern["stoploss"]
+
+                        new_pattern = {
+                            "patternname": patternname,
+                            "patterntype": patterntype,
+                            "status": status,
+                            "entry": entry,
+                            "profit1": profit1,
+                            "stoploss": stoploss,
+                        }
+
+                        tradeable_patterns.append(new_pattern)
+
+    # do whatever with the patterns
+    for pattern in tradeable_patterns:
+
+        print("----------------------------------------------")
+        print(pattern["patternname"])
+        print(pattern["patterntype"])
+        print(pattern["status"])
+        print(pattern["entry"])
+        print(pattern["profit1"])
+        print(pattern["stoploss"])
 
 
 
@@ -2868,7 +2883,6 @@ def meme_coin_triggers():
 
 
 # ====================================================================
-
 
 
 def daily_update(request=None):
