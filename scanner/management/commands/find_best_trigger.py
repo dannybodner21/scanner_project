@@ -17,6 +17,6 @@ class Command(BaseCommand):
         #brute_force_one()
         #brute_force_short()
         #create_main_csv()
-        #finn()
-        daily_high_low_data()
+        finn()
+        #daily_high_low_data()
         logger.info("Done.")

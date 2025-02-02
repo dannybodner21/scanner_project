@@ -4352,7 +4352,7 @@ def check_high_low(metrics_queryset):
 
 
     except HighLowData.DoesNotExist:
-        print(f"❌ No data found for {metrics_queryset.coin} on {yesterday.strftime('%Y-%m-%d')}")
+        print(f"❌ No data found for {metrics_queryset[0].coin} on {yesterday.strftime('%Y-%m-%d')}")
 
 
 def check_triggers(metrics_queryset):
