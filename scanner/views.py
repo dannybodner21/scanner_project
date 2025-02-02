@@ -105,6 +105,18 @@ def pattern_recognition():
 
 
 
+    '''
+    ----------------------------------------------------------------------------
+    Potential Trigger Setup:
+    ✔ A bullish pattern is detected
+    ✔ Price is near support (bounce) or breaking resistance (breakout)
+    ✔ Technical Rating is "BUY" or "STRONG BUY"
+    ✔ Entry price is close to the trigger level
+    ----------------------------------------------------------------------------
+    '''
+
+
+
 def daily_high_low_data():
 
     print("in daily high low data function -------------------------")
@@ -3090,7 +3102,7 @@ def five_min_update(request=None):
         check_triggers(metrics_queryset)
 
         # check if there is a new high or low for the day
-        check_high_low(metrics_queryset)
+        #check_high_low(metrics_queryset)
 
     print("done checking triggers")
 
