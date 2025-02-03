@@ -103,11 +103,10 @@ def pattern_recognition():
                 takeprofit = pattern_data["profit1"]
                 stoploss = pattern_data["stoploss"]
 
-                one_hour_support_resistance = finnhub_client.support_resistance(symbol, '60')
-
                 # one hour support / resistance
-                support = one_hour_support_resistance["support"][0] if one_hour_support_resistance["support"] else None
-                resistance = one_hour_support_resistance["resistance"][0] if one_hour_support_resistance["resistance"] else None
+                #one_hour_support_resistance = finnhub_client.support_resistance(symbol, '60')
+                #support = one_hour_support_resistance["support"][0] if one_hour_support_resistance["support"] else None
+                #resistance = one_hour_support_resistance["resistance"][0] if one_hour_support_resistance["resistance"] else None
 
                 five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
                 fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
@@ -139,9 +138,9 @@ def pattern_recognition():
                         # one hour pattern
                         "stoploss": stoploss,
                         # one hour pattern
-                        "support": support,
+                        #"support": support,
                         # one hour pattern
-                        "resistance": resistance,
+                        #"resistance": resistance,
                         # five min aggregate
                         "five_min_signal": five_min_signal,
                         # fifteen min aggregate
@@ -4882,6 +4881,7 @@ def index(request):
     triggers = list(Trigger.objects.values("trigger_name", "timestamp"))
 
     #patterns = pattern_recognition()
+    patterns = []
     patterns = list(Pattern.objects.values())
 
 
