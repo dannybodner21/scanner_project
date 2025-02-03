@@ -34,8 +34,6 @@ def finn():
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
-    #Pattern.objects.all().delete()
-
 
 
     # PLAN
@@ -236,7 +234,7 @@ def pattern_recognition():
                 patterntype = pattern_data["patterntype"]
                 status = pattern_data["status"]
 
-                if status == "complete":
+                if status == "successful" or status == "complete":
                     continue
 
                 entry = pattern_data["entry"]
