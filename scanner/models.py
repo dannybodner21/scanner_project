@@ -130,7 +130,7 @@ class Pattern(models.Model):
     timestamp = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.coin.symbol}, Pattern: {self.name} : {self.patterntype}, {self.timestamp}"
+        return f"{self.coin.symbol}, {self.timestamp}"
 
 
 

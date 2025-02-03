@@ -32,10 +32,145 @@ def finn():
 
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+    finnhub_client._session.timeout = 120
 
-    one_hour_signal = finnhub_client.aggregate_indicator('BINANCE:BTCUSDT', '60')
 
-    print(one_hour_signal["technicalAnalysis"])
+
+    # PLAN
+    # every 30 min check every coin for a pattern on the one hour
+    #     if there is an incomplete pattern, add to db
+    # every 5 min check on the coins that have an incomplete pattern
+    #     update all the relevant info
+    #     when the pattern is complete, delete from db
+
+
+def thirty_min_pattern_check():
+
+    FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
+    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+    finnhub_client._session.timeout = 120
+
+    # check all coins that don't currently have an incomplete pattern
+    # get coins without pattern
+
+
+
+    # loop through coins
+    for coin in coins:
+
+
+        try:
+
+            # fix the exchange string if necessary
+
+            #symbol = "BINANCE:BTCUSDT"
+            symbol = coin.exchange
+
+
+            
+
+            one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
+
+            if not one_hour_patterns or 'points' not in one_hour_patterns:
+                continue  # Skip if no pattern detected
+
+            # Take the first detected pattern
+            pattern_data = one_hour_patterns["points"][0]
+
+            # one hour pattern recognition
+            name = pattern_data["patternname"]
+            patterntype = pattern_data["patterntype"]
+            status = pattern_data["status"]
+
+            if status == "complete":
+                continue
+
+            entry = pattern_data["entry"]
+            takeprofit = pattern_data["profit1"]
+            stoploss = pattern_data["stoploss"]
+
+            # one hour support / resistance
+            #one_hour_support_resistance = finnhub_client.support_resistance(symbol, '60')
+            #support = one_hour_support_resistance["support"][0] if one_hour_support_resistance["support"] else None
+            #resistance = one_hour_support_resistance["resistance"][0] if one_hour_support_resistance["resistance"] else None
+
+            five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
+            fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
+            one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
+
+            # aggregates
+            five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
+            five_min_adx = five_min_aggregate["trend"]["adx"]
+
+            fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
+            fifteen_min_adx = fifteen_min_aggregate["trend"]["adx"]
+
+            one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
+            one_hour_adx = one_hour_aggregate["trend"]["adx"]
+
+            Pattern.objects.update_or_create(
+                coin = coin,
+                defaults = {
+                    # one hour pattern
+                    "name": name,
+                    # one hour pattern
+                    "patterntype": patterntype,
+                    # one hour pattern
+                    "status": status,
+                    # one hour pattern
+                    "entry": entry,
+                    # one hour pattern
+                    "takeprofit": takeprofit,
+                    # one hour pattern
+                    "stoploss": stoploss,
+                    # one hour pattern
+                    #"support": support,
+                    # one hour pattern
+                    #"resistance": resistance,
+                    # five min aggregate
+                    "five_min_signal": five_min_signal,
+                    # fifteen min aggregate
+                    "fifteen_min_signal": fifteen_min_signal,
+                    # one hour aggregate
+                    "one_hour_signal": one_hour_signal,
+                    # five min aggregate
+                    "five_min_adx": five_min_adx,
+                    # fifteen min aggregate
+                    "fifteen_min_adx": fifteen_min_adx,
+                    # one hour aggregate
+                    "one_hour_adx": one_hour_adx,
+                    # time now
+                    "timestamp": datetime.utcnow()
+                }
+            )
+
+
+
+        except Exception as e:
+            print(f"Error fetching data for {coin.symbol}: {e}")
+            continue  # Skip coin if error occurs
+
+
+
+
+
+
+    return
+
+
+def five_min_pattern_check():
+
+    FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
+    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+    finnhub_client._session.timeout = 120
+
+
+
+    return
+
+
+
+
 
 
 
