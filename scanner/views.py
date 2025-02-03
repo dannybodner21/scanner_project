@@ -88,11 +88,6 @@ def pattern_recognition():
 
                 one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
 
-                
-                #five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
-                #fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
-                #one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
-
                 if not one_hour_patterns or 'points' not in one_hour_patterns:
                     continue  # Skip if no pattern detected
 
@@ -107,78 +102,83 @@ def pattern_recognition():
                 takeprofit = pattern_data["profit1"]
                 stoploss = pattern_data["stoploss"]
 
+                one_hour_support_resistance = finnhub_client.support_resistance(symbol, '60')
 
-                if "points" in one_hour_patterns:
-                    for pattern in one_hour_patterns["points"]:
-                        if pattern["status"] == "incomplete":
+                # one hour support / resistance
+                support = one_hour_support_resistance["support"][0] if one_hour_support_resistance["support"] else None
+                resistance = one_hour_support_resistance["resistance"][0] if one_hour_support_resistance["resistance"] else None
 
+                five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
+                fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
+                one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
 
+                # aggregates
+                five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
+                five_min_adx = five_min_aggregate["trend"]["adx"]
 
-                            # one hour support / resistance
-                            support = one_hour_support_resistance.get("support", None)
-                            resistance = one_hour_support_resistance.get("resistance", None)
+                fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
+                fifteen_min_adx = fifteen_min_aggregate["trend"]["adx"]
 
-                            # aggregates
-                            five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
-                            five_min_adx = five_min_aggregate["trend"]["adx"]
-
-                            fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
-                            fifteen_min_adx = fifteen_min_aggregate["trend"]["adx"]
-
-                            one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
-                            one_hour_adx = one_hour_aggregate["trend"]["adx"]
-
-                            new_pattern = {
-                                "coin": coin.symbol,
-                                # one hour pattern
-                                "name": patternname,
-                                # one hour pattern
-                                "type": patterntype,
-                                # one hour pattern
-                                "status": status,
-                                # one hour pattern
-                                "entry": entry,
-                                # one hour pattern
-                                "takeprofit": profit1,
-                                # one hour pattern
-                                "stoploss": stoploss,
-                                # one hour pattern
-                                "support": support,
-                                # one hour pattern
-                                "resistance": resistance,
-                                # five min aggregate
-                                "five_min_signal": five_min_signal,
-                                # fifteen min aggregate
-                                "fifteen_min_signal": fifteen_min_signal,
-                                # one hour aggregate
-                                "one_hour_signal": one_hour_signal,
-                                # five min aggregate
-                                "five_min_adx": five_min_adx,
-                                # fifteen min aggregate
-                                "fifteen_min_adx": fifteen_min_adx,
-                                # one hour aggregate
-                                "one_hour_adx": one_hour_adx,
-                                # time now
-                                "timestamp": datetime.utcnow()
-                            }
-
-                            incomplete_patterns.append(new_pattern)
+                one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
+                one_hour_adx = one_hour_aggregate["trend"]["adx"]
 
 
+                HighLowData.objects.create(
+                    coin=coin,
+                    daily_high=high_price,
+                    daily_low=low_price,
+                    timestamp=datetime(yesterday.year, yesterday.month, yesterday.day)
+                )
 
-
-
-            except requests.exceptions.ReadTimeout:
-                print(f"Timeout error fetching {symbol}. Skipping this round.")
-                return None
-
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching {symbol}: {e}")
-                return None
+                Pattern.objects.create(
+                    coin = coin,
+                    # one hour pattern
+                    name = name,
+                    # one hour pattern
+                    type = type,
+                    # one hour pattern
+                    status = status,
+                    # one hour pattern
+                    entry = entry,
+                    # one hour pattern
+                    takeprofit = takeprofit,
+                    # one hour pattern
+                    stoploss = stoploss,
+                    # one hour pattern
+                    support = support,
+                    # one hour pattern
+                    resistance = resistance,
+                    # five min aggregate
+                    five_min_signal = five_min_signal,
+                    # fifteen min aggregate
+                    fifteen_min_signal = fifteen_min_signal,
+                    # one hour aggregate
+                    one_hour_signal = one_hour_signal,
+                    # five min aggregate
+                    five_min_adx = five_min_adx,
+                    # fifteen min aggregate
+                    fifteen_min_adx = fifteen_min_adx,
+                    # one hour aggregate
+                    one_hour_adx = one_hour_adx,
+                    # time now
+                    timestamp = datetime.utcnow()
+                )
 
 
 
+            except Exception as e:
+                print(f"Error fetching data for {coin.symbol}: {e}")
+                continue  # Skip coin if error occurs
 
+            print("✅ Trade signals updated successfully!")
+
+
+            # NEED A FUNCTION TO DELETE OLD PATTERN DATA FROM DB
+
+
+
+
+    '''
     # do whatever with the patterns
     for pattern in incomplete_patterns:
 
@@ -202,7 +202,7 @@ def pattern_recognition():
 
 
     return incomplete_patterns
-
+    '''
 
 
 
@@ -4886,8 +4886,8 @@ def index(request):
 
     triggers = list(Trigger.objects.values("trigger_name", "timestamp"))
 
-
-    patterns = pattern_recognition()
+    #patterns = pattern_recognition()
+    patterns = list(Pattern.objects.values())
 
 
     # Handle AJAX request for partial updates
@@ -4897,7 +4897,7 @@ def index(request):
             "top_cryptos": sorted_coins,
             "sorted_volumes": sorted_volumes,
             "triggers": triggers,
-            "patterns": []
+            "patterns": patterns,
         }
 
         return JsonResponse(data, safe=False)
@@ -4907,7 +4907,7 @@ def index(request):
         "top_cryptos": sorted_coins,
         "sorted_volumes": sorted_volumes,
         "triggers": triggers,
-        "patterns": patterns
+        "patterns": patterns,
     })
 
 
