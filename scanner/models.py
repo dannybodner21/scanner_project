@@ -109,3 +109,34 @@ class Trigger(models.Model):
 
     def __str__(self):
         return f"{self.trigger_name} at {self.timestamp}"
+
+
+class Pattern(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="pattern")
+    name = models.CharField(max_length=200)
+    type = models.CharField(max_length=200)
+    status = models.CharField(max_length=200)
+    entry = models.DecimalField(max_digits=20, decimal_places=8)
+    takeprofit = models.DecimalField(max_digits=20, decimal_places=8)
+    stoploss = models.DecimalField(max_digits=20, decimal_places=8)
+    support = models.DecimalField(max_digits=20, decimal_places=8)
+    resistance = models.DecimalField(max_digits=20, decimal_places=8)
+    five_min_signal = models.CharField(max_length=200)
+    fifteen_min_signal = models.CharField(max_length=200)
+    one_hour_signal = models.CharField(max_length=200)
+    five_min_adx = models.DecimalField(max_digits=20, decimal_places=8)
+    fifteen_min_adx = models.DecimalField(max_digits=20, decimal_places=8)
+    one_hour_adx = models.DecimalField(max_digits=20, decimal_places=8)
+    timestamp = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.coin.symbol}, Pattern: {self.name} : {self.type}, {self.timestamp}"
+
+
+
+
+
+
+
+
+#

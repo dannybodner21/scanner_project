@@ -13,7 +13,7 @@ import finnhub
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, HighLowData, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData, Trigger
+from scanner.models import Coin, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, MemeCoin, MemeMetric, MemeShortIntervalData, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
@@ -74,7 +74,6 @@ def pattern_recognition():
     coins.append(SHIB)
 
     incomplete_patterns = []
-    bullish_patterns = []
 
     for coin in coins:
 
@@ -87,52 +86,85 @@ def pattern_recognition():
                 #symbol = "BINANCE:BTCUSDT"
                 symbol = coin.exchange
 
-                patterns = finnhub_client.pattern_recognition(symbol, '5')
-                five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
-                fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
-                one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
+                one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
 
-                """
-                Filters out tradeable patterns:
-                    - Keeps only incomplete patterns
-                """
+                
+                #five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
+                #fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
+                #one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
 
-                if "points" in patterns:
-                    for pattern in patterns["points"]:
+                if not one_hour_patterns or 'points' not in one_hour_patterns:
+                    continue  # Skip if no pattern detected
+
+                # Take the first detected pattern
+                pattern_data = one_hour_patterns["points"][0]
+
+                # one hour pattern recognition
+                name = pattern_data["patternname"]
+                type = pattern_data["patterntype"]
+                status = pattern_data["status"]
+                entry = pattern_data["entry"]
+                takeprofit = pattern_data["profit1"]
+                stoploss = pattern_data["stoploss"]
+
+
+                if "points" in one_hour_patterns:
+                    for pattern in one_hour_patterns["points"]:
                         if pattern["status"] == "incomplete":
 
-                            patternname = pattern["patternname"]
-                            patterntype = pattern["patterntype"]
-                            status = pattern["status"]
-                            entry = pattern["entry"]
-                            profit1 = pattern["profit1"]
-                            stoploss = pattern["stoploss"]
 
+
+                            # one hour support / resistance
+                            support = one_hour_support_resistance.get("support", None)
+                            resistance = one_hour_support_resistance.get("resistance", None)
+
+                            # aggregates
                             five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
-                            fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
-                            one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
                             five_min_adx = five_min_aggregate["trend"]["adx"]
+
+                            fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
+                            fifteen_min_adx = fifteen_min_aggregate["trend"]["adx"]
+
+                            one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
+                            one_hour_adx = one_hour_aggregate["trend"]["adx"]
 
                             new_pattern = {
                                 "coin": coin.symbol,
-                                "patternname": patternname,
-                                "patterntype": patterntype,
+                                # one hour pattern
+                                "name": patternname,
+                                # one hour pattern
+                                "type": patterntype,
+                                # one hour pattern
                                 "status": status,
+                                # one hour pattern
                                 "entry": entry,
-                                "profit1": profit1,
+                                # one hour pattern
+                                "takeprofit": profit1,
+                                # one hour pattern
                                 "stoploss": stoploss,
+                                # one hour pattern
+                                "support": support,
+                                # one hour pattern
+                                "resistance": resistance,
+                                # five min aggregate
                                 "five_min_signal": five_min_signal,
+                                # fifteen min aggregate
                                 "fifteen_min_signal": fifteen_min_signal,
+                                # one hour aggregate
                                 "one_hour_signal": one_hour_signal,
+                                # five min aggregate
                                 "five_min_adx": five_min_adx,
+                                # fifteen min aggregate
+                                "fifteen_min_adx": fifteen_min_adx,
+                                # one hour aggregate
+                                "one_hour_adx": one_hour_adx,
+                                # time now
+                                "timestamp": datetime.utcnow()
                             }
 
                             incomplete_patterns.append(new_pattern)
 
-                        #else:
-                            #print("----- COMPLETE ------------")
-                            #print(coin.symbol)
-                            #print(pattern)
+
 
 
 
@@ -162,6 +194,7 @@ def pattern_recognition():
         print(f"fifteen_min_signal: {pattern['fifteen_min_signal']}")
         print(f"one_hour_signal: {pattern['one_hour_signal']}")
         print(f"five_min_adx: {pattern['five_min_adx']}")
+
 
     if len(incomplete_patterns) == 0:
         print("no patterns found")
@@ -4745,7 +4778,8 @@ def check_triggers(metrics_queryset):
         print("no triggers passed")
 
     if len(true_triggers) > 0:
-        send_text(true_triggers)
+        #send_text(true_triggers)
+        print("not sending messages at this time.")
 
     return
 
