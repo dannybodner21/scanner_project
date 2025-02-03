@@ -46,8 +46,6 @@ def pattern_recognition():
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
-    #TIMEOUT = 120
-
     #coins = Coin.objects.all()
 
     DOT = Coin.objects.get(symbol="DOT")
@@ -80,7 +78,6 @@ def pattern_recognition():
         # going through coins on Binance only to test it out
         if "BINANCE" in coin.exchange:
 
-
             try:
 
                 #symbol = "BINANCE:BTCUSDT"
@@ -96,8 +93,12 @@ def pattern_recognition():
 
                 # one hour pattern recognition
                 name = pattern_data["patternname"]
-                type = pattern_data["patterntype"]
+                patterntype = pattern_data["patterntype"]
                 status = pattern_data["status"]
+
+                if status == "complete":
+                    continue
+
                 entry = pattern_data["entry"]
                 takeprofit = pattern_data["profit1"]
                 stoploss = pattern_data["stoploss"]
@@ -122,46 +123,40 @@ def pattern_recognition():
                 one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
                 one_hour_adx = one_hour_aggregate["trend"]["adx"]
 
-
-                HighLowData.objects.create(
-                    coin=coin,
-                    daily_high=high_price,
-                    daily_low=low_price,
-                    timestamp=datetime(yesterday.year, yesterday.month, yesterday.day)
-                )
-
-                Pattern.objects.create(
+                Pattern.objects.update_or_create(
                     coin = coin,
-                    # one hour pattern
-                    name = name,
-                    # one hour pattern
-                    type = type,
-                    # one hour pattern
-                    status = status,
-                    # one hour pattern
-                    entry = entry,
-                    # one hour pattern
-                    takeprofit = takeprofit,
-                    # one hour pattern
-                    stoploss = stoploss,
-                    # one hour pattern
-                    support = support,
-                    # one hour pattern
-                    resistance = resistance,
-                    # five min aggregate
-                    five_min_signal = five_min_signal,
-                    # fifteen min aggregate
-                    fifteen_min_signal = fifteen_min_signal,
-                    # one hour aggregate
-                    one_hour_signal = one_hour_signal,
-                    # five min aggregate
-                    five_min_adx = five_min_adx,
-                    # fifteen min aggregate
-                    fifteen_min_adx = fifteen_min_adx,
-                    # one hour aggregate
-                    one_hour_adx = one_hour_adx,
-                    # time now
-                    timestamp = datetime.utcnow()
+                    defaults = {
+                        # one hour pattern
+                        "name": name,
+                        # one hour pattern
+                        "patterntype": patterntype,
+                        # one hour pattern
+                        "status": status,
+                        # one hour pattern
+                        "entry": entry,
+                        # one hour pattern
+                        "takeprofit": takeprofit,
+                        # one hour pattern
+                        "stoploss": stoploss,
+                        # one hour pattern
+                        "support": support,
+                        # one hour pattern
+                        "resistance": resistance,
+                        # five min aggregate
+                        "five_min_signal": five_min_signal,
+                        # fifteen min aggregate
+                        "fifteen_min_signal": fifteen_min_signal,
+                        # one hour aggregate
+                        "one_hour_signal": one_hour_signal,
+                        # five min aggregate
+                        "five_min_adx": five_min_adx,
+                        # fifteen min aggregate
+                        "fifteen_min_adx": fifteen_min_adx,
+                        # one hour aggregate
+                        "one_hour_adx": one_hour_adx,
+                        # time now
+                        "timestamp": datetime.utcnow()
+                    }
                 )
 
 
@@ -170,10 +165,10 @@ def pattern_recognition():
                 print(f"Error fetching data for {coin.symbol}: {e}")
                 continue  # Skip coin if error occurs
 
-            print("✅ Trade signals updated successfully!")
+    print("✅ Trade signals updated successfully!")
 
 
-            # NEED A FUNCTION TO DELETE OLD PATTERN DATA FROM DB
+    # NEED A FUNCTION TO DELETE OLD PATTERN DATA FROM DB
 
 
 
