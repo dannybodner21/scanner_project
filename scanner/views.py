@@ -52,12 +52,11 @@ def thirty_min_pattern_check():
 
     # check all coins that don't currently have an incomplete pattern
     # get coins without pattern
-
+    coins = []
 
 
     # loop through coins
     for coin in coins:
-
 
         try:
 
@@ -67,12 +66,16 @@ def thirty_min_pattern_check():
             symbol = coin.exchange
 
 
-            
+
+
+
 
             one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
 
             if not one_hour_patterns or 'points' not in one_hour_patterns:
-                continue  # Skip if no pattern detected
+
+                # Skip if no pattern detected
+                continue
 
             # Take the first detected pattern
             pattern_data = one_hour_patterns["points"][0]
