@@ -34,7 +34,7 @@ def finn():
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
-    Pattern.objects.all().delete()
+    #Pattern.objects.all().delete()
 
 
 
