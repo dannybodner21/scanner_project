@@ -34,6 +34,95 @@ def finn():
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
+    coins = Coin.objects.all()[:80]
+
+    print(len(coins))
+
+    for coin in coins:
+
+        print("one")
+
+        # going through coins on Binance only to test it out
+        if "BINANCE" in coin.exchange:
+
+            print("two ---")
+
+            try:
+
+                #symbol = "BINANCE:BTCUSDT"
+                symbol = coin.exchange
+
+                one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
+
+                if not one_hour_patterns or 'points' not in one_hour_patterns:
+                    print("--- skipping ---")
+                    continue  # Skip if no pattern detected
+
+                # Take the first detected pattern
+                pattern_data = one_hour_patterns["points"][0]
+
+                # one hour pattern recognition
+                name = pattern_data["patternname"]
+                patterntype = pattern_data["patterntype"]
+                status = pattern_data["status"]
+
+                if status == "successful" or status == "complete" or status == "failed":
+                    print(status)
+                    continue
+
+                entry = pattern_data["entry"]
+                takeprofit = pattern_data["profit1"]
+                stoploss = pattern_data["stoploss"]
+
+                # one hour support / resistance
+                #one_hour_support_resistance = finnhub_client.support_resistance(symbol, '60')
+                #support = one_hour_support_resistance["support"][0] if one_hour_support_resistance["support"] else None
+                #resistance = one_hour_support_resistance["resistance"][0] if one_hour_support_resistance["resistance"] else None
+
+                five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
+                fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
+                one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
+
+                # aggregates
+                five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
+                five_min_adx = five_min_aggregate["trend"]["adx"]
+
+                fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
+                fifteen_min_adx = fifteen_min_aggregate["trend"]["adx"]
+
+                one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
+                one_hour_adx = one_hour_aggregate["trend"]["adx"]
+
+
+                print("---------------------------------")
+                print(coin.symbol)
+                print(f"name: {name}")
+                print(f"patterntype: {patterntype}")
+                print(f"status: {status}")
+                print(f"entry: {entry}")
+                print(f"takeprofit: {takeprofit}")
+                print(f"stoploss: {stoploss}")
+                print(f"five_min_signal: {five_min_signal}")
+                print(f"fifteen_min_signal: {fifteen_min_signal}")
+                print(f"one_hour_signal: {one_hour_signal}")
+                print(f"five_min_adx: {five_min_adx}")
+                print(f"fifteen_min_adx: {fifteen_min_adx}")
+                print(f"one_hour_adx: {one_hour_adx}")
+                print(f"timestamp: {timestamp}")
+
+
+
+
+            except Exception as e:
+                print(f"Error fetching data for {coin.symbol}: {e}")
+                continue  # Skip coin if error occurs
+
+
+
+
+
+
+
 
 
     # PLAN
@@ -261,6 +350,22 @@ def pattern_recognition():
 
                 one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
                 one_hour_adx = one_hour_aggregate["trend"]["adx"]
+
+                print("---------------------------------")
+                print(coin.symbol)
+                print(f"name: {name}")
+                print(f"patterntype: {patterntype}")
+                print(f"status: {status}")
+                print(f"entry: {entry}")
+                print(f"takeprofit: {takeprofit}")
+                print(f"stoploss: {stoploss}")
+                print(f"five_min_signal: {five_min_signal}")
+                print(f"fifteen_min_signal: {fifteen_min_signal}")
+                print(f"one_hour_signal: {one_hour_signal}")
+                print(f"five_min_adx: {five_min_adx}")
+                print(f"fifteen_min_adx: {fifteen_min_adx}")
+                print(f"one_hour_adx: {one_hour_adx}")
+                print(f"timestamp: {timestamp}")
 
                 Pattern.objects.update_or_create(
                     coin = coin,
