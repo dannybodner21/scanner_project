@@ -185,7 +185,9 @@ def pattern_recognition():
     finnhub_client._session.timeout = 120
 
     #coins = Coin.objects.all()
+    coins = Coin.objects.all()[:80]
 
+    '''
     DOT = Coin.objects.get(symbol="DOT")
     XRP = Coin.objects.get(symbol="XRP")
     ORDI = Coin.objects.get(symbol="ORDI")
@@ -196,7 +198,6 @@ def pattern_recognition():
     DOGE = Coin.objects.get(symbol="DOGE")
     GRT = Coin.objects.get(symbol="GRT")
     SHIB = Coin.objects.get(symbol="SHIB")
-
     coins = []
     coins.append(DOT)
     coins.append(XRP)
@@ -208,6 +209,7 @@ def pattern_recognition():
     coins.append(DOGE)
     coins.append(GRT)
     coins.append(SHIB)
+    '''
 
     incomplete_patterns = []
 
@@ -234,7 +236,7 @@ def pattern_recognition():
                 patterntype = pattern_data["patterntype"]
                 status = pattern_data["status"]
 
-                if status == "successful" or status == "complete":
+                if status == "successful" or status == "complete" or status == "failed":
                     continue
 
                 entry = pattern_data["entry"]
