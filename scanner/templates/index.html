@@ -185,6 +185,53 @@
 
 {% block body %}
 
+
+<section class="scanner-container">
+  <div class="w-layout-blockcontainer container w-container">
+
+    <table style="margin-top:50px;background-color:white; border-radius:20px;">
+        <thead style="position:sticky; top:0px; overflow-y:auto; background-color:white;z-index:5;border-radius:20px 20px 0px 0px;">
+            <tr>
+                <th>Coin</th>
+                <th >Patter Name</th>
+                <th >Pattern Type</th>
+                <th >Status</th>
+                <th >Entry Price</th>
+                <th >TP</th>
+                <th >SL</th>
+                <th >5min Signal</th>
+                <th >15min Signal</th>
+                <th >1hr Signal</th>
+                <th >5min ADX</th>
+            </tr>
+        </thead>
+        <tbody style="background-color: white;">
+            {% for pattern in patterns %}
+                <tr>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.coin }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.patternname }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.patterntype }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.status }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.entry }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.profit1 }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.stoploss }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.five_min_signal }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.fifteen_min_signal }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.one_hour_signal }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.five_min_adx }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+  </div>
+</section>
+
+
+
+
+
+
   <section class="trigger-section">
     <h3 class="header-text">Current Triggers</h3>
     <div class="trigger-columns">

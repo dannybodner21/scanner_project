@@ -44,7 +44,9 @@ def pattern_recognition():
 
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
-    finnhub_client._session.timeout = 60
+    finnhub_client._session.timeout = 120
+
+    #TIMEOUT = 120
 
     #coins = Coin.objects.all()
 
@@ -61,15 +63,15 @@ def pattern_recognition():
 
     coins = []
     coins.append(DOT)
-    #coins.append(XRP)
-    #coins.append(ORDI)
-    #coins.append(SAND)
-    #coins.append(UNI)
-    #coins.append(DYDX)
-    #coins.append(ALGO)
-    #coins.append(DOGE)
-    #coins.append(GRT)
-    #coins.append(SHIB)
+    coins.append(XRP)
+    coins.append(ORDI)
+    coins.append(SAND)
+    coins.append(UNI)
+    coins.append(DYDX)
+    coins.append(ALGO)
+    coins.append(DOGE)
+    coins.append(GRT)
+    coins.append(SHIB)
 
     incomplete_patterns = []
     bullish_patterns = []
@@ -86,8 +88,6 @@ def pattern_recognition():
                 symbol = coin.exchange
 
                 patterns = finnhub_client.pattern_recognition(symbol, '5')
-
-                # check for bullish signal on the 5, 15 and 1hr
                 five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
                 fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
                 one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
@@ -146,6 +146,7 @@ def pattern_recognition():
 
 
 
+
     # do whatever with the patterns
     for pattern in incomplete_patterns:
 
@@ -162,9 +163,12 @@ def pattern_recognition():
         print(f"one_hour_signal: {pattern['one_hour_signal']}")
         print(f"five_min_adx: {pattern['five_min_adx']}")
 
+    if len(incomplete_patterns) == 0:
+        print("no patterns found")
 
 
 
+    return incomplete_patterns
 
 
 
@@ -4849,6 +4853,9 @@ def index(request):
     triggers = list(Trigger.objects.values("trigger_name", "timestamp"))
 
 
+    patterns = pattern_recognition()
+
+
     # Handle AJAX request for partial updates
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
 
@@ -4856,6 +4863,7 @@ def index(request):
             "top_cryptos": sorted_coins,
             "sorted_volumes": sorted_volumes,
             "triggers": triggers,
+            "patterns": []
         }
 
         return JsonResponse(data, safe=False)
@@ -4865,6 +4873,7 @@ def index(request):
         "top_cryptos": sorted_coins,
         "sorted_volumes": sorted_volumes,
         "triggers": triggers,
+        "patterns": patterns
     })
 
 
