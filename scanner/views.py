@@ -30,12 +30,20 @@ import mplfinance as mpf
 
 def finn():
 
-    FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
-    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
-    finnhub_client._session.timeout = 120
+    #FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
+    #finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+    #finnhub_client._session.timeout = 120
 
     #print(finnhub_client.news_sentiment('BTC'))
 
+    all_coins = Coin.objects.all()
+    coins = Coin.objects.filter(pattern__isnull=True)
+
+    print(len(all_coins))
+    print(len(coins))
+
+    for coin in coins:
+        print(coin.symbol)
 
 
 
@@ -62,7 +70,7 @@ def thirty_min_pattern_check():
 
     # check all coins that don't currently have an incomplete pattern
     # get coins without pattern
-    coins = Coin.objects.exclude(pattern__isnull=True)
+    coins = Coin.objects.filter(pattern__isnull=True)
 
     # loop through coins
     for coin in coins:
