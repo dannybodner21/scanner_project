@@ -37,8 +37,11 @@ def finn():
     #print(finnhub_client.news_sentiment('BTC'))
 
     #coin = Coin.objects.filter(symbol="CELO")
-    symbol = "BINANCE:CELOUSDT"
+    symbol = "BINANCE:WIFUSDT"
     one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
+
+    if (len(one_hour_patterns["points"]) == 0):
+        print("nothing")
 
     print(one_hour_patterns)
 
@@ -95,7 +98,11 @@ def thirty_min_pattern_check(request=None):
 
             print("got the one hour pattern")
 
-            if not one_hour_patterns or 'points' not in one_hour_patterns:
+            if (
+                not one_hour_patterns or
+                'points' not in one_hour_patterns or
+                len(one_hour_patterns["points"]) == 0
+            ):
 
                 # Skip if no pattern detected
                 continue
@@ -220,7 +227,11 @@ def five_min_pattern_check(request=None):
 
             one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
 
-            if not one_hour_patterns or 'points' not in one_hour_patterns:
+            if (
+                not one_hour_patterns or
+                'points' not in one_hour_patterns or
+                len(one_hour_patterns["points"]) == 0
+            ):
 
                 # no pattern data is found for a coin that should have data
                 # skip it for now but might need to change this later
