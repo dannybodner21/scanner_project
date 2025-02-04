@@ -91,7 +91,7 @@ def thirty_min_pattern_check():
 
                 symbol = symbol.replace("USDT", "_USDT")
 
-            elif "OKX" in symbolString:
+            elif "OKX" in symbol:
 
                 symbol = symbol.replace("USDT", "-USDT")
                 symbol = symbol.replace("OKX", "OKEX")
