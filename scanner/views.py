@@ -54,6 +54,8 @@ def finn():
 
 def thirty_min_pattern_check():
 
+    print("in thirty min check")
+
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
@@ -64,6 +66,8 @@ def thirty_min_pattern_check():
 
     # loop through coins
     for coin in coins:
+
+        print(f"checking {coin.symbol}")
 
         try:
 
@@ -86,6 +90,8 @@ def thirty_min_pattern_check():
 
             one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
 
+            print("got the one hour pattern")
+
             if not one_hour_patterns or 'points' not in one_hour_patterns:
 
                 # Skip if no pattern detected
@@ -98,6 +104,8 @@ def thirty_min_pattern_check():
             name = pattern_data["patternname"]
             patterntype = pattern_data["patterntype"]
             status = pattern_data["status"]
+
+            print(f"pattern status: {status}")
 
             if status != "incomplete":
                 continue
