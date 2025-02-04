@@ -55,7 +55,7 @@ def finn():
     #     when the pattern is complete, delete from db
 
 
-def thirty_min_pattern_check():
+def thirty_min_pattern_check(request=None):
 
     print("in thirty min check")
 
@@ -185,7 +185,7 @@ def thirty_min_pattern_check():
     return
 
 
-def five_min_pattern_check():
+def five_min_pattern_check(request=None):
 
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
