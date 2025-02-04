@@ -182,6 +182,10 @@ def thirty_min_pattern_check(request=None):
             # Skip coin if error occurs
             continue
 
+    if request:
+        return JsonResponse({"status": "success", "message": "Update successfully"})
+
+
     return
 
 
@@ -301,6 +305,8 @@ def five_min_pattern_check(request=None):
             # Skip coin if error occurs
             continue
 
+    if request:
+        return JsonResponse({"status": "success", "message": "Update successfully"})
 
     return
 
