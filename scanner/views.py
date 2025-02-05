@@ -146,6 +146,7 @@ def thirty_min_pattern_check(request=None):
             Pattern.objects.update_or_create(
                 coin = coin,
                 defaults = {
+                    "symbol": coin.symbol,
                     # one hour pattern
                     "name": name,
                     # one hour pattern
@@ -254,7 +255,7 @@ def five_min_pattern_check(request=None):
 
                 # delete from db - could cause an error if a coin has mulitple patterns on the 1hr
                 # not deleting right now. collecting as much data as i can to test these triggers against
-                #Pattern.objects.filter(coin=coin).delete()
+                Pattern.objects.filter(coin=coin).delete()
 
                 continue
 
@@ -285,6 +286,7 @@ def five_min_pattern_check(request=None):
                 coin = coin,
                 timestamp = datetime.utcnow(),
                 defaults = {
+                    "symbol": coin.symbol,
                     "name": name,
                     "patterntype": patterntype,
                     "status": status,

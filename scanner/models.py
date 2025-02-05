@@ -113,6 +113,7 @@ class Trigger(models.Model):
 
 class Pattern(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="pattern")
+    symbol = models.CharField(max_length=200)
     name = models.CharField(max_length=200)
     patterntype = models.CharField(max_length=200, null=True, blank=True)
     status = models.CharField(max_length=200)
