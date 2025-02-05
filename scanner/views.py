@@ -77,6 +77,11 @@ def thirty_min_pattern_check(request=None):
 
         try:
 
+            has_pattern = Pattern.objects.filter(coin=coin).exists()
+
+            if has_pattern:
+                continue
+
             # fix the exchange string if necessary
             #symbol = "BINANCE:BTCUSDT"
             symbol = coin.exchange.upper()
@@ -5296,6 +5301,7 @@ def index(request):
     #patterns = pattern_recognition()
     patterns = []
     patterns = list(Pattern.objects.values())
+    patterns = patterns.reverse()
 
 
     # Handle AJAX request for partial updates
