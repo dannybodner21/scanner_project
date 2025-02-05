@@ -60,140 +60,142 @@ def finn():
 
 def thirty_min_pattern_check(request=None):
 
-    print("in thirty min check")
+    patterns = Pattern.objects.all()
+    if (len(patterns) < 20):
 
-    FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
-    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
-    finnhub_client._session.timeout = 120
+        FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
+        finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+        finnhub_client._session.timeout = 120
 
-    # check all coins that don't currently have an incomplete pattern
-    # get coins without pattern
-    coins = Coin.objects.filter(pattern__isnull=True)
+        # check all coins that don't currently have an incomplete pattern
+        # get coins without pattern
+        coins = Coin.objects.filter(pattern__isnull=True)
 
-    # loop through coins
-    for coin in coins:
+        # loop through coins
+        for coin in coins:
 
-        print(f"checking {coin.symbol}")
+            print(f"checking {coin.symbol}")
 
-        try:
+            try:
 
-            has_pattern = Pattern.objects.filter(coin=coin).exists()
+                has_pattern = Pattern.objects.filter(coin=coin).exists()
 
-            if has_pattern:
+                if has_pattern:
+                    continue
+
+                # fix the exchange string if necessary
+                #symbol = "BINANCE:BTCUSDT"
+                symbol = coin.exchange.upper()
+
+                if "KUCOIN" in symbol:
+
+                    symbol = symbol.replace("USDT", "-USDT")
+
+                elif "POLONIEX" in symbol:
+
+                    symbol = symbol.replace("USDT", "_USDT")
+
+                elif "OKX" in symbol:
+
+                    symbol = symbol.replace("USDT", "-USDT")
+                    symbol = symbol.replace("OKX", "OKEX")
+
+                one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
+
+                print("got the one hour pattern")
+
+                if (
+                    not one_hour_patterns or
+                    'points' not in one_hour_patterns or
+                    len(one_hour_patterns["points"]) == 0
+                ):
+
+                    # Skip if no pattern detected
+                    continue
+
+                # Take the first detected pattern
+                pattern_data = one_hour_patterns["points"][0]
+
+                # one hour pattern recognition
+                name = pattern_data["patternname"]
+                patterntype = pattern_data["patterntype"]
+                status = pattern_data["status"]
+
+                print(f"pattern status: {status}")
+
+                if status != "incomplete":
+                    continue
+
+                entry = pattern_data["entry"]
+                takeprofit = pattern_data["profit1"]
+                stoploss = pattern_data["stoploss"]
+
+                # one hour support / resistance
+                #one_hour_support_resistance = finnhub_client.support_resistance(symbol, '60')
+                #support = one_hour_support_resistance["support"][0] if one_hour_support_resistance["support"] else None
+                #resistance = one_hour_support_resistance["resistance"][0] if one_hour_support_resistance["resistance"] else None
+
+                #five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
+                #fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
+                #one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
+
+                # aggregates
+                #five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
+                #five_min_adx = five_min_aggregate["trend"]["adx"]
+
+                #fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
+                #fifteen_min_adx = fifteen_min_aggregate["trend"]["adx"]
+
+                #one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
+                #one_hour_adx = one_hour_aggregate["trend"]["adx"]
+
+                Pattern.objects.update_or_create(
+                    coin = coin,
+                    defaults = {
+                        "symbol": coin.symbol,
+                        # one hour pattern
+                        "name": name,
+                        # one hour pattern
+                        "patterntype": patterntype,
+                        # one hour pattern
+                        "status": status,
+                        # one hour pattern
+                        "entry": entry,
+                        # one hour pattern
+                        "takeprofit": takeprofit,
+                        # one hour pattern
+                        "stoploss": stoploss,
+                        # one hour pattern
+                        #"support": support,
+                        # one hour pattern
+                        #"resistance": resistance,
+                        # five min aggregate
+                        #"five_min_signal": five_min_signal,
+                        # fifteen min aggregate
+                        #"fifteen_min_signal": fifteen_min_signal,
+                        # one hour aggregate
+                        #"one_hour_signal": one_hour_signal,
+                        # five min aggregate
+                        #"five_min_adx": five_min_adx,
+                        # fifteen min aggregate
+                        #"fifteen_min_adx": fifteen_min_adx,
+                        # one hour aggregate
+                        #"one_hour_adx": one_hour_adx,
+                        # time now
+                        #"timestamp": datetime.utcnow()
+                    }
+                )
+
+                # send message
+                update = [f"{patterntype} {name} pattern detected for {coin.symbol} on the 1hr. Status: {status}"]
+                send_text(update)
+
+            except Exception as e:
+
+                print(f"Error fetching data for {coin.symbol}: {e}")
+                # Skip coin if error occurs
                 continue
 
-            # fix the exchange string if necessary
-            #symbol = "BINANCE:BTCUSDT"
-            symbol = coin.exchange.upper()
-
-            if "KUCOIN" in symbol:
-
-                symbol = symbol.replace("USDT", "-USDT")
-
-            elif "POLONIEX" in symbol:
-
-                symbol = symbol.replace("USDT", "_USDT")
-
-            elif "OKX" in symbol:
-
-                symbol = symbol.replace("USDT", "-USDT")
-                symbol = symbol.replace("OKX", "OKEX")
-
-            one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
-
-            print("got the one hour pattern")
-
-            if (
-                not one_hour_patterns or
-                'points' not in one_hour_patterns or
-                len(one_hour_patterns["points"]) == 0
-            ):
-
-                # Skip if no pattern detected
-                continue
-
-            # Take the first detected pattern
-            pattern_data = one_hour_patterns["points"][0]
-
-            # one hour pattern recognition
-            name = pattern_data["patternname"]
-            patterntype = pattern_data["patterntype"]
-            status = pattern_data["status"]
-
-            print(f"pattern status: {status}")
-
-            if status != "incomplete":
-                continue
-
-            entry = pattern_data["entry"]
-            takeprofit = pattern_data["profit1"]
-            stoploss = pattern_data["stoploss"]
-
-            # one hour support / resistance
-            #one_hour_support_resistance = finnhub_client.support_resistance(symbol, '60')
-            #support = one_hour_support_resistance["support"][0] if one_hour_support_resistance["support"] else None
-            #resistance = one_hour_support_resistance["resistance"][0] if one_hour_support_resistance["resistance"] else None
-
-            #five_min_aggregate = finnhub_client.aggregate_indicator(symbol, '5')
-            #fifteen_min_aggregate = finnhub_client.aggregate_indicator(symbol, '15')
-            #one_hour_aggregate = finnhub_client.aggregate_indicator(symbol, '60')
-
-            # aggregates
-            #five_min_signal = five_min_aggregate["technicalAnalysis"]["signal"]
-            #five_min_adx = five_min_aggregate["trend"]["adx"]
-
-            #fifteen_min_signal = fifteen_min_aggregate["technicalAnalysis"]["signal"]
-            #fifteen_min_adx = fifteen_min_aggregate["trend"]["adx"]
-
-            #one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
-            #one_hour_adx = one_hour_aggregate["trend"]["adx"]
-
-            Pattern.objects.update_or_create(
-                coin = coin,
-                defaults = {
-                    "symbol": coin.symbol,
-                    # one hour pattern
-                    "name": name,
-                    # one hour pattern
-                    "patterntype": patterntype,
-                    # one hour pattern
-                    "status": status,
-                    # one hour pattern
-                    "entry": entry,
-                    # one hour pattern
-                    "takeprofit": takeprofit,
-                    # one hour pattern
-                    "stoploss": stoploss,
-                    # one hour pattern
-                    #"support": support,
-                    # one hour pattern
-                    #"resistance": resistance,
-                    # five min aggregate
-                    #"five_min_signal": five_min_signal,
-                    # fifteen min aggregate
-                    #"fifteen_min_signal": fifteen_min_signal,
-                    # one hour aggregate
-                    #"one_hour_signal": one_hour_signal,
-                    # five min aggregate
-                    #"five_min_adx": five_min_adx,
-                    # fifteen min aggregate
-                    #"fifteen_min_adx": fifteen_min_adx,
-                    # one hour aggregate
-                    #"one_hour_adx": one_hour_adx,
-                    # time now
-                    #"timestamp": datetime.utcnow()
-                }
-            )
-
-            # send message
-            update = [f"{patterntype} {name} pattern detected for {coin.symbol} on the 1hr. Status: {status}"]
-            send_text(update)
-
-        except Exception as e:
-
-            print(f"Error fetching data for {coin.symbol}: {e}")
-            # Skip coin if error occurs
-            continue
 
     if request:
         return JsonResponse({"status": "success", "message": "Update successfully"})
