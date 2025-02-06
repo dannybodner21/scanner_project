@@ -60,6 +60,8 @@ def finn():
 
 def thirty_min_pattern_check(request=None):
 
+    count = 0
+
     patterns = Pattern.objects.all()
     if (len(patterns) < 20):
 
@@ -73,6 +75,9 @@ def thirty_min_pattern_check(request=None):
 
         # loop through coins
         for coin in coins:
+
+            if (count == 20):
+                break
 
             print(f"checking {coin.symbol}")
 
@@ -185,6 +190,8 @@ def thirty_min_pattern_check(request=None):
                         #"timestamp": datetime.utcnow()
                     }
                 )
+
+                count += 1
 
                 # send message
                 update = [f"{patterntype} {name} pattern detected for {coin.symbol} on the 1hr. Status: {status}"]
