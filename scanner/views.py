@@ -5310,7 +5310,7 @@ def index(request):
     #patterns = pattern_recognition()
     patterns = []
     patterns = list(Pattern.objects.values())
-    patterns = patterns.reverse()
+    patterns.reverse()
 
 
     # Handle AJAX request for partial updates
