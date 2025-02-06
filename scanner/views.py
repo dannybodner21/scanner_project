@@ -217,15 +217,15 @@ def five_min_pattern_check(request=None):
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
-    coins_with_patterns = Coin.objects.filter(pattern__isnull=False).distinct()
+    #coins_with_patterns = Coin.objects.filter(pattern__isnull=False).distinct()
 
-    for coin in coins_with_patterns:
+    patterns = Pattern.objects.all()
+
+    for pattern in patterns:
 
         try:
 
-            # fix the exchange string if necessary
-            #symbol = "BINANCE:BTCUSDT"
-            symbol = coin.exchange.upper()
+            coin = pattern.coin
 
             if "KUCOIN" in symbol:
 
