@@ -227,6 +227,8 @@ def five_min_pattern_check(request=None):
 
             coin = pattern.coin
 
+            symbol = coin.exchange
+
             if "KUCOIN" in symbol:
 
                 symbol = symbol.replace("USDT", "-USDT")
@@ -296,29 +298,19 @@ def five_min_pattern_check(request=None):
             one_hour_signal = one_hour_aggregate["technicalAnalysis"]["signal"]
             one_hour_adx = one_hour_aggregate["trend"]["adx"]
 
-            Pattern.objects.update_or_create(
-                coin = coin,
-                timestamp = datetime.utcnow(),
-                defaults = {
-                    "symbol": coin.symbol,
-                    "name": name,
-                    "patterntype": patterntype,
-                    "status": status,
-                    "entry": entry,
-                    "takeprofit": takeprofit,
-                    "stoploss": stoploss,
-                    # one hour pattern
-                    #"support": support,
-                    # one hour pattern
-                    #"resistance": resistance,
-                    "five_min_signal": five_min_signal,
-                    "fifteen_min_signal": fifteen_min_signal,
-                    "one_hour_signal": one_hour_signal,
-                    "five_min_adx": five_min_adx,
-                    "fifteen_min_adx": fifteen_min_adx,
-                    "one_hour_adx": one_hour_adx,
-                }
-            )
+            pattern.patterntype = patterntype
+            pattern.status = status
+            pattern.entry = entry
+            pattern.takeprofit = takeprofit
+            pattern.stoploss = stoploss
+            pattern.five_min_signal = five_min_signal
+            pattern.fifteen_min_signal = fifteen_min_signal
+            pattern.one_hour_signal = one_hour_signal
+            pattern.five_min_adx = five_min_adx
+            pattern.fifteen_min_adx = fifteen_min_adx
+            pattern.one_hour_adx = one_hour_adx
+
+            pattern.save()
 
             # if bullish check for a long signal, bearish check for short signal
             if (patterntype == "bullish"):
