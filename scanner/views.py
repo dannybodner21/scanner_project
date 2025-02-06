@@ -47,6 +47,60 @@ def finn():
 
 
 
+def support_resistance(request=None):
+
+    FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
+    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+    finnhub_client._session.timeout = 120
+
+    coins = Coin.objects.order_by('market_cap_rank')[:100]
+
+    for coin in coins:
+
+        try:
+
+            #symbol = "BINANCE:WIFUSDT"
+            symbol = coin.exchange
+
+            if "KUCOIN" in symbol:
+
+                symbol = symbol.replace("USDT", "-USDT")
+
+            elif "POLONIEX" in symbol:
+
+                symbol = symbol.replace("USDT", "_USDT")
+
+            elif "OKX" in symbol:
+
+                symbol = symbol.replace("USDT", "-USDT")
+                symbol = symbol.replace("OKX", "OKEX")
+
+            my_response = finnhub_client.support_resistance(symbol, 'D')
+
+            levels = my_response[0]["levels"]
+
+            support = min(levels) if levels else None
+            resistance = max(levels) if levels else None
+
+            SupportResistance.objects.update_or_create(
+                coin = coin,
+                defaults = {
+                    "support": support,
+                    "resistance": resistance,
+                    "timestamp": datetime.utcnow()
+                }
+            )
+
+        except Exception as e:
+
+            print(f"Error fetching data for {coin.symbol}: {e}")
+            # Skip coin if error occurs
+            continue
+
+    if request:
+        return JsonResponse({"status": "success", "message": "Update successfully"})
+
+    return
 
 
     # PLAN
@@ -206,7 +260,6 @@ def thirty_min_pattern_check(request=None):
 
     if request:
         return JsonResponse({"status": "success", "message": "Update successfully"})
-
 
     return
 

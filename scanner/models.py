@@ -28,10 +28,22 @@ class HighLowData(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="high_low_data")
     daily_high = models.DecimalField(max_digits=20, decimal_places=8)
     daily_low = models.DecimalField(max_digits=20, decimal_places=8)
+    support = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    resistance = models.DecimalField(max_digits=20, decimal_places=8, null=True)
     timestamp = models.DateTimeField()
 
     def __str__(self):
         return f"{self.coin.symbol}, high: {self.daily_high}, low: {self.daily_low}, {self.timestamp}"
+
+
+class SupportResistance(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="support_resistance")
+    support = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    resistance = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    timestamp = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.coin.symbol}, {self.timestamp}"
 
 
 class HistoricalData(models.Model):
@@ -120,8 +132,6 @@ class Pattern(models.Model):
     entry = models.DecimalField(max_digits=20, decimal_places=8)
     takeprofit = models.DecimalField(max_digits=20, decimal_places=8)
     stoploss = models.DecimalField(max_digits=20, decimal_places=8)
-    support = models.DecimalField(max_digits=20, decimal_places=8, null=True)
-    resistance = models.DecimalField(max_digits=20, decimal_places=8, null=True)
     five_min_signal = models.CharField(max_length=200, null=True, blank=True)
     fifteen_min_signal = models.CharField(max_length=200, null=True, blank=True)
     one_hour_signal = models.CharField(max_length=200, null=True, blank=True)

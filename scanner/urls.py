@@ -8,6 +8,7 @@ urlpatterns = [
     path('daily-update/', views.daily_update, name='daily-update'),
     path('thirty-min-pattern-check/', views.thirty_min_pattern_check, name='thirty-min-pattern-check'),
     path('five-min-pattern-check/', views.five_min_pattern_check, name='five-min-pattern-check'),
+    path('support-resistance/', views.support_resistance, name='support-resistance'),
 
     path('test/', views.test, name='test'),
     path('download/<str:filename>/', views.download_file, name='download_file'),
