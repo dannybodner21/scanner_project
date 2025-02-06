@@ -34,16 +34,21 @@ def finn():
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
-    #print(finnhub_client.news_sentiment('BTC'))
+    #coins = Coin.objects.order_by('market_cap_rank')[:10]
+    #coin = Coin.objects.filter(symbol="SHIB")
+    #coins = [coin]
 
-    #coin = Coin.objects.filter(symbol="CELO")
-    symbol = "BINANCE:WIFUSDT"
-    one_hour_patterns = finnhub_client.pattern_recognition(symbol, '60')
+    symbol = "BINANCE:DOTUSDT"
+    my_response = finnhub_client.support_resistance(symbol, 'D')
+    print(my_response)
+    levels = my_response["levels"]
 
-    if (len(one_hour_patterns["points"]) == 0):
-        print("nothing")
+    support = min(levels) if levels else None
+    resistance = max(levels) if levels else None
 
-    print(one_hour_patterns)
+    print(support)
+    print(resistance)
+
 
 
 
@@ -53,7 +58,7 @@ def support_resistance(request=None):
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
-    coins = Coin.objects.order_by('market_cap_rank')[:100]
+    coins = Coin.objects.order_by('market_cap_rank')[:10]
 
     for coin in coins:
 
@@ -77,7 +82,7 @@ def support_resistance(request=None):
 
             my_response = finnhub_client.support_resistance(symbol, 'D')
 
-            levels = my_response[0]["levels"]
+            levels = my_response["levels"]
 
             support = min(levels) if levels else None
             resistance = max(levels) if levels else None
