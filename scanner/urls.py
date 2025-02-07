@@ -10,6 +10,7 @@ urlpatterns = [
     path('five-min-pattern-check/', views.five_min_pattern_check, name='five-min-pattern-check'),
     path('support-resistance/', views.support_resistance, name='support-resistance'),
     path('check-support-resistance/', views.check_support_resistance, name='check-support-resistance'),
+    path('finn/', views.finn, name='finn'),
 
     path('test/', views.test, name='test'),
     path('download/<str:filename>/', views.download_file, name='download_file'),

@@ -34,20 +34,75 @@ def finn():
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
-    #coins = Coin.objects.order_by('market_cap_rank')[:10]
-    #coin = Coin.objects.filter(symbol="SHIB")
-    #coins = [coin]
+    coins = Coin.objects.order_by('market_cap_rank')[:50]
 
-    symbol = "BINANCE:DOTUSDT"
-    my_response = finnhub_client.support_resistance(symbol, 'D')
-    print(my_response)
-    levels = my_response["levels"]
+    for coin in coins:
 
-    support = min(levels) if levels else None
-    resistance = max(levels) if levels else None
+        try:
 
-    print(support)
-    print(resistance)
+            #symbol = "BINANCE:WIFUSDT"
+            symbol = coin.exchange
+
+            if "KUCOIN" in symbol:
+
+                symbol = symbol.replace("USDT", "-USDT")
+
+            elif "POLONIEX" in symbol:
+
+                symbol = symbol.replace("USDT", "_USDT")
+
+            elif "OKX" in symbol:
+
+                symbol = symbol.replace("USDT", "-USDT")
+                symbol = symbol.replace("OKX", "OKEX")
+
+            five_min_response = finnhub_client.aggregate_indicator(symbol, '5')
+            fifteen_min_response = finnhub_client.aggregate_indicator(symbol, '15')
+            thirty_min_response = finnhub_client.aggregate_indicator(symbol, '30')
+
+            five_min_signal = five_min_response["technicalAnalysis"]["signal"]
+            fifteen_min_signal = fifteen_min_response["technicalAnalysis"]["signal"]
+            thirty_min_signal = thirty_min_response["technicalAnalysis"]["signal"]
+
+            if (
+                five_min_signal == "buy" and
+                fifteen_min_signal == "buy" and
+                thirty_min_signal == "buy"
+            ):
+                update = [f"BUY {coin.symbol}"]
+                send_text(update)
+
+            if (
+                five_min_signal == "sell" and
+                fifteen_min_signal == "sell" and
+                thirty_min_signal == "sell"
+            ):
+                update = [f"SELL {coin.symbol}"]
+                send_text(update)
+
+        except Exception as e:
+
+            print(f"Error fetching data for {coin.symbol}: {e}")
+            # Skip coin if error occurs
+            continue
+
+    if request:
+        return JsonResponse({"status": "success", "message": "Update successfully"})
+
+    return
+
+
+
+
+
+    #symbol = "BINANCE:DOTUSDT"
+    #my_response = finnhub_client.support_resistance(symbol, 'D')
+    #print(my_response)
+    #levels = my_response["levels"]
+    #support = min(levels) if levels else None
+    #resistance = max(levels) if levels else None
+    #print(support)
+    #print(resistance)
 
 
 
