@@ -52,13 +52,70 @@ def finn():
 
 
 
+def check_support_resistance(request=None):
+
+    # check and see if current coin price is near the support or resistance level
+
+    coins = Coin.objects.all()
+
+    for coin in coins:
+
+        try:
+
+            levels = SupportResistance.objects.filter(coin=coin)
+            latest_metric = Metrics.objects.filter(coin=coin).order_by('-timestamp').first()
+
+            if levels and latest_metric:
+
+                support = levels.support
+                resistance = levels.resistance
+                price = latest_metric.last_price
+
+                upper_price = price * 1.04
+                lower_price = price * 0.96
+
+                if lower_price <= support <= upper_price:
+
+                    print("support is within +/- 4% of price")
+
+                    # send message
+                    update = [f"support level {support} within +/- 4% of {coin.symbol} price {price}"]
+                    send_text(update)
+
+
+                elif lower_price <= resistance <= upper_price:
+
+                    print("resistance is within +/- 4% of price")
+
+                    # send message
+                    update = [f"resistance level {resistance} within +/- 4% of {coin.symbol} price {price}"]
+                    send_text(update)
+
+
+        except Exception as e:
+
+            print(f"Error fetching data for {coin.symbol}: {e}")
+            # Skip coin if error occurs
+            continue
+
+    if request:
+        return JsonResponse({"status": "success", "message": "Update successfully"})
+
+
+
+    return
+
+
+
+
+
 def support_resistance(request=None):
 
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
-    coins = Coin.objects.order_by('market_cap_rank')[:10]
+    coins = Coin.objects.order_by('market_cap_rank')[:50]
 
     for coin in coins:
 
