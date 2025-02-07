@@ -5419,6 +5419,18 @@ def index(request):
     patterns = list(Pattern.objects.values())
     patterns.reverse()
 
+    levels = []
+    support_resistance_levels = SupportResistance.objects.all()
+    for level in support_resistance_levels:
+        metric = Metrics.objects.filter(coin=coin)
+        data = {
+            "coin": level.coin,
+            "support": level.support,
+            "resistance": level.resistance,
+            "price": metric.last_price,
+        }
+        levels.append(data)
+
 
     # Handle AJAX request for partial updates
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -5428,6 +5440,7 @@ def index(request):
             "sorted_volumes": sorted_volumes,
             "triggers": triggers,
             "patterns": patterns,
+            "support_resistance_levels": levels,
         }
 
         return JsonResponse(data, safe=False)
@@ -5438,6 +5451,7 @@ def index(request):
         "sorted_volumes": sorted_volumes,
         "triggers": triggers,
         "patterns": patterns,
+        "support_resistance_levels": levels,
     })
 
 
