@@ -28,7 +28,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 
-def finn():
+
+
+
+
+def finn_test():
+
+
+    return
+
+
+
+
+def finn(request=None):
 
     FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
