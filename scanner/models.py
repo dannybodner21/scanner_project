@@ -28,8 +28,6 @@ class HighLowData(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="high_low_data")
     daily_high = models.DecimalField(max_digits=20, decimal_places=8)
     daily_low = models.DecimalField(max_digits=20, decimal_places=8)
-    support = models.DecimalField(max_digits=20, decimal_places=8, null=True)
-    resistance = models.DecimalField(max_digits=20, decimal_places=8, null=True)
     timestamp = models.DateTimeField()
 
     def __str__(self):
@@ -141,7 +139,7 @@ class Pattern(models.Model):
     timestamp = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.coin.symbol}, {self.timestamp}"
+        return f"{self.symbol}, {self.timestamp}"
 
 
 
