@@ -5477,6 +5477,7 @@ def index(request):
     levels = []
     support_resistance_levels = SupportResistance.objects.all()
     for level in support_resistance_levels:
+        coin = level.coin
         metric = Metrics.objects.filter(coin=coin).order_by('-timestamp').first()
         last_price = 0
         if metric:
