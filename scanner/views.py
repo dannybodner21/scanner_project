@@ -34,6 +34,18 @@ import mplfinance as mpf
 
 def finn_test():
 
+    FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
+    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+    finnhub_client._session.timeout = 120
+
+    symbol = "BINANCE:WIFUSDT"
+
+    my_response = finnhub_client.support_resistance(symbol, 'D')
+
+    print(my_response)
+
+
+
 
     return
 
@@ -134,30 +146,31 @@ def check_support_resistance(request=None):
 
             if levels and latest_metric:
 
-                support = levels.support
-                resistance = levels.resistance
+                level_one = levels.level_one
+                level_two = levels.level_two
+                level_three = levels.level_three
+                level_four = levels.level_four
+                level_five = levels.level_five
+                level_six = levels.level_six
                 price = latest_metric.last_price
 
                 upper_price = price * 1.04
                 lower_price = price * 0.96
 
-                if lower_price <= support <= upper_price:
+                if (
+                    lower_price <= level_one <= upper_price or
+                    lower_price <= level_two <= upper_price or
+                    lower_price <= level_three <= upper_price or
+                    lower_price <= level_four <= upper_price or
+                    lower_price <= level_five <= upper_price or
+                    lower_price <= level_six <= upper_price
+                ):
 
-                    print("support is within +/- 4% of price")
-
-                    # send message
-                    update = [f"support level {support} within +/- 4% of {coin.symbol} price {price}"]
-                    send_text(update)
-
-
-                elif lower_price <= resistance <= upper_price:
-
-                    print("resistance is within +/- 4% of price")
+                    print("Level is within +/- 4% of price")
 
                     # send message
-                    update = [f"resistance level {resistance} within +/- 4% of {coin.symbol} price {price}"]
+                    update = [f"Level is within +/- 4% of {coin.symbol} price {price}"]
                     send_text(update)
-
 
         except Exception as e:
 
@@ -167,8 +180,6 @@ def check_support_resistance(request=None):
 
     if request:
         return JsonResponse({"status": "success", "message": "Update successfully"})
-
-
 
     return
 
@@ -208,14 +219,33 @@ def support_resistance(request=None):
 
             levels = my_response["levels"]
 
-            support = min(levels) if levels else None
-            resistance = max(levels) if levels else None
+            if len(levels) == 6:
+
+                level_one = levels[0]
+                level_two = levels[1]
+                level_three = levels[2]
+                level_four = levels[3]
+                level_five = levels[4]
+                level_six = levels[5]
+
+            else:
+
+                level_one = 0
+                level_two = 0
+                level_three = 0
+                level_four = 0
+                level_five = 0
+                level_six = 0
 
             SupportResistance.objects.update_or_create(
                 coin = coin,
                 defaults = {
-                    "support": support,
-                    "resistance": resistance,
+                    "level_one": level_one,
+                    "level_two": level_two,
+                    "level_three": level_three,
+                    "level_four": level_four,
+                    "level_five": level_five,
+                    "level_six": level_six,
                     "timestamp": datetime.utcnow()
                 }
             )
@@ -5496,8 +5526,12 @@ def index(request):
             last_price = metric.last_price
         data = {
             "coin": level.coin,
-            "support": level.support,
-            "resistance": level.resistance,
+            "level_one": level.level_one,
+            "level_two": level.level_two,
+            "level_three": level.level_three,
+            "level_four": level.level_four,
+            "level_five": level.level_five,
+            "level_six": level.level_six,
             "price": last_price,
         }
         levels.append(data)

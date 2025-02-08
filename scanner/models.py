@@ -36,8 +36,12 @@ class HighLowData(models.Model):
 
 class SupportResistance(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="support_resistance")
-    support = models.DecimalField(max_digits=20, decimal_places=8, null=True)
-    resistance = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    level_one = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    level_two = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    level_three = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    level_four = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    level_five = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    level_six = models.DecimalField(max_digits=20, decimal_places=8, null=True)
     timestamp = models.DateTimeField(auto_now=True)
 
     def __str__(self):

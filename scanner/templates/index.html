@@ -193,18 +193,26 @@
         <thead style="position:sticky; top:0px; overflow-y:auto; background-color:white;z-index:5;border-radius:20px 20px 0px 0px;">
             <tr>
                 <th>Coin</th>
-                <th>Support</th>
-                <th>Resistance</th>
                 <th>Price</th>
+                <th>Level One</th>
+                <th>Level Two</th>
+                <th>Level Three</th>
+                <th>Level Four</th>
+                <th>Level Five</th>
+                <th>Level Six</th>
             </tr>
         </thead>
         <tbody style="background-color: white;">
             {% for level in support_resistance_levels %}
                 <tr>
                     <td style="color:black; border:0.5px solid black;">{{ level.coin.symbol }}</td>
-                    <td style="color:black; border:0.5px solid black;">{{ level.support }}</td>
-                    <td style="color:black; border:0.5px solid black;">{{ level.resistance }}</td>
                     <td style="color:black; border:0.5px solid black;">{{ level.price }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_one }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_two }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_three }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_four }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_five }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_six }}</td>
                 </tr>
             {% endfor %}
         </tbody>
