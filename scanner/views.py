@@ -225,9 +225,6 @@ def support_resistance(request=None):
 
             levels = my_response["levels"]
 
-            print(coin.symbol)
-            print(len(levels))
-
             if len(levels) == 6:
 
                 level_one = levels[0]
@@ -236,6 +233,51 @@ def support_resistance(request=None):
                 level_four = levels[3]
                 level_five = levels[4]
                 level_six = levels[5]
+
+            elif len(levels) == 5:
+
+                level_one = levels[0]
+                level_two = levels[1]
+                level_three = levels[2]
+                level_four = levels[3]
+                level_five = levels[4]
+                level_six = 0
+
+            elif len(levels) == 4:
+
+                level_one = levels[0]
+                level_two = levels[1]
+                level_three = levels[2]
+                level_four = levels[3]
+                level_five = 0
+                level_six = 0
+
+            elif len(levels) == 3:
+
+                level_one = levels[0]
+                level_two = levels[1]
+                level_three = levels[2]
+                level_four = 0
+                level_five = 0
+                level_six = 0
+
+            elif len(levels) == 2:
+
+                level_one = levels[0]
+                level_two = levels[1]
+                level_three = 0
+                level_four = 0
+                level_five = 0
+                level_six = 0
+
+            elif len(levels) == 1:
+
+                level_one = levels[0]
+                level_two = 0
+                level_three = 0
+                level_four = 0
+                level_five = 0
+                level_six = 0
 
             else:
 
