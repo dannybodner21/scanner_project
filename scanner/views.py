@@ -83,15 +83,18 @@ def finn(request=None):
             five_min_response = finnhub_client.aggregate_indicator(symbol, '5')
             fifteen_min_response = finnhub_client.aggregate_indicator(symbol, '15')
             thirty_min_response = finnhub_client.aggregate_indicator(symbol, '30')
+            sixty_min_response = finnhub_client.aggregate_indicator(symbol, '60')
 
             five_min_signal = five_min_response["technicalAnalysis"]["signal"]
             fifteen_min_signal = fifteen_min_response["technicalAnalysis"]["signal"]
             thirty_min_signal = thirty_min_response["technicalAnalysis"]["signal"]
+            sixty_min_signal = sixty_min_response["technicalAnalysis"]["signal"]
 
             if (
                 five_min_signal == "buy" and
                 fifteen_min_signal == "buy" and
-                thirty_min_signal == "buy"
+                thirty_min_signal == "buy" and
+                sixty_min_signal == "buy"
             ):
                 update = [f"BUY {coin.symbol}"]
                 send_text(update)
@@ -99,7 +102,8 @@ def finn(request=None):
             if (
                 five_min_signal == "sell" and
                 fifteen_min_signal == "sell" and
-                thirty_min_signal == "sell"
+                thirty_min_signal == "sell" and
+                sixty_min_signal == "sell"
             ):
                 update = [f"SELL {coin.symbol}"]
                 send_text(update)
