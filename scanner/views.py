@@ -150,16 +150,65 @@ def check_support_resistance(request=None):
 
             if levels and latest_metric:
 
-                level_one = levels.level_one
-                level_two = levels.level_two
-                level_three = levels.level_three
-                level_four = levels.level_four
-                level_five = levels.level_five
-                level_six = levels.level_six
                 price = latest_metric.last_price
 
-                upper_price = price * 1.04
-                lower_price = price * 0.96
+                if len(levels) == 6:
+
+                    level_one = levels.level_one
+                    level_two = levels.level_two
+                    level_three = levels.level_three
+                    level_four = levels.level_four
+                    level_five = levels.level_five
+                    level_six = levels.level_six
+
+                elif len(levels) == 5:
+
+                    level_one = levels.level_one
+                    level_two = levels.level_two
+                    level_three = levels.level_three
+                    level_four = levels.level_four
+                    level_five = levels.level_five
+                    level_six = 0
+
+                elif len(levels) == 4:
+
+                    level_one = levels.level_one
+                    level_two = levels.level_two
+                    level_three = levels.level_three
+                    level_four = levels.level_four
+                    level_five = 0
+                    level_six = 0
+
+                elif len(levels) == 3:
+
+                    level_one = levels.level_one
+                    level_two = levels.level_two
+                    level_three = levels.level_three
+                    level_four = 0
+                    level_five = 0
+                    level_six = 0
+
+                elif len(levels) == 2:
+
+                    level_one = levels.level_one
+                    level_two = levels.level_two
+                    level_three = 0
+                    level_four = 0
+                    level_five = 0
+                    level_six = 0
+
+                elif len(levels) == 1:
+
+                    level_one = levels.level_one
+                    level_two = 0
+                    level_three = 0
+                    level_four = 0
+                    level_five = 0
+                    level_six = 0
+
+
+                upper_price = price * 1.02
+                lower_price = price * 0.98
 
                 if (
                     lower_price <= level_one <= upper_price or
@@ -170,10 +219,10 @@ def check_support_resistance(request=None):
                     lower_price <= level_six <= upper_price
                 ):
 
-                    print("Level is within +/- 4% of price")
+                    print("Level is within +/- 2% of price")
 
                     # send message
-                    update = [f"Level is within +/- 4% of {coin.symbol} price {price}"]
+                    update = [f"Level is within +/- 2% of {coin.symbol} price {price}"]
                     send_text(update)
 
         except Exception as e:
@@ -5575,6 +5624,10 @@ def index(request):
         last_price = 0
         if metric:
             last_price = metric.last_price
+
+        if level.level_one == 0:
+            continue
+
         data = {
             "coin": level.coin,
             "level_one": level.level_one,
