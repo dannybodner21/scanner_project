@@ -38,9 +38,11 @@ def finn_test():
     finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
     finnhub_client._session.timeout = 120
 
-    symbol = "BINANCE:WIFUSDT"
+    symbol = "BINANCE:DOTUSDT"
 
-    my_response = finnhub_client.support_resistance(symbol, 'D')
+    #my_response = finnhub_client.support_resistance(symbol, 'D')
+    my_response = finnhub_client.technical_indicator(symbol=symbol, resolution='D', _from=1738368000, to=1738454399, indicator='rsi', indicator_fields={"timeperiod": 3}))
+
 
     print(my_response)
 
