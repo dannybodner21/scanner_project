@@ -30,6 +30,101 @@ import mplfinance as mpf
 
 
 
+'''
+Write a function that returns a dictionary of words and their frequencies
+sorted in descending order of frequencies, given an input list of lines,
+where each line contains words separated with spaces. Counting of words
+should be case insensitive i.e., “Word word” will be counted as {“word”: 2}
+'''
+'''
+def sorted_word_frequency(lines: list[str]) -> dict[str, int]:
+
+    #lines = ["this Is sentence one","this iS sentence two","this IS sentence three"]
+    results = {}
+
+    # loop through lines
+    for line in lines:
+
+        # make sure everything is lowercase
+        line = line.lower()
+
+        # split words
+        words = line.split()
+
+        # loop through each word
+        for word in words:
+
+            # update quantity if it exists
+            if word in results:
+
+                results[word] += 1
+
+            # add word to dict
+            else:
+
+                results[word] = 1
+
+    results = dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
+
+    print(results)
+
+    return results
+'''
+
+'''
+Write a function that prints the top ten words by frequency given the path
+to an input file. Use the function in problem 1.a above to implement this
+function. Write a python program that reads the file as a command line argument
+and calls this function to print the top 10 words in the input file.
+'''
+'''
+import string
+def print_top_words(file_path: str) -> None:
+#def print_top_words() -> None:
+
+    #file_path = "homework.txt"
+
+    lines = []
+
+    # open and read the file
+    with open(file_path, "r") as file:
+
+        for line in file:
+
+            line = line.strip()
+            cleaned_line = ''.join([char for char in line if char not in string.punctuation])
+
+            lines.append(cleaned_line)
+
+    results = list(sorted_word_frequency(lines))
+
+    print(f"The top 10 words in {file_path} are:")
+
+    for i in range(10):
+
+        print(f"Word {i+1}: {results[i]}")
+
+    return
+
+import sys
+def main():
+
+    if len(sys.argv) < 2:
+        print("Incorrect amount of arguments")
+        sys.exit(1)
+
+        file_path = sys.argv[1]
+
+        print_top_words(file_path)
+
+    return
+
+if __name__ == "__main__":
+    main()
+'''
+
+
+
 
 
 def finn_test():
@@ -41,8 +136,14 @@ def finn_test():
     symbol = "BINANCE:DOTUSDT"
 
     #my_response = finnhub_client.support_resistance(symbol, 'D')
-    my_response = finnhub_client.technical_indicator(symbol=symbol, resolution='D', _from=1738368000, to=1738454399, indicator='rsi', indicator_fields={"timeperiod": 3}))
-
+    my_response = finnhub_client.technical_indicator(
+        symbol=symbol,
+        resolution='D',
+        _from=1737158400,  # Start from Jan 15, 2025
+        to=1738454399,  # End at Feb 2, 2025
+        indicator='rsi',
+        indicator_fields={"timeperiod": 3},
+    )
 
     print(my_response)
 
