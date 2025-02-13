@@ -3112,82 +3112,93 @@ def fetch_short_interval_data():
 
     for coin_group in coins_in_group_of_twenty:
         for coin in coin_group:
-            try:
-                end_time = datetime.now()
-                start_time = end_time - timedelta(days=90)
 
-                params = {
-                    "id": coin.cmc_id,
-                    "time_start": start_time.isoformat(),
-                    "time_end": end_time.isoformat(),
-                    "interval": "5m",
-                }
+            # break it up into groups of three per coin because
+            # the api limit is 10000 per call
 
-                response = requests.get(BASE_URL, headers=headers, params=params)
-                data = response.json()
+            now = datetime.now()
+            # 60 days ago - initial end time
+            end_time = now - timedelta(days=60)
 
-                if "data" in data and "quotes" in data["data"]:
-                    for quote in data["data"]["quotes"]:
+            for i in range(3):
+
+                try:
+
+                    # 90 days ago to start
+                    start_time = end_time - timedelta(days=30)
+
+                    params = {
+                        "id": coin.cmc_id,
+                        "time_start": start_time.isoformat(),
+                        "time_end": end_time.isoformat(),
+                        "interval": "5m",
+                        "limit": 10000,
+                    }
+
+                    response = requests.get(BASE_URL, headers=headers, params=params)
+                    data = response.json()
+
+                    if "data" in data and "quotes" in data["data"]:
+                        for quote in data["data"]["quotes"]:
+                            ShortIntervalData.objects.update_or_create(
+                                coin=coin,
+                                timestamp=quote["timestamp"],
+                                defaults={
+                                    "price": quote["quote"]["USD"]["price"],
+                                    "volume_5min": quote["quote"]["USD"]["volume_24h"],
+                                    "circulating_supply": quote["quote"]["USD"]["circulating_supply"]
+                                },
+                            )
+
+                    else:
+                        print('===========================================')
+                        print(' short term data ')
+                        print(f"Coin: {coin.symbol}")
+                        print(f"Data: {data}")
+
                         ShortIntervalData.objects.update_or_create(
                             coin=coin,
-                            timestamp=quote["timestamp"],
+                            timestamp=end_time,
                             defaults={
-                                "price": quote["quote"]["USD"]["price"],
-                                "volume_5min": quote["quote"]["USD"]["volume_24h"],
-                                "circulating_supply": quote["quote"]["USD"]["circulating_supply"]
+                                "price": None,
+                                "volume_5min": None,
                             },
                         )
 
-                else:
-                    print('===========================================')
-                    print(' short term data ')
-                    print(f"Coin: {coin.symbol}")
-                    print(f"Data: {data}")
+                    if "data" in data and "quotes" in data["data"]:
+                        for quote in data["data"]["quotes"]:
+                            metric = Metrics.objects.create(
+                                coin=coin,
+                                timestamp=quote["timestamp"],
+                                #daily_relative_volume=calculate_daily_relative_volume(coin),
+                                rolling_relative_volume=calculate_relative_volume(coin),
+                                five_min_relative_volume=calculate_five_min_relative_volume(coin),
+                                twenty_min_relative_volume=calculate_twenty_min_relative_volume(coin),
+                                price_change_5min=calculate_price_change_five_min(coin),
+                                price_change_10min=calculate_price_change_ten_min(coin),
+                                price_change_1hr = quote["quote"]["USD"]["percent_change_1h"],
+                                price_change_24hr = quote["quote"]["USD"]["percent_change_24h"],
+                                price_change_7d = quote["quote"]["USD"]["percent_change_7d"],
+                                circulating_supply=quote["circulating_supply"],
+                                volume_24h = quote["quote"]["USD"]["volume_24h"],
+                                last_price = quote["quote"]["USD"]["price"],
+                                market_cap = quote["quote"]["USD"]["market_cap"]
+                            )
 
-                    ShortIntervalData.objects.update_or_create(
-                        coin=coin,
-                        timestamp=end_time,
-                        defaults={
-                            "price": None,
-                            "volume_5min": None,
-                        },
-                    )
+                    else:
+                        print('===========================================')
+                        print(' metric data failure ')
+                        print(f"Coin: {coin.symbol}")
+                        print(f"Data: {data}")
 
+                    end_time = end_time + timedelta(days=30)
 
-                if "data" in data and "quotes" in data["data"]:
-                    for quote in data["data"]["quotes"]:
-                        metric = Metrics.objects.create(
-                            coin=coin,
-                            timestamp=quote["timestamp"],
-                            daily_relative_volume=calculate_daily_relative_volume(coin),
-                            rolling_relative_volume=calculate_relative_volume(coin),
-                            five_min_relative_volume=calculate_five_min_relative_volume(coin),
-                            twenty_min_relative_volume=calculate_twenty_min_relative_volume(coin),
-                            price_change_5min=calculate_price_change_five_min(coin),
-                            price_change_10min=calculate_price_change_ten_min(coin),
-                            price_change_1hr = quote["quote"]["USD"]["percent_change_1h"],
-                            price_change_24hr = quote["quote"]["USD"]["percent_change_24h"],
-                            price_change_7d = quote["quote"]["USD"]["percent_change_7d"],
-                            circulating_supply=quote["circulating_supply"],
-                            volume_24h = quote["quote"]["USD"]["volume_24h"],
-                            last_price = quote["quote"]["USD"]["price"],
-                            market_cap = quote["quote"]["USD"]["market_cap"]
-                        )
+                except Exception as e:
+                    print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
 
-
-                else:
-                    print('===========================================')
-                    print(' metric data failure ')
-                    print(f"Coin: {coin.symbol}")
-                    print(f"Data: {data}")
-
-
-            except Exception as e:
-                print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
-
-        # Pause for 45 seconds
-        print("pausing for 45 seconds")
-        time.sleep(45)
+        # Pause for 30 seconds
+        print("pausing for 30 seconds")
+        time.sleep(30)
         print("resuming")
 
 
