@@ -3079,7 +3079,37 @@ def load_coins():
             print(f"Error fetching data: {e}")
 
 
-def fetch_short_interval_data():
+# getting short interval data and metrics in small chunks
+# because shit keeps freezing
+def initial_setup_one():
+    coins = Coin.objects.order_by("cmc_id")[:25]
+    fetch_short_interval_data(coins)
+
+def initial_setup_two():
+    coins = Coin.objects.order_by("cmc_id")[25:50]
+    fetch_short_interval_data(coins)
+
+def initial_setup_three():
+    coins = Coin.objects.order_by("cmc_id")[50:75]
+    fetch_short_interval_data(coins)
+
+def initial_setup_four():
+    coins = Coin.objects.order_by("cmc_id")[75:100]
+    fetch_short_interval_data(coins)
+
+def initial_setup_five():
+    coins = Coin.objects.order_by("cmc_id")[100:125]
+    fetch_short_interval_data(coins)
+
+def initial_setup_six():
+    coins = Coin.objects.order_by("cmc_id")[125:150]
+    fetch_short_interval_data(coins)
+
+def initial_setup_seven():
+    coins = Coin.objects.order_by("cmc_id")[150:]
+    fetch_short_interval_data(coins)
+
+def fetch_short_interval_data(coins):
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     BASE_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
@@ -3091,7 +3121,7 @@ def fetch_short_interval_data():
     }
 
     #coins = Coin.objects.all()
-    coins = Coin.objects.order_by("cmc_id")[:25]
+    #coins = Coin.objects.order_by("cmc_id")[:25]
     #coins = Coin.objects.order_by("cmc_id")[25:50]
     #coins = Coin.objects.order_by("cmc_id")[50:75]
     #coins = Coin.objects.order_by("cmc_id")[75:100]
