@@ -3132,7 +3132,6 @@ def fetch_short_interval_data():
                         "time_start": start_time.isoformat(),
                         "time_end": end_time.isoformat(),
                         "interval": "5m",
-                        "limit": 10000,
                     }
 
                     response = requests.get(BASE_URL, headers=headers, params=params)
