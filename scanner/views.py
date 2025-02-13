@@ -3178,7 +3178,7 @@ def fetch_short_interval_data():
                                 price_change_1hr = quote["quote"]["USD"]["percent_change_1h"],
                                 price_change_24hr = quote["quote"]["USD"]["percent_change_24h"],
                                 price_change_7d = quote["quote"]["USD"]["percent_change_7d"],
-                                circulating_supply=quote["circulating_supply"],
+                                circulating_supply=quote["quote"]["USD"]["circulating_supply"],
                                 volume_24h = quote["quote"]["USD"]["volume_24h"],
                                 last_price = quote["quote"]["USD"]["price"],
                                 market_cap = quote["quote"]["USD"]["market_cap"]
