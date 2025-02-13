@@ -3154,7 +3154,7 @@ def fetch_short_interval_data(coins):
             # the api limit is 10000 per call
 
             #now = datetime.now()
-            now = datetime(2024, 2, 13, 0, 0, 0)
+            now = datetime(2025, 2, 13, 0, 0, 0)
             # 58 days ago: initial end time
             end_time = now - timedelta(days=58)
 
