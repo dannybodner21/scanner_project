@@ -3090,7 +3090,14 @@ def fetch_short_interval_data():
         "X-CMC_PRO_API_KEY": HARVARD_API_KEY,
     }
 
-    coins = Coin.objects.all()
+    #coins = Coin.objects.all()
+    coins = Coin.objects.order_by("cmc_id")[:25]
+    #coins = Coin.objects.order_by("cmc_id")[25:50]
+    #coins = Coin.objects.order_by("cmc_id")[50:75]
+    #coins = Coin.objects.order_by("cmc_id")[75:100]
+    #coins = Coin.objects.order_by("cmc_id")[100:125]
+    #coins = Coin.objects.order_by("cmc_id")[125:150]
+    #coins = Coin.objects.order_by("cmc_id")[150:]
 
     # put all the coins in a group of 20 because of api call limits
     coins_in_group_of_twenty = []
@@ -3099,7 +3106,7 @@ def fetch_short_interval_data():
 
     for coin in coins:
 
-        if count < 20:
+        if count < 5:
             coin_group.append(coin)
             count += 1
 
@@ -3116,16 +3123,19 @@ def fetch_short_interval_data():
             # break it up into groups of three per coin because
             # the api limit is 10000 per call
 
-            now = datetime.now()
-            # 60 days ago - initial end time
-            end_time = now - timedelta(days=60)
+            #now = datetime.now()
+            now = datetime(2024, 2, 13, 0, 0, 0)
+            # 58 days ago: initial end time
+            end_time = now - timedelta(days=58)
 
             for i in range(3):
 
+                print(f"round {i+1} for {coin.symbol}")
+
                 try:
 
-                    # 90 days ago to start
-                    start_time = end_time - timedelta(days=30)
+                    # 87 days ago to start
+                    start_time = end_time - timedelta(days=29)
 
                     params = {
                         "id": coin.cmc_id,
@@ -3190,15 +3200,18 @@ def fetch_short_interval_data():
                         print(f"Coin: {coin.symbol}")
                         print(f"Data: {data}")
 
-                    end_time = end_time + timedelta(days=30)
+                    end_time = end_time + timedelta(days=29)
 
                 except Exception as e:
                     print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
+
+        print(f"finished {coin.symbol}")
 
         # Pause for 30 seconds
         print("pausing for 30 seconds")
         time.sleep(30)
         print("resuming")
+
 
 
 def gather_daily_historical_data():

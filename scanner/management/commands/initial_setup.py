@@ -16,6 +16,6 @@ class Command(BaseCommand):
         #logger.info(f"Coins loaded.")
         fetch_short_interval_data()
         logger.info(f"Step two completed.")
-        gather_daily_historical_data()
+        #gather_daily_historical_data()
         #analyze_historical_metrics()
         logger.info("Task completed.")
