@@ -1,32 +1,16 @@
 from django.core.management.base import BaseCommand
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 import logging
-from scanner.views import print_metrics, retrieve_metrics, check_trigger
 
+from scanner.views import check_trigger
 
 logger = logging.getLogger(__name__)
-
 
 class Command(BaseCommand):
     help = "Run the scheduled task manually"
 
-
-    def add_arguments(self, parser):
-
-        parser.add_argument(
-            '--coin_symbol',
-            type=str,
-            required=True,
-            help="The name of the coin symbol to analyze."
-        )
-
-
     def handle(self, *args, **kwargs):
 
-        coin_symbol = kwargs['coin_symbol']
-
-        logger.info(f"Analyzing data...")
-        #print_metrics(coin_symbol)
-        #retrieve_metrics(coin_symbol)
-        check_trigger(coin_symbol)
-        logger.info("Task completed.")
+        logger.info(f"Checking trigger combo...")
+        check_trigger()
+        logger.info("Done.")
