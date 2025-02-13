@@ -2966,8 +2966,10 @@ def load_coin_exchanges():
 
 def load_coins():
 
-    API_KEY = 'xxxxxxxxxxxx'
+    API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+
+    HARVARD_API_KEY = 'c35740fd-4f78-45b5-9350-c4afdd929432'
 
     headers = {
         "Accepts": "application/json",
@@ -3067,17 +3069,17 @@ def fetch_short_interval_data():
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     BASE_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
+    HARVARD_API_KEY = 'c35740fd-4f78-45b5-9350-c4afdd929432'
 
     headers = {
         "Accepts": "application/json",
-        "X-CMC_PRO_API_KEY": API_KEY,
+        "X-CMC_PRO_API_KEY": HARVARD_API_KEY,
     }
 
     coins = Coin.objects.all()
-    #coins = Coin.objects.order_by('market_cap_rank')[:500]
 
-    # put all the coins in a group of 15 because of api call limits
-    coins_in_group_of_fifteen = []
+    # put all the coins in a group of 20 because of api call limits
+    coins_in_group_of_twenty = []
     coin_group = []
     count = 0
 
@@ -3089,16 +3091,16 @@ def fetch_short_interval_data():
 
         else:
             count = 1
-            coins_in_group_of_fifteen.append(coin_group)
+            coins_in_group_of_twenty.append(coin_group)
             coin_group = []
             coin_group.append(coin)
 
 
-    for coin_group in coins_in_group_of_fifteen:
+    for coin_group in coins_in_group_of_twenty:
         for coin in coin_group:
             try:
                 end_time = datetime.now()
-                start_time = end_time - timedelta(hours=24)
+                start_time = end_time - timedelta(days=90)
 
                 params = {
                     "id": coin.cmc_id,
@@ -3123,10 +3125,10 @@ def fetch_short_interval_data():
                         )
 
                 else:
-                    print('==============')
+                    print('===========================================')
                     print(' short term data ')
-                    print(coin.symbol)
-                    print(data)
+                    print(f"Coin: {coin.symbol}")
+                    print(f"Data: {data}")
 
                     ShortIntervalData.objects.update_or_create(
                         coin=coin,
@@ -3140,48 +3142,47 @@ def fetch_short_interval_data():
             except Exception as e:
                 print(f"Error fetching short interval data for {coin.symbol}: {e}")
 
-        # Pause for 60 seconds
-        print("pausing for 60 seconds")
-        time.sleep(60)
+        # Pause for 45 seconds
+        print("pausing for 45 seconds")
+        time.sleep(45)
         print("resuming")
-
-
 
 
 def gather_daily_historical_data():
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
+    HARVARD_API_KEY = 'c35740fd-4f78-45b5-9350-c4afdd929432'
 
     headers = {
         "Accepts": "application/json",
-        "X-CMC_PRO_API_KEY": API_KEY,
+        "X-CMC_PRO_API_KEY": HARVARD_API_KEY,
     }
 
     coins = Coin.objects.all()
 
-    coins_in_group_of_fifteen = []
+    coins_in_group_of_twenty = []
     coin_group = []
     count = 0
 
     for coin in coins:
 
-        if count < 15:
+        if count < 20:
             coin_group.append(coin)
             count += 1
 
         else:
             count = 1
-            coins_in_group_of_fifteen.append(coin_group)
+            coins_in_group_of_twenty.append(coin_group)
             coin_group = []
             coin_group.append(coin)
 
 
-    for coin_group in coins_in_group_of_fifteen:
+    for coin_group in coins_in_group_of_twenty:
         for coin in coin_group:
             try:
                 end_time = datetime.now()
-                start_time = end_time - timedelta(days=30)
+                start_time = end_time - timedelta(days = 60 * 30)
 
                 params = {
                     "id": coin.cmc_id,
@@ -3209,10 +3210,10 @@ def gather_daily_historical_data():
                         )
 
                 else:
-                    print('==============')
-                    print(' Historical Data error with:')
-                    print(coin.symbol)
-                    print(data)
+                    print('==========================================')
+                    print('Historical Data error with:')
+                    print(f"Coin: {coin.symbol}")
+                    print(f"Data: {data}")
 
                     HistoricalData.objects.update_or_create(
                         coin=coin,
@@ -3226,9 +3227,9 @@ def gather_daily_historical_data():
             except Exception as e:
                 print(f"Error fetching historical data for {coin.symbol}: {e}")
 
-        # Pause for 60 seconds
-        print("pausing for 60 seconds")
-        time.sleep(60)
+        # Pause for 45 seconds
+        print("pausing for 45 seconds")
+        time.sleep(45)
         print("resuming")
 
 
@@ -3649,12 +3650,12 @@ def five_min_update(request=None):
     for coin in coins:
 
         metrics_queryset = coin.prefetched_metrics
-        check_triggers(metrics_queryset)
+        #check_triggers(metrics_queryset)
 
         # check if there is a new high or low for the day
         #check_high_low(metrics_queryset)
 
-    print("done checking triggers")
+    print("NOT checking triggers at the moment, come back later.")
 
 
 

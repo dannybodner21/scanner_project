@@ -12,8 +12,8 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
 
         logger.info(f"Doing the task...")
-        load_coins()
-        logger.info(f"Coins loaded.")
+        #load_coins()
+        #logger.info(f"Coins loaded.")
         fetch_short_interval_data()
         logger.info(f"Step two completed.")
         gather_daily_historical_data()
