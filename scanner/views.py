@@ -650,8 +650,6 @@ def check_trigger():
     trigger_six_success = 0
     trigger_seven_trades = 0
     trigger_seven_success = 0
-    trigger_eight_trades = 0
-    trigger_eight_success = 0
 
     count_1 = 0
     count_2 = 0
@@ -689,24 +687,9 @@ def check_trigger():
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
-        # get high and low of the 26th and compare against prices on the 27th
-        #specific_date = date(2025, 1, 26)
-        #historical_data = HistoricalData.objects.filter(coin=coin, date=specific_date).first()
-        #daily_high = None
-        #daily_low = None
-        #if historical_data:
-            #daily_high = historical_data.daily_high
-            #daily_low = historical_data.daily_high
+        if not metrics:
+            continue
 
-
-
-
-        average_volume = 0
-        for metric in metrics:
-            average_volume += metric.volume_24h
-
-        average_volume = average_volume / len(metrics)
-        average_volume = average_volume * decimal.Decimal(1.15)
 
         trigger_one_hit_counter = 0
         trigger_one_hit = False
@@ -736,44 +719,7 @@ def check_trigger():
                 metrics[x].price_change_24hr != None and
                 #metrics[x].daily_relative_volume != None and
                 metrics[x].five_min_relative_volume != None and
-                metrics[x].twenty_min_relative_volume != None and
-                day != 50):
-
-
-
-                # 24 hour volume growth
-                # current volume - volume 5 min ago / volume 5 min ago * 100
-                current_volume = metrics[x].volume_24h
-                previous_volume = metrics[x-1].volume_24h
-                volume_growth = (current_volume - previous_volume) / previous_volume * 100
-
-                # 5 min relative volume progression
-                # current and previous 2 are increasing or equivalent
-                rvol_progression = False
-                current_rvol = metrics[x].five_min_relative_volume
-                one_previous_rvol = metrics[x-1].five_min_relative_volume
-                two_previous_rvol = metrics[x-2].five_min_relative_volume
-                if (two_previous_rvol <= one_previous_rvol <= current_rvol):
-                    rvol_progression = True
-
-                # 5 min price change is greater than previous
-                five_min_price_increase = False
-                current_five_min = metrics[x].price_change_5min
-                previous_five_min = metrics[x-1].price_change_5min
-                previous_five_min_two = metrics[x-2].price_change_5min
-                if (previous_five_min < current_five_min and
-                    previous_five_min < 0 and
-                    current_five_min > 0):
-                    five_min_price_increase = True
-
-                # 5 min and 10 min price changes go negative, positive, positive
-                ten_min_price_increase = False
-                current_ten_min = metrics[x].price_change_10min
-                previous_ten_min = metrics[x-1].price_change_10min
-                previous_ten_min_two = metrics[x-2].price_change_10min
-                if (previous_ten_min < current_ten_min and
-                    previous_ten_min < 0):
-                    ten_min_price_increase = True
+                metrics[x].twenty_min_relative_volume != None):
 
 
                 # TRIGGER 1 ----------------------------------------------------
@@ -1110,16 +1056,6 @@ def check_trigger():
                 # 65% success rate
                 if (
                     trigger_short_hit == False and
-                    #metrics[x].daily_relative_volume > 1.2 and
-                    #metrics[x].rolling_relative_volume >= 2.0 and
-                    #metrics[x].price_change_5min < metrics[x-1].price_change_5min and
-                    #metrics[x-1].price_change_5min < metrics[x-2].price_change_5min and
-                    #metrics[x].price_change_1hr > 1 and
-                    #metrics[x].price_change_10min < metrics[x-1].price_change_10min and
-                    #metrics[x-1].price_change_10min < metrics[x-2].price_change_10min and
-                    #metrics[x].price_change_1hr < metrics[x-1].price_change_1hr and
-                    #metrics[x-1].price_change_1hr < metrics[x-2].price_change_1hr
-
                     metrics[x].rolling_relative_volume >= rolling_rvol_threshold and
                     #metrics[x].five_min_relative_volume >= five_min_rvol_threshold and
                     metrics[x].price_change_5min <= price_change_5min_threshold and
@@ -1222,7 +1158,6 @@ def check_trigger():
                     # 80% success rate
                     trigger_five_hit == False and
                     metrics[x].price_change_24hr < -10 and
-                    #(metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
                     metrics[x].rolling_relative_volume >= 2.1 and
                     metrics[x].price_change_5min < 0 and
                     metrics[x].price_change_10min < 0 and
@@ -1324,7 +1259,6 @@ def check_trigger():
                 # below is currently at 70% success rate
                 if (
                     trigger_six_hit == False and
-                    #metrics[x].daily_relative_volume >= 1.5 and
                     metrics[x].rolling_relative_volume >= 1.5 and
                     metrics[x].price_change_5min >= 0.7 and
                     metrics[x].price_change_24hr < -5 and
@@ -1507,110 +1441,6 @@ def check_trigger():
 
 
 
-                # TRIGGER 8 ----------------------------------------------------
-                if (trigger_eight_hit == True):
-                    trigger_eight_hit_counter += 1
-
-                if (trigger_eight_hit_counter > 13):
-                    trigger_eight_hit = False
-                    trigger_eight_hit_counter = 0
-
-                if (
-                    trigger_eight_hit == False and
-                    metrics[x].price_change_5min > 500000
-                    #metrics[x].price_change_24hr < -10 and
-                    #(metrics[x].rolling_relative_volume >= 2.1 or metrics[x].daily_relative_volume >= 1.3) and
-                    #metrics[x].rolling_relative_volume >= 2.1 and
-                    #metrics[x].price_change_5min < 0 and
-                    #metrics[x].price_change_10min < 0 and
-                    #metrics[x].price_change_1hr > 0 and
-                    #metrics[x-1].price_change_1hr < metrics[x].price_change_1hr and
-                    #metrics[x-2].price_change_1hr < metrics[x-1].price_change_1hr
-                ):
-
-                    #print("-------TRIGGER EIGHT-----------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
-
-                    trigger_eight_hit = True
-
-                    amount_of_trades += 1
-                    trigger_eight_trades += 1
-
-                    trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
-
-                    # try to go through remaining metrics
-                    take_profit_hit = False
-                    stop_loss_hit = False
-                    take_profit_timestamp = None
-                    stop_loss_timestamp = None
-
-                    try:
-                        for y in range(x, len(metrics)):
-                            if (metrics[y].last_price >= take_profit_price):
-                                take_profit_hit = True
-                                take_profit_timestamp = metrics[y].timestamp
-                                break
-
-                            if (metrics[y].last_price <= stop_loss_price):
-                                stop_loss_hit = True
-                                stop_loss_timestamp = metrics[y].timestamp
-                                break
-
-                        if (take_profit_hit == True):
-                            successful_trades += 1
-                            trigger_eight_success += 1
-                        elif (stop_loss_hit == True):
-                            failed_trades += 1
-                        else:
-                            amount_of_trades -= 1
-                            trigger_eight_trades -= 1
-
-                    except:
-                        print("failed in trigger 8")
-
-                    '''
-                    day = metrics[x].timestamp.day
-                    if day == 15:
-                        count_15 += 1
-                    elif day == 16:
-                        count_16 += 1
-                    elif day == 17:
-                        count_17 += 1
-                    elif day == 18:
-                        count_18 += 1
-                    elif day == 19:
-                        count_19 += 1
-                    elif day == 20:
-                        count_20 += 1
-                    elif day == 21:
-                        count_21 += 1
-                    elif day == 22:
-                        count_22 += 1
-                    elif day == 23:
-                        count_23 += 1
-                    elif day == 24:
-                        count_24 += 1
-                    elif day == 25:
-                        count_25 += 1
-                    elif day == 26:
-                        count_26 += 1
-                    elif day == 27:
-                        count_27 += 1
-                    elif day == 28:
-                        count_28 += 1
-                    elif day == 29:
-                        count_29 += 1
-                    elif day == 30:
-                        count_30 += 1
-                    elif day == 31:
-                        count_31 += 1
-                    '''
-
-
-
     print("Results: ")
     print(f"Amount of trades: {amount_of_trades}")
     print(f"Successful trades: {successful_trades}")
@@ -1622,7 +1452,6 @@ def check_trigger():
     print(f"Trigger Five: {trigger_five_trades}")
     print(f"Trigger Six: {trigger_six_trades}")
     print(f"Trigger Seven: {trigger_seven_trades}")
-    print(f"Trigger Eight: {trigger_eight_trades}")
     success_percentage = 0
     if (amount_of_trades != 0):
         success_percentage = (successful_trades / amount_of_trades) * 100
@@ -1663,10 +1492,6 @@ def check_trigger():
         trigger_seven_success_percentage = (trigger_seven_success / trigger_seven_trades) * 100
     print(f"Trigger Seven Success: {trigger_seven_success_percentage}%")
 
-    trigger_eight_success_percentage = 0
-    if (trigger_eight_trades != 0):
-        trigger_eight_success_percentage = (trigger_eight_success / trigger_eight_trades) * 100
-    print(f"Trigger Eight Success: {trigger_eight_success_percentage}%")
 
     print(f"Day 15: {count_15}")
     print(f"Day 16: {count_16}")
@@ -1685,6 +1510,14 @@ def check_trigger():
     print(f"Day 29: {count_29}")
     print(f"Day 30: {count_30}")
     print(f"Day 31: {count_31}")
+
+
+
+
+
+
+
+
 
 
 
@@ -3150,90 +2983,100 @@ def fetch_short_interval_data(coins):
     for coin_group in coins_in_group_of_twenty:
         for coin in coin_group:
 
+            if coin.symbol == "BTC" or coin.symbol == "LTC":
+                continue
+
             # break it up into groups of three per coin because
             # the api limit is 10000 per call
 
             #now = datetime.now()
             now = datetime(2025, 2, 13, 0, 0, 0)
             # 58 days ago: initial end time
-            end_time = now - timedelta(days=58)
+            #end_time = now - timedelta(days=58)
 
-            for i in range(3):
+            end_time = now
 
-                print(f"round {i+1} for {coin.symbol}")
+            #for i in range(3):
 
-                try:
+            print(f"starting round for {coin.symbol}")
 
-                    # 87 days ago to start
-                    start_time = end_time - timedelta(days=29)
+            try:
 
-                    params = {
-                        "id": coin.cmc_id,
-                        "time_start": start_time.isoformat(),
-                        "time_end": end_time.isoformat(),
-                        "interval": "5m",
-                    }
+                # 87 days ago to start
+                start_time = end_time - timedelta(days=29)
 
-                    response = requests.get(BASE_URL, headers=headers, params=params)
-                    data = response.json()
+                params = {
+                    "id": coin.cmc_id,
+                    "time_start": start_time.isoformat(),
+                    "time_end": end_time.isoformat(),
+                    "interval": "5m",
+                }
 
-                    if "data" in data and "quotes" in data["data"]:
-                        for quote in data["data"]["quotes"]:
-                            ShortIntervalData.objects.update_or_create(
-                                coin=coin,
-                                timestamp=quote["timestamp"],
-                                defaults={
-                                    "price": quote["quote"]["USD"]["price"],
-                                    "volume_5min": quote["quote"]["USD"]["volume_24h"],
-                                    "circulating_supply": quote["quote"]["USD"]["circulating_supply"]
-                                },
-                            )
+                response = requests.get(BASE_URL, headers=headers, params=params)
+                data = response.json()
 
-                    else:
-                        print('===========================================')
-                        print(' short term data ')
-                        print(f"Coin: {coin.symbol}")
-                        print(f"Data: {data}")
+                if "data" in data and "quotes" in data["data"]:
+                    for quote in data["data"]["quotes"]:
 
                         ShortIntervalData.objects.update_or_create(
                             coin=coin,
-                            timestamp=end_time,
+                            timestamp=quote["timestamp"],
                             defaults={
-                                "price": None,
-                                "volume_5min": None,
+                                "price": quote["quote"]["USD"]["price"],
+                                "volume_5min": quote["quote"]["USD"]["volume_24h"],
+                                "circulating_supply": quote["quote"]["USD"]["circulating_supply"]
                             },
                         )
 
-                    if "data" in data and "quotes" in data["data"]:
-                        for quote in data["data"]["quotes"]:
-                            metric = Metrics.objects.create(
-                                coin=coin,
-                                timestamp=quote["timestamp"],
-                                #daily_relative_volume=calculate_daily_relative_volume(coin),
-                                rolling_relative_volume=calculate_relative_volume(coin),
-                                five_min_relative_volume=calculate_five_min_relative_volume(coin),
-                                twenty_min_relative_volume=calculate_twenty_min_relative_volume(coin),
-                                price_change_5min=calculate_price_change_five_min(coin),
-                                price_change_10min=calculate_price_change_ten_min(coin),
-                                price_change_1hr = quote["quote"]["USD"]["percent_change_1h"],
-                                price_change_24hr = quote["quote"]["USD"]["percent_change_24h"],
-                                price_change_7d = quote["quote"]["USD"]["percent_change_7d"],
-                                circulating_supply=quote["quote"]["USD"]["circulating_supply"],
-                                volume_24h = quote["quote"]["USD"]["volume_24h"],
-                                last_price = quote["quote"]["USD"]["price"],
-                                market_cap = quote["quote"]["USD"]["market_cap"]
-                            )
+                else:
+                    print('===========================================')
+                    print(' short term data ')
+                    print(f"Coin: {coin.symbol}")
+                    print(f"Data: {data}")
 
-                    else:
-                        print('===========================================')
-                        print(' metric data failure ')
-                        print(f"Coin: {coin.symbol}")
-                        print(f"Data: {data}")
+                    ShortIntervalData.objects.update_or_create(
+                        coin=coin,
+                        timestamp=end_time,
+                        defaults={
+                            "price": None,
+                            "volume_5min": None,
+                        },
+                    )
 
-                    end_time = end_time + timedelta(days=29)
+                if "data" in data and "quotes" in data["data"]:
+                    for quote in data["data"]["quotes"]:
 
-                except Exception as e:
-                    print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
+                        Metrics.objects.update_or_create(
+                            coin=coin,
+                            timestamp=quote["timestamp"],
+                            defaults={
+                                #"daily_relative_volume": calculate_daily_relative_volume(coin),
+                                "rolling_relative_volume": calculate_relative_volume(coin),
+                                "five_min_relative_volume": calculate_five_min_relative_volume(coin),
+                                "twenty_min_relative_volume": calculate_twenty_min_relative_volume(coin),
+                                "price_change_5min": calculate_price_change_five_min(coin),
+                                "price_change_10min": calculate_price_change_ten_min(coin),
+                                "price_change_1hr": quote["quote"]["USD"]["percent_change_1h"],
+                                "price_change_24hr": quote["quote"]["USD"]["percent_change_24h"],
+                                "price_change_7d": quote["quote"]["USD"]["percent_change_7d"],
+                                "circulating_supply": quote["quote"]["USD"]["circulating_supply"],
+                                "volume_24h": quote["quote"]["USD"]["volume_24h"],
+                                "last_price": quote["quote"]["USD"]["price"],
+                                "market_cap": quote["quote"]["USD"]["market_cap"]
+                            },
+                        )
+
+                else:
+                    print('===========================================')
+                    print(' metric data failure ')
+                    print(f"Coin: {coin.symbol}")
+                    print(f"Data: {data}")
+
+                #end_time = end_time + timedelta(days=29)
+
+            except Exception as e:
+                print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
+
 
         print(f"finished {coin.symbol}")
 
