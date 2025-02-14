@@ -1197,15 +1197,15 @@ def brute_force_one():
 
         for coin in coins:
 
+            has_metrics = Metrics.objects.filter(coin=coin).exists()
+
+            if has_metrics == False:
+                continue
+
             metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
-            if not metrics:
-                continue
-                
             trigger_one_hit_counter = 0
             trigger_one_hit = False
-
-            day = metrics[x].timestamp.day
 
             for x in range(6, len(metrics)):
 
