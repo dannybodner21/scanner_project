@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from datetime import datetime
 import logging
 
-from scanner.views import check_trigger
+from scanner.views import check_trigger, find_best_trigger
 
 logger = logging.getLogger(__name__)
 
@@ -13,4 +13,5 @@ class Command(BaseCommand):
 
         logger.info(f"Checking trigger combo...")
         check_trigger()
+        #find_best_trigger()
         logger.info("Done.")
