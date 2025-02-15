@@ -1173,7 +1173,9 @@ def brute_force_one():
     five_min_rvol_threshold = 0
     price_change_5min_threshold = 0
     price_change_10min_threshold = 0
-    price_change_1hr_threshold = 0
+    price_change_1hr_threshold = 0.9
+    # can try 1.4 for price change 1hr later, 137 trades at 30%
+    # 1.8 is 31% at 94 trades
 
     top_percentage = 0
     top_rolling_rvol = 0
@@ -1183,13 +1185,13 @@ def brute_force_one():
     top_price_change_1hr = 0
 
 
-    for a in range(-40, 41, 1):
+    for a in range(-10, 21, 1):
         value_a = a / 10
         #rolling_rvol_threshold = value_a
         #five_min_rvol_threshold = value_a
         #price_change_5min_threshold = value_a
-        #price_change_10min_threshold = value_a
-        price_change_1hr_threshold = value_a
+        price_change_10min_threshold = value_a
+        #price_change_1hr_threshold = value_a
 
         amount_of_trades = 0
         successful_trades = 0
@@ -1276,7 +1278,7 @@ def brute_force_one():
         if (amount_of_trades != 0):
             success_percentage = (successful_trades / amount_of_trades) * 100
 
-        if (amount_of_trades > 50 and success_percentage > top_percentage):
+        if (amount_of_trades > 100 and success_percentage > top_percentage):
             top_percentage = success_percentage
             top_rolling_rvol = rolling_rvol_threshold
             top_five_min_rvol = five_min_rvol_threshold
@@ -2942,8 +2944,7 @@ def initial_setup_final():
 
     coins_two = []
 
-    GAS = Coin.objects.get(symbol="GAS")
-    coins_two.append(GAS)
+    
     BCH = Coin.objects.get(symbol="BCH")
     coins_two.append(BCH)
     BNB = Coin.objects.get(symbol="BNB")
