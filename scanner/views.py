@@ -1528,6 +1528,9 @@ def trigger_combination():
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
 
+        print(coin.symbol)
+        print(len(metrics))
+
         if not metrics:
             continue
 
@@ -1558,7 +1561,17 @@ def trigger_combination():
                         stop_loss_hit = True
                         break
 
-                if (take_profit_hit == True):
+                if (
+                    take_profit_hit == True and
+                    metrics[x].rolling_relative_volume != None and
+                    metrics[x].five_min_relative_volume != None and
+                    metrics[x].twenty_min_relative_volume != None and
+                    metrics[x].price_change_5min != None and
+                    metrics[x].price_change_10min != None and
+                    metrics[x].price_change_1hr != None and
+                    metrics[x].price_change_24hr != None and
+                    metrics[x].price_change_7d != None
+                ):
 
                     # successful entry point
                     dict = {}
@@ -3166,7 +3179,7 @@ def initial_setup_final():
     #fetch_short_interval_data(coins)
 
 
-def fetch_short_interval_data(coins):
+def fetch_short_interval_data(coins_two):
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     BASE_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
@@ -3177,7 +3190,7 @@ def fetch_short_interval_data(coins):
         "X-CMC_PRO_API_KEY": HARVARD_API_KEY,
     }
 
-    #coins = Coin.objects.all()
+    coins = Coin.objects.all()
     #coins = Coin.objects.order_by("cmc_id")[:25]
     #coins = Coin.objects.order_by("cmc_id")[25:50]
     #coins = Coin.objects.order_by("cmc_id")[50:75]
@@ -3193,7 +3206,7 @@ def fetch_short_interval_data(coins):
 
     for coin in coins:
 
-        if count < 5:
+        if count < 20:
             coin_group.append(coin)
             count += 1
 
@@ -3206,9 +3219,6 @@ def fetch_short_interval_data(coins):
 
     for coin_group in coins_in_group_of_twenty:
         for coin in coin_group:
-
-            if coin.symbol == "BTC" or coin.symbol == "LTC":
-                continue
 
             # break it up into groups of three per coin because
             # the api limit is 10000 per call
@@ -3267,6 +3277,8 @@ def fetch_short_interval_data(coins):
                         },
                     )
 
+
+                '''
                 if "data" in data and "quotes" in data["data"]:
                     for quote in data["data"]["quotes"]:
 
@@ -3297,6 +3309,8 @@ def fetch_short_interval_data(coins):
                     print(f"Data: {data}")
 
                 #end_time = end_time + timedelta(days=29)
+
+                '''
 
             except Exception as e:
                 print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
