@@ -13,7 +13,7 @@ import finnhub
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, TriggerCombination, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
@@ -21,7 +21,6 @@ from django.http import HttpResponse
 from django.http import FileResponse, Http404
 from django.db.models import Prefetch, OuterRef, Subquery
 from django.db.models import Max, Min
-
 
 import numpy as np
 import pandas as pd
@@ -1100,7 +1099,7 @@ def find_best_trigger():
 
         trigger_price = metrics[x].last_price
         stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
+        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
 
         take_profit_hit = False
         stop_loss_hit = False
@@ -1511,6 +1510,127 @@ def brute_force():
     #print(f"top_price_change_24hr: {top_price_change_24hr}")
     #print(f"top_price_change_7d: {top_price_change_7d}")
 
+
+
+# go through coins and find best trigger combination for each and store it
+def trigger_combination():
+
+    coins = Coin.objects.all()
+
+    for coin in coins:
+
+        if not coin.symbol == "DOT":
+            continue
+
+        results = []
+
+        metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+
+        if not metrics:
+            continue
+
+        amount_of_trades = 0
+        successful_trades = 0
+        failed_trades = 0
+        trigger_one_trades = 0
+        trigger_one_success = 0
+        trigger_one_hit_counter = 0
+        trigger_one_hit = False
+
+        for x in range(6, len(metrics)):
+
+            trigger_price = metrics[x].last_price
+            stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+            take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+
+            take_profit_hit = False
+            stop_loss_hit = False
+
+            try:
+                for y in range(x, len(metrics)):
+                    if (metrics[y].last_price >= take_profit_price):
+                        take_profit_hit = True
+                        break
+
+                    if (metrics[y].last_price <= stop_loss_price):
+                        stop_loss_hit = True
+                        break
+
+                if (take_profit_hit == True):
+
+                    # successful entry point
+                    dict = {}
+                    dict[0] = coin.symbol
+                    dict[1] = metrics[x].timestamp
+                    dict[3] = metrics[x].rolling_relative_volume
+                    dict[4] = metrics[x].five_min_relative_volume
+                    dict[5] = metrics[x].twenty_min_relative_volume
+                    dict[6] = metrics[x].price_change_5min
+                    dict[7] = metrics[x].price_change_10min
+                    dict[8] = metrics[x].price_change_1hr
+                    dict[9] = metrics[x].price_change_24hr
+                    dict[10] = metrics[x].price_change_7d
+
+                    results.append(dict)
+
+
+            except Exception as e:
+                print(f"Error: {e}")
+
+        average_rolling_relative_volume = 0
+        average_five_min_relative_volume = 0
+        average_twenty_min_relative_volume = 0
+        average_price_change_5min = 0
+        average_price_change_10min = 0
+        average_price_change_1hr = 0
+        average_price_change_24hr = 0
+        average_price_change_7d = 0
+
+        for combo in dict:
+
+            average_rolling_relative_volume += abs(combo[3])
+            average_five_min_relative_volume += abs(combo[4])
+            average_twenty_min_relative_volume += abs(combo[5])
+            average_price_change_5min += combo[6]
+            average_price_change_10min += combo[7]
+            average_price_change_1hr += combo[8]
+            average_price_change_24hr += combo[9]
+            average_price_change_7d += combo[10]
+
+        average_rolling_relative_volume /= len(dict)
+        average_five_min_relative_volume /= len(dict)
+        average_twenty_min_relative_volume /= len(dict)
+        average_price_change_5min /= len(dict)
+        average_price_change_10min /= len(dict)
+        average_price_change_1hr /= len(dict)
+        average_price_change_24hr /= len(dict)
+        average_price_change_7d /= len(dict)
+
+        TriggerCombination.objects.update_or_create(
+            coin = coin,
+            defaults = {
+                #"daily_relative_volume": daily_relative_volume,
+                "rolling_relative_volume": average_rolling_relative_volume,
+                "five_min_relative_volume": average_five_min_relative_volume,
+                "twenty_min_relative_volume": average_twenty_min_relative_volume,
+                "price_change_5min": average_price_change_5min,
+                "price_change_10min": average_price_change_10min,
+                "price_change_1hr": average_price_change_1hr,
+                "price_change_24hr": average_price_change_24hr,
+                "price_change_7d": average_price_change_7d,
+                #"success_rate": 0,
+            }
+        )
+
+        print(f"Average successful metrics for {coin.symbol}:")
+        print(f"rolling_relative_volume: {average_rolling_relative_volume}")
+        print(f"five_min_relative_volume: {average_five_min_relative_volume}")
+        print(f"twenty_min_relative_volume: {average_twenty_min_relative_volume}")
+        print(f"price_change_5min: {average_price_change_5min}")
+        print(f"price_change_10min: {average_price_change_10min}")
+        print(f"price_change_1hr: {average_price_change_1hr}")
+        print(f"price_change_24hr: {average_price_change_24hr}")
+        print(f"price_change_7d: {average_price_change_7d}")
 
 
 
@@ -2944,14 +3064,6 @@ def initial_setup_final():
 
     coins_two = []
 
-    INJ = Coin.objects.get(symbol="INJ")
-    coins_two.append(INJ)
-    AAVE = Coin.objects.get(symbol="AAVE")
-    coins_two.append(AAVE)
-    DEXE = Coin.objects.get(symbol="DEXE")
-    coins_two.append(DEXE)
-    CFX = Coin.objects.get(symbol="CFX")
-    coins_two.append(CFX)
     AKT = Coin.objects.get(symbol="AKT")
     coins_two.append(AKT)
     WOO = Coin.objects.get(symbol="WOO")
