@@ -1164,19 +1164,14 @@ def brute_force_one():
     successful_trades = 0
     failed_trades = 0
 
-
-    # 1 - 4 by 0.1
-    # -1 - 2 by 0.1
-    # -1 - 2 by 0.1
-    # -2 - 4 by 0.1
-    # -5 - 5 by 0.1
-    rolling_rvol_threshold = 0
-    five_min_rvol_threshold = 0
-    price_change_5min_threshold = 0.4
-    price_change_10min_threshold = 0
-    price_change_1hr_threshold = 0.9
-    # can try 1.4 for price change 1hr later, 137 trades at 30%
-    # 1.8 is 31% at 94 trades
+    rolling_rvol_threshold = 0.9
+    five_min_rvol_threshold = -0.9
+    price_change_5min_threshold = 1.7 # if we do price is <= this value
+    #price_change_10min_threshold = 3.3 # if we do price <= this value
+    price_change_10min_threshold = 3.0 # if we do price >= this value
+    price_change_1hr_threshold = 3.0
+    price_change_24hr_threshold = 0
+    price_change_7d_threshold = 0
 
     top_percentage = 0
     top_rolling_rvol = 0
@@ -1184,15 +1179,19 @@ def brute_force_one():
     top_price_change_5min = 0
     top_price_change_10min = 0
     top_price_change_1hr = 0
+    top_price_change_24hr = 0
+    top_price_change_7d = 0
 
-
-    for a in range(-10, 21, 1):
+    for a in range(-100, 101, 5):
         value_a = a / 10
+
         #rolling_rvol_threshold = value_a
-        five_min_rvol_threshold = value_a
+        #five_min_rvol_threshold = value_a
         #price_change_5min_threshold = value_a
         #price_change_10min_threshold = value_a
         #price_change_1hr_threshold = value_a
+        #price_change_24hr_threshold = value_a
+        price_change_7d_threshold = value_a
 
         amount_of_trades = 0
         successful_trades = 0
@@ -1217,6 +1216,7 @@ def brute_force_one():
                     metrics[x].price_change_10min != None and
                     metrics[x].price_change_1hr != None and
                     metrics[x].price_change_24hr != None and
+                    metrics[x].price_change_7d != None and
                     metrics[x].five_min_relative_volume != None and
                     metrics[x].twenty_min_relative_volume != None):
 
@@ -1230,11 +1230,13 @@ def brute_force_one():
 
                     if (
                         trigger_one_hit == False and
-                        metrics[x].rolling_relative_volume >= rolling_rvol_threshold and
-                        metrics[x].five_min_relative_volume >= five_min_rvol_threshold and
-                        metrics[x].price_change_5min >= price_change_5min_threshold and
-                        metrics[x].price_change_10min <= price_change_10min_threshold and
-                        metrics[x].price_change_1hr >= price_change_1hr_threshold
+                        #metrics[x].rolling_relative_volume >= rolling_rvol_threshold and
+                        #metrics[x].five_min_relative_volume >= five_min_rvol_threshold and
+                        #metrics[x].price_change_5min <= price_change_5min_threshold and
+                        #metrics[x].price_change_10min >= price_change_10min_threshold and
+                        #metrics[x].price_change_1hr >= price_change_1hr_threshold and
+                        #metrics[x].price_change_24hr >= price_change_24hr_threshold and
+                        metrics[x].price_change_7d >= price_change_7d_threshold
                     ):
 
 
@@ -1244,7 +1246,7 @@ def brute_force_one():
 
                         trigger_price = metrics[x].last_price
                         stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
 
                         # try to go through remaining metrics
                         take_profit_hit = False
@@ -1286,6 +1288,8 @@ def brute_force_one():
             top_price_change_5min = price_change_5min_threshold
             top_price_change_10min = price_change_10min_threshold
             top_price_change_1hr = price_change_1hr_threshold
+            top_price_change_24hr = price_change_24hr_threshold
+            top_price_change_7d = price_change_7d_threshold
 
             print("Current Results:")
             print(f"amount_of_trades: {amount_of_trades}")
@@ -1295,6 +1299,8 @@ def brute_force_one():
             print(f"top_price_change_5min: {top_price_change_5min}")
             print(f"top_price_change_10min: {top_price_change_10min}")
             print(f"top_price_change_1hr: {top_price_change_1hr}")
+            print(f"top_price_change_24hr: {top_price_change_24hr}")
+            print(f"top_price_change_7d: {top_price_change_7d}")
 
         else:
             print("not better yet")
@@ -1310,6 +1316,8 @@ def brute_force_one():
     print(f"top_price_change_5min: {top_price_change_5min}")
     print(f"top_price_change_10min: {top_price_change_10min}")
     print(f"top_price_change_1hr: {top_price_change_1hr}")
+    print(f"top_price_change_24hr: {top_price_change_24hr}")
+    print(f"top_price_change_7d: {top_price_change_7d}")
 
 
 # brute force try - looping multiple metrics
@@ -1521,7 +1529,7 @@ def trigger_combination():
 
     for coin in coins:
 
-        if not coin.symbol == "DOT":
+        if not coin.symbol == "XRP":
             continue
 
         results = []
@@ -3116,7 +3124,7 @@ def initial_setup_final():
 
     WIF = Coin.objects.get(symbol="WIF")
     coins_two.append(WIF)
-    
+
     FLOW = Coin.objects.get(symbol="FLOW")
     coins_two.append(FLOW)
 
@@ -3286,7 +3294,7 @@ def calculate_all_metrics():
     }
 
     #coins = Coin.objects.all()
-    coins = Coin.objects.order_by("cmc_id")[:50]
+    coins = Coin.objects.order_by("cmc_id")[100:]
     #coins = Coin.objects.order_by("cmc_id")[25:50]
     #coins = Coin.objects.order_by("cmc_id")[50:75]
     #coins = Coin.objects.order_by("cmc_id")[75:100]
