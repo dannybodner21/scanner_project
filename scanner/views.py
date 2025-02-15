@@ -3606,6 +3606,9 @@ def calculate_relative_volume(coin, timestamp):
 
     # volume over 24 hours / average 24 hour volume
 
+    if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp) 
+
     relative_volume = None
 
     try:
@@ -3648,6 +3651,9 @@ def calculate_price_change_five_min(coin, timestamp):
 
     # (price change over 5 min / price 5 min ago) * 100
 
+    if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
+
     price_change_5min = None
 
     five_min_ago = timestamp - timedelta(minutes=5)
@@ -3670,6 +3676,10 @@ def calculate_price_change_five_min(coin, timestamp):
 
 def calculate_price_change_thirty_min(coin, timestamp):
     try:
+
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
+
         # Define the time for 30 minutes ago
         thirty_min_ago = timestamp - timedelta(minutes=30)
 
@@ -3698,6 +3708,10 @@ def calculate_price_change_thirty_min(coin, timestamp):
 
 def calculate_twenty_min_relative_volume(coin, timestamp):
     try:
+
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
+
         # Define the time range (20 minutes before the given timestamp)
         twenty_min_ago = timestamp - timedelta(minutes=20)
 
@@ -3729,6 +3743,10 @@ def calculate_twenty_min_relative_volume(coin, timestamp):
 
 def calculate_five_min_relative_volume(coin, timestamp):
     try:
+
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
+
         # Define the time range (5 minutes before the given timestamp)
         five_min_ago = timestamp - timedelta(minutes=5)
 
