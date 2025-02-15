@@ -132,13 +132,14 @@ def check_trigger():
 
                 if (
                     trigger_one_hit == False and
-                    #metrics[x].rolling_relative_volume >= 1.4 and
-                    #metrics[x].five_min_relative_volume >= 1.0 and
-                    metrics[x].price_change_5min >= 0.2 and
-                    metrics[x].price_change_10min <= 0.1 and
-                    metrics[x].price_change_1hr >= 0 and
-                    metrics[x].price_change_24hr <= -0.5 and
-                    metrics[x].price_change_7d <= -.5
+                    coin.symbol == "AVAX" and
+                    0.7 <= metrics[x].rolling_relative_volume <= 0.9 and
+                    0.9 <= metrics[x].five_min_relative_volume <= 1.1 and
+                    0.1 <= metrics[x].price_change_5min <= 0.25 and
+                    0.15 <= metrics[x].price_change_10min <= 0.4 and
+                    metrics[x].price_change_1hr < 0 and
+                    metrics[x].price_change_24hr <= -1 and
+                    metrics[x].price_change_7d < -6
                 ):
 
                     #print("-------TRIGGER ONE-----------")
@@ -150,8 +151,8 @@ def check_trigger():
                     trigger_one_trades += 1
 
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.015))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
 
                     # try to go through remaining metrics
                     take_profit_hit = False
@@ -1586,7 +1587,7 @@ def trigger_combination():
         average_price_change_24hr = 0
         average_price_change_7d = 0
 
-        for combo in dict:
+        for combo in results:
 
             average_rolling_relative_volume += abs(combo[3])
             average_five_min_relative_volume += abs(combo[4])
@@ -1597,30 +1598,28 @@ def trigger_combination():
             average_price_change_24hr += combo[9]
             average_price_change_7d += combo[10]
 
-        average_rolling_relative_volume /= len(dict)
-        average_five_min_relative_volume /= len(dict)
-        average_twenty_min_relative_volume /= len(dict)
-        average_price_change_5min /= len(dict)
-        average_price_change_10min /= len(dict)
-        average_price_change_1hr /= len(dict)
-        average_price_change_24hr /= len(dict)
-        average_price_change_7d /= len(dict)
+        average_rolling_relative_volume /= len(results)
+        average_five_min_relative_volume /= len(results)
+        average_twenty_min_relative_volume /= len(results)
+        average_price_change_5min /= len(results)
+        average_price_change_10min /= len(results)
+        average_price_change_1hr /= len(results)
+        average_price_change_24hr /= len(results)
+        average_price_change_7d /= len(results)
 
         Metrics.objects.create(
             coin = coin,
-            defaults = {
-                "timestamp": datetime.utcnow(),
-                #"daily_relative_volume": daily_relative_volume,
-                "rolling_relative_volume": average_rolling_relative_volume,
-                "five_min_relative_volume": average_five_min_relative_volume,
-                "twenty_min_relative_volume": average_twenty_min_relative_volume,
-                "price_change_5min": average_price_change_5min,
-                "price_change_10min": average_price_change_10min,
-                "price_change_1hr": average_price_change_1hr,
-                "price_change_24hr": average_price_change_24hr,
-                "price_change_7d": average_price_change_7d,
-                "circulating_supply": 1234,
-            }
+            timestamp = datetime.utcnow(),
+            #daily_relative_volume = daily_relative_volume,
+            rolling_relative_volume = average_rolling_relative_volume,
+            five_min_relative_volume = average_five_min_relative_volume,
+            twenty_min_relative_volume = average_twenty_min_relative_volume,
+            price_change_5min = average_price_change_5min,
+            price_change_10min = average_price_change_10min,
+            price_change_1hr = average_price_change_1hr,
+            price_change_24hr = average_price_change_24hr,
+            price_change_7d = average_price_change_7d,
+            circulating_supply = 1234,
         )
 
         print(f"Average successful metrics for {coin.symbol}:")
