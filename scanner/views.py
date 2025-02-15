@@ -1169,11 +1169,11 @@ def brute_force_one():
     # -1 - 2 by 0.1
     # -2 - 4 by 0.1
     # -5 - 5 by 0.1
-    rolling_rvol_threshold = 1.5
-    five_min_rvol_threshold = 1.1
-    price_change_5min_threshold = 0.8
-    price_change_10min_threshold = 1.8
-    price_change_1hr_threshold = -0.3
+    rolling_rvol_threshold = 0
+    five_min_rvol_threshold = 0
+    price_change_5min_threshold = 0
+    price_change_10min_threshold = 0
+    price_change_1hr_threshold = 0
 
     top_percentage = 0
     top_rolling_rvol = 0
@@ -1183,7 +1183,7 @@ def brute_force_one():
     top_price_change_1hr = 0
 
 
-    for a in range(-50, 51, 1):
+    for a in range(-40, 41, 1):
         value_a = a / 10
         #rolling_rvol_threshold = value_a
         #five_min_rvol_threshold = value_a
@@ -1227,11 +1227,11 @@ def brute_force_one():
 
                     if (
                         trigger_one_hit == False and
-                        metrics[x].rolling_relative_volume > rolling_rvol_threshold and
-                        metrics[x].five_min_relative_volume > five_min_rvol_threshold and
-                        metrics[x].price_change_5min > price_change_5min_threshold and
-                        metrics[x].price_change_10min < price_change_10min_threshold and
-                        metrics[x].price_change_1hr > price_change_1hr_threshold
+                        metrics[x].rolling_relative_volume >= rolling_rvol_threshold and
+                        metrics[x].five_min_relative_volume >= five_min_rvol_threshold and
+                        metrics[x].price_change_5min >= price_change_5min_threshold and
+                        metrics[x].price_change_10min <= price_change_10min_threshold and
+                        metrics[x].price_change_1hr >= price_change_1hr_threshold
                     ):
 
 
@@ -1241,7 +1241,7 @@ def brute_force_one():
 
                         trigger_price = metrics[x].last_price
                         stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.06))
+                        take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
 
                         # try to go through remaining metrics
                         take_profit_hit = False
@@ -2938,9 +2938,110 @@ def initial_setup_six():
     coins = Coin.objects.order_by("cmc_id")[125:150]
     fetch_short_interval_data(coins)
 
-def initial_setup_seven():
-    coins = Coin.objects.order_by("cmc_id")[150:]
-    fetch_short_interval_data(coins)
+def initial_setup_final():
+
+    coins_two = []
+
+    GAS = Coin.objects.get(symbol="GAS")
+    coins_two.append(GAS)
+    BCH = Coin.objects.get(symbol="BCH")
+    coins_two.append(BCH)
+    BNB = Coin.objects.get(symbol="BNB")
+    coins_two.append(BNB)
+    ZRX = Coin.objects.get(symbol="ZRX")
+    coins_two.append(ZRX)
+    TRX = Coin.objects.get(symbol="TRX")
+    coins_two.append(TRX)
+    MANA = Coin.objects.get(symbol="MANA")
+    coins_two.append(MANA)
+    UNI = Coin.objects.get(symbol="UNI")
+    coins_two.append(UNI)
+    CAKE = Coin.objects.get(symbol="CAKE")
+    coins_two.append(CAKE)
+    INJ = Coin.objects.get(symbol="INJ")
+    coins_two.append(INJ)
+    AAVE = Coin.objects.get(symbol="AAVE")
+    coins_two.append(AAVE)
+    DEXE = Coin.objects.get(symbol="DEXE")
+    coins_two.append(DEXE)
+    CFX = Coin.objects.get(symbol="CFX")
+    coins_two.append(CFX)
+    AKT = Coin.objects.get(symbol="AKT")
+    coins_two.append(AKT)
+    WOO = Coin.objects.get(symbol="WOO")
+    coins_two.append(WOO)
+    ROSE = Coin.objects.get(symbol="ROSE")
+    coins_two.append(ROSE)
+    LDO = Coin.objects.get(symbol="LDO")
+    coins_two.append(LDO)
+    INCH = Coin.objects.get(symbol="1INCH")
+    coins_two.append(INCH)
+    SUPER = Coin.objects.get(symbol="SUPER")
+    coins_two.append(SUPER)
+    JASMY = Coin.objects.get(symbol="JASMY")
+    coins_two.append(JASMY)
+    MINA = Coin.objects.get(symbol="MINA")
+    coins_two.append(MINA)
+    ICP = Coin.objects.get(symbol="ICP")
+    coins_two.append(ICP)
+    AIOZ = Coin.objects.get(symbol="AIOZ")
+    coins_two.append(AIOZ)
+    PENDLE = Coin.objects.get(symbol="PENDLE")
+    coins_two.append(PENDLE)
+    CVX = Coin.objects.get(symbol="CVX")
+    coins_two.append(CVX)
+    IMX = Coin.objects.get(symbol="IMX")
+    coins_two.append(IMX)
+    XEC = Coin.objects.get(symbol="XEC")
+    coins_two.append(XEC)
+    FLOKI = Coin.objects.get(symbol="FLOKI")
+    coins_two.append(FLOKI)
+    TON = Coin.objects.get(symbol="TON")
+    coins_two.append(TON)
+    OP = Coin.objects.get(symbol="OP")
+    coins_two.append(OP)
+    ARB = Coin.objects.get(symbol="ARB")
+    coins_two.append(ARB)
+    APE = Coin.objects.get(symbol="APE")
+    coins_two.append(APE)
+    KAS = Coin.objects.get(symbol="KAS")
+    coins_two.append(KAS)
+    SUI = Coin.objects.get(symbol="SUI")
+    coins_two.append(SUI)
+    ONDO = Coin.objects.get(symbol="ONDO")
+    coins_two.append(ONDO)
+    SAFE = Coin.objects.get(symbol="SAFE")
+    coins_two.append(SAFE)
+    APT = Coin.objects.get(symbol="APT")
+    coins_two.append(APT)
+    ID = Coin.objects.get(symbol="ID")
+    coins_two.append(ID)
+    STRK = Coin.objects.get(symbol="STRK")
+    coins_two.append(STRK)
+    TIA = Coin.objects.get(symbol="TIA")
+    coins_two.append(TIA)
+    TAO = Coin.objects.get(symbol="TAO")
+    coins_two.append(TAO)
+    BONK = Coin.objects.get(symbol="BONK")
+    coins_two.append(BONK)
+    BLUR = Coin.objects.get(symbol="BLUR")
+    coins_two.append(BLUR)
+    SEI = Coin.objects.get(symbol="SEI")
+    coins_two.append(SEI)
+    CORE = Coin.objects.get(symbol="CORE")
+    coins_two.append(CORE)
+    PRIME = Coin.objects.get(symbol="PRIME")
+    coins_two.append(PRIME)
+    ZK = Coin.objects.get(symbol="ZK")
+    coins_two.append(ZK)
+    PEPE = Coin.objects.get(symbol="PEPE")
+    coins_two.append(PEPE)
+
+    fetch_short_interval_data(coins_two)
+
+    #coins = Coin.objects.order_by("cmc_id")[107:]
+    #fetch_short_interval_data(coins)
+
 
 def fetch_short_interval_data(coins):
 
@@ -3084,7 +3185,6 @@ def fetch_short_interval_data(coins):
         print("pausing for 30 seconds")
         time.sleep(30)
         print("resuming")
-
 
 
 def gather_daily_historical_data():
