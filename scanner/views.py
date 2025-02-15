@@ -3338,7 +3338,7 @@ def calculate_all_metrics():
     }
 
     #coins = Coin.objects.all()
-    coins = Coin.objects.order_by("cmc_id")[:1]
+    coins = Coin.objects.order_by("cmc_id")[:50]
     #coins = Coin.objects.order_by("cmc_id")[25:50]
     #coins = Coin.objects.order_by("cmc_id")[50:75]
     #coins = Coin.objects.order_by("cmc_id")[75:100]
@@ -3364,7 +3364,7 @@ def calculate_all_metrics():
             coin_group.append(coin)
 
 
-    for coin_group in coins_in_group_of_twenty:
+        for coin_group in coins_in_group_of_twenty:
         for coin in coin_group:
 
             #now = datetime.now()
@@ -3670,15 +3670,15 @@ def calculate_price_change_five_min(coin, timestamp):
     five_min_ago = timestamp - timedelta(minutes=5)
 
     current_data = ShortIntervalData.objects.filter(coin=coin, timestamp=timestamp).first()
-        if not current_data or current_data.price is None:
-            return None
+    if not current_data or current_data.price is None:
+        return None
 
     past_data = ShortIntervalData.objects.filter(coin=coin, timestamp=five_min_ago).first()
-        if not past_data or past_data.price is None:
-            return None
+    if not past_data or past_data.price is None:
+        return None
 
     if past_data.price == 0:
-            return None
+        return None
 
     price_change_5min = ((current_data.price - past_data.price) / past_data.price) * 100
 
