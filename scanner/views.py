@@ -3386,7 +3386,7 @@ def calculate_all_metrics():
                             "five_min_relative_volume": calculate_five_min_relative_volume(coin, quote["timestamp"]),
                             "twenty_min_relative_volume": calculate_twenty_min_relative_volume(coin, quote["timestamp"]),
                             "price_change_5min": calculate_price_change_five_min(coin, quote["timestamp"]),
-                            "price_change_10min": calculate_price_change_ten_min(coin, quote["timestamp"]),
+                            "price_change_10min": calculate_price_change_thirty_min(coin, quote["timestamp"]),
                             "price_change_1hr": quote["quote"]["USD"]["percent_change_1h"],
                             "price_change_24hr": quote["quote"]["USD"]["percent_change_24h"],
                             "price_change_7d": quote["quote"]["USD"]["percent_change_7d"],
@@ -3607,7 +3607,7 @@ def calculate_relative_volume(coin, timestamp):
     # volume over 24 hours / average 24 hour volume
 
     if isinstance(timestamp, str):
-            timestamp = datetime.fromisoformat(timestamp) 
+            timestamp = datetime.fromisoformat(timestamp)
 
     relative_volume = None
 
@@ -3631,8 +3631,8 @@ def calculate_relative_volume(coin, timestamp):
         average_volume_30d = total_volume_30d / len(past_30d_data) if past_30d_data else None
 
         # Calculate relative volume
-        if average_volume_30_days != 0:
-            relative_volume = total_volume_24h / average_volume_30_days
+        if average_volume_30d != 0 and average_volume_30d != None:
+            relative_volume = total_volume_24h / average_volume_30d
 
         else:
             relative_volume = None
@@ -3929,7 +3929,7 @@ def five_min_update(request=None):
                             five_min_relative_volume=calculate_five_min_relative_volume(coin),
                             twenty_min_relative_volume=calculate_twenty_min_relative_volume(coin),
                             price_change_5min=calculate_price_change_five_min(coin),
-                            price_change_10min=calculate_price_change_ten_min(coin),
+                            price_change_10min=calculate_price_change_thirty_min(coin),
                             price_change_1hr = crypto_data["quote"]["USD"]["percent_change_1h"],
                             price_change_24hr = crypto_data["quote"]["USD"]["percent_change_24h"],
                             price_change_7d = crypto_data["quote"]["USD"]["percent_change_7d"],
