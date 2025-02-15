@@ -89,6 +89,7 @@ def check_trigger():
     for coin in coins:
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
+        metrics = [m for m in metrics if m.circulating_supply != 1234]
 
         if not metrics:
             continue
@@ -1323,7 +1324,7 @@ def brute_force():
 
     #coins = Coin.objects.all()
 
-    coin = Coin.objects.get(symbol="XRP")
+    coin = Coin.objects.get(symbol="DOT")
 
     coins = [coin]
 
@@ -1598,6 +1599,28 @@ def trigger_combination():
             average_price_change_24hr += combo[9]
             average_price_change_7d += combo[10]
 
+
+        print(f"Average successful metrics for {coin.symbol}:")
+
+        for combo in results:
+            print(f"rolling_relative_volume: {combo[3]}")
+        for combo in results:
+            print(f"five_min_relative_volume: {combo[4]}")
+        for combo in results:
+            print(f"twenty_min_relative_volume: {combo[5]}")
+        for combo in results:
+            print(f"price_change_5min: {combo[6]}")
+        for combo in results:
+            print(f"price_change_10min: {combo[7]}")
+        for combo in results:
+            print(f"price_change_1hr: {combo[8]}")
+        for combo in results:
+            print(f"price_change_24hr: {combo[9]}")
+        for combo in results:
+            print(f"price_change_7d: {combo[10]}")
+
+
+
         average_rolling_relative_volume /= len(results)
         average_five_min_relative_volume /= len(results)
         average_twenty_min_relative_volume /= len(results)
@@ -1607,6 +1630,7 @@ def trigger_combination():
         average_price_change_24hr /= len(results)
         average_price_change_7d /= len(results)
 
+        '''
         Metrics.objects.create(
             coin = coin,
             timestamp = datetime.utcnow(),
@@ -1621,6 +1645,7 @@ def trigger_combination():
             price_change_7d = average_price_change_7d,
             circulating_supply = 1234,
         )
+        '''
 
         print(f"Average successful metrics for {coin.symbol}:")
         print(f"rolling_relative_volume: {average_rolling_relative_volume}")
