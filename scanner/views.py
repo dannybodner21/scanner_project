@@ -13,7 +13,7 @@ import finnhub
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, TriggerCombination, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
@@ -1606,9 +1606,10 @@ def trigger_combination():
         average_price_change_24hr /= len(dict)
         average_price_change_7d /= len(dict)
 
-        TriggerCombination.objects.update_or_create(
+        Metrics.objects.create(
             coin = coin,
             defaults = {
+                "timestamp": datetime.utcnow(),
                 #"daily_relative_volume": daily_relative_volume,
                 "rolling_relative_volume": average_rolling_relative_volume,
                 "five_min_relative_volume": average_five_min_relative_volume,
@@ -1618,7 +1619,7 @@ def trigger_combination():
                 "price_change_1hr": average_price_change_1hr,
                 "price_change_24hr": average_price_change_24hr,
                 "price_change_7d": average_price_change_7d,
-                #"success_rate": 0,
+                "circulating_supply": 1234,
             }
         )
 

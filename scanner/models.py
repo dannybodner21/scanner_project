@@ -108,7 +108,7 @@ class Pattern(models.Model):
         return f"{self.symbol}, {self.timestamp}"
 
 
-# store ideal trigger combinations per coin
+'''
 class TriggerCombination(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="trigger_combination")
     timestamp = models.DateTimeField(auto_now=True)
@@ -121,11 +121,10 @@ class TriggerCombination(models.Model):
     price_change_1hr = models.FloatField(null=True, blank=True)
     price_change_24hr = models.FloatField(null=True, blank=True)
     price_change_7d = models.FloatField(null=True, blank=True)
-    success_rate = models.FloatField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.trigger_name} at {self.timestamp}"
-
+        return f"{self.coin.symbol} at {self.timestamp}"
+'''
 
 
 
