@@ -3346,93 +3346,76 @@ def calculate_all_metrics():
     #coins = Coin.objects.order_by("cmc_id")[125:150]
     #coins = Coin.objects.order_by("cmc_id")[150:]
 
-    # put all the coins in a group of 20 because of api call limits
-    coins_in_group_of_twenty = []
-    coin_group = []
-    count = 0
 
     for coin in coins:
 
-        if count < 5:
-            coin_group.append(coin)
-            count += 1
+        now = datetime(2025, 2, 13, 0, 0, 0)
+        # 58 days ago: initial end time
+        #end_time = now - timedelta(days=58)
 
-        else:
-            count = 1
-            coins_in_group_of_twenty.append(coin_group)
-            coin_group = []
-            coin_group.append(coin)
+        end_time = now
+
+        #for i in range(3):
+
+        print(f"starting round for {coin.symbol}")
+
+        try:
+
+            # 87 days ago to start
+            start_time = end_time - timedelta(days=29)
+
+            params = {
+                "id": coin.cmc_id,
+                "time_start": start_time.isoformat(),
+                "time_end": end_time.isoformat(),
+                "interval": "5m",
+            }
+
+            response = requests.get(BASE_URL, headers=headers, params=params)
+            data = response.json()
+
+            if "data" in data and "quotes" in data["data"]:
+                for quote in data["data"]["quotes"]:
+
+                    Metrics.objects.update_or_create(
+                        coin=coin,
+                        timestamp=quote["timestamp"],
+                        defaults={
+                            #"daily_relative_volume": calculate_daily_relative_volume(coin),
+                            "rolling_relative_volume": calculate_relative_volume(coin, quote["timestamp"]),
+                            "five_min_relative_volume": calculate_five_min_relative_volume(coin, quote["timestamp"]),
+                            "twenty_min_relative_volume": calculate_twenty_min_relative_volume(coin, quote["timestamp"]),
+                            "price_change_5min": calculate_price_change_five_min(coin, quote["timestamp"]),
+                            "price_change_10min": calculate_price_change_ten_min(coin, quote["timestamp"]),
+                            "price_change_1hr": quote["quote"]["USD"]["percent_change_1h"],
+                            "price_change_24hr": quote["quote"]["USD"]["percent_change_24h"],
+                            "price_change_7d": quote["quote"]["USD"]["percent_change_7d"],
+                            "circulating_supply": quote["quote"]["USD"]["circulating_supply"],
+                            "volume_24h": quote["quote"]["USD"]["volume_24h"],
+                            "last_price": quote["quote"]["USD"]["price"],
+                            "market_cap": quote["quote"]["USD"]["market_cap"]
+                        },
+                    )
+
+            else:
+                print('===========================================')
+                print(' metric data failure ')
+                print(f"Coin: {coin.symbol}")
+                print(f"Data: {data}")
+
+            #end_time = end_time + timedelta(days=29)
+
+        except Exception as e:
+            print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
 
 
-        for coin_group in coins_in_group_of_twenty:
-            for coin in coin_group:
 
-                #now = datetime.now()
-                now = datetime(2025, 2, 13, 0, 0, 0)
-                # 58 days ago: initial end time
-                #end_time = now - timedelta(days=58)
+    print(f"finished {coin.symbol}")
 
-                end_time = now
-
-                #for i in range(3):
-
-                print(f"starting round for {coin.symbol}")
-
-                try:
-
-                    # 87 days ago to start
-                    start_time = end_time - timedelta(days=29)
-
-                    params = {
-                        "id": coin.cmc_id,
-                        "time_start": start_time.isoformat(),
-                        "time_end": end_time.isoformat(),
-                        "interval": "5m",
-                    }
-
-                    response = requests.get(BASE_URL, headers=headers, params=params)
-                    data = response.json()
-
-                    if "data" in data and "quotes" in data["data"]:
-                        for quote in data["data"]["quotes"]:
-
-                            Metrics.objects.update_or_create(
-                                coin=coin,
-                                timestamp=quote["timestamp"],
-                                defaults={
-                                    #"daily_relative_volume": calculate_daily_relative_volume(coin),
-                                    "rolling_relative_volume": calculate_relative_volume(coin, quote["timestamp"]),
-                                    "five_min_relative_volume": calculate_five_min_relative_volume(coin, quote["timestamp"]),
-                                    "twenty_min_relative_volume": calculate_twenty_min_relative_volume(coin, quote["timestamp"]),
-                                    "price_change_5min": calculate_price_change_five_min(coin, quote["timestamp"]),
-                                    "price_change_10min": calculate_price_change_ten_min(coin, quote["timestamp"]),
-                                    "price_change_1hr": quote["quote"]["USD"]["percent_change_1h"],
-                                    "price_change_24hr": quote["quote"]["USD"]["percent_change_24h"],
-                                    "price_change_7d": quote["quote"]["USD"]["percent_change_7d"],
-                                    "circulating_supply": quote["quote"]["USD"]["circulating_supply"],
-                                    "volume_24h": quote["quote"]["USD"]["volume_24h"],
-                                    "last_price": quote["quote"]["USD"]["price"],
-                                    "market_cap": quote["quote"]["USD"]["market_cap"]
-                                },
-                            )
-
-                    else:
-                        print('===========================================')
-                        print(' metric data failure ')
-                        print(f"Coin: {coin.symbol}")
-                        print(f"Data: {data}")
-
-                    #end_time = end_time + timedelta(days=29)
-
-                except Exception as e:
-                    print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
-
-            print(f"finished {coin.symbol}")
-
-        # Pause for 30 seconds
-        print("pausing for 30 seconds")
-        time.sleep(30)
-        print("resuming")
+    # Pause for 30 seconds
+    print("pausing for 30 seconds")
+    time.sleep(30)
+    print("resuming")
 
 
 
