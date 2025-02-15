@@ -3277,6 +3277,7 @@ def fetch_short_interval_data(coins):
                     )
 
 
+                '''
 
                 if "data" in data and "quotes" in data["data"]:
                     for quote in data["data"]["quotes"]:
@@ -3308,6 +3309,8 @@ def fetch_short_interval_data(coins):
                     print(f"Data: {data}")
 
                 #end_time = end_time + timedelta(days=29)
+
+                '''
 
 
 
