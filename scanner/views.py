@@ -3102,8 +3102,7 @@ def initial_setup_final():
 
     coins_two = []
 
-    AKT = Coin.objects.get(symbol="AKT")
-    coins_two.append(AKT)
+    
     WOO = Coin.objects.get(symbol="WOO")
     coins_two.append(WOO)
     ROSE = Coin.objects.get(symbol="ROSE")
@@ -3179,7 +3178,7 @@ def initial_setup_final():
     #fetch_short_interval_data(coins)
 
 
-def fetch_short_interval_data(coins_two):
+def fetch_short_interval_data(coins):
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     BASE_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
@@ -3190,7 +3189,7 @@ def fetch_short_interval_data(coins_two):
         "X-CMC_PRO_API_KEY": HARVARD_API_KEY,
     }
 
-    coins = Coin.objects.all()
+    #coins = Coin.objects.all()
     #coins = Coin.objects.order_by("cmc_id")[:25]
     #coins = Coin.objects.order_by("cmc_id")[25:50]
     #coins = Coin.objects.order_by("cmc_id")[50:75]
@@ -3278,7 +3277,7 @@ def fetch_short_interval_data(coins_two):
                     )
 
 
-                '''
+
                 if "data" in data and "quotes" in data["data"]:
                     for quote in data["data"]["quotes"]:
 
@@ -3287,11 +3286,11 @@ def fetch_short_interval_data(coins_two):
                             timestamp=quote["timestamp"],
                             defaults={
                                 #"daily_relative_volume": calculate_daily_relative_volume(coin),
-                                "rolling_relative_volume": calculate_relative_volume(coin),
-                                "five_min_relative_volume": calculate_five_min_relative_volume(coin),
-                                "twenty_min_relative_volume": calculate_twenty_min_relative_volume(coin),
-                                "price_change_5min": calculate_price_change_five_min(coin),
-                                "price_change_10min": calculate_price_change_ten_min(coin),
+                                "rolling_relative_volume": 0,
+                                "five_min_relative_volume": 0,
+                                "twenty_min_relative_volume": 0,
+                                "price_change_5min": 0,
+                                "price_change_10min": 0,
                                 "price_change_1hr": quote["quote"]["USD"]["percent_change_1h"],
                                 "price_change_24hr": quote["quote"]["USD"]["percent_change_24h"],
                                 "price_change_7d": quote["quote"]["USD"]["percent_change_7d"],
@@ -3310,7 +3309,7 @@ def fetch_short_interval_data(coins_two):
 
                 #end_time = end_time + timedelta(days=29)
 
-                '''
+
 
             except Exception as e:
                 print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
@@ -3322,6 +3321,118 @@ def fetch_short_interval_data(coins_two):
         print("pausing for 30 seconds")
         time.sleep(30)
         print("resuming")
+
+
+def calculate_all_metrics():
+
+    API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    BASE_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
+    HARVARD_API_KEY = 'c35740fd-4f78-45b5-9350-c4afdd929432'
+
+    headers = {
+        "Accepts": "application/json",
+        "X-CMC_PRO_API_KEY": HARVARD_API_KEY,
+    }
+
+    #coins = Coin.objects.all()
+    coins = Coin.objects.order_by("cmc_id")[:25]
+    #coins = Coin.objects.order_by("cmc_id")[25:50]
+    #coins = Coin.objects.order_by("cmc_id")[50:75]
+    #coins = Coin.objects.order_by("cmc_id")[75:100]
+    #coins = Coin.objects.order_by("cmc_id")[100:125]
+    #coins = Coin.objects.order_by("cmc_id")[125:150]
+    #coins = Coin.objects.order_by("cmc_id")[150:]
+
+    # put all the coins in a group of 20 because of api call limits
+    coins_in_group_of_twenty = []
+    coin_group = []
+    count = 0
+
+    for coin in coins:
+
+        if count < 5:
+            coin_group.append(coin)
+            count += 1
+
+        else:
+            count = 1
+            coins_in_group_of_twenty.append(coin_group)
+            coin_group = []
+            coin_group.append(coin)
+
+
+    for coin_group in coins_in_group_of_twenty:
+        for coin in coin_group:
+
+            #now = datetime.now()
+            now = datetime(2025, 2, 13, 0, 0, 0)
+            # 58 days ago: initial end time
+            #end_time = now - timedelta(days=58)
+
+            end_time = now
+
+            #for i in range(3):
+
+            print(f"starting round for {coin.symbol}")
+
+            try:
+
+                # 87 days ago to start
+                start_time = end_time - timedelta(days=29)
+
+                params = {
+                    "id": coin.cmc_id,
+                    "time_start": start_time.isoformat(),
+                    "time_end": end_time.isoformat(),
+                    "interval": "5m",
+                }
+
+                response = requests.get(BASE_URL, headers=headers, params=params)
+                data = response.json()
+
+                if "data" in data and "quotes" in data["data"]:
+                    for quote in data["data"]["quotes"]:
+
+                        Metrics.objects.update_or_create(
+                            coin=coin,
+                            timestamp=quote["timestamp"],
+                            defaults={
+                                #"daily_relative_volume": calculate_daily_relative_volume(coin),
+                                "rolling_relative_volume": calculate_relative_volume(coin, quote["timestamp"]),
+                                "five_min_relative_volume": calculate_five_min_relative_volume(coin, quote["timestamp"]),
+                                "twenty_min_relative_volume": calculate_twenty_min_relative_volume(coin, quote["timestamp"]),
+                                "price_change_5min": calculate_price_change_five_min(coin, quote["timestamp"]),
+                                "price_change_10min": calculate_price_change_ten_min(coin, quote["timestamp"]),
+                                "price_change_1hr": quote["quote"]["USD"]["percent_change_1h"],
+                                "price_change_24hr": quote["quote"]["USD"]["percent_change_24h"],
+                                "price_change_7d": quote["quote"]["USD"]["percent_change_7d"],
+                                "circulating_supply": quote["quote"]["USD"]["circulating_supply"],
+                                "volume_24h": quote["quote"]["USD"]["volume_24h"],
+                                "last_price": quote["quote"]["USD"]["price"],
+                                "market_cap": quote["quote"]["USD"]["market_cap"]
+                            },
+                        )
+
+                else:
+                    print('===========================================')
+                    print(' metric data failure ')
+                    print(f"Coin: {coin.symbol}")
+                    print(f"Data: {data}")
+
+                #end_time = end_time + timedelta(days=29)
+
+            except Exception as e:
+                print(f"Error fetching short interval data or metric for {coin.symbol}: {e}")
+
+        print(f"finished {coin.symbol}")
+
+        # Pause for 30 seconds
+        print("pausing for 30 seconds")
+        time.sleep(30)
+        print("resuming")
+
+
+
 
 
 def gather_daily_historical_data():
