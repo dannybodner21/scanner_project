@@ -89,11 +89,9 @@ def check_trigger():
     for coin in coins:
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
-        metrics = [m for m in metrics if m.circulating_supply != 1234]
 
         if not metrics:
             continue
-
 
         trigger_one_hit_counter = 0
         trigger_one_hit = False
@@ -133,14 +131,14 @@ def check_trigger():
 
                 if (
                     trigger_one_hit == False and
-                    coin.symbol == "AVAX" and
-                    0.7 <= metrics[x].rolling_relative_volume <= 0.9 and
+                    coin.symbol == "XRP" and
+                    250 <= metrics[x].rolling_relative_volume <= 450 and
                     0.9 <= metrics[x].five_min_relative_volume <= 1.1 and
-                    0.1 <= metrics[x].price_change_5min <= 0.25 and
-                    0.15 <= metrics[x].price_change_10min <= 0.4 and
-                    metrics[x].price_change_1hr < 0 and
-                    metrics[x].price_change_24hr <= -1 and
-                    metrics[x].price_change_7d < -6
+                    0 <= metrics[x].price_change_5min <= 0.25 and
+                    -0.15 <= metrics[x].price_change_10min <= 0.1 and
+                    metrics[x].price_change_1hr < 0.5 and
+                    metrics[x].price_change_24hr <= -0.81
+                    #metrics[x].price_change_7d < -6
                 ):
 
                     #print("-------TRIGGER ONE-----------")
@@ -234,11 +232,13 @@ def check_trigger():
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].price_change_24hr >= 2.0676 and
-                    metrics[x].five_min_relative_volume >= 0.0661 and
-                    metrics[x].rolling_relative_volume >= 0.0626 and
-                    metrics[x].price_change_1hr >= 0.1270
-
+                    #metrics[x].price_change_24hr >= 2.0676 and
+                    #metrics[x].five_min_relative_volume >= 0.0661 and
+                    metrics[x].rolling_relative_volume >= 150 and
+                    metrics[x-1].price_change_5min <= metrics[x].price_change_5min and
+                    metrics[x-2].price_change_5min <= metrics[x-1].price_change_5min and
+                    metrics[x-3].price_change_5min <= metrics[x-2].price_change_5min and
+                    metrics[x-2].price_change_10min <= metrics[x].price_change_10min
                 ):
                     #print("-----TRIGGER TWO-------------")
                     #print(coin.symbol)
@@ -251,7 +251,7 @@ def check_trigger():
 
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -1370,12 +1370,12 @@ def brute_force():
     finish = 25
     step = 1
 
-    for a in range(start, finish, step):
+    for a in range(start, finish, step): # 20 steps
 
         value_a = a / 10
         rolling_rvol_threshold = value_a
 
-        for c in range(-10, 15, 1):
+        for c in range(-10, 15, 1): # 25 steps
 
             value_c = c / 10
             price_change_5min_threshold = value_c
@@ -1489,7 +1489,7 @@ def brute_force():
                     #print(f"top_price_change_7d: {top_price_change_7d}")
 
                 else:
-                    print("not better yet")
+                    print("not better yet") # 15 steps
                     #print(f"amount of trades: {amount_of_trades}")
                     #print(f"success rate: {success_percentage}%")
 
@@ -3300,7 +3300,7 @@ def calculate_all_metrics():
     }
 
     #coins = Coin.objects.all()
-    coins = Coin.objects.order_by("cmc_id")[125:]
+    coins = Coin.objects.order_by("cmc_id")[135:]
     #coins = Coin.objects.order_by("cmc_id")[25:50]
     #coins = Coin.objects.order_by("cmc_id")[50:75]
     #coins = Coin.objects.order_by("cmc_id")[75:100]
