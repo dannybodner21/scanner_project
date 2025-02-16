@@ -31,6 +31,71 @@ import mplfinance as mpf
 # TRIGGER TESTING FUNCTIONS ----------------------------------------------------
 
 
+
+# trigger one
+#    5064 trades
+#    42%
+#    increased rolling relative volume 250->300
+#    worked
+
+# trigger two
+#    4131 trades
+#    39%
+#    added price change 24hr >= 2
+#    worse
+
+# trigger three
+#    203 trades
+#    49%
+#    increased rolling relative volume 200->220
+#    worse
+
+# trigger short
+#    8837 trades
+#    46%
+#    changed 7d price changge from <6 to <0
+#    better
+
+# trigger five
+#    400 trades
+#    41%
+#
+
+# trigger six
+#    288 trades
+#    47%
+#
+
+# trigger seven
+#    1015 trades
+#    46%
+#    added price change 7d >= 5
+#    worse
+
+
+def find_tp_sl():
+
+    coins = Coin.objects.all()
+    results = {}
+
+    for coin in coins:
+        max_increase = Metrics.objects.filter(coin=coin).aggregate(Max('price_change_1hr'))['price_change_1hr__max']
+        max_decrease = Metrics.objects.filter(coin=coin).aggregate(Min('price_change_1hr'))['price_change_1hr__min']
+
+        results[coin.symbol] = {
+            "max_increase": max_increase,
+            "max_decrease": max_decrease
+        }
+
+        print(f"{coin.symbol}: Max Increase: {max_increase:.2f}%, Max Decrease: {max_decrease:.2f}%")
+
+    return results
+
+
+
+
+
+
 # used to test out a trigger combination against the data we have in the db
 def check_trigger():
 
@@ -151,7 +216,7 @@ def check_trigger():
 
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
 
                     # try to go through remaining metrics
                     take_profit_hit = False
@@ -251,7 +316,7 @@ def check_trigger():
 
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -364,7 +429,7 @@ def check_trigger():
 
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -471,7 +536,7 @@ def check_trigger():
                     trigger_short_trades += 1
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price - (trigger_price * decimal.Decimal(0.04))
+                    take_profit_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -574,8 +639,8 @@ def check_trigger():
                     trigger_five_trades += 1
 
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.015))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.035))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -773,7 +838,7 @@ def check_trigger():
 
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -1813,20 +1878,9 @@ def finn_test():
 
     symbol = "BINANCE:DOTUSDT"
 
-    #my_response = finnhub_client.support_resistance(symbol, 'D')
-    my_response = finnhub_client.technical_indicator(
-        symbol=symbol,
-        resolution='D',
-        _from=1737158400,  # Start from Jan 15, 2025
-        to=1738454399,  # End at Feb 2, 2025
-        indicator='rsi',
-        indicator_fields={"timeperiod": 3},
-    )
+    my_response = finnhub_client.support_resistance(symbol, '5')
 
     print(my_response)
-
-
-
 
     return
 
