@@ -3300,7 +3300,7 @@ def calculate_all_metrics():
     }
 
     #coins = Coin.objects.all()
-    coins = Coin.objects.order_by("cmc_id")[100:]
+    coins = Coin.objects.order_by("cmc_id")[125:]
     #coins = Coin.objects.order_by("cmc_id")[25:50]
     #coins = Coin.objects.order_by("cmc_id")[50:75]
     #coins = Coin.objects.order_by("cmc_id")[75:100]
