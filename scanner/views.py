@@ -660,7 +660,7 @@ def check_trigger():
                     metrics[x].price_change_24hr <= -4 and
                     metrics[x].five_min_relative_volume >= 0.98 and
                     metrics[x].rolling_relative_volume >= 175 and
-                    metrics[x-3].rolling_relative_volume <= metrics[x].rolling_relative_volume and
+                    #metrics[x-3].rolling_relative_volume <= metrics[x].rolling_relative_volume and
                     metrics[x-1].price_change_5min <= metrics[x].price_change_5min and
                     metrics[x-2].price_change_5min <= metrics[x-1].price_change_5min and
                     metrics[x-1].price_change_10min <= metrics[x].price_change_10min and
@@ -759,10 +759,8 @@ def check_trigger():
                 # below is currently at 66% success rate
                 if (
                     trigger_seven_hit == False and
-                    #metrics[x].daily_relative_volume >= 2.0 and
-                    metrics[x].rolling_relative_volume >= 0.9 and
-                    metrics[x].price_change_5min <= 0 and
-                    metrics[x].price_change_1hr > 0
+                    metrics[x].rolling_relative_volume >= 250 and
+                    metrics[x].price_change_1hr >= 2
                 ):
                     #print("-----TRIGGER SEVEN-------------")
                     #print(coin.symbol)
