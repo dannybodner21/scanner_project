@@ -1171,7 +1171,8 @@ def brute_force_one():
     price_change_10min_threshold = 3.0 # if we do price >= this value
     price_change_1hr_threshold = 3.0
     price_change_24hr_threshold = 0
-    price_change_7d_threshold = 0
+    price_change_7d_threshold = 0.5 # if price is >= this value
+    price_change_7d_threshold = 0 # if price is <= this value
 
     top_percentage = 0
     top_rolling_rvol = 0
@@ -1332,7 +1333,7 @@ def brute_force():
 
     #coins = Coin.objects.all()
 
-    coin = Coin.objects.get(symbol="DOT")
+    coin = Coin.objects.get(symbol="XRP")
 
     coins = [coin]
 
@@ -1357,15 +1358,6 @@ def brute_force():
     top_price_change_24hr = 0
     top_price_change_7d = 0
 
-    #rolling_rvol_threshold = 1.5
-    #five_min_rvol_threshold = 1.1
-    #price_change_5min_threshold = 0.8
-    #price_change_10min_threshold = 1.8
-    #price_change_1hr_threshold = -0.3
-    #price_change_24hr_threshold = -10.3
-    #price_change_7d_threshold = 0
-
-
     rolling_rvol_threshold = 0
     five_min_rvol_threshold = 0
     price_change_5min_threshold = 0
@@ -1377,7 +1369,6 @@ def brute_force():
     start = 5
     finish = 25
     step = 1
-
 
     for a in range(start, finish, step):
 
@@ -1393,7 +1384,7 @@ def brute_force():
 
                 value_e = e / 10
                 price_change_1hr_threshold = value_e
-                price_change_1hr_threshold = 1.9
+                #price_change_1hr_threshold = 1.9
 
                 amount_of_trades = 0
                 successful_trades = 0
@@ -1415,8 +1406,7 @@ def brute_force():
                             metrics[x].price_change_1hr != None and
                             metrics[x].price_change_24hr != None and
                             metrics[x].five_min_relative_volume != None and
-                            metrics[x].twenty_min_relative_volume != None and
-                            day != 50):
+                            metrics[x].twenty_min_relative_volume != None):
 
                             # TRIGGER 1 ----------------------------------------------------
                             if (trigger_one_hit == True):
@@ -1437,14 +1427,12 @@ def brute_force():
                                 #metrics[x].price_change_7d < price_change_7d_threshold
                             ):
 
-
                                 trigger_one_hit = True
-
                                 amount_of_trades += 1
 
                                 trigger_price = metrics[x].last_price
                                 stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                                take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.05))
+                                take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
 
                                 # try to go through remaining metrics
                                 take_profit_hit = False
@@ -1479,12 +1467,12 @@ def brute_force():
                 if (amount_of_trades != 0):
                     success_percentage = (successful_trades / amount_of_trades) * 100
 
-                if (amount_of_trades >= 5 and success_percentage > top_percentage):
+                if (amount_of_trades >= 25 and success_percentage > top_percentage):
                     top_percentage = success_percentage
                     top_rolling_rvol = rolling_rvol_threshold
-                    top_five_min_rvol = five_min_rvol_threshold
+                    #top_five_min_rvol = five_min_rvol_threshold
                     top_price_change_5min = price_change_5min_threshold
-                    top_price_change_10min = price_change_10min_threshold
+                    #top_price_change_10min = price_change_10min_threshold
                     top_price_change_1hr = price_change_1hr_threshold
                     #top_price_change_24hr = price_change_24hr_threshold
                     #top_price_change_7d = price_change_7d_threshold
@@ -1493,9 +1481,9 @@ def brute_force():
                     print(f"top_percentage: {top_percentage}")
                     print(f"amount of trades: {amount_of_trades}")
                     print(f"top_rolling_rvol: {top_rolling_rvol}")
-                    print(f"top_five_min_rvol: {top_five_min_rvol}")
+                    #print(f"top_five_min_rvol: {top_five_min_rvol}")
                     print(f"top_price_change_5min: {top_price_change_5min}")
-                    print(f"top_price_change_10min: {top_price_change_10min}")
+                    #print(f"top_price_change_10min: {top_price_change_10min}")
                     print(f"top_price_change_1hr: {top_price_change_1hr}")
                     #print(f"top_price_change_24hr: {top_price_change_24hr}")
                     #print(f"top_price_change_7d: {top_price_change_7d}")
@@ -1505,17 +1493,35 @@ def brute_force():
                     #print(f"amount of trades: {amount_of_trades}")
                     #print(f"success rate: {success_percentage}%")
 
+            print("inner loop finished")
+
+        print("middle loop finished")
+
+    print("outer loop finished")
 
 
-
+    message = []
+    one = "Results:"
+    two = f"top_percentage: {top_percentage}"
+    three = f"amount of trades: {amount_of_trades}"
+    four = f"top_rolling_rvol: {top_rolling_rvol}"
+    five = f"top_price_change_5min: {top_price_change_5min}"
+    six = f"top_price_change_1hr: {top_price_change_1hr}"
+    message.append(one)
+    message.append(two)
+    message.append(three)
+    message.append(four)
+    message.append(five)
+    message.append(six)
+    send_text(message)
 
     print("Final Results:")
     print(f"top_percentage: {top_percentage}")
     print(f"amount of trades: {amount_of_trades}")
     print(f"top_rolling_rvol: {top_rolling_rvol}")
-    print(f"top_five_min_rvol: {top_five_min_rvol}")
+    #print(f"top_five_min_rvol: {top_five_min_rvol}")
     print(f"top_price_change_5min: {top_price_change_5min}")
-    print(f"top_price_change_10min: {top_price_change_10min}")
+    #print(f"top_price_change_10min: {top_price_change_10min}")
     print(f"top_price_change_1hr: {top_price_change_1hr}")
     #print(f"top_price_change_24hr: {top_price_change_24hr}")
     #print(f"top_price_change_7d: {top_price_change_7d}")
