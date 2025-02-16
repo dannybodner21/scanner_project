@@ -3306,7 +3306,7 @@ def calculate_all_metrics():
     }
 
     #coins = Coin.objects.all()
-    coins = Coin.objects.order_by("cmc_id")[145:]
+    #coins = Coin.objects.order_by("cmc_id")[145:]
     #coins = Coin.objects.order_by("cmc_id")[25:50]
     #coins = Coin.objects.order_by("cmc_id")[50:75]
     #coins = Coin.objects.order_by("cmc_id")[75:100]
@@ -3314,6 +3314,7 @@ def calculate_all_metrics():
     #coins = Coin.objects.order_by("cmc_id")[125:150]
     #coins = Coin.objects.order_by("cmc_id")[150:]
 
+    coins = Coin.objects.exclude(id__in=Metrics.objects.values_list('coin_id', flat=True))
 
     for coin in coins:
 
