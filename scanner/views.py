@@ -34,13 +34,13 @@ import mplfinance as mpf
 def check_future_price(coin, timestamp):
 
     metrics = Metrics.objects.filter(coin=coin).order_by("timestamp")
-    end_time = closest_metric.timestamp + timedelta(hours=10)
 
     if not metrics.exists():
         print(f"No metrics found for {coin.symbol}")
         return None
 
     closest_metric = min(metrics, key=lambda m: abs(m.timestamp - timestamp))
+    end_time = closest_metric.timestamp + timedelta(hours=10)
     future_metrics = metrics.filter(timestamp__gte=closest_metric.timestamp, timestamp__lte=end_time)
 
     if not future_metrics.exists():
@@ -104,6 +104,9 @@ def hourly_candles():
 
     count = 0
 
+    total_trades = 0
+    successful_trades = 0
+
     for coin in coins:
 
         coin_id = coin.cmc_id
@@ -160,16 +163,21 @@ def hourly_candles():
                     print(f"High price within next hour: {price}")
                     print(f"Percentage change: {round(percentage_change, 2)}%")
 
+                    amount_of_trades += 1
+
                     result = check_future_price(coin, timestamp)
+
                     if result == None:
                         print(f"Result: None")
+                        amount_of_trades -= 1
 
                     elif result == True:
                         print(f"Result: Successful trade")
+                        successful_trades += 1
 
                     else:
                         print(f"Result: Failed trade")
-                        
+
                     print("--------------------------------")
 
 
@@ -177,6 +185,9 @@ def hourly_candles():
         else:
             print("failed to get data")
 
+        success_rate = (successful_trades/amount_of_trades) * 100
+        print(f"Amount of trades thus far: {amount_of_trades}")
+        print(f"Success rate: {success_rate}")
 
         if count >= 20:
             count = 0
