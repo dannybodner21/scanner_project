@@ -30,6 +30,57 @@ import mplfinance as mpf
 
 # TRIGGER TESTING FUNCTIONS ----------------------------------------------------
 
+# use to take a coin and timestamp and check if it went up x% before going down y%
+def check_future_price(coin, timestamp):
+
+    metrics = Metrics.objects.filter(coin=coin).order_by("timestamp")
+    end_time = closest_metric.timestamp + timedelta(hours=10)
+
+    if not metrics.exists():
+        print(f"No metrics found for {coin.symbol}")
+        return None
+
+    closest_metric = min(metrics, key=lambda m: abs(m.timestamp - timestamp))
+    future_metrics = metrics.filter(timestamp__gte=closest_metric.timestamp, timestamp__lte=end_time)
+
+    if not future_metrics.exists():
+        print(f"No future metrics found for {coin.symbol}")
+        return None
+
+    current_price = closest_metric.last_price
+
+    try:
+
+        take_profit_price = current_price + (current_price * decimal.Decimal(0.04))
+        stop_loss_price = current_price - (current_price * decimal.Decimal(0.02))
+
+        for metric in future_metrics:
+
+            take_profit_hit = False
+            stop_loss_hit = False
+
+            if metric.last_price >= take_profit_price:
+                take_profit_hit = True
+                break
+
+            if metric.last_price <= stop_loss_price:
+                stop_loss_hit = True
+                break
+
+        if (take_profit_hit == True):
+            return True
+
+        elif (stop_loss_hit == True):
+            return False
+
+        else:
+            return None
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+    return None
+
 
 def hourly_candles():
 
@@ -101,12 +152,27 @@ def hourly_candles():
                     if (price_now != 0 and price_now != None):
                         percentage_change = ((price-price_now)/price_now)*100
 
-                    print(f"Bullish engulfing candle:")
-                    print(f"Located at: {curr_candle['quote']['USD']['timestamp']}")
+                    timestamp = curr_candle['quote']['USD']['timestamp']
+
+                    print(f"Bullish engulfing candle for {coin.symbol}:")
+                    print(f"Timestamp: {curr_candle['quote']['USD']['timestamp']}")
                     print(f"Price entering next candle: {price_now}")
-                    print(f"Closing price an hour later: {price}")
+                    print(f"High price within next hour: {price}")
                     print(f"Percentage change: {round(percentage_change, 2)}%")
+
+                    result = check_future_price(coin, timestamp)
+                    if result == None:
+                        print(f"Result: None")
+
+                    elif result == True:
+                        print(f"Result: Successful trade")
+
+                    else:
+                        print(f"Result: Failed trade")
+                        
                     print("--------------------------------")
+
+
 
         else:
             print("failed to get data")
