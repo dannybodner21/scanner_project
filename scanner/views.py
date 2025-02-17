@@ -31,6 +31,83 @@ import mplfinance as mpf
 # TRIGGER TESTING FUNCTIONS ----------------------------------------------------
 
 
+def hourly_candles():
+
+    API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    #BASE_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
+    BASE_URL = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical"
+    #HARVARD_API_KEY = 'c35740fd-4f78-45b5-9350-c4afdd929432'
+
+    HEADERS = {
+        "Accepts": "application/json",
+        "X-CMC_PRO_API_KEY": API_KEY,
+    }
+
+    now = datetime.utcnow()
+    start_time = now - timedelta(days=29)
+
+    coins = Coin.objects.all()
+
+    #coin = Coin.objects.filter(symbol="DOT")
+    #coin_id = 9481
+
+    for coin in coins:
+
+        coin_id = coin.cmc_id
+        if not coin_id:
+            continue
+
+        params = {
+            "id": coin_id,
+            "time_start": start_time.isoformat(),
+            "time_end": now.isoformat(),
+            "interval": "1h"
+        }
+
+        response = requests.get(BASE_URL, headers=HEADERS, params=params)
+        data = response.json()
+
+        if "data" in data and "quotes" in data["data"]:
+
+            candles = data["data"]["quotes"]
+
+            for i in range(1, len(candles)-1):
+
+                prev_candle = candles[i-1]
+                curr_candle = candles[i]
+
+                prev_open = prev_candle["quote"]["USD"]["open"]
+                prev_close = prev_candle["quote"]["USD"]["close"]
+                curr_open = curr_candle["quote"]["USD"]["open"]
+                curr_close = curr_candle["quote"]["USD"]["close"]
+
+                if (
+                    prev_close < prev_open and  # Previous candle is bearish
+                    curr_close > curr_open and  # Current candle is bullish
+                    curr_open < prev_close and  # Current open is lower than previous close
+                    curr_close > prev_open      # Current close is higher than previous open
+                ):
+                    next_candle = candles[i+1]
+                    price_now = curr_candle["quote"]["USD"]["close"]
+                    price = next_candle["quote"]["USD"]["high"]
+                    percentage_change = 0
+
+                    if (price_now != 0 and price_now != None):
+                        percentage_change = ((price-price_now)/price_now)*100
+
+                    print(f"Bullish engulfing candle:")
+                    print(f"Located at: {curr_candle['quote']['USD']['timestamp']}")
+                    print(f"Price entering next candle: {price_now}")
+                    print(f"Closing price an hour later: {price}")
+                    print(f"Percentage change: {round(percentage_change, 2)}%")
+                    print("--------------------------------")
+
+        else:
+
+            print("failed to get data")
+
+
+
 
 # trigger one
 #    5064 trades
@@ -1773,98 +1850,6 @@ def trigger_combination():
 
 
 
-'''
-Write a function that returns a dictionary of words and their frequencies
-sorted in descending order of frequencies, given an input list of lines,
-where each line contains words separated with spaces. Counting of words
-should be case insensitive i.e., “Word word” will be counted as {“word”: 2}
-'''
-'''
-def sorted_word_frequency(lines: list[str]) -> dict[str, int]:
-
-    #lines = ["this Is sentence one","this iS sentence two","this IS sentence three"]
-    results = {}
-
-    # loop through lines
-    for line in lines:
-
-        # make sure everything is lowercase
-        line = line.lower()
-
-        # split words
-        words = line.split()
-
-        # loop through each word
-        for word in words:
-
-            # update quantity if it exists
-            if word in results:
-
-                results[word] += 1
-
-            # add word to dict
-            else:
-
-                results[word] = 1
-
-    results = dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
-
-    print(results)
-
-    return results
-'''
-
-'''
-Write a function that prints the top ten words by frequency given the path
-to an input file. Use the function in problem 1.a above to implement this
-function. Write a python program that reads the file as a command line argument
-and calls this function to print the top 10 words in the input file.
-'''
-'''
-import string
-def print_top_words(file_path: str) -> None:
-#def print_top_words() -> None:
-
-    #file_path = "homework.txt"
-
-    lines = []
-
-    # open and read the file
-    with open(file_path, "r") as file:
-
-        for line in file:
-
-            line = line.strip()
-            cleaned_line = ''.join([char for char in line if char not in string.punctuation])
-
-            lines.append(cleaned_line)
-
-    results = list(sorted_word_frequency(lines))
-
-    print(f"The top 10 words in {file_path} are:")
-
-    for i in range(10):
-
-        print(f"Word {i+1}: {results[i]}")
-
-    return
-
-import sys
-def main():
-
-    if len(sys.argv) < 2:
-        print("Incorrect amount of arguments")
-        sys.exit(1)
-
-        file_path = sys.argv[1]
-
-        print_top_words(file_path)
-
-    return
-
-if __name__ == "__main__":
-    main()
-'''
 
 
 
