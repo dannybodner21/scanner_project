@@ -51,6 +51,8 @@ def hourly_candles():
     #coin = Coin.objects.filter(symbol="DOT")
     #coin_id = 9481
 
+    count = 0
+
     for coin in coins:
 
         coin_id = coin.cmc_id
@@ -59,13 +61,17 @@ def hourly_candles():
 
         params = {
             "id": coin_id,
+            "time_period": "hourly",
             "time_start": start_time.isoformat(),
             "time_end": now.isoformat(),
-            "interval": "1h"
+            "interval": "1h",
+            "convert": "USD",
         }
 
         response = requests.get(BASE_URL, headers=HEADERS, params=params)
         data = response.json()
+
+        count += 1
 
         if "data" in data and "quotes" in data["data"]:
 
@@ -103,8 +109,13 @@ def hourly_candles():
                     print("--------------------------------")
 
         else:
-
             print("failed to get data")
+
+
+        if count >= 20:
+            count = 0
+            print("Pausing for 60 seconds...")
+            time.sleep(60)
 
 
 
