@@ -580,7 +580,7 @@ def check_trigger():
                     metrics[x].price_change_5min > 0 and
                     metrics[x-1].price_change_5min > 0 and
                     metrics[x].price_change_10min > 0 and
-                    metrics[x-1].price_change_10min > 0 and
+                    #metrics[x-1].price_change_10min > 0 and
                     metrics[x].price_change_1hr >= 1 and
                     metrics[x].price_change_7d > 1
 
@@ -788,7 +788,7 @@ def check_trigger():
                     metrics[x].rolling_relative_volume >= 220 and
                     metrics[x].price_change_5min > 0.2 and
                     metrics[x].price_change_10min > 0 and
-                    metrics[x-1].price_change_10min > 0 and
+                    #metrics[x-1].price_change_10min > 0 and
                     metrics[x].price_change_1hr >= 1.8 and
                     metrics[x].price_change_7d > 5
                 ):
@@ -891,7 +891,7 @@ def check_trigger():
                     metrics[x].price_change_5min > 0.1 and
                     metrics[x-1].price_change_5min > 0 and
                     metrics[x].price_change_10min > 0.1 and
-                    metrics[x-1].price_change_10min > 0 and
+                    #metrics[x-1].price_change_10min > 0 and
                     metrics[x].price_change_1hr >= 3 and
                     metrics[x].price_change_7d > 0
                 ):
@@ -992,6 +992,7 @@ def check_trigger():
                     metrics[x-1].price_change_5min > 0 and
                     metrics[x-2].price_change_5min > 0 and
                     metrics[x-3].price_change_5min > 0 and
+                    metrics[x-4].price_change_5min > 0 and
                     metrics[x].price_change_10min > 0
                 ):
                     #print("-----TRIGGER SEVEN-------------")
