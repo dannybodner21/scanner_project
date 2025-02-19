@@ -287,38 +287,6 @@ def check_trigger():
     trigger_seven_trades = 0
     trigger_seven_success = 0
 
-    count_1 = 0
-    count_2 = 0
-    count_3 = 0
-    count_4 = 0
-    count_5 = 0
-    count_6 = 0
-    count_7 = 0
-    count_8 = 0
-    count_9 = 0
-    count_10 = 0
-    count_11 = 0
-    count_12 = 0
-    count_13 = 0
-    count_14 = 0
-    count_15 = 0
-    count_16 = 0
-    count_17 = 0
-    count_18 = 0
-    count_19 = 0
-    count_20 = 0
-    count_21 = 0
-    count_22 = 0
-    count_23 = 0
-    count_24 = 0
-    count_25 = 0
-    count_26 = 0
-    count_27 = 0
-    count_28 = 0
-    count_29 = 0
-    count_30 = 0
-    count_31 = 0
-
     for coin in coins:
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
@@ -364,7 +332,6 @@ def check_trigger():
 
                 if (
                     trigger_one_hit == False and
-                    coin.symbol == "XRP" and
                     250 <= metrics[x].rolling_relative_volume <= 450 and
                     0.9 <= metrics[x].five_min_relative_volume <= 1.1 and
                     0 <= metrics[x].price_change_5min <= 0.25 and
@@ -374,19 +341,12 @@ def check_trigger():
                     #metrics[x].price_change_7d < -6
                 ):
 
-                    #print("-------TRIGGER ONE-----------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
-
                     trigger_one_hit = True
                     amount_of_trades += 1
                     trigger_one_trades += 1
-
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
                     take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
-
-                    # try to go through remaining metrics
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -415,45 +375,6 @@ def check_trigger():
                     except:
                         print("failed in trigger 1")
 
-                    day = metrics[x].timestamp.day
-                    if day == 15:
-                        count_15 += 1
-                    elif day == 16:
-                        count_16 += 1
-                    elif day == 17:
-                        count_17 += 1
-                    elif day == 18:
-                        count_18 += 1
-                    elif day == 19:
-                        count_19 += 1
-                    elif day == 20:
-                        count_20 += 1
-                    elif day == 21:
-                        count_21 += 1
-                    elif day == 22:
-                        count_22 += 1
-                    elif day == 23:
-                        count_23 += 1
-                    elif day == 24:
-                        count_24 += 1
-                    elif day == 25:
-                        count_25 += 1
-                    elif day == 26:
-                        count_26 += 1
-                    elif day == 27:
-                        count_27 += 1
-                    elif day == 28:
-                        count_28 += 1
-                    elif day == 29:
-                        count_29 += 1
-                    elif day == 30:
-                        count_30 += 1
-                        #print(coin.symbol)
-                        #print(metrics[x].timestamp)
-                    elif day == 31:
-                        count_31 += 1
-
-
 
                 # TRIGGER 2 ----------------------------------------------------
                 if (trigger_two_hit == True):
@@ -465,24 +386,19 @@ def check_trigger():
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].rolling_relative_volume >= 400 and
-                    metrics[x].price_change_5min > 0.1 and
-                    metrics[x-1].price_change_5min > 0.05 and
+                    metrics[x].rolling_relative_volume >= 300 and
+                    metrics[x].price_change_5min > 0.3 and
+                    metrics[x-1].price_change_5min > 0.1 and
                     metrics[x-2].price_change_5min > 0 and
-                    metrics[x].price_change_10min > 0.25
+                    metrics[x].price_change_10min > 0.1
                 ):
-                    #print("-----TRIGGER TWO-------------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
 
                     trigger_two_hit = True
-
                     amount_of_trades += 1
                     trigger_two_trades += 1
-
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.025))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -513,45 +429,6 @@ def check_trigger():
                         print("failed in trigger 2")
 
 
-                    day = metrics[x].timestamp.day
-                    if day == 15:
-                        count_15 += 1
-                    elif day == 16:
-                        count_16 += 1
-                    elif day == 17:
-                        count_17 += 1
-                    elif day == 18:
-                        count_18 += 1
-                    elif day == 19:
-                        count_19 += 1
-                    elif day == 20:
-                        count_20 += 1
-                    elif day == 21:
-                        count_21 += 1
-                    elif day == 22:
-                        count_22 += 1
-                    elif day == 23:
-                        count_23 += 1
-                    elif day == 24:
-                        count_24 += 1
-                    elif day == 25:
-                        count_25 += 1
-                    elif day == 26:
-                        count_26 += 1
-                    elif day == 27:
-                        count_27 += 1
-                    elif day == 28:
-                        count_28 += 1
-                    elif day == 29:
-                        count_29 += 1
-                    elif day == 30:
-                        count_30 += 1
-                    elif day == 31:
-                        count_31 += 1
-
-
-
-
                 # TRIGGER 3 ----------------------------------------------------
 
                 # rolling 5 min price change
@@ -575,27 +452,21 @@ def check_trigger():
                 if (
                     trigger_three_hit == False and
                     metrics[x].price_change_24hr <= 0 and
-                    metrics[x].rolling_relative_volume >= 250 and
+                    metrics[x].rolling_relative_volume >= 300 and
                     metrics[x].price_change_5min > 0 and
                     metrics[x-1].price_change_5min > 0 and
                     metrics[x].price_change_10min > 0 and
-                    #metrics[x-1].price_change_10min > 0 and
                     metrics[x].price_change_1hr >= 1 and
                     metrics[x].price_change_7d > 1
 
                 ):
-                    #print("-----TRIGGER THREE-------------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
 
                     trigger_three_hit = True
-
                     amount_of_trades += 1
                     trigger_three_trades += 1
-
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -626,45 +497,6 @@ def check_trigger():
                         print("failed in trigger 3")
 
 
-                    day = metrics[x].timestamp.day
-                    if day == 15:
-                        count_15 += 1
-                    elif day == 16:
-                        count_16 += 1
-                    elif day == 17:
-                        count_17 += 1
-                    elif day == 18:
-                        count_18 += 1
-                    elif day == 19:
-                        count_19 += 1
-                    elif day == 20:
-                        count_20 += 1
-                    elif day == 21:
-                        count_21 += 1
-                    elif day == 22:
-                        count_22 += 1
-                    elif day == 23:
-                        count_23 += 1
-                    elif day == 24:
-                        count_24 += 1
-                    elif day == 25:
-                        count_25 += 1
-                    elif day == 26:
-                        count_26 += 1
-                    elif day == 27:
-                        count_27 += 1
-                    elif day == 28:
-                        count_28 += 1
-                    elif day == 29:
-                        count_29 += 1
-                    elif day == 30:
-                        count_30 += 1
-                    elif day == 31:
-                        count_31 += 1
-
-
-
-
                 # SHORT Trigger ------------------------------------------------
                 if (trigger_short_hit == True):
                     trigger_short_hit_counter += 1
@@ -691,17 +523,13 @@ def check_trigger():
                     #metrics[x].price_change_24hr >= price_change_24hr_threshold and
                     metrics[x].price_change_7d <= price_change_7d_threshold
                 ):
-                    #print("-----SHORT TRIGGER-------------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
 
                     trigger_short_hit = True
-
                     amount_of_trades += 1
                     trigger_short_trades += 1
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
-                    take_profit_price = trigger_price - (trigger_price * decimal.Decimal(0.04))
+                    take_profit_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -732,47 +560,6 @@ def check_trigger():
                         print("failed in short trigger")
 
 
-                    day = metrics[x].timestamp.day
-                    if day == 15:
-                        count_15 += 1
-                    elif day == 16:
-                        count_16 += 1
-                    elif day == 17:
-                        count_17 += 1
-                    elif day == 18:
-                        count_18 += 1
-                    elif day == 19:
-                        count_19 += 1
-                    elif day == 20:
-                        count_20 += 1
-                    elif day == 21:
-                        count_21 += 1
-                    elif day == 22:
-                        count_22 += 1
-                    elif day == 23:
-                        count_23 += 1
-                    elif day == 24:
-                        count_24 += 1
-                    elif day == 25:
-                        count_25 += 1
-                    elif day == 26:
-                        count_26 += 1
-                    elif day == 27:
-                        count_27 += 1
-                    elif day == 28:
-                        count_28 += 1
-                    elif day == 29:
-                        count_29 += 1
-                    elif day == 30:
-                        count_30 += 1
-                        #print("SHORT")
-                        #print(coin.symbol)
-                        #print(metrics[x].timestamp)
-                    elif day == 31:
-                        count_31 += 1
-
-
-
                 # TRIGGER 5 ----------------------------------------------------
                 if (trigger_five_hit == True):
                     trigger_five_hit_counter += 1
@@ -784,26 +571,19 @@ def check_trigger():
                 if (
                     trigger_five_hit == False and
                     metrics[x].price_change_24hr <= -3 and
-                    metrics[x].rolling_relative_volume >= 220 and
+                    metrics[x].rolling_relative_volume >= 300 and
                     metrics[x].price_change_5min > 0.2 and
                     metrics[x].price_change_10min > 0 and
-                    #metrics[x-1].price_change_10min > 0 and
                     metrics[x].price_change_1hr >= 1.8 and
                     metrics[x].price_change_7d > 5
                 ):
 
-                    #print("-----TRIGGER FIVE-------------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
-
                     trigger_five_hit = True
-
                     amount_of_trades += 1
                     trigger_five_trades += 1
-
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -835,45 +615,6 @@ def check_trigger():
                         print("failed in trigger 5")
 
 
-                    day = metrics[x].timestamp.day
-                    if day == 15:
-                        count_15 += 1
-                    elif day == 16:
-                        count_16 += 1
-                    elif day == 17:
-                        count_17 += 1
-                    elif day == 18:
-                        count_18 += 1
-                    elif day == 19:
-                        count_19 += 1
-                    elif day == 20:
-                        count_20 += 1
-                    elif day == 21:
-                        count_21 += 1
-                    elif day == 22:
-                        count_22 += 1
-                    elif day == 23:
-                        count_23 += 1
-                    elif day == 24:
-                        count_24 += 1
-                    elif day == 25:
-                        count_25 += 1
-                    elif day == 26:
-                        count_26 += 1
-                    elif day == 27:
-                        count_27 += 1
-                    elif day == 28:
-                        count_28 += 1
-                    elif day == 29:
-                        count_29 += 1
-                    elif day == 30:
-                        count_30 += 1
-                    elif day == 31:
-                        count_31 += 1
-
-
-
-
                 # TRIGGER SIX --------------------------------------------------
                 if (trigger_six_hit == True):
                     trigger_six_hit_counter += 1
@@ -882,30 +623,23 @@ def check_trigger():
                     trigger_six_hit = False
                     trigger_six_hit_counter = 0
 
-                # below is currently at 70% success rate
                 if (
                     trigger_six_hit == False and
                     metrics[x].price_change_24hr <= -3 and
-                    metrics[x].rolling_relative_volume >= 200 and
+                    metrics[x].rolling_relative_volume >= 365 and
                     metrics[x].price_change_5min > 0.1 and
                     metrics[x-1].price_change_5min > 0 and
                     metrics[x].price_change_10min > 0.1 and
-                    #metrics[x-1].price_change_10min > 0 and
                     metrics[x].price_change_1hr >= 3 and
                     metrics[x].price_change_7d > 0
                 ):
-                    #print("-----TRIGGER SIX-------------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
 
                     trigger_six_hit = True
-
                     amount_of_trades += 1
                     trigger_six_trades += 1
-
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.01))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -936,44 +670,6 @@ def check_trigger():
                         print("failed in trigger 6")
 
 
-                    day = metrics[x].timestamp.day
-                    if day == 15:
-                        count_15 += 1
-                    elif day == 16:
-                        count_16 += 1
-                    elif day == 17:
-                        count_17 += 1
-                    elif day == 18:
-                        count_18 += 1
-                    elif day == 19:
-                        count_19 += 1
-                    elif day == 20:
-                        count_20 += 1
-                    elif day == 21:
-                        count_21 += 1
-                    elif day == 22:
-                        count_22 += 1
-                    elif day == 23:
-                        count_23 += 1
-                    elif day == 24:
-                        count_24 += 1
-                    elif day == 25:
-                        count_25 += 1
-                    elif day == 26:
-                        count_26 += 1
-                    elif day == 27:
-                        count_27 += 1
-                    elif day == 28:
-                        count_28 += 1
-                    elif day == 29:
-                        count_29 += 1
-                    elif day == 30:
-                        count_30 += 1
-                    elif day == 31:
-                        count_31 += 1
-
-
-
                 # TRIGGER SEVEN ------------------------------------------------
                 if (trigger_seven_hit == True):
                     trigger_seven_hit_counter += 1
@@ -982,29 +678,23 @@ def check_trigger():
                     trigger_seven_hit = False
                     trigger_seven_hit_counter = 0
 
-                # below is currently at 66% success rate
                 if (
                     trigger_seven_hit == False and
-                    metrics[x].rolling_relative_volume >= 350 and
-                    metrics[x].price_change_1hr >= 1.5 and
-                    metrics[x].price_change_5min >= 0.1 and
+                    metrics[x].rolling_relative_volume >= 500 and
+                    metrics[x].price_change_1hr >= 2 and
+                    metrics[x].price_change_5min >= 0.2 and
                     metrics[x-1].price_change_5min >= 0.1 and
                     metrics[x-2].price_change_5min > 0 and
                     metrics[x-3].price_change_5min > 0 and
-                    metrics[x].price_change_10min > 0
+                    metrics[x].price_change_10min > 0.4
                 ):
-                    #print("-----TRIGGER SEVEN-------------")
-                    #print(coin.symbol)
-                    #print(metrics[x].timestamp)
 
                     trigger_seven_hit = True
-
                     amount_of_trades += 1
                     trigger_seven_trades += 1
-
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.06))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -1032,46 +722,6 @@ def check_trigger():
 
                     except:
                         print("failed in trigger 7")
-
-
-                    day = metrics[x].timestamp.day
-                    if day == 15:
-                        count_15 += 1
-                    elif day == 16:
-                        count_16 += 1
-                    elif day == 17:
-                        count_17 += 1
-                    elif day == 18:
-                        count_18 += 1
-                    elif day == 19:
-                        count_19 += 1
-                    elif day == 20:
-                        count_20 += 1
-                    elif day == 21:
-                        count_21 += 1
-                    elif day == 22:
-                        count_22 += 1
-                    elif day == 23:
-                        count_23 += 1
-                    elif day == 24:
-                        count_24 += 1
-                    elif day == 25:
-                        count_25 += 1
-                    elif day == 26:
-                        count_26 += 1
-                    elif day == 27:
-                        count_27 += 1
-                    elif day == 28:
-                        count_28 += 1
-                    elif day == 29:
-                        count_29 += 1
-                    elif day == 30:
-                        count_30 += 1
-                    elif day == 31:
-                        count_31 += 1
-
-
-
 
 
     print("Results: ")
@@ -1125,28 +775,6 @@ def check_trigger():
     if (trigger_seven_trades != 0):
         trigger_seven_success_percentage = (trigger_seven_success / trigger_seven_trades) * 100
     print(f"Trigger Seven Success: {trigger_seven_success_percentage}%")
-
-
-    #print(f"Day 15: {count_15}")
-    #print(f"Day 16: {count_16}")
-    #print(f"Day 17: {count_17}")
-    #print(f"Day 18: {count_18}")
-    #print(f"Day 19: {count_19}")
-    #print(f"Day 20: {count_20}")
-    #print(f"Day 21: {count_21}")
-    #print(f"Day 22: {count_22}")
-    #print(f"Day 23: {count_23}")
-    #print(f"Day 24: {count_24}")
-    #print(f"Day 25: {count_25}")
-    #print(f"Day 26: {count_26}")
-    #print(f"Day 27: {count_27}")
-    #print(f"Day 28: {count_28}")
-    #print(f"Day 29: {count_29}")
-    #print(f"Day 30: {count_30}")
-    #print(f"Day 31: {count_31}")
-
-
-
 
 
 
