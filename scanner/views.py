@@ -3078,17 +3078,7 @@ def calculate_all_metrics():
 
 
 
-    
-    JUP = Coin.objects.get(symbol="JUP")
-    coins.append(JUP)
-    SHIB = Coin.objects.get(symbol="SHIB")
-    coins.append(SHIB)
-    ATOM = Coin.objects.get(symbol="ATOM")
-    coins.append(ATOM)
-    RENDER = Coin.objects.get(symbol="RENDER")
-    coins.append(RENDER)
-    GMT = Coin.objects.get(symbol="GMT")
-    coins.append(GMT)
+
     ONE = Coin.objects.get(symbol="ONE")
     coins.append(ONE)
     XEC = Coin.objects.get(symbol="XEC")
