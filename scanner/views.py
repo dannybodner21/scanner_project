@@ -3077,20 +3077,6 @@ def calculate_all_metrics():
     coins = []
 
 
-    CRO = Coin.objects.get(symbol="CRO")
-    coins.append(CRO)
-    ANKR = Coin.objects.get(symbol="ANKR")
-    coins.append(ANKR)
-    MORPHO = Coin.objects.get(symbol="MORPHO")
-    coins.append(MORPHO)
-    GRASS = Coin.objects.get(symbol="GRASS")
-    coins.append(GRASS)
-    JST = Coin.objects.get(symbol="JST")
-    coins.append(JST)
-    IOTX = Coin.objects.get(symbol="IOTX")
-    coins.append(IOTX)
-    AIOZ = Coin.objects.get(symbol="AIOZ")
-    coins.append(AIOZ)
     EOS = Coin.objects.get(symbol="EOS")
     coins.append(EOS)
     BEAM = Coin.objects.get(symbol="BEAM")
