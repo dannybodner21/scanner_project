@@ -3076,18 +3076,7 @@ def calculate_all_metrics():
 
     coins = []
 
-    BCH = Coin.objects.get(symbol="BCH")
-    coins.append(BCH)
-    AR = Coin.objects.get(symbol="AR")
-    coins.append(AR)
-    EIGEN = Coin.objects.get(symbol="EIGEN")
-    coins.append(EIGEN)
-    MNT = Coin.objects.get(symbol="MNT")
-    coins.append(MNT)
-    ZIL = Coin.objects.get(symbol="ZIL")
-    coins.append(ZIL)
-    NEO = Coin.objects.get(symbol="NEO")
-    coins.append(NEO)
+
     CRO = Coin.objects.get(symbol="CRO")
     coins.append(CRO)
     ANKR = Coin.objects.get(symbol="ANKR")
@@ -3154,6 +3143,8 @@ def calculate_all_metrics():
     coins.append(FLOW)
     APT = Coin.objects.get(symbol="APT")
     coins.append(APT)
+    NEO = Coin.objects.get(symbol="NEO")
+    coins.append(NEO)
 
     for coin in coins:
 
