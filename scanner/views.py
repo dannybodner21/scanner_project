@@ -3077,20 +3077,7 @@ def calculate_all_metrics():
     coins = []
 
 
-    EOS = Coin.objects.get(symbol="EOS")
-    coins.append(EOS)
-    BEAM = Coin.objects.get(symbol="BEAM")
-    coins.append(BEAM)
-    MOVE = Coin.objects.get(symbol="MOVE")
-    coins.append(MOVE)
-    VET = Coin.objects.get(symbol="VET")
-    coins.append(VET)
-    THETA = Coin.objects.get(symbol="THETA")
-    coins.append(THETA)
-    INJ = Coin.objects.get(symbol="INJ")
-    coins.append(INJ)
-    ALGO = Coin.objects.get(symbol="ALGO")
-    coins.append(ALGO)
+    
     TURBO = Coin.objects.get(symbol="TURBO")
     coins.append(TURBO)
     SAND = Coin.objects.get(symbol="SAND")
