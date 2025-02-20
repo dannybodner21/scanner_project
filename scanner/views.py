@@ -3077,13 +3077,8 @@ def calculate_all_metrics():
     coins = []
 
 
+
     
-    TURBO = Coin.objects.get(symbol="TURBO")
-    coins.append(TURBO)
-    SAND = Coin.objects.get(symbol="SAND")
-    coins.append(SAND)
-    FTM = Coin.objects.get(symbol="FTM")
-    coins.append(FTM)
     JUP = Coin.objects.get(symbol="JUP")
     coins.append(JUP)
     SHIB = Coin.objects.get(symbol="SHIB")
