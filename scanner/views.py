@@ -385,13 +385,13 @@ def check_trigger():
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].rolling_relative_volume >= 375 and
-                    metrics[x].price_change_5min > 0.2 and
-                    metrics[x-1].price_change_5min > 0.1 and
+                    metrics[x].rolling_relative_volume > 300 and
+                    metrics[x].price_change_5min > 0 and
+                    metrics[x-1].price_change_5min > 0 and
                     metrics[x-2].price_change_5min > 0 and
-                    metrics[x].price_change_10min > 0.2 and
-                    metrics[x].price_change_24hr <= -5 and
-                    metrics[x].price_change_7d < -5
+                    metrics[x].price_change_10min > 0 and
+                    metrics[x].price_change_24hr < -3 and
+                    metrics[x].price_change_7d < -8
                 ):
 
                     trigger_two_hit = True
@@ -3660,17 +3660,19 @@ def five_min_update(request=None):
 
                     try:
 
+                        timestamp = datetime.strptime(
+                            crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                        )
+
                         metric = Metrics.objects.create(
                             coin=coin,
-                            timestamp=datetime.strptime(
-                                crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                            ),
-                            daily_relative_volume=calculate_daily_relative_volume(coin),
-                            rolling_relative_volume=calculate_relative_volume(coin),
-                            five_min_relative_volume=calculate_five_min_relative_volume(coin),
-                            twenty_min_relative_volume=calculate_twenty_min_relative_volume(coin),
-                            price_change_5min=calculate_price_change_five_min(coin),
-                            price_change_10min=calculate_price_change_thirty_min(coin),
+                            timestamp=timestamp,
+                            #daily_relative_volume=calculate_daily_relative_volume(coin),
+                            rolling_relative_volume=calculate_relative_volume(coin, timestamp),
+                            five_min_relative_volume=calculate_five_min_relative_volume(coin, timestamp),
+                            twenty_min_relative_volume=calculate_twenty_min_relative_volume(coin, timestamp),
+                            price_change_5min=calculate_price_change_five_min(coin, timestamp),
+                            price_change_10min=calculate_price_change_thirty_min(coin, timestamp),
                             price_change_1hr = crypto_data["quote"]["USD"]["percent_change_1h"],
                             price_change_24hr = crypto_data["quote"]["USD"]["percent_change_24h"],
                             price_change_7d = crypto_data["quote"]["USD"]["percent_change_7d"],
