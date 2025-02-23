@@ -385,13 +385,13 @@ def check_trigger():
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].rolling_relative_volume > 300 and
-                    metrics[x].price_change_5min > 0 and
+                    metrics[x].rolling_relative_volume > 400 and
+                    metrics[x].price_change_5min > 0.2 and
                     metrics[x-1].price_change_5min > 0 and
                     metrics[x-2].price_change_5min > 0 and
                     metrics[x].price_change_10min > 0 and
-                    metrics[x].price_change_24hr < -3 and
-                    metrics[x].price_change_7d < -8
+                    metrics[x].price_change_24hr < -7 and
+                    metrics[x].price_change_7d < -4
                 ):
 
                     trigger_two_hit = True
@@ -441,13 +441,13 @@ def check_trigger():
 
                 if (
                     trigger_three_hit == False and
-                    #metrics[x].price_change_24hr <= 0 and
-                    metrics[x].rolling_relative_volume >= 380 and
-                    metrics[x].price_change_5min > 0 and
-                    #metrics[x-1].price_change_5min > 0 and
+                    metrics[x].rolling_relative_volume > 400 and
+                    metrics[x].price_change_5min > 0.2 and
+                    metrics[x-1].price_change_5min > 0 and
+                    metrics[x-2].price_change_5min > 0 and
                     metrics[x].price_change_10min > 0 and
-                    metrics[x].price_change_1hr > 0 and
-                    metrics[x].price_change_7d > 5
+                    metrics[x].price_change_24hr < -7 and
+                    metrics[x].price_change_7d < -4
 
                 ):
 
@@ -455,8 +455,8 @@ def check_trigger():
                     amount_of_trades += 1
                     trigger_three_trades += 1
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -553,21 +553,21 @@ def check_trigger():
 
                 if (
                     trigger_five_hit == False and
-                    metrics[x].rolling_relative_volume > 410 and
-                    metrics[x].price_change_5min > 0.1 and
+                    metrics[x].rolling_relative_volume > 400 and
+                    metrics[x].price_change_5min > 0.2 and
                     metrics[x-1].price_change_5min > 0 and
                     metrics[x-2].price_change_5min > 0 and
-                    metrics[x].price_change_10min > 0.13 and
-                    metrics[x].price_change_24hr < -3 and
-                    metrics[x].price_change_7d < 0
+                    metrics[x].price_change_10min > 0 and
+                    metrics[x].price_change_24hr < -7 and
+                    metrics[x].price_change_7d < -4
                 ):
 
                     trigger_five_hit = True
                     amount_of_trades += 1
                     trigger_five_trades += 1
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.04))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -609,11 +609,13 @@ def check_trigger():
 
                 if (
                     trigger_six_hit == False and
-                    metrics[x].rolling_relative_volume > 300 and
-                    metrics[x].price_change_5min > 0 and
+                    metrics[x].rolling_relative_volume > 400 and
+                    metrics[x].price_change_5min > 0.2 and
                     metrics[x-1].price_change_5min > 0 and
                     metrics[x-2].price_change_5min > 0 and
-                    metrics[x-3].price_change_5min > 0
+                    metrics[x].price_change_10min > 0 and
+                    metrics[x].price_change_24hr < -7 and
+                    metrics[x].price_change_7d < -4
                 ):
 
                     trigger_six_hit = True
@@ -621,7 +623,7 @@ def check_trigger():
                     trigger_six_trades += 1
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -662,12 +664,13 @@ def check_trigger():
 
                 if (
                     trigger_seven_hit == False and
-                    metrics[x].rolling_relative_volume > 450 and
-                    metrics[x].price_change_5min > 0.1 and
+                    metrics[x].rolling_relative_volume > 400 and
+                    metrics[x].price_change_5min > 0.2 and
                     metrics[x-1].price_change_5min > 0 and
+                    metrics[x-2].price_change_5min > 0 and
                     metrics[x].price_change_10min > 0 and
-                    metrics[x].price_change_24hr < -2 and
-                    metrics[x].price_change_7d < -2
+                    metrics[x].price_change_24hr < -7 and
+                    metrics[x].price_change_7d < -4
                 ):
 
                     trigger_seven_hit = True
@@ -675,7 +678,7 @@ def check_trigger():
                     trigger_seven_trades += 1
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -3684,10 +3687,9 @@ def five_min_update(request=None):
     print("five minute update complete.")
 
     # check triggers here
-    #print("=============================")
-    #print("checking triggers")
+    print("=============================")
+    print("checking triggers")
 
-    '''
     coins = Coin.objects.prefetch_related(
         Prefetch(
             'metrics',  # The related_name defined in Metrics
@@ -3695,12 +3697,12 @@ def five_min_update(request=None):
             to_attr='prefetched_metrics'  # Use a unique name for the prefetched attribute
         )
     )
-    '''
 
-    #for coin in coins:
 
-        #metrics_queryset = coin.prefetched_metrics
-        #check_triggers(metrics_queryset)
+    for coin in coins:
+
+        metrics_queryset = coin.prefetched_metrics
+        check_triggers(metrics_queryset)
 
         # check if there is a new high or low for the day
         #check_high_low(metrics_queryset)
@@ -4276,12 +4278,13 @@ def check_triggers(metrics_queryset):
             ten_min_price_increase = True
 
         if (
-            metrics_queryset[0].rolling_relative_volume >= 1.4 and
-            metrics_queryset[0].price_change_5min >= 0.7 and
-            metrics_queryset[0].price_change_10min <= 1.9 and
-            metrics_queryset[0].price_change_1hr >= -0.3 and
-            metrics_queryset[0].price_change_24hr <= -5.1 and
-            metrics_queryset[0].price_change_7d <= -0.9
+            metrics_queryset[0].rolling_relative_volume > 400 and
+            metrics_queryset[0].price_change_5min > 0.2 and
+            metrics_queryset[1].price_change_5min > 0 and
+            metrics_queryset[2].price_change_5min > 0 and
+            metrics_queryset[0].price_change_10min > 0 and
+            metrics_queryset[0].price_change_24hr < -7 and
+            metrics_queryset[0].price_change_7d < -4
         ):
             print("TRIGGER 1 passed")
             trigger_passed = True
@@ -4300,13 +4303,13 @@ def check_triggers(metrics_queryset):
 
 
         if (
-            metrics_queryset[0].rolling_relative_volume >= 1.4 and
+            metrics_queryset[0].rolling_relative_volume >= 1000000 and
             metrics_queryset[0].five_min_relative_volume >= 1.0 and
             metrics_queryset[0].price_change_5min >= 0.2 and
             metrics_queryset[0].price_change_10min <= 0.1 and
             metrics_queryset[0].price_change_1hr >= 0 and
             metrics_queryset[0].price_change_24hr <= -0.5 and
-            metrics_queryset[0].price_change_7d <= 0.5
+            metrics_queryset[0].price_change_7d <= 0
         ):
             print("TRIGGER 2 passed")
             trigger_passed = True
@@ -4326,7 +4329,7 @@ def check_triggers(metrics_queryset):
 
         if (
             metrics_queryset[0].price_change_24hr < -5 and
-            metrics_queryset[0].rolling_relative_volume >= 2.1 and
+            metrics_queryset[0].rolling_relative_volume >= 100000000 and
             metrics_queryset[1].price_change_5min < metrics_queryset[0].price_change_5min and
             metrics_queryset[2].price_change_5min < metrics_queryset[1].price_change_5min and
             metrics_queryset[0].price_change_10min > 0 and
@@ -4353,7 +4356,7 @@ def check_triggers(metrics_queryset):
 
 
 
-        rolling_rvol_threshold = 1.7
+        rolling_rvol_threshold = 1000000000
         five_min_rvol_threshold = 1.1
         price_change_5min_threshold = 0.2
         price_change_10min_threshold = 0
@@ -4387,7 +4390,7 @@ def check_triggers(metrics_queryset):
 
 
         if (
-            metrics_queryset[0].price_change_24hr < -10 and
+            metrics_queryset[0].price_change_24hr < -100000000 and
             #(metrics_queryset[0].rolling_relative_volume >= 2.1 or metrics_queryset[0].daily_relative_volume >= 1.3) and
             metrics_queryset[0].price_change_5min < 0 and
             metrics_queryset[0].price_change_10min < 0 and
