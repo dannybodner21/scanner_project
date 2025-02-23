@@ -3048,25 +3048,24 @@ def initial_setup_final():
 
     coins_two = []
 
+    '''
     FTM = Coin.objects.get(symbol="FTM")
     coins_two.append(FTM)
-
     JUP = Coin.objects.get(symbol="JUP")
     coins_two.append(JUP)
-
     DOT = Coin.objects.get(symbol="DOT")
     coins_two.append(DOT)
-
     GOAT = Coin.objects.get(symbol="GOAT")
     coins_two.append(GOAT)
-
     WIF = Coin.objects.get(symbol="WIF")
     coins_two.append(WIF)
-
     FLOW = Coin.objects.get(symbol="FLOW")
     coins_two.append(FLOW)
+    '''
 
-    fetch_short_interval_data(coins_two)
+    coins = Coin.objects.all()
+
+    fetch_short_interval_data(coins)
 
     #coins = Coin.objects.order_by("cmc_id")[107:]
     #fetch_short_interval_data(coins)
@@ -3117,7 +3116,7 @@ def fetch_short_interval_data(coins):
             # the api limit is 10000 per call
 
             #now = datetime.now()
-            now = datetime(2025, 2, 13, 0, 0, 0)
+            now = datetime(2025, 2, 23, 0, 0, 0)
             # 58 days ago: initial end time
             #end_time = now - timedelta(days=58)
 
@@ -3130,7 +3129,7 @@ def fetch_short_interval_data(coins):
             try:
 
                 # 87 days ago to start
-                start_time = end_time - timedelta(days=29)
+                start_time = end_time - timedelta(days=10)
 
                 params = {
                     "id": coin.cmc_id,
