@@ -3201,7 +3201,7 @@ def gather_daily_historical_data():
         for coin in coin_group:
             try:
                 end_time = datetime.now()
-                start_time = end_time - timedelta(days=29)
+                start_time = end_time - timedelta(days=37)
 
                 params = {
                     "id": coin.cmc_id,
