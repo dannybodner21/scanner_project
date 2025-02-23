@@ -4245,37 +4245,37 @@ def check_triggers(metrics_queryset):
 
         # 24 hour volume growth
         # current volume - volume 5 min ago / volume 5 min ago * 100
-        current_volume = metrics_queryset[0].volume_24h
-        previous_volume = metrics_queryset[1].volume_24h
-        volume_growth = (current_volume - previous_volume) / previous_volume * 100
+        #current_volume = metrics_queryset[0].volume_24h
+        #previous_volume = metrics_queryset[1].volume_24h
+        #volume_growth = (current_volume - previous_volume) / previous_volume * 100
 
         # 5 min relative volume progression
         # current and previous 2 are increasing or equivalent
-        rvol_progression = False
-        current_rvol = metrics_queryset[0].five_min_relative_volume
-        one_previous_rvol = metrics_queryset[1].five_min_relative_volume
-        two_previous_rvol = metrics_queryset[2].five_min_relative_volume
-        if (two_previous_rvol <= one_previous_rvol <= current_rvol):
-            rvol_progression = True
+        #rvol_progression = False
+        #current_rvol = metrics_queryset[0].five_min_relative_volume
+        #one_previous_rvol = metrics_queryset[1].five_min_relative_volume
+        #two_previous_rvol = metrics_queryset[2].five_min_relative_volume
+        #if (two_previous_rvol <= one_previous_rvol <= current_rvol):
+            #rvol_progression = True
 
         # 5 min price change is greater than previous
-        five_min_price_increase = False
-        current_five_min = metrics_queryset[0].price_change_5min
-        previous_five_min = metrics_queryset[1].price_change_5min
-        previous_five_min_two = metrics_queryset[2].price_change_5min
-        if (previous_five_min < current_five_min and
-            previous_five_min < 0 and
-            current_five_min > 0):
-            five_min_price_increase = True
+        #five_min_price_increase = False
+        #current_five_min = metrics_queryset[0].price_change_5min
+        #previous_five_min = metrics_queryset[1].price_change_5min
+        #previous_five_min_two = metrics_queryset[2].price_change_5min
+        #if (previous_five_min < current_five_min and
+            #previous_five_min < 0 and
+            #current_five_min > 0):
+            #five_min_price_increase = True
 
         # 5 min and 10 min price changes go negative, positive, positive
-        ten_min_price_increase = False
-        current_ten_min = metrics_queryset[0].price_change_10min
-        previous_ten_min = metrics_queryset[1].price_change_10min
-        previous_ten_min_two = metrics_queryset[2].price_change_10min
-        if (previous_ten_min < current_ten_min and
-            previous_ten_min < 0):
-            ten_min_price_increase = True
+        #ten_min_price_increase = False
+        #current_ten_min = metrics_queryset[0].price_change_10min
+        #previous_ten_min = metrics_queryset[1].price_change_10min
+        #previous_ten_min_two = metrics_queryset[2].price_change_10min
+        #if (previous_ten_min < current_ten_min and
+            #previous_ten_min < 0):
+            #ten_min_price_increase = True
 
         if (
             metrics_queryset[0].rolling_relative_volume > 400 and
@@ -4502,7 +4502,7 @@ def check_triggers(metrics_queryset):
         print("no triggers passed")
 
     if len(true_triggers) > 0:
-        #send_text(true_triggers)
+        send_text(true_triggers)
         print("not sending messages at this time.")
 
     return
