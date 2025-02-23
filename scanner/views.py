@@ -287,6 +287,38 @@ def check_trigger():
     trigger_seven_trades = 0
     trigger_seven_success = 0
 
+
+    jan_13_count = 0
+    jan_14_count = 0
+    jan_15_count = 0
+    jan_16_count = 0
+    jan_17_count = 0
+    jan_18_count = 0
+    jan_19_count = 0
+    jan_20_count = 0
+    jan_21_count = 0
+    jan_22_count = 0
+    jan_23_count = 0
+    jan_24_count = 0
+    jan_25_count = 0
+    jan_26_count = 0
+    jan_27_count = 0
+    jan_28_count = 0
+    jan_29_count = 0
+    jan_30_count = 0
+    jan_31_count = 0
+    feb_1_count = 0
+    feb_2_count = 0
+    feb_3_count = 0
+    feb_4_count = 0
+    feb_5_count = 0
+    feb_6_count = 0
+    feb_7_count = 0
+    feb_8_count = 0
+    feb_9_count = 0
+    feb_10_count = 0
+    feb_11_count = 0
+    feb_12_count = 0
     feb_13_count = 0
     feb_14_count = 0
     feb_15_count = 0
@@ -621,6 +653,68 @@ def check_trigger():
                         feb_14_count += 1
                     elif (timestamp.date() == datetime(2025, 2, 13).date()):
                         feb_13_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 12).date()):
+                        feb_12_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 11).date()):
+                        feb_11_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 10).date()):
+                        feb_10_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 9).date()):
+                        feb_9_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 8).date()):
+                        feb_8_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 7).date()):
+                        feb_7_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 6).date()):
+                        feb_6_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 5).date()):
+                        feb_5_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 4).date()):
+                        feb_4_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 3).date()):
+                        feb_3_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 2).date()):
+                        feb_2_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 1).date()):
+                        feb_1_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 31).date()):
+                        jan_31_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 30).date()):
+                        jan_30_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 29).date()):
+                        jan_29_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 28).date()):
+                        jan_28_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 27).date()):
+                        jan_27_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 26).date()):
+                        jan_26_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 25).date()):
+                        jan_25_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 24).date()):
+                        jan_24_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 23).date()):
+                        jan_23_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 22).date()):
+                        jan_22_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 21).date()):
+                        jan_21_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 20).date()):
+                        jan_20_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 19).date()):
+                        jan_19_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 18).date()):
+                        jan_18_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 17).date()):
+                        jan_17_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 16).date()):
+                        jan_16_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 15).date()):
+                        jan_15_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 14).date()):
+                        jan_14_count += 1
+                    elif (timestamp.date() == datetime(2025, 1, 13).date()):
+                        jan_13_count += 1
 
 
 
@@ -811,6 +905,37 @@ def check_trigger():
         trigger_seven_success_percentage = (trigger_seven_success / trigger_seven_trades) * 100
     print(f"Trigger Seven Success: {trigger_seven_success_percentage}%")
 
+    print(f"jan 13: {jan_13_count} trades")
+    print(f"jan 14: {jan_14_count} trades")
+    print(f"jan 15: {jan_15_count} trades")
+    print(f"jan 16: {jan_16_count} trades")
+    print(f"jan 17: {jan_17_count} trades")
+    print(f"jan 18: {jan_18_count} trades")
+    print(f"jan 19: {jan_19_count} trades")
+    print(f"jan 20: {jan_20_count} trades")
+    print(f"jan 21: {jan_21_count} trades")
+    print(f"jan 22: {jan_22_count} trades")
+    print(f"jan 23: {jan_23_count} trades")
+    print(f"jan 24: {jan_24_count} trades")
+    print(f"jan 25: {jan_25_count} trades")
+    print(f"jan 26: {jan_26_count} trades")
+    print(f"jan 27: {jan_27_count} trades")
+    print(f"jan 28: {jan_28_count} trades")
+    print(f"jan 29: {jan_29_count} trades")
+    print(f"jan 30: {jan_30_count} trades")
+    print(f"jan 31: {jan_31_count} trades")
+    print(f"Feb 1: {feb_1_count} trades")
+    print(f"Feb 2: {feb_2_count} trades")
+    print(f"Feb 3: {feb_3_count} trades")
+    print(f"Feb 4: {feb_4_count} trades")
+    print(f"Feb 5: {feb_5_count} trades")
+    print(f"Feb 6: {feb_6_count} trades")
+    print(f"Feb 7: {feb_7_count} trades")
+    print(f"Feb 8: {feb_8_count} trades")
+    print(f"Feb 9: {feb_9_count} trades")
+    print(f"Feb 10: {feb_10_count} trades")
+    print(f"Feb 11: {feb_11_count} trades")
+    print(f"Feb 12: {feb_12_count} trades")
     print(f"Feb 13: {feb_13_count} trades")
     print(f"Feb 14: {feb_14_count} trades")
     print(f"Feb 15: {feb_15_count} trades")
