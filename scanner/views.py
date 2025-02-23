@@ -294,6 +294,9 @@ def check_trigger():
         if not metrics:
             continue
 
+        if not len(metrics) > 10:
+            continue
+
         trigger_one_hit_counter = 0
         trigger_one_hit = False
         trigger_two_hit_counter = 0
