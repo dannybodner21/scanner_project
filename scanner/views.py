@@ -432,17 +432,6 @@ def check_trigger():
 
                 # TRIGGER 3 ----------------------------------------------------
 
-                # rolling 5 min price change
-                rolling_one = metrics[x].price_change_5min
-                rolling_two = metrics[x-1].price_change_5min
-                rolling_three = metrics[x-2].price_change_5min
-                rolling_price_change_5min = (rolling_one+rolling_two+rolling_three) / 3
-
-                # rate of change 5 min rvol
-                rvol_one = metrics[x].five_min_relative_volume
-                rvol_two = metrics[x-1].five_min_relative_volume
-                rate_of_change_rvol = (rvol_one - rvol_two) / rvol_two * 100
-
                 if (trigger_three_hit == True):
                     trigger_three_hit_counter += 1
 
@@ -565,8 +554,8 @@ def check_trigger():
                 if (
                     trigger_five_hit == False and
                     metrics[x].rolling_relative_volume > 410 and
-                    metrics[x].price_change_5min > 0.2 and
-                    metrics[x-1].price_change_5min > 0.1 and
+                    metrics[x].price_change_5min > 0.1 and
+                    metrics[x-1].price_change_5min > 0 and
                     metrics[x-2].price_change_5min > 0 and
                     metrics[x].price_change_10min > 0.13 and
                     metrics[x].price_change_24hr < -3 and
