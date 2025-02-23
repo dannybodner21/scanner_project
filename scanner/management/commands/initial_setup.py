@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
 
-        logger.info(f"Doing the task...")
+        #logger.info(f"Doing the task...")
         #load_coins()
         #logger.info(f"Coins loaded.")
 
@@ -29,11 +29,11 @@ class Command(BaseCommand):
         logger.info(f"Doing setup final...")
         #initial_setup_final()
 
-        calculate_all_metrics()
+        #calculate_all_metrics()
 
         #fetch_short_interval_data()
-        logger.info(f"Short Interval Data and Metrics completed.")
+        #logger.info(f"Short Interval Data and Metrics completed.")
 
-        #gather_daily_historical_data()
+        gather_daily_historical_data()
         #analyze_historical_metrics()
         logger.info("Task completed.")
