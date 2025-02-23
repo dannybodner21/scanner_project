@@ -287,6 +287,18 @@ def check_trigger():
     trigger_seven_trades = 0
     trigger_seven_success = 0
 
+    feb_13_count = 0
+    feb_14_count = 0
+    feb_15_count = 0
+    feb_16_count = 0
+    feb_17_count = 0
+    feb_18_count = 0
+    feb_19_count = 0
+    feb_20_count = 0
+    feb_21_count = 0
+    feb_22_count = 0
+    feb_23_count = 0
+
     for coin in coins:
 
         metrics = Metrics.objects.filter(coin=coin).order_by('timestamp')
@@ -322,7 +334,13 @@ def check_trigger():
                 metrics[x].price_change_1hr != None and
                 metrics[x].price_change_24hr != None and
                 metrics[x].five_min_relative_volume != None and
-                metrics[x].twenty_min_relative_volume != None):
+                metrics[x].twenty_min_relative_volume != None and
+                metrics[x-1].price_change_5min != None and
+                metrics[x-2].price_change_5min != None and
+                metrics[x-3].price_change_5min != None and
+                metrics[x-1].price_change_10min != None and
+                metrics[x-2].price_change_10min != None and
+                metrics[x-3].price_change_10min != None):
 
 
                 # TRIGGER 1 ----------------------------------------------------
@@ -577,6 +595,36 @@ def check_trigger():
                     stop_loss_timestamp = None
                     success = False
 
+
+
+
+                    timestamp = metrics[x].timestamp
+                    if (timestamp.date() == datetime(2025, 2, 23).date()):
+                        feb_23_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 22).date()):
+                        feb_22_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 21).date()):
+                        feb_21_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 20).date()):
+                        feb_20_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 19).date()):
+                        feb_19_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 18).date()):
+                        feb_18_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 17).date()):
+                        feb_17_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 16).date()):
+                        feb_16_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 15).date()):
+                        feb_15_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 14).date()):
+                        feb_14_count += 1
+                    elif (timestamp.date() == datetime(2025, 2, 13).date()):
+                        feb_13_count += 1
+
+
+
+
                     try:
                         for y in range(x, len(metrics)):
                             if (metrics[y].last_price >= take_profit_price):
@@ -762,6 +810,18 @@ def check_trigger():
     if (trigger_seven_trades != 0):
         trigger_seven_success_percentage = (trigger_seven_success / trigger_seven_trades) * 100
     print(f"Trigger Seven Success: {trigger_seven_success_percentage}%")
+
+    print(f"Feb 13: {feb_13_count} trades")
+    print(f"Feb 14: {feb_14_count} trades")
+    print(f"Feb 15: {feb_15_count} trades")
+    print(f"Feb 16: {feb_16_count} trades")
+    print(f"Feb 17: {feb_17_count} trades")
+    print(f"Feb 18: {feb_18_count} trades")
+    print(f"Feb 19: {feb_19_count} trades")
+    print(f"Feb 20: {feb_20_count} trades")
+    print(f"Feb 21: {feb_21_count} trades")
+    print(f"Feb 22: {feb_22_count} trades")
+    print(f"Feb 23: {feb_23_count} trades")
 
 
 
