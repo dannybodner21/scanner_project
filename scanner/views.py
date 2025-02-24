@@ -3242,36 +3242,11 @@ def calculate_all_metrics():
     #coins = Coin.objects.exclude(id__in=Metrics.objects.values_list('coin_id', flat=True))
 
 
-    coins = []
-
-    ONE = Coin.objects.get(symbol="ONE")
-    coins.append(ONE)
-    XEC = Coin.objects.get(symbol="XEC")
-    coins.append(XEC)
-    MANA = Coin.objects.get(symbol="MANA")
-    coins.append(MANA)
-    DOT = Coin.objects.get(symbol="DOT")
-    coins.append(DOT)
-    TWT = Coin.objects.get(symbol="TWT")
-    coins.append(TWT)
-    GOAT = Coin.objects.get(symbol="GOAT")
-    coins.append(GOAT)
-    WIF = Coin.objects.get(symbol="WIF")
-    coins.append(WIF)
-    DEXE = Coin.objects.get(symbol="DEXE")
-    coins.append(DEXE)
-    PENDLE = Coin.objects.get(symbol="PENDLE")
-    coins.append(PENDLE)
-    FLOW = Coin.objects.get(symbol="FLOW")
-    coins.append(FLOW)
-    APT = Coin.objects.get(symbol="APT")
-    coins.append(APT)
-    NEO = Coin.objects.get(symbol="NEO")
-    coins.append(NEO)
+    coins = Coin.objects.all()
 
     for coin in coins:
 
-        now = datetime(2025, 2, 13, 0, 0, 0)
+        now = datetime(2025, 2, 23, 0, 0, 0)
         # 58 days ago: initial end time
         #end_time = now - timedelta(days=58)
 
@@ -3284,7 +3259,7 @@ def calculate_all_metrics():
         try:
 
             # 87 days ago to start
-            start_time = end_time - timedelta(days=29)
+            start_time = end_time - timedelta(days=10)
 
             params = {
                 "id": coin.cmc_id,

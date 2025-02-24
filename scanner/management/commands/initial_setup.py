@@ -27,9 +27,9 @@ class Command(BaseCommand):
         #initial_setup_six()
 
         logger.info(f"Doing setup final...")
-        initial_setup_final()
+        #initial_setup_final()
 
-        #calculate_all_metrics()
+        calculate_all_metrics()
 
         #fetch_short_interval_data()
         #logger.info(f"Short Interval Data and Metrics completed.")
