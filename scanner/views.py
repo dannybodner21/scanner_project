@@ -385,12 +385,10 @@ def check_trigger():
 
                 if (
                     trigger_one_hit == False and
-                    metrics[x].rolling_relative_volume > 413 and
-                    metrics[x].price_change_5min > 0.25 and
-                    metrics[x-1].price_change_5min > 0 and
-                    metrics[x].price_change_10min > 0 and
-                    metrics[x].price_change_24hr < 0
-                    #metrics[x].price_change_7d < -3
+                    metrics[x].rolling_relative_volume > 350 and
+                    metrics[x].price_change_5min > 0.35 and
+                    metrics[x].price_change_24hr < -7 and
+                    metrics[x].price_change_7d < -5
                 ):
 
                     trigger_one_hit = True
@@ -438,21 +436,19 @@ def check_trigger():
 
                 if (
                     trigger_two_hit == False and
-                    metrics[x].rolling_relative_volume > 400 and
+                    metrics[x].rolling_relative_volume > 330 and
                     metrics[x].price_change_5min > 0.2 and
                     metrics[x-1].price_change_5min > 0 and
-                    metrics[x-2].price_change_5min > 0 and
-                    metrics[x].price_change_10min > 0 and
-                    metrics[x].price_change_24hr < -7 and
-                    metrics[x].price_change_7d < -4
+                    metrics[x].price_change_10min > 0.1 and
+                    metrics[x].price_change_24hr < -4
                 ):
 
                     trigger_two_hit = True
                     amount_of_trades += 1
                     trigger_two_trades += 1
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -494,13 +490,14 @@ def check_trigger():
 
                 if (
                     trigger_three_hit == False and
-                    metrics[x].rolling_relative_volume > 400 and
-                    metrics[x].price_change_5min > 0.2 and
+                    metrics[x].rolling_relative_volume > 300 and
+                    metrics[x].price_change_5min > 0.3 and
                     metrics[x-1].price_change_5min > 0 and
-                    metrics[x-2].price_change_5min > 0 and
-                    metrics[x].price_change_10min > 0 and
+                    #metrics[x-2].price_change_5min > 0 and
+                    metrics[x].price_change_10min > 0.1 and
                     metrics[x].price_change_24hr < -7 and
-                    metrics[x].price_change_7d < -4
+                    metrics[x].price_change_7d < -5 and
+                    metrics[x].volume_24h > 1000000
 
                 ):
 
@@ -551,11 +548,11 @@ def check_trigger():
                 # 0% success rate
                 if (
                     trigger_short_hit == False and
-                    metrics[x].rolling_relative_volume > 400 and
-                    metrics[x].price_change_5min < -0.1 and
-                    metrics[x-1].price_change_5min < 0 and
-                    metrics[x].price_change_10min < -0.2 and
-                    metrics[x].price_change_1hr < 3
+                    metrics[x].rolling_relative_volume > 300 and
+                    metrics[x].price_change_5min < -0.2 and
+                    metrics[x-1].price_change_5min < -0.1 and
+                    metrics[x].price_change_10min < -0.3 and
+                    metrics[x].price_change_1hr > 0
                     #metrics[x].price_change_24hr > 2.1 and
                     #metrics[x].price_change_7d > 0
                 ):
@@ -606,21 +603,18 @@ def check_trigger():
 
                 if (
                     trigger_five_hit == False and
-                    metrics[x].rolling_relative_volume > 400 and
-                    metrics[x].price_change_5min > 0.2 and
-                    metrics[x-1].price_change_5min > 0 and
-                    metrics[x-2].price_change_5min > 0 and
-                    metrics[x].price_change_10min > 0 and
+                    metrics[x].rolling_relative_volume > 350 and
+                    metrics[x].price_change_10min > 0.3 and
                     metrics[x].price_change_24hr < -7 and
-                    metrics[x].price_change_7d < -4
+                    metrics[x].price_change_7d < -5
                 ):
 
                     trigger_five_hit = True
                     amount_of_trades += 1
                     trigger_five_trades += 1
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.04))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -754,21 +748,18 @@ def check_trigger():
 
                 if (
                     trigger_six_hit == False and
-                    metrics[x].rolling_relative_volume > 400 and
-                    metrics[x].price_change_5min > 0.2 and
+                    metrics[x].rolling_relative_volume > 320 and
+                    metrics[x].price_change_5min > 0 and
                     metrics[x-1].price_change_5min > 0 and
-                    metrics[x-2].price_change_5min > 0 and
-                    metrics[x].price_change_10min > 0 and
-                    metrics[x].price_change_24hr < -7 and
-                    metrics[x].price_change_7d < -4
+                    metrics[x].price_change_24hr < -7
                 ):
 
                     trigger_six_hit = True
                     amount_of_trades += 1
                     trigger_six_trades += 1
                     trigger_price = metrics[x].last_price
-                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.04))
+                    stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.03))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
@@ -809,13 +800,12 @@ def check_trigger():
 
                 if (
                     trigger_seven_hit == False and
-                    metrics[x].rolling_relative_volume > 400 and
-                    metrics[x].price_change_5min > 0.2 and
-                    metrics[x-1].price_change_5min > 0 and
-                    metrics[x-2].price_change_5min > 0 and
+                    metrics[x].rolling_relative_volume > 300 and
+                    metrics[x].price_change_5min > 0.1 and
+                    metrics[x-1].price_change_5min > 0.1 and
                     metrics[x].price_change_10min > 0 and
-                    metrics[x].price_change_24hr < -7 and
-                    metrics[x].price_change_7d < -4
+                    metrics[x].price_change_24hr < 0 and
+                    metrics[x].price_change_7d < 0
                 ):
 
                     trigger_seven_hit = True
@@ -823,7 +813,7 @@ def check_trigger():
                     trigger_seven_trades += 1
                     trigger_price = metrics[x].last_price
                     stop_loss_price = trigger_price - (trigger_price * decimal.Decimal(0.02))
-                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.03))
+                    take_profit_price = trigger_price + (trigger_price * decimal.Decimal(0.02))
                     take_profit_hit = False
                     stop_loss_hit = False
                     take_profit_timestamp = None
