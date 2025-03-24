@@ -61,13 +61,15 @@ def post_metrics_to_bot(request):
                             f"💰 MC: ${int(market_cap):,}"
                         )
 
+                        myArray = []
+                        myArray.append(msg)
 
                         #send_telegram_alert(msg)  # replace with your real sender
-
+                        send_text(myArray)
 
                         print(msg)
 
-                        
+
                         signals.append(symbol)
 
                 except Exception as inner_e:
@@ -743,7 +745,7 @@ def send_text(true_triggers_two):
 
         # telegram bot information
         chat_id_danny = '1077594551'
-        chat_id_ricki = '1054741134'
+        #chat_id_ricki = '1054741134'
         #chat_ids = [chat_id_danny, chat_id_ricki]
         chat_ids = [chat_id_danny]
         bot_token = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
