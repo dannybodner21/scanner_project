@@ -35,13 +35,18 @@ from django.views.decorators.csrf import csrf_exempt
 def post_metrics_to_bot(request):
 
     print("in this bot function...........................")
-    
+
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             signals = []
 
+            print(f"✅ Received metrics for {len(data)} coins")
+
             for coin in data:
+
+                print(f"🔍 Checking {symbol} — 5mΔ: {change_5m}, Vol: {vol_spike}, 1hΔ: {change_1h}, MC: {market_cap}")
+
                 try:
                     symbol = coin["symbol"]
                     change_5m = float(coin.get("price_change_5min", 0))
@@ -71,8 +76,10 @@ def post_metrics_to_bot(request):
 
                         print(msg)
 
-
                         signals.append(symbol)
+
+                        print(f"🚨 SIGNAL TRIGGERED for {symbol}")
+
 
                 except Exception as inner_e:
                     print(f"⚠️ Error processing {coin.get('symbol')}: {inner_e}")
