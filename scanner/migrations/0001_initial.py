@@ -119,19 +119,4 @@ class Migration(migrations.Migration):
                 ('coin', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='support_resistance', to='scanner.coin')),
             ],
         ),
-        migrations.CreateModel(
-            name='FiredSignal',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('fired_at', models.DateTimeField()),
-                ('price_at_fired', models.DecimalField(decimal_places=8, max_digits=20)),
-                ('metrics', models.JSONField()),
-                ('take_profit_pct', models.FloatField(default=5.0)),
-                ('stop_loss_pct', models.FloatField(default=2.0)),
-                ('result', models.CharField(choices=[('win', 'Win'), ('loss', 'Loss'), ('unknown', 'Unknown')], default='unknown', max_length=10)),
-                ('checked_at', models.DateTimeField(blank=True, null=True)),
-                ('coin', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='fired_signals', to='scanner.coin')),
-            ],
-        ),
-
     ]
