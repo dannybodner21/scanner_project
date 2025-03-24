@@ -70,9 +70,10 @@ def post_metrics_to_bot(request):
 
                         myArray = []
                         myArray.append(msg)
+                        send_text(myArray)
 
                         #send_telegram_alert(msg)  # replace with your real sender
-                        send_text(myArray)
+
 
                         print(msg)
 
@@ -95,6 +96,66 @@ def post_metrics_to_bot(request):
             return JsonResponse({"error": str(e)}, status=400)
 
     return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+
+
+@csrf_exempt
+def post_metrics_to_bot(request):
+    if request.method == "POST":
+        try:
+            print("in this bot function...........................")
+            data = json.loads(request.body)
+            print(f"✅ Received metrics for {len(data)} coins")
+            signals = []
+
+            for coin in data:
+                try:
+                    symbol = coin.get("symbol")
+                    change_5m = float(coin.get("price_change_5min") or 0)
+                    vol_spike = float(coin.get("five_min_relative_volume") or 0)
+                    change_1h = float(coin.get("price_change_1hr") or 0)
+                    market_cap = float(coin.get("market_cap") or 0)
+
+                    print(f"🔍 {symbol}: Δ5m={change_5m}%, Vol={vol_spike}x, Δ1h={change_1h}%, MC=${market_cap:,}")
+
+                    if (
+                        vol_spike > 2.0 and
+                        change_5m > 2.0 and
+                        change_1h < 10.0 and
+                        market_cap > 10_000_000
+                    ):
+                        msg = (
+                            f"🚨 BUY SIGNAL: {symbol}\n"
+                            f"📈 5m Δ: {change_5m:.2f}%\n"
+                            f"🔥 Vol Spike: {vol_spike:.2f}x\n"
+                            f"🕒 1h Δ: {change_1h:.2f}%\n"
+                            f"💰 MC: ${int(market_cap):,}"
+                        )
+                        #send_telegram_alert(msg)
+                        signals.append(symbol)
+
+                        myArray = []
+                        myArray.append(msg)
+                        send_text(myArray)
+
+                except Exception as coin_error:
+                    print(f"⚠️ Error processing coin: {coin} — {coin_error}")
+                    continue
+
+            return JsonResponse({
+                "status": "success",
+                "signals_fired": signals
+            })
+
+        except Exception as e:
+            print(f"❌ Error in post_metrics_to_bot: {e}")
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+
+
+
 
 
 # Inside run_metrics_and_scan view
