@@ -138,6 +138,21 @@ def post_metrics_to_bot(request):
                         myArray.append(msg)
                         send_text(myArray)
 
+                        # after alert is sent
+                        FiredSignal.objects.create(
+                            coin=Coin.objects.get(symbol=symbol),
+                            fired_at=now(),
+                            price_at_fired=current_data.price,  # assuming current_data is defined and has .price
+                            metrics={
+                                "price_change_5min": change_5m,
+                                "five_min_relative_volume": vol_spike,
+                                "price_change_1hr": change_1h,
+                                "market_cap": market_cap
+                            },
+                            take_profit_pct=5.0,
+                            stop_loss_pct=2.0
+                        )
+
                 except Exception as coin_error:
                     print(f"⚠️ Error processing coin: {coin} — {coin_error}")
                     continue
