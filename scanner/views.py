@@ -37,12 +37,52 @@ def post_metrics_to_bot(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            # Run scanner logic on `data` here or forward it to another function
-            # You can return a signal, store results, send a Telegram alert, etc.
-            print("📥 Received metrics data:", data[:3])  # Just print a few coins for now
-            return JsonResponse({"status": "received", "signals": []})
+            signals = []
+
+            for coin in data:
+                try:
+                    symbol = coin["symbol"]
+                    change_5m = float(coin.get("price_change_5min", 0))
+                    vol_spike = float(coin.get("five_min_relative_volume", 0))
+                    change_1h = float(coin.get("price_change_1hr", 0))
+                    market_cap = float(coin.get("market_cap", 0))
+
+                    if (
+                        vol_spike > 2.0 and
+                        change_5m > 2.0 and
+                        change_1h < 10.0 and
+                        market_cap > 10_000_000
+                    ):
+                        msg = (
+                            f"🚨 BUY SIGNAL: {symbol}\n"
+                            f"📈 5m Δ: {change_5m:.2f}%\n"
+                            f"🔥 Vol Spike: {vol_spike:.2f}x\n"
+                            f"🕒 1h Δ: {change_1h:.2f}%\n"
+                            f"💰 MC: ${int(market_cap):,}"
+                        )
+
+
+                        #send_telegram_alert(msg)  # replace with your real sender
+
+
+                        print(msg)
+
+                        
+                        signals.append(symbol)
+
+                except Exception as inner_e:
+                    print(f"⚠️ Error processing {coin.get('symbol')}: {inner_e}")
+                    continue
+
+            return JsonResponse({
+                "status": "success",
+                "signals_fired": signals
+            })
+
         except Exception as e:
+            print(f"❌ Error in post_metrics_to_bot: {e}")
             return JsonResponse({"error": str(e)}, status=400)
+
     return JsonResponse({"error": "Only POST allowed"}, status=405)
 
 
