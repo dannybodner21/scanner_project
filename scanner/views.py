@@ -106,6 +106,23 @@ def async_post_to_bot(payload):
     except Exception as e:
         print(f"Async scan error: {e}")
 
+
+def async_post():
+    try:
+        res = requests.post(
+            "https://scanner-project-bkdz5.ondigitalocean.app/post-metrics-to-bot/",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=20
+        )
+        print(f"✅ Bot responded: {res.status_code} — {res.text}")
+    except Exception as e:
+        print(f"❌ Async post failed: {e}")
+
+Thread(target=async_post).start()
+
+
+
 @csrf_exempt
 def run_metrics_and_scan(request):
     print(f"🧪 Incoming request method: {request.method}")
@@ -135,13 +152,10 @@ def run_metrics_and_scan(request):
         print(f"📤 Sending {len(payload)} to bot")
 
         try:
-            res = requests.post(
-                "https://scanner-project-bkdz5.ondigitalocean.app/post-metrics-to-bot/",
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=10
-            )
+
+            async_post()
             print(f"✅ Bot responded: {res.status_code} — {res.text}")
+
         except Exception as e:
             print(f"❌ POST to bot failed: {e}")
 
