@@ -12,5 +12,7 @@ urlpatterns = [
     path('check-support-resistance/', views.check_support_resistance, name='check-support-resistance'),
     path('finn/', views.finn, name='finn'),
 
+    path('post-metrics-to-bot/', views.post_metrics_to_bot, name='post-metrics-to-bot'),
+
     path('download/<str:filename>/', views.download_file, name='download_file'),
 ]

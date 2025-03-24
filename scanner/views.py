@@ -29,6 +29,23 @@ import mplfinance as mpf
 
 
 
+# endpoint for ChatGPT
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def post_metrics_to_bot(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            # Run scanner logic on `data` here or forward it to another function
+            # You can return a signal, store results, send a Telegram alert, etc.
+            print("📥 Received metrics data:", data[:3])  # Just print a few coins for now
+            return JsonResponse({"status": "received", "signals": []})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+
 
 
 def five_min_update(request=None):
