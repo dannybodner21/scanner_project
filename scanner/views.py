@@ -87,42 +87,41 @@ def post_metrics_to_bot(request):
     return JsonResponse({"error": "Only POST allowed"}, status=405)
 
 
+# Inside run_metrics_and_scan view
+from threading import Thread
+
+def async_post_to_bot(payload):
+    try:
+        requests.post("https://scanner-project-bkdz5.ondigitalocean.app/run-metrics-and-scan/", json=payload)
+    except Exception as e:
+        print(f"Async scan error: {e}")
+
 @csrf_exempt
 def run_metrics_and_scan(request):
     if request.method == "GET":
         try:
-            # Pull recent metrics from the last 10 minutes
             cutoff = now() - timedelta(minutes=10)
-            metrics = Metrics.objects.filter(timestamp__gte=cutoff)
+            metrics = Metrics.objects.filter(timestamp__gte=cutoff)[:100]  # LIMIT
 
-            payload = []
-            for m in metrics:
-                payload.append({
-                    "symbol": m.coin.symbol,
-                    "price_change_5min": m.price_change_5min,
-                    "five_min_relative_volume": m.five_min_relative_volume,
-                    "price_change_1hr": m.price_change_1hr,
-                    "market_cap": float(m.market_cap) if m.market_cap else 0
-                })
+            payload = [{
+                "symbol": m.coin.symbol,
+                "price_change_5min": m.price_change_5min,
+                "five_min_relative_volume": m.five_min_relative_volume,
+                "price_change_1hr": m.price_change_1hr,
+                "market_cap": float(m.market_cap) if m.market_cap else 0
+            } for m in metrics]
 
-            # Post to your own bot endpoint
-            response = requests.post(
-                "https://scanner-project-bkdz5.ondigitalocean.app/post-metrics-to-bot/",
-                json=payload,
-                headers={"Content-Type": "application/json"}
-            )
+            Thread(target=async_post_to_bot, args=(payload,)).start()
 
             return JsonResponse({
-                "status": "scan triggered",
-                "posted": len(payload),
-                "bot_response": response.json()
+                "status": "scan started",
+                "coins_sent": len(payload)
             })
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Only GET allowed"}, status=405)
-
 
 
 
