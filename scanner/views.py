@@ -98,7 +98,11 @@ def async_post_to_bot(payload):
 
 @csrf_exempt
 def run_metrics_and_scan(request):
-    if request.method == "GET":
+
+    print(f"🧪 Incoming request method: {request.method}")
+
+    if request.method in ["GET", "POST"]:
+
         try:
             cutoff = now() - timedelta(minutes=10)
             metrics = Metrics.objects.filter(timestamp__gte=cutoff)[:100]  # LIMIT
