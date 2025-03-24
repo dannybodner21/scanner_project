@@ -34,6 +34,24 @@ class HistoricalData(models.Model):
         return f"Historical data for {self.coin.name} at {self.date}"
 
 
+class FiredSignal(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="fired_signals")
+    fired_at = models.DateTimeField()
+    price_at_fired = models.DecimalField(max_digits=20, decimal_places=8)
+    metrics = models.JSONField()
+    take_profit_pct = models.FloatField(default=5.0)
+    stop_loss_pct = models.FloatField(default=2.0)
+    result = models.CharField(
+        max_length=10,
+        choices=[("win", "Win"), ("loss", "Loss"), ("unknown", "Unknown")],
+        default="unknown"
+    )
+    checked_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.coin.symbol} at {self.fired_at} — {self.result}"
+
+
 class HighLowData(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="high_low_data")
     daily_high = models.DecimalField(max_digits=20, decimal_places=8)
