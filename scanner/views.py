@@ -107,21 +107,6 @@ def async_post_to_bot(payload):
         print(f"Async scan error: {e}")
 
 
-def async_post():
-    try:
-        res = requests.post(
-            "https://scanner-project-bkdz5.ondigitalocean.app/post-metrics-to-bot/",
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=20
-        )
-        print(f"✅ Bot responded: {res.status_code} — {res.text}")
-    except Exception as e:
-        print(f"❌ Async post failed: {e}")
-
-Thread(target=async_post).start()
-
-
 
 @csrf_exempt
 def run_metrics_and_scan(request):
@@ -132,6 +117,7 @@ def run_metrics_and_scan(request):
         from scanner.models import Metrics
         import requests
         import json
+        from threading import Thread
 
         print("📊 Entered method block")
 
@@ -151,17 +137,28 @@ def run_metrics_and_scan(request):
 
         print(f"📤 Sending {len(payload)} to bot")
 
-        try:
+        def async_post(payload_copy):
+            try:
+                res = requests.post(
+                    "https://scanner-project-bkdz5.ondigitalocean.app/post-metrics-to-bot/",
+                    json=payload_copy,
+                    headers={"Content-Type": "application/json"},
+                    timeout=20
+                )
+                print(f"✅ Bot responded: {res.status_code} — {res.text}")
+            except Exception as e:
+                print(f"❌ Async post failed: {e}")
 
-            async_post()
-            print(f"✅ Bot responded: {res.status_code} — {res.text}")
+        Thread(target=async_post, args=(payload,)).start()
 
-        except Exception as e:
-            print(f"❌ POST to bot failed: {e}")
-
-        return JsonResponse({"status": "scan completed", "sent": len(payload)})
+        return JsonResponse({"status": "scan triggered", "sent": len(payload)})
 
     return JsonResponse({"error": "Invalid method"}, status=405)
+
+
+
+
+
 
 
 
