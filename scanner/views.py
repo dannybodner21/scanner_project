@@ -33,6 +33,9 @@ import mplfinance as mpf
 from django.views.decorators.csrf import csrf_exempt
 @csrf_exempt
 def post_metrics_to_bot(request):
+
+    print("in this bot function...........................")
+    
     if request.method == "POST":
         try:
             data = json.loads(request.body)
