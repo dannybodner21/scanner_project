@@ -13,6 +13,8 @@ urlpatterns = [
     path('finn/', views.finn, name='finn'),
 
     path('post-metrics-to-bot/', views.post_metrics_to_bot, name='post-metrics-to-bot'),
+    path('run-metrics-and-scan/', views.run_metrics_and_scan, name='run-metrics-and-scan'),
+
 
     path('download/<str:filename>/', views.download_file, name='download_file'),
 ]
