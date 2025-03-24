@@ -26,7 +26,7 @@ class ShortIntervalData(models.Model):
 
 class HistoricalData(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="historical_data")
-    date = models.DateField()  # Store daily data
+    date = models.DateField()
     price = models.DecimalField(max_digits=20, decimal_places=8)
     volume_24h = models.DecimalField(max_digits=20, decimal_places=2)
 
