@@ -59,6 +59,9 @@ class SuccessfulMove(models.Model):
     move_type = models.CharField(max_length=10, choices=[("long", "Long"), ("short", "Short")])
     metrics = models.JSONField()
 
+    def __str__(self):
+        return f"{self.move_type.upper()} — {self.coin.symbol} at {self.timestamp}"
+
 
 class HighLowData(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="high_low_data")
