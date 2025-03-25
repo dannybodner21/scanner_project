@@ -14,14 +14,14 @@ class Command(BaseCommand):
             all_metrics = Metrics.objects.filter(coin=coin).order_by("timestamp")
             metric_list = list(all_metrics)
 
-            for i in range(len(metric_list) - 12):  # check next 12 intervals (1 hour)
+            for i in range(len(metric_list) - 60):  # check next 12 intervals (1 hour)
                 entry = metric_list[i]
                 entry_price = entry.last_price
                 if entry_price is None:
                     continue
                 entry_price = Decimal(entry_price)
 
-                tp_price = entry_price * Decimal("1.04")  # +4%
+                tp_price = entry_price * Decimal("1.03")  # +3%
                 sl_price = entry_price * Decimal("0.98")  # -2%
 
                 found = False
@@ -61,7 +61,13 @@ class Command(BaseCommand):
                                 "price_change_5min": entry.price_change_5min,
                                 "five_min_relative_volume": entry.five_min_relative_volume,
                                 "price_change_1hr": entry.price_change_1hr,
-                                "market_cap": float(entry.market_cap or 0)
+                                "market_cap": float(entry.market_cap or 0),
+                                "price_change_10min": entry.price_change_10min or 0,
+                                "price_change_24hr": entry.price_change_24hr or 0,
+                                "price_change_7d": entry.price_change_7d or 0,
+                                "rolling_relative_volume": entry.rolling_relative_volume or 0,
+                                "twenty_min_relative_volume": entry.twenty_min_relative_volume or 0,
+                                "volume_24h": entry.volume_24h or 0,
                             }
                         )
                         print(f"✅ Long success: {coin.symbol} at {entry.timestamp}")
