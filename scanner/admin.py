@@ -1,5 +1,5 @@
 from django.contrib import admin
-from scanner.models import Coin, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 
 admin.site.register(Coin)
 admin.site.register(HistoricalData)
@@ -10,3 +10,4 @@ admin.site.register(HighLowData)
 admin.site.register(Pattern)
 admin.site.register(SupportResistance)
 admin.site.register(FiredSignal)
+admin.site.register(SuccessfulMove)

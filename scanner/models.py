@@ -52,6 +52,14 @@ class FiredSignal(models.Model):
         return f"{self.coin.symbol} at {self.fired_at} — {self.result}"
 
 
+class SuccessfulMove(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField()
+    entry_price = models.DecimalField(max_digits=20, decimal_places=8)
+    move_type = models.CharField(max_length=10, choices=[("long", "Long"), ("short", "Short")])
+    metrics = models.JSONField()
+
+
 class HighLowData(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="high_low_data")
     daily_high = models.DecimalField(max_digits=20, decimal_places=8)

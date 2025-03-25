@@ -13,7 +13,7 @@ import finnhub
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
@@ -52,9 +52,9 @@ def post_metrics_to_bot(request):
                     print(f"🔍 {symbol}: Δ5m={change_5m}%, Vol={vol_spike}x, Δ1h={change_1h}%, MC=${market_cap:,}")
 
                     if (
-                        vol_spike > 1.01 and
+                        vol_spike > 1.5 and
                         change_5m > 0.2 and
-                        #change_1h < 10.0 and
+                        change_1h < 10.0 and
                         market_cap > 1_000_000
                     ):
                         msg = (
