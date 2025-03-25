@@ -39,6 +39,9 @@ class Command(BaseCommand):
 
         # Combine and train
         df = pd.DataFrame(success_rows + fail_rows)
+        print(f"Before drop: {len(df)} rows")
+        df.dropna(inplace=True)
+        print(f"After drop: {len(df)} rows")
         X = df.drop(columns=["label"])
         y = df["label"]
 
