@@ -52,10 +52,10 @@ def post_metrics_to_bot(request):
                     print(f"🔍 {symbol}: Δ5m={change_5m}%, Vol={vol_spike}x, Δ1h={change_1h}%, MC=${market_cap:,}")
 
                     if (
-                        vol_spike > 2.0 and
-                        change_5m > 2.0 and
-                        change_1h < 10.0 and
-                        market_cap > 10_000_000
+                        vol_spike > 1.01 and
+                        change_5m > 0.2 and
+                        #change_1h < 10.0 and
+                        market_cap > 1_000_000
                     ):
                         msg = (
                             f"🚨 BUY SIGNAL: {symbol}\n"
@@ -70,6 +70,8 @@ def post_metrics_to_bot(request):
                         myArray = []
                         myArray.append(msg)
                         send_text(myArray)
+
+                        print(f"📝 Logging signal for {symbol}...")
 
                         # after alert is sent
                         FiredSignal.objects.create(
