@@ -2,8 +2,11 @@ import joblib
 import os
 import numpy as np
 
-# Load model once
-model_path = os.path.join("scanner", "ml_model.pkl")
+from pathlib import Path
+
+# Get absolute path to model file
+BASE_DIR = Path(__file__).resolve().parent
+model_path = BASE_DIR / "ml_model.pkl"
 model = joblib.load(model_path)
 
 def score_metrics(metrics_dict):
