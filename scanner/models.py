@@ -52,17 +52,6 @@ class FiredSignal(models.Model):
         return f"{self.coin.symbol} at {self.fired_at} — {self.result}"
 
 
-class SuccessfulMove(models.Model):
-    coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField()
-    entry_price = models.DecimalField(max_digits=20, decimal_places=8)
-    move_type = models.CharField(max_length=10, choices=[("long", "Long"), ("short", "Short")])
-    metrics = models.JSONField()
-
-    def __str__(self):
-        return f"{self.move_type.upper()} — {self.coin.symbol} at {self.timestamp}"
-
-
 class HighLowData(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="high_low_data")
     daily_high = models.DecimalField(max_digits=20, decimal_places=8)
@@ -106,6 +95,18 @@ class Metrics(models.Model):
 
     def __str__(self):
         return f"Metrics for {self.coin.name} at {self.timestamp}"
+
+
+class SuccessfulMove(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField()
+    entry_price = models.DecimalField(max_digits=20, decimal_places=8)
+    move_type = models.CharField(max_length=10, choices=[("long", "Long"), ("short", "Short")])
+    metrics = models.JSONField()
+    entry_metrics = models.ForeignKey(Metrics, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.move_type.upper()} — {self.coin.symbol} at {self.timestamp}"
 
 
 class Trigger(models.Model):
