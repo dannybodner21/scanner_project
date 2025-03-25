@@ -52,6 +52,5 @@ class Command(BaseCommand):
 
         # Save the model inside the scanner directory
         BASE_DIR = Path(__file__).resolve().parent.parent.parent  # adjust based on your file location
-        #model_path = "tmp/ml_model.pkl"
         joblib.dump(model, "/tmp/ml_model.pkl")
-        print(f"✅ Model trained and saved to {model_path}")
+        print(f"✅ Model trained and saved to /tmp/ml_model.pkl")
