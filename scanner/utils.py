@@ -8,7 +8,7 @@ from pathlib import Path
 #BASE_DIR = Path(__file__).resolve().parent.parent
 #model_path = BASE_DIR / "ml_model.pkl"
 model_path = Path("/workspace/scanner/ml_model.pkl")
-model = joblib.load(model_path)
+model = joblib.load("/tmp/ml_model.pkl")
 
 def score_metrics(metrics_dict):
     """
