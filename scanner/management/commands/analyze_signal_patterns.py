@@ -15,6 +15,12 @@ class Command(BaseCommand):
             m = sig.metrics
             if not m: continue
 
+            required_keys = ["price_change_5min", "five_min_relative_volume", "price_change_1hr", "market_cap"]
+            if not all(k in m and m[k] is not None for k in required_keys):
+                print(f"❌ Skipping {sig.coin.symbol} — missing one or more required metrics: {m}")
+                continue
+
+
             # Round metrics into buckets
             bucket = (
                 f"5mΔ:{math.floor(m['price_change_5min'])}%",
