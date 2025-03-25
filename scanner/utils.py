@@ -5,8 +5,9 @@ import numpy as np
 from pathlib import Path
 
 # Get absolute path to model file
-BASE_DIR = Path(__file__).resolve().parent.parent
-model_path = BASE_DIR / "ml_model.pkl"
+#BASE_DIR = Path(__file__).resolve().parent.parent
+#model_path = BASE_DIR / "ml_model.pkl"
+model_path = Path("/workspace/scanner/ml_model.pkl")
 model = joblib.load(model_path)
 
 def score_metrics(metrics_dict):
