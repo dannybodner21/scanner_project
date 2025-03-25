@@ -12,8 +12,8 @@ class Command(BaseCommand):
     help = "Train improved ML model using RandomForest"
 
     def handle(self, *args, **kwargs):
-        # Join SuccessfulMove with its corresponding Metrics
-        moves = SuccessfulMove.objects.select_related('entry_metrics')
+        # FIXED: removed select_related
+        moves = SuccessfulMove.objects.all()
 
         X = []
         y = []
@@ -23,7 +23,6 @@ class Command(BaseCommand):
             if not m:
                 continue
 
-            # Build feature set from metrics
             features = [
                 m.price_change_5min,
                 m.price_change_10min,
@@ -36,7 +35,6 @@ class Command(BaseCommand):
                 m.volume_24h,
             ]
 
-            # Skip if any are None
             if any(f is None for f in features):
                 continue
 
@@ -47,19 +45,15 @@ class Command(BaseCommand):
             print("❌ No training data found. Check SuccessfulMove and Metrics")
             return
 
-        # Train/test split
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        # Train model
         model = RandomForestClassifier(n_estimators=200, max_depth=10, random_state=42)
         model.fit(X_train, y_train)
 
-        # Evaluate
         y_pred = model.predict(X_test)
         acc = accuracy_score(y_test, y_pred)
         print(f"✅ RandomForest trained. Accuracy: {acc:.2f}")
 
-        # Save model
         model_path = os.path.join("/workspace/tmp", "ml_model.pkl")
         joblib.dump(model, model_path)
         print(f"📦 Model saved to {model_path}")
