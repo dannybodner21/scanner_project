@@ -52,8 +52,8 @@ def post_metrics_to_bot(request):
                     print(f"🔍 {symbol}: Δ5m={change_5m}%, Vol={vol_spike}x, Δ1h={change_1h}%, MC=${market_cap:,}")
 
                     if (
-                        vol_spike > 1.5 and
-                        change_5m > 0.2 and
+                        vol_spike > 2.5 and
+                        change_5m > 1.5 and
                         change_1h < 10.0 and
                         market_cap > 1_000_000
                     ):
