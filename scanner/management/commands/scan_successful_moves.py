@@ -16,7 +16,10 @@ class Command(BaseCommand):
 
             for i in range(len(metric_list) - 12):  # check next 12 intervals (1 hour)
                 entry = metric_list[i]
-                entry_price = Decimal(entry.last_price)
+                entry_price = entry.last_price
+                if entry_price is None:
+                    continue
+                entry_price = Decimal(entry_price)
 
                 tp_price = entry_price * Decimal("1.04")  # +4%
                 sl_price = entry_price * Decimal("0.98")  # -2%
