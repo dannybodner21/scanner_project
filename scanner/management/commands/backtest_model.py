@@ -38,7 +38,8 @@ class Command(BaseCommand):
                 }
 
                 confidence = score_metrics(metrics_dict)
-                if confidence < 0.8:
+                if confidence < 0.7:
+                    print(f"🧠 {entries[i].coin.symbol} at {entries[i].timestamp} → Confidence: {confidence:.4f}")
                     continue  # Skip low-confidence signals
 
                 entry_price = Decimal(current.last_price)

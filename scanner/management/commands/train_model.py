@@ -3,6 +3,7 @@ import joblib
 from sklearn.linear_model import LogisticRegression
 from scanner.models import SuccessfulMove
 from django.core.management.base import BaseCommand
+from pathlib import Path
 
 class Command(BaseCommand):
     help = "Train a model using successful vs non-successful metric patterns"
@@ -48,6 +49,9 @@ class Command(BaseCommand):
         model = LogisticRegression()
         model.fit(X, y)
 
-        # Save model
-        joblib.dump(model, "scanner/ml_model.pkl")
-        print("✅ Model trained and saved.")
+
+        # Save the model inside the scanner directory
+        BASE_DIR = Path(__file__).resolve().parent.parent.parent  # adjust based on your file location
+        model_path = BASE_DIR / "scanner" / "ml_model.pkl"
+        joblib.dump(model, model_path)
+        print(f"✅ Model trained and saved to {model_path}")
