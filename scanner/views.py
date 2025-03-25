@@ -51,45 +51,43 @@ def post_metrics_to_bot(request):
 
                     print(f"🔍 {symbol}: Δ5m={change_5m}%, Vol={vol_spike}x, Δ1h={change_1h}%, MC=${market_cap:,}")
 
-                    if (
-                        vol_spike > 2.5 and
-                        change_5m > 1.5 and
-                        change_1h < 10.0 and
-                        market_cap > 1_000_000
-                    ):
+                    metrics = {
+                        "price_change_5min": change_5m,
+                        "five_min_relative_volume": vol_spike,
+                        "price_change_1hr": change_1h,
+                        "market_cap": market_cap
+                    }
+
+                    confidence = score_metrics(metrics)
+                    print(f"🤖 ML confidence for {symbol}: {confidence:.2f}")
+
+
+                    if confidence >= 0.8:
                         msg = (
-                            f"🚨 BUY SIGNAL: {symbol}\n"
+                            f"🚨 ML BUY SIGNAL: {symbol}\n"
+                            f"🤖 Confidence: {confidence:.2f}\n"
                             f"📈 5m Δ: {change_5m:.2f}%\n"
-                            f"🔥 Vol Spike: {vol_spike:.2f}x\n"
+                            f"🔥 Vol: {vol_spike:.2f}x\n"
                             f"🕒 1h Δ: {change_1h:.2f}%\n"
                             f"💰 MC: ${int(market_cap):,}"
                         )
-                        #send_telegram_alert(msg)
-                        signals.append(symbol)
+                        send_telegram_alert(msg)
 
-                        myArray = []
-                        myArray.append(msg)
-                        send_text(myArray)
+                        # Log it as a fired signal
+                        from scanner.models import Coin, FiredSignal
+                        from django.utils.timezone import now
 
-                        print(f"📝 Logging signal for {symbol}...")
-
-                        # after alert is sent
                         FiredSignal.objects.create(
                             coin=Coin.objects.get(symbol=symbol),
                             fired_at=now(),
-                            price_at_fired=current_data.price,  # assuming current_data is defined and has .price
-                            metrics={
-                                "price_change_5min": change_5m,
-                                "five_min_relative_volume": vol_spike,
-                                "price_change_1hr": change_1h,
-                                "market_cap": market_cap
-                            },
+                            price_at_fired=coin.get("price"),  # or however you store it
+                            metrics=metrics,
                             take_profit_pct=5.0,
                             stop_loss_pct=2.0
                         )
 
-                except Exception as coin_error:
-                    print(f"⚠️ Error processing coin: {coin} — {coin_error}")
+                except Exception as e:
+                    print(f"⚠️ Error processing {symbol}: {e}")
                     continue
 
             return JsonResponse({
