@@ -10,8 +10,10 @@ from pathlib import Path
 from django.conf import settings
 
 
+# 🔐 Set model directory and create it BEFORE anything else
 MODEL_DIR = os.path.join(settings.BASE_DIR, "scanner", "model")
 os.makedirs(MODEL_DIR, exist_ok=True)
+
 MODEL_PATH = os.path.join(MODEL_DIR, "ml_model.pkl")
 
 class Command(BaseCommand):
