@@ -51,7 +51,7 @@ class Command(BaseCommand):
                 prediction = model.predict(X)[0]
                 confidence = model.predict_proba(X)[0][1]  # probability of success
 
-                if prediction == 1 and confidence >= 0.8:
+                if prediction == 1 and confidence >= 0.6:
                     signals.append((metric.coin.symbol, confidence, metric.timestamp))
 
         if signals:
