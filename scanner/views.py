@@ -21,6 +21,8 @@ from django.http import HttpResponse
 from django.http import FileResponse, Http404
 from django.db.models import Prefetch, OuterRef, Subquery
 from django.db.models import Max, Min
+from django.core.management import call_command
+from django.views.decorators.csrf import csrf_exempt
 
 import numpy as np
 import pandas as pd
@@ -29,8 +31,11 @@ import mplfinance as mpf
 
 
 
-# endpoint for ChatGPT
-from django.views.decorators.csrf import csrf_exempt
+
+def run_live_predictions_view(request):
+    call_command("run_live_predictions")
+    return JsonResponse({"status": "success"})
+
 
 @csrf_exempt
 def post_metrics_to_bot(request):
