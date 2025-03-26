@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # Load the trained model
-model_path = os.path.join("/workspace/tmp", "ml_model.pkl")
+model_path = os.path.join("/tmp", "ml_model.pkl")
 model = joblib.load(model_path)
 
 def score_metrics(metrics_dict):
