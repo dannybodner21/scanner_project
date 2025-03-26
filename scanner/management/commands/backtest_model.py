@@ -5,6 +5,8 @@ from scanner.utils import score_metrics
 from decimal import Decimal
 import os
 from pathlib import Path
+from django.conf import settings
+
 
 MODEL_DIR = "/workspace/tmp"
 MODEL_FILENAME = "ml_model.pkl"

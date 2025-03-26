@@ -2,6 +2,8 @@ from django.core.management.base import BaseCommand
 from django.utils.timezone import now, timedelta
 from scanner.models import Metrics, SuccessfulMove, BacktestResult
 from decimal import Decimal
+from django.conf import settings
+
 
 class Command(BaseCommand):
     help = "Generate training data by labeling past Metrics as successes or failures"

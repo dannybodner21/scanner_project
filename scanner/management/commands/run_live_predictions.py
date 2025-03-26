@@ -4,6 +4,8 @@ from django.utils.timezone import now, timedelta
 import joblib
 import os
 import numpy as np
+from django.conf import settings
+
 
 MODEL_PATH = os.path.join("scanner", "model", "ml_model.pkl")
 
