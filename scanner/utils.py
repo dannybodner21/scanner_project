@@ -5,7 +5,7 @@ from pathlib import Path
 from django.conf import settings
 
 
-MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "ml_model.pkl")
+MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
 model = joblib.load(MODEL_PATH)
 
 def score_metrics(metrics_dict):

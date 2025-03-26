@@ -8,9 +8,8 @@ from pathlib import Path
 from django.conf import settings
 
 
-MODEL_DIR = "/workspace/tmp"
-MODEL_FILENAME = "ml_model.pkl"
-model_path = os.path.join(MODEL_DIR, MODEL_FILENAME)
+
+MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
 
 
 class Command(BaseCommand):

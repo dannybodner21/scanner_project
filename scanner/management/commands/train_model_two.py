@@ -10,8 +10,9 @@ from pathlib import Path
 from django.conf import settings
 
 
-MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "ml_model.pkl")
-
+MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
+path = os.path.join(settings.BASE_DIR, "scanner", "model")
+os.makedirs(path, exist_ok=True)
 
 class Command(BaseCommand):
     help = "Train ML model using BacktestResult (includes wins and losses)"

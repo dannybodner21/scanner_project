@@ -7,7 +7,7 @@ import numpy as np
 from django.conf import settings
 
 
-MODEL_PATH = os.path.join("scanner", "model", "ml_model.pkl")
+MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
 
 REQUIRED_FIELDS = [
     "price_change_5min",
