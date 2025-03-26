@@ -66,7 +66,8 @@ class Command(BaseCommand):
                     entry_price=float(entry_price),
                     timestamp=current.timestamp,
                     success=True,
-                    entry_metrics=current
+                    entry_metrics=current,
+                    confidence=0.0,
                 )
                 total += 1
 
