@@ -55,8 +55,10 @@ class Command(BaseCommand):
         print(f"✅ RandomForest trained. Accuracy: {acc:.2f}")
 
 
-        model_dir = "/workspace/tmp"
+        model_dir = "/tmp"
         os.makedirs(model_dir, exist_ok=True)
+        
         model_path = os.path.join(model_dir, "ml_model.pkl")
+
         joblib.dump(model, model_path)
         print(f"📦 Model saved to {model_path}")

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now, timedelta
-from scanner.models import Metrics, Coin
+from scanner.models import Metrics
 from scanner.utils import score_metrics
 from decimal import Decimal
 
@@ -12,7 +12,6 @@ class Command(BaseCommand):
         metrics = Metrics.objects.filter(timestamp__gte=cutoff).order_by("coin", "timestamp")
         metrics_by_coin = {}
 
-        # Organize metrics per coin
         for m in metrics:
             if not m.last_price:
                 continue
@@ -24,29 +23,46 @@ class Command(BaseCommand):
         skipped = 0
 
         for coin_id, entries in metrics_by_coin.items():
-            for i in range(len(entries) - 12):  # leave room for 1hr lookahead
+            for i in range(len(entries) - 48):  # ~4 hour lookahead (5min * 48)
                 current = entries[i]
-                if None in (current.price_change_5min, current.five_min_relative_volume, current.price_change_1hr, current.market_cap):
+
+                # Check all required fields are present
+                if None in (
+                    current.price_change_5min,
+                    current.price_change_10min,
+                    current.price_change_1hr,
+                    current.price_change_24hr,
+                    current.price_change_7d,
+                    current.five_min_relative_volume,
+                    current.rolling_relative_volume,
+                    current.twenty_min_relative_volume,
+                    current.volume_24h,
+                ):
                     skipped += 1
                     continue
 
                 metrics_dict = {
                     "price_change_5min": current.price_change_5min,
-                    "five_min_relative_volume": current.five_min_relative_volume,
+                    "price_change_10min": current.price_change_10min,
                     "price_change_1hr": current.price_change_1hr,
-                    "market_cap": float(current.market_cap)
+                    "price_change_24hr": current.price_change_24hr,
+                    "price_change_7d": current.price_change_7d,
+                    "five_min_relative_volume": current.five_min_relative_volume,
+                    "rolling_relative_volume": current.rolling_relative_volume,
+                    "twenty_min_relative_volume": current.twenty_min_relative_volume,
+                    "volume_24h": current.volume_24h,
                 }
 
                 confidence = score_metrics(metrics_dict)
                 if confidence < 0.7:
-                    print(f"🧠 {entries[i].coin.symbol} at {entries[i].timestamp} → Confidence: {confidence:.4f}")
-                    continue  # Skip low-confidence signals
+                    print(f"🧠 {current.coin.symbol} at {current.timestamp} → Confidence: {confidence:.4f}")
+                    continue
 
                 entry_price = Decimal(current.last_price)
-                tp_price = entry_price * Decimal("1.05")
-                sl_price = entry_price * Decimal("0.98")
+                tp_price = entry_price * Decimal("1.03")  # 3% take profit
+                sl_price = entry_price * Decimal("0.98")  # 2% stop loss
 
-                future_entries = entries[i+1 : i+13]  # 1 hour lookahead
+                future_entries = entries[i+1 : i+49]  # 4 hours of 5min intervals
                 prices = [Decimal(f.last_price) for f in future_entries if f.last_price]
 
                 if not prices:
@@ -62,9 +78,7 @@ class Command(BaseCommand):
                     wins += 1
                 elif hit_sl and not hit_tp:
                     losses += 1
-                else:
-                    # no resolution — ignore
-                    pass
+                # If both hit or neither, don't count it
 
         print("📊 BACKTEST RESULTS")
         print(f"Tested: {total_tested}")
