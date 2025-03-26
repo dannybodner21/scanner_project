@@ -29,6 +29,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 
+from scanner.model_utils import score_metrics
+
 
 
 
@@ -67,7 +69,7 @@ def post_metrics_to_bot(request):
                     print(f"🤖 ML confidence for {symbol}: {confidence:.2f}")
 
 
-                    if confidence >= 0.8:
+                    if confidence >= 0.6:
                         msg = (
                             f"🚨 ML BUY SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence:.2f}\n"
@@ -87,7 +89,7 @@ def post_metrics_to_bot(request):
                             fired_at=now(),
                             price_at_fired=coin.get("price"),  # or however you store it
                             metrics=metrics,
-                            take_profit_pct=5.0,
+                            take_profit_pct=4.0,
                             stop_loss_pct=2.0
                         )
 
