@@ -23,8 +23,12 @@ def score_metrics(metrics_dict):
             metrics_dict["twenty_min_relative_volume"],
             metrics_dict["volume_24h"],
         ]])
-        prob = model.predict_proba(X)[0][1]  # probability of success
-        return prob
+        proba = model.predict_proba(X)[0]
+        if len(proba) < 2:
+            print(f"⚠️ Only one class in prediction: {proba}")
+            return float(proba[0]) if model.classes_[0] == 1 else 0.0
+        return float(proba[1])  # probability of label=1
+
     except Exception as e:
         print(f"❌ Error scoring metrics: {e}")
         return 0.0
