@@ -10,9 +10,9 @@ from pathlib import Path
 from django.conf import settings
 
 
-MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
-path = os.path.join(settings.BASE_DIR, "scanner", "model")
-os.makedirs(path, exist_ok=True)
+MODEL_DIR = os.path.join(settings.BASE_DIR, "scanner", "model")
+os.makedirs(MODEL_DIR, exist_ok=True)
+MODEL_PATH = os.path.join(MODEL_DIR, "ml_model.pkl")
 
 class Command(BaseCommand):
     help = "Train ML model using BacktestResult (includes wins and losses)"
@@ -63,6 +63,5 @@ class Command(BaseCommand):
         acc = accuracy_score(y_test, y_pred)
         print(f"✅ Model trained. Accuracy: {acc:.2f}")
 
-        os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
         joblib.dump(model, MODEL_PATH)
         print(f"📦 Model saved to {MODEL_PATH}")
