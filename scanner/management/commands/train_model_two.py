@@ -54,7 +54,6 @@ class Command(BaseCommand):
         acc = accuracy_score(y_test, y_pred)
         print(f"✅ RandomForest trained. Accuracy: {acc:.2f}")
 
-        os.makedirs(model_dir, exist_ok=True)
         model_path = os.path.join("/workspace/tmp", "ml_model.pkl")
         joblib.dump(model, model_path)
         print(f"📦 Model saved")
