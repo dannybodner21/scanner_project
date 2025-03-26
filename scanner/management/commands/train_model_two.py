@@ -65,5 +65,9 @@ class Command(BaseCommand):
         acc = accuracy_score(y_test, y_pred)
         print(f"✅ Model trained. Accuracy: {acc:.2f}")
 
+        print(f"💾 Saving model to: {MODEL_PATH}")
+        print(f"📁 Directory exists? {os.path.exists(os.path.dirname(MODEL_PATH))}")
+        print(f"📄 Will overwrite file? {os.path.exists(MODEL_PATH)}")
+
         joblib.dump(model, MODEL_PATH)
         print(f"📦 Model saved to {MODEL_PATH}")
