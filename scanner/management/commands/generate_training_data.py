@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now, timedelta
-from scanner.models import Metrics, SuccessfulMove
+from scanner.models import Metrics, SuccessfulMove, BacktestResult
 from decimal import Decimal
 
 class Command(BaseCommand):
@@ -61,12 +61,12 @@ class Command(BaseCommand):
                 else:
                     continue
 
-                SuccessfulMove.objects.create(
-                    coin=current.coin,
-                    entry_price=entry_price,
+                BacktestResult.objects.create(
+                    coin=coin,
+                    entry_price=float(entry_price),
                     entry_time=current.timestamp,
-                    success=success,
-                    entry_metrics=current,
+                    success=True,
+                    entry_metrics=current
                 )
                 total += 1
 
