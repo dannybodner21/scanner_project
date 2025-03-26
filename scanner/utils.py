@@ -3,7 +3,9 @@ import os
 import numpy as np
 from pathlib import Path
 
-MODEL_DIR = "/workspace/tmp"
+from django.conf import settings
+MODEL_DIR = os.path.join(settings.BASE_DIR, "scanner", "models")
+
 MODEL_FILENAME = "ml_model.pkl"
 model_path = os.path.join(MODEL_DIR, MODEL_FILENAME)
 model = joblib.load(model_path)
