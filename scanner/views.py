@@ -29,7 +29,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 
-from scanner.model_utils import score_metrics
+from scanner.utils import score_metrics
 
 
 
