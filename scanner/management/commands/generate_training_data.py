@@ -65,7 +65,7 @@ class Command(BaseCommand):
                     coin=current.coin,
                     entry_price=float(entry_price),
                     timestamp=current.timestamp,
-                    success=True,
+                    success=success,
                     entry_metrics=current,
                     confidence=0.0,
                 )
