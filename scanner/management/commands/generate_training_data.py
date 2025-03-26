@@ -64,7 +64,7 @@ class Command(BaseCommand):
                 BacktestResult.objects.create(
                     coin=current.coin,
                     entry_price=float(entry_price),
-                    entry_time=current.timestamp,
+                    timestamp=current.timestamp,
                     success=True,
                     entry_metrics=current
                 )
