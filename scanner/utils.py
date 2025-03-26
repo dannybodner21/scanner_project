@@ -1,9 +1,11 @@
 import joblib
 import os
 import numpy as np
+from pathlib import Path
 
-# Load the trained model
-model_path = os.path.join("/tmp", "ml_model.pkl")
+MODEL_DIR = "/workspace/tmp"
+MODEL_FILENAME = "ml_model.pkl"
+model_path = os.path.join(MODEL_DIR, MODEL_FILENAME)
 model = joblib.load(model_path)
 
 def score_metrics(metrics_dict):

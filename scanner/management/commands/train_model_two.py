@@ -6,6 +6,11 @@ from scanner.models import BacktestResult, Metrics
 import pandas as pd
 import joblib
 import os
+from pathlib import Path
+
+MODEL_DIR = "/workspace/tmp"
+MODEL_FILENAME = "ml_model.pkl"
+model_path = os.path.join(MODEL_DIR, MODEL_FILENAME)
 
 class Command(BaseCommand):
     help = "Train ML model using BacktestResult (includes wins and losses)"
@@ -56,8 +61,6 @@ class Command(BaseCommand):
         acc = accuracy_score(y_test, y_pred)
         print(f"✅ Model trained. Accuracy: {acc:.2f}")
 
-        model_dir = "/tmp"
-        os.makedirs(model_dir, exist_ok=True)
-        model_path = os.path.join(model_dir, "ml_model.pkl")
+        Path(MODEL_DIR).mkdir(parents=True, exist_ok=True)        
         joblib.dump(model, model_path)
         print(f"📦 Model saved to {model_path}")

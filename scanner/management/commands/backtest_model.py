@@ -3,6 +3,13 @@ from django.utils.timezone import now, timedelta
 from scanner.models import Metrics, BacktestResult
 from scanner.utils import score_metrics
 from decimal import Decimal
+import os
+from pathlib import Path
+
+MODEL_DIR = "/workspace/tmp"
+MODEL_FILENAME = "ml_model.pkl"
+model_path = os.path.join(MODEL_DIR, MODEL_FILENAME)
+
 
 class Command(BaseCommand):
     help = "Backtest ML model on historical Metrics data"
