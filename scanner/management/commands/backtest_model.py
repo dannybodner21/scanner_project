@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now, timedelta
-from scanner.models import Metrics
+from scanner.models import Metrics, BacktestResult
 from scanner.utils import score_metrics
 from decimal import Decimal
 
@@ -79,6 +79,17 @@ class Command(BaseCommand):
                 elif hit_sl and not hit_tp:
                     losses += 1
                 # If both hit or neither, don't count it
+
+                BacktestResult.objects.create(
+                    coin=current.coin,
+                    timestamp=current.timestamp,
+                    entry_price=entry_price,
+                    exit_price=max(prices) if hit_tp else min(prices) if hit_sl else None,
+                    success=bool(hit_tp and not hit_sl),
+                    confidence=confidence,
+                    entry_metrics=current
+                )
+
 
         print("📊 BACKTEST RESULTS")
         print(f"Tested: {total_tested}")

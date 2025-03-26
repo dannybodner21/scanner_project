@@ -13,7 +13,7 @@ import finnhub
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse

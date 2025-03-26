@@ -2,24 +2,22 @@ from django.core.management.base import BaseCommand
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-from scanner.models import SuccessfulMove, Metrics
+from scanner.models import BacktestResult, Metrics
 import pandas as pd
 import joblib
 import os
-from decimal import Decimal
 
 class Command(BaseCommand):
-    help = "Train improved ML model using RandomForest"
+    help = "Train ML model using BacktestResult (includes wins and losses)"
 
     def handle(self, *args, **kwargs):
-        # FIXED: removed select_related
-        moves = SuccessfulMove.objects.all()
+        results = BacktestResult.objects.select_related('entry_metrics').filter(success__isnull=False)
 
         X = []
         y = []
 
-        for move in moves:
-            m = move.entry_metrics
+        for r in results:
+            m = r.entry_metrics
             if not m:
                 continue
 
@@ -39,27 +37,26 @@ class Command(BaseCommand):
                 continue
 
             X.append(features)
-            y.append(1)
+            y.append(1 if r.success else 0)
 
         if not X:
-            print("❌ No training data found. Check SuccessfulMove and Metrics")
+            print("❌ No training data found. Run backtest first.")
+            return
+
+        if len(set(y)) < 2:
+            print(f"❌ Not enough class diversity in training data. Classes: {set(y)}")
             return
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        # Ensure both classes are present in training data
-        unique_classes = set(y_train)
-        if len(unique_classes) < 2:
-            print(f"❌ Not enough class diversity in training data. Classes: {unique_classes}")
-            return
 
         model = RandomForestClassifier(n_estimators=200, max_depth=10, random_state=42)
         model.fit(X_train, y_train)
 
         y_pred = model.predict(X_test)
         acc = accuracy_score(y_test, y_pred)
-        print(f"✅ RandomForest trained. Accuracy: {acc:.2f}")
+        print(f"✅ Model trained. Accuracy: {acc:.2f}")
 
-        model_path = os.path.join("/tmp", "ml_model.pkl")
+        os.makedirs("/workspace/tmp", exist_ok=True)
+        model_path = os.path.join("/workspace/tmp", "ml_model.pkl")
         joblib.dump(model, model_path)
-        print(f"📦 Model saved")
+        print(f"📦 Model saved to {model_path}")

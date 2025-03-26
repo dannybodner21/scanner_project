@@ -1,5 +1,5 @@
 from django.contrib import admin
-from scanner.models import Coin, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from import_export.admin import ExportMixin
 
 admin.site.register(Coin)
@@ -10,6 +10,7 @@ admin.site.register(HighLowData)
 admin.site.register(Pattern)
 admin.site.register(SupportResistance)
 admin.site.register(FiredSignal)
+admin.site.register(BacktestResult)
 
 @admin.register(Metrics)
 class MetricsAdmin(ExportMixin, admin.ModelAdmin):

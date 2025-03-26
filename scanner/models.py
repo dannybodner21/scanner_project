@@ -109,6 +109,16 @@ class SuccessfulMove(models.Model):
         return f"{self.move_type.upper()} — {self.coin.symbol} at {self.timestamp}"
 
 
+class BacktestResult(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField()
+    entry_price = models.DecimalField(max_digits=20, decimal_places=10)
+    exit_price = models.DecimalField(max_digits=20, decimal_places=10, null=True, blank=True)
+    success = models.BooleanField()
+    confidence = models.FloatField()
+    entry_metrics = models.ForeignKey(Metrics, on_delete=models.SET_NULL, null=True, blank=True)
+
+
 class Trigger(models.Model):
     trigger_name = models.CharField(max_length=200)
     timestamp = models.DateTimeField(auto_now=True)
