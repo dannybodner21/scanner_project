@@ -3,10 +3,8 @@ import os
 import numpy as np
 from pathlib import Path
 
-MODEL_DIR = os.path.join(Path(__file__).resolve().parent, "models")
-MODEL_FILENAME = "ml_model.pkl"
-model_path = os.path.join(MODEL_DIR, MODEL_FILENAME)
-model = joblib.load(model_path)
+MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "ml_model.pkl")
+model = joblib.load(MODEL_PATH)
 
 def score_metrics(metrics_dict):
     try:
