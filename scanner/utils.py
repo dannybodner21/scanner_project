@@ -5,10 +5,25 @@ from pathlib import Path
 from django.conf import settings
 
 
-MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
-model = joblib.load(MODEL_PATH)
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        try:
+            from django.conf import settings
+            MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
+            _model = joblib.load(MODEL_PATH)
+        except Exception as e:
+            print(f"❌ Could not load model: {e}")
+            _model = None
+    return _model
 
 def score_metrics(metrics_dict):
+    model = get_model()
+    if model is None:
+        return 0.0
+
     try:
         X = np.array([[
             metrics_dict["price_change_5min"],
