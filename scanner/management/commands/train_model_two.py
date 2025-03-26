@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 continue
 
             X.append(features)
-            y.append(1 if move.success else 0)
+            y.append(1)
 
         if not X:
             print("❌ No training data found. Check SuccessfulMove and Metrics")
