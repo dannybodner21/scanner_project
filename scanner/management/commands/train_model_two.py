@@ -56,7 +56,8 @@ class Command(BaseCommand):
         acc = accuracy_score(y_test, y_pred)
         print(f"✅ Model trained. Accuracy: {acc:.2f}")
 
-        os.makedirs("/workspace/tmp", exist_ok=True)
-        model_path = os.path.join("/workspace/tmp", "ml_model.pkl")
+        model_dir = "/tmp"
+        os.makedirs(model_dir, exist_ok=True)
+        model_path = os.path.join(model_dir, "ml_model.pkl")
         joblib.dump(model, model_path)
         print(f"📦 Model saved to {model_path}")
