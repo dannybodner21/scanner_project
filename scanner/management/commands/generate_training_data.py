@@ -62,7 +62,7 @@ class Command(BaseCommand):
                     continue
 
                 BacktestResult.objects.create(
-                    coin=coin,
+                    coin=current.coin,
                     entry_price=float(entry_price),
                     entry_time=current.timestamp,
                     success=True,
