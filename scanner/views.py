@@ -76,13 +76,19 @@ def post_metrics_to_bot(request):
 
                     if confidence >= 0.6:
                         msg = (
-                            f"🚨 ML BUY SIGNAL: {symbol}\n"
-                            f"🤖 Confidence: {confidence:.2f}\n"
-                            f"📈 5m Δ: {change_5m:.2f}%\n"
-                            f"🔥 Vol: {vol_spike:.2f}x\n"
-                            f"🕒 1h Δ: {change_1h:.2f}%\n"
-                            f"💰 MC: ${int(market_cap):,}"
+                            f"🚨 *ML BUY SIGNAL*: {symbol}\n"
+                            f"🤖 *Confidence*: {confidence:.2f}\n\n"
+                            f"📈 *5m Δ*: {metrics['price_change_5min']:.2f}%\n"
+                            f"⏱️ *10m Δ*: {metrics['price_change_10min']:.2f}%\n"
+                            f"🕒 *1h Δ*: {metrics['price_change_1hr']:.2f}%\n"
+                            f"📆 *24h Δ*: {metrics['price_change_24hr']:.2f}%\n"
+                            f"📅 *7d Δ*: {metrics['price_change_7d']:.2f}%\n\n"
+                            f"🔥 *5m Vol Spike*: {metrics['five_min_relative_volume']:.2f}x\n"
+                            f"🔁 *Rolling Vol*: {metrics['rolling_relative_volume']:.2f}x\n"
+                            f"📊 *20m Vol*: {metrics['twenty_min_relative_volume']:.2f}x\n"
+                            f"💸 *24h Volume*: ${int(metrics['volume_24h']):,}"
                         )
+
                         send_telegram_alert(msg)
 
                         # Log it as a fired signal
