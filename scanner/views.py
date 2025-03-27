@@ -60,17 +60,21 @@ def post_metrics_to_bot(request):
                     print(f"🔍 {symbol}: Δ5m={change_5m}%, Vol={vol_spike}x, Δ1h={change_1h}%, MC=${market_cap:,}")
 
                     metrics = {
-                        "price_change_5min": change_5m,
-                        "five_min_relative_volume": vol_spike,
-                        "price_change_1hr": change_1h,
-                        "market_cap": market_cap
+                        "price_change_5min": float(coin.get("price_change_5min") or 0),
+                        "price_change_10min": float(coin.get("price_change_10min") or 0),
+                        "price_change_1hr": float(coin.get("price_change_1hr") or 0),
+                        "price_change_24hr": float(coin.get("price_change_24hr") or 0),
+                        "price_change_7d": float(coin.get("price_change_7d") or 0),
+                        "five_min_relative_volume": float(coin.get("five_min_relative_volume") or 0),
+                        "rolling_relative_volume": float(coin.get("rolling_relative_volume") or 0),
+                        "twenty_min_relative_volume": float(coin.get("twenty_min_relative_volume") or 0),
+                        "volume_24h": float(coin.get("volume_24h") or 0)
                     }
 
                     confidence = score_metrics(metrics)
                     print(f"🤖 ML confidence for {symbol}: {confidence:.2f}")
 
-
-                    if confidence >= 0.4:
+                    if confidence >= 0.5:
                         msg = (
                             f"🚨 ML BUY SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence:.2f}\n"
@@ -110,10 +114,6 @@ def post_metrics_to_bot(request):
     return JsonResponse({"error": "Only POST allowed"}, status=405)
 
 
-
-
-
-
 # Inside run_metrics_and_scan view
 from threading import Thread
 
@@ -122,7 +122,6 @@ def async_post_to_bot(payload):
         requests.post("https://scanner-project-bkdz5.ondigitalocean.app/run-metrics-and-scan/", json=payload)
     except Exception as e:
         print(f"Async scan error: {e}")
-
 
 
 @csrf_exempt
@@ -147,9 +146,14 @@ def run_metrics_and_scan(request):
             payload.append({
                 "symbol": m.coin.symbol,
                 "price_change_5min": m.price_change_5min,
-                "five_min_relative_volume": m.five_min_relative_volume,
+                "price_change_10min": m.price_change_10min,
                 "price_change_1hr": m.price_change_1hr,
-                "market_cap": float(m.market_cap) if m.market_cap else 0
+                "price_change_24hr": m.price_change_24hr,
+                "price_change_7d": m.price_change_7d,
+                "five_min_relative_volume": m.five_min_relative_volume,
+                "rolling_relative_volume": m.rolling_relative_volume,
+                "twenty_min_relative_volume": m.twenty_min_relative_volume,
+                "volume_24h": float(m.volume_24h) if m.volume_24h else 0
             })
 
         print(f"📤 Sending {len(payload)} to bot")
