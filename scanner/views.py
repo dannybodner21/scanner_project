@@ -31,6 +31,9 @@ import mplfinance as mpf
 
 from scanner.utils import score_metrics
 from scanner.utils import send_telegram_alert
+from scanner.utils import score_metrics, score_metrics_short
+from scanner.models import Coin, FiredSignal
+from django.utils.timezone import now
 
 
 
@@ -71,37 +74,52 @@ def post_metrics_to_bot(request):
                         "volume_24h": float(coin.get("volume_24h") or 0)
                     }
 
-                    confidence = score_metrics(metrics)
-                    print(f"🤖 ML confidence for {symbol}: {confidence:.2f}")
+                    confidence_long = score_metrics(metrics)
+                    confidence_short = score_metrics_short(metrics)
 
-                    if confidence >= 0.75:
+                    print(f"🤖 {symbol} — Long: {confidence_long:.2f} | Short: {confidence_short:.2f}")
+
+                    # You can change these thresholds later
+                    if confidence_long >= 0.7:
                         msg = (
-                            f"🚨 *ML BUY SIGNAL*: {symbol}\n"
-                            f"🤖 *Confidence*: {confidence:.2f}\n\n"
-                            f"📈 *5m Δ*: {metrics['price_change_5min']:.2f}%\n"
-                            f"⏱️ *10m Δ*: {metrics['price_change_10min']:.2f}%\n"
-                            f"🕒 *1h Δ*: {metrics['price_change_1hr']:.2f}%\n"
-                            f"📆 *24h Δ*: {metrics['price_change_24hr']:.2f}%\n"
-                            f"📅 *7d Δ*: {metrics['price_change_7d']:.2f}%\n\n"
-                            f"🔥 *5m Vol Spike*: {metrics['five_min_relative_volume']:.2f}x\n"
-                            f"🔁 *Rolling Vol*: {metrics['rolling_relative_volume']:.2f}x\n"
-                            f"📊 *20m Vol*: {metrics['twenty_min_relative_volume']:.2f}x\n"
-                            f"💸 *24h Volume*: ${int(metrics['volume_24h']):,}"
+                            f"🚨 ML LONG SIGNAL: {symbol}\n"
+                            f"🤖 Confidence: {confidence_long:.2f}\n"
+                            f"📈 5m Δ: {metrics['price_change_5min']:.2f}%\n"
+                            f"🔥 Vol: {metrics['five_min_relative_volume']:.2f}x\n"
+                            f"🕒 1h Δ: {metrics['price_change_1hr']:.2f}%\n"
+                            f"💸 Volume: ${int(metrics['volume_24h']):,}"
                         )
-
                         send_telegram_alert(msg)
-
-                        # Log it as a fired signal
-                        from scanner.models import Coin, FiredSignal
-                        from django.utils.timezone import now
 
                         FiredSignal.objects.create(
                             coin=Coin.objects.get(symbol=symbol),
                             fired_at=now(),
-                            price_at_fired=coin.get("price"),  # or however you store it
+                            price_at_fired=coin.get("price"),
                             metrics=metrics,
                             take_profit_pct=4.0,
-                            stop_loss_pct=2.0
+                            stop_loss_pct=2.0,
+                            result="unknown",
+                        )
+
+                    if confidence_short >= 0.7:
+                        msg = (
+                            f"🚨 ML SHORT SIGNAL: {symbol}\n"
+                            f"🤖 Confidence: {confidence_short:.2f}\n"
+                            f"📉 5m Δ: {metrics['price_change_5min']:.2f}%\n"
+                            f"🔥 Vol: {metrics['five_min_relative_volume']:.2f}x\n"
+                            f"🕒 1h Δ: {metrics['price_change_1hr']:.2f}%\n"
+                            f"💸 Volume: ${int(metrics['volume_24h']):,}"
+                        )
+                        send_telegram_alert(msg)
+
+                        FiredSignal.objects.create(
+                            coin=Coin.objects.get(symbol=symbol),
+                            fired_at=now(),
+                            price_at_fired=coin.get("price"),
+                            metrics=metrics,
+                            take_profit_pct=4.0,
+                            stop_loss_pct=2.0,
+                            result="unknown",
                         )
 
                 except Exception as e:

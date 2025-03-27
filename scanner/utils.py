@@ -64,3 +64,42 @@ def send_telegram_alert(message: str):
             print(f"✅ Telegram alert sent to {chat_id}")
         else:
             print(f"❌ Telegram error: {response.status_code} — {response.content}")
+
+
+_short_model = None
+
+def get_short_model():
+    global _short_model
+    if _short_model is None:
+        try:
+            from django.conf import settings
+            path = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model_short.pkl")
+            _short_model = joblib.load(path)
+        except Exception as e:
+            print(f"❌ Could not load SHORT model: {e}")
+            _short_model = None
+    return _short_model
+
+
+def score_metrics_short(metrics_dict):
+    model = get_short_model()
+    if model is None:
+        return 0.0
+
+    try:
+        X = np.array([[
+            metrics_dict["price_change_5min"],
+            metrics_dict["price_change_10min"],
+            metrics_dict["price_change_1hr"],
+            metrics_dict["price_change_24hr"],
+            metrics_dict["price_change_7d"],
+            metrics_dict["five_min_relative_volume"],
+            metrics_dict["rolling_relative_volume"],
+            metrics_dict["twenty_min_relative_volume"],
+            metrics_dict["volume_24h"],
+        ]])
+        proba = model.predict_proba(X)[0]
+        return float(proba[1])
+    except Exception as e:
+        print(f"❌ Error scoring SHORT metrics: {e}")
+        return 0.0
