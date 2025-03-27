@@ -70,7 +70,7 @@ def post_metrics_to_bot(request):
                     print(f"🤖 ML confidence for {symbol}: {confidence:.2f}")
 
 
-                    if confidence >= 0.6:
+                    if confidence >= 0.4:
                         msg = (
                             f"🚨 ML BUY SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence:.2f}\n"
