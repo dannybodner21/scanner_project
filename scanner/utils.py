@@ -44,3 +44,23 @@ def score_metrics(metrics_dict):
     except Exception as e:
         print(f"❌ Error scoring metrics: {e}")
         return 0.0
+
+import requests
+
+def send_telegram_alert(message: str):
+    chat_ids = ['1077594551']  # Add more if needed
+    bot_token = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+
+    for chat_id in chat_ids:
+        payload = {
+            "chat_id": chat_id,
+            "text": message,
+            "parse_mode": "Markdown",
+        }
+        response = requests.post(url, data=payload)
+
+        if response.status_code == 200:
+            print(f"✅ Telegram alert sent to {chat_id}")
+        else:
+            print(f"❌ Telegram error: {response.status_code} — {response.content}")

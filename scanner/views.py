@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt
 import mplfinance as mpf
 
 from scanner.utils import score_metrics
+from scanner.utils import send_telegram_alert
 
 
 
