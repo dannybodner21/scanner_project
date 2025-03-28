@@ -8,6 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         signals = FiredSignal.objects.all().order_by("-fired_at")
+        print(f"🧠 Total FiredSignals: {signals.count()}")
 
         checked = 0
         wins = 0
@@ -16,6 +17,7 @@ class Command(BaseCommand):
 
         for signal in signals:
             if not signal.price_at_fired:
+                print(f"⚠️ Skipping {signal.coin.symbol} — No entry price")
                 continue
 
             coin = signal.coin
@@ -29,6 +31,7 @@ class Command(BaseCommand):
             ).order_by("timestamp")
 
             if not prices.exists():
+                print(f"⚠️ No price data for {signal.coin.symbol} after {fired_at}")
                 skipped += 1
                 continue
 

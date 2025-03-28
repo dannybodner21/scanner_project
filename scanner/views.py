@@ -80,7 +80,7 @@ def post_metrics_to_bot(request):
                     print(f"🤖 {symbol} — Long: {confidence_long:.2f} | Short: {confidence_short:.2f}")
 
                     # You can change these thresholds later
-                    if confidence_long >= 0.7:
+                    if confidence_long >= 0.65:
                         msg = (
                             f"🚨 ML LONG SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_long:.2f}\n"
@@ -101,7 +101,7 @@ def post_metrics_to_bot(request):
                             result="unknown",
                         )
 
-                    if confidence_short >= 0.7:
+                    if confidence_short >= 0.65:
                         msg = (
                             f"🚨 ML SHORT SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_short:.2f}\n"
