@@ -177,7 +177,8 @@ def run_metrics_and_scan(request):
                 "five_min_relative_volume": m.five_min_relative_volume,
                 "rolling_relative_volume": m.rolling_relative_volume,
                 "twenty_min_relative_volume": m.twenty_min_relative_volume,
-                "volume_24h": float(m.volume_24h) if m.volume_24h else 0
+                "volume_24h": float(m.volume_24h) if m.volume_24h else 0,
+                "price": float(m.last_price) if m.last_price else None
             })
 
         print(f"📤 Sending {len(payload)} to bot")
