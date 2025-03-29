@@ -1766,48 +1766,6 @@ def index(request):
     sorted_coins = sorted(top_cryptos, key=lambda x: x["rolling_relative_volume"] or 0, reverse=True)
     sorted_volumes = sorted(daily_relative_volumes, key=lambda x: x["price_change_24h_percentage"] or 0, reverse=True)
 
-
-
-'''
-    triggers = list(Trigger.objects.values("trigger_name", "timestamp"))
-
-
-
-
-
-    #patterns = pattern_recognition()
-    patterns = []
-    patterns = list(Pattern.objects.values())
-    patterns.reverse()
-
-
-    levels = []
-    support_resistance_levels = SupportResistance.objects.all()
-    for level in support_resistance_levels:
-        coin = level.coin
-        metric = Metrics.objects.filter(coin=coin).order_by('-timestamp').first()
-        last_price = 0
-        if metric:
-            last_price = metric.last_price
-
-        if level.level_one == 0:
-            continue
-
-        data = {
-            "coin": level.coin,
-            "level_one": level.level_one,
-            "level_two": level.level_two,
-            "level_three": level.level_three,
-            "level_four": level.level_four,
-            "level_five": level.level_five,
-            "level_six": level.level_six,
-            "price": last_price,
-        }
-        levels.append(data)
-
-        '''
-
-
     # Handle AJAX request for partial updates
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
 
