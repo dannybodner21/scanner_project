@@ -100,7 +100,9 @@ class Metrics(models.Model):
     market_cap = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
-        return f"Metrics for {self.coin.name} at {self.timestamp}"
+        coin_name = self.coin.name if self.coin else "Unknown"
+        return f"Metrics for {coin_name} at {self.timestamp}"
+
 
 
 class SuccessfulMove(models.Model):

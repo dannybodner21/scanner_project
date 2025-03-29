@@ -102,6 +102,9 @@ def post_metrics_to_bot(request):
                             signal_type="long",
                         )
 
+                        newMessage = "fired signal saved successfully"
+                        send_telegram_alert(newMessage)
+
                     if confidence_short >= 0.65:
                         msg = (
                             f"🚨 ML SHORT SIGNAL: {symbol}\n"
@@ -123,6 +126,8 @@ def post_metrics_to_bot(request):
                             result="unknown",
                             signal_type="short",
                         )
+                        newMessage = "fired signal saved successfully"
+                        send_telegram_alert(newMessage)
 
                 except Exception as e:
                     print(f"⚠️ Error processing {symbol}: {e}")
@@ -288,7 +293,7 @@ def five_min_update(request=None):
                             #daily_relative_volume=calculate_daily_relative_volume(coin),
                             rolling_relative_volume=calculate_relative_volume(coin, timestamp),
                             five_min_relative_volume=calculate_five_min_relative_volume(coin, timestamp),
-                            twenty_min_relative_volume=calculate_twenty_min_relative_volume(coin, timestamp),
+                            #twenty_min_relative_volume=calculate_twenty_min_relative_volume(coin, timestamp),
                             price_change_5min=calculate_price_change_five_min(coin, timestamp),
                             price_change_10min=calculate_price_change_thirty_min(coin, timestamp),
                             price_change_1hr = crypto_data["quote"]["USD"]["percent_change_1h"],
@@ -1761,12 +1766,20 @@ def index(request):
     sorted_coins = sorted(top_cryptos, key=lambda x: x["rolling_relative_volume"] or 0, reverse=True)
     sorted_volumes = sorted(daily_relative_volumes, key=lambda x: x["price_change_24h_percentage"] or 0, reverse=True)
 
+
+
+'''
     triggers = list(Trigger.objects.values("trigger_name", "timestamp"))
+
+
+
+
 
     #patterns = pattern_recognition()
     patterns = []
     patterns = list(Pattern.objects.values())
     patterns.reverse()
+
 
     levels = []
     support_resistance_levels = SupportResistance.objects.all()
@@ -1791,6 +1804,8 @@ def index(request):
             "price": last_price,
         }
         levels.append(data)
+
+        '''
 
 
     # Handle AJAX request for partial updates
