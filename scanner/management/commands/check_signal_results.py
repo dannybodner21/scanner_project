@@ -39,22 +39,25 @@ class Command(BaseCommand):
             low = min([float(p.price) for p in prices])
 
             # 3% thresholds
-            tp_long = entry_price * 1.03
+            tp_long = entry_price * 1.04
             sl_long = entry_price * 0.98
-            tp_short = entry_price * 0.97
+            tp_short = entry_price * 0.96
             sl_short = entry_price * 1.02
 
             result = "unknown"
 
             # Try both logics (since signal_type isn't stored yet)
-            if high >= tp_long and low > sl_long:
-                result = "win"
-            elif low <= sl_long and high < tp_long:
-                result = "loss"
-            elif low <= tp_short and high < sl_short:
-                result = "win"
-            elif high >= sl_short and low > tp_short:
-                result = "loss"
+            if signal.signal_type == "long":
+                if high >= tp_long and low > sl_long:
+                    result = "win"
+                elif low <= sl_long and high < tp_long:
+                    result = "loss"
+            elif signal.signal_type == "short":
+                if low <= tp_short and high < sl_short:
+                    result = "win"
+                elif high >= sl_short and low > tp_short:
+                    result = "loss"
+
 
             if result != "unknown":
                 signal.result = result

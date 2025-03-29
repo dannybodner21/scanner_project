@@ -99,6 +99,7 @@ def post_metrics_to_bot(request):
                             take_profit_pct=4.0,
                             stop_loss_pct=2.0,
                             result="unknown",
+                            signal_type="long",
                         )
 
                     if confidence_short >= 0.65:
@@ -120,6 +121,7 @@ def post_metrics_to_bot(request):
                             take_profit_pct=4.0,
                             stop_loss_pct=2.0,
                             result="unknown",
+                            signal_type="short",
                         )
 
                 except Exception as e:
