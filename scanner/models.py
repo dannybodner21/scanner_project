@@ -47,6 +47,12 @@ class FiredSignal(models.Model):
         default="unknown"
     )
     checked_at = models.DateTimeField(null=True, blank=True)
+    signal_type = models.CharField(
+        max_length=10,
+        choices=[("long", "Long"), ("short", "Short")],
+        default="long"
+    )
+
 
     def __str__(self):
         return f"{self.coin.symbol} at {self.fired_at} — {self.result}"
