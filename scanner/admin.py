@@ -10,30 +10,26 @@ admin.site.register(HighLowData)
 admin.site.register(Pattern)
 admin.site.register(SupportResistance)
 
+@admin.register(BacktestResult)
+class BacktestResultAdmin(admin.ModelAdmin):
+    list_display = ("coin", "timestamp", "entry_price", "success")
+    raw_id_fields = ("coin", "entry_metrics")  # ✅ Critical
+
 @admin.register(Metrics)
-class MetricsAdmin(ExportMixin, admin.ModelAdmin):
+class MetricsAdmin(admin.ModelAdmin):
     list_display = (
         'coin', 'timestamp', 'last_price', 'price_change_5min',
         'price_change_10min', 'price_change_1hr', 'price_change_24hr',
         'price_change_7d', 'five_min_relative_volume',
         'rolling_relative_volume', 'twenty_min_relative_volume', 'volume_24h')
-    list_filter = ('coin',)
-    search_fields = ('coin__symbol',)
-
-@admin.register(SuccessfulMove)
-class SuccessfulMoveAdmin(ExportMixin, admin.ModelAdmin):
-    list_display = ('coin', 'timestamp', 'entry_price', 'move_type','metrics')
-    list_filter = ('coin',)
-    search_fields = ('coin__symbol',)
-
-@admin.register(BacktestResult)
-class BacktestResultAdmin(admin.ModelAdmin):
-    list_display = ("coin", "timestamp", "entry_price", "success")
-    list_filter = ("success", "coin")
-    search_fields = ("coin__symbol",)
-    raw_id_fields = ("coin", "entry_metrics")
+    raw_id_fields = ("coin",)
 
 @admin.register(FiredSignal)
 class FiredSignalAdmin(admin.ModelAdmin):
     list_display = ("coin", "fired_at", "result")
     raw_id_fields = ("coin",)
+
+@admin.register(SuccessfulMove)
+class SuccessfulMoveAdmin(admin.ModelAdmin):
+    list_display = ("coin", "timestamp", "move_type", "entry_price")
+    raw_id_fields = ("coin", "entry_metrics")
