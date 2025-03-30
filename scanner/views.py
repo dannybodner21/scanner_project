@@ -1781,11 +1781,11 @@ def index(request):
 
     # Render data to the HTML template
     return render(request, "index.html", {
-        "top_cryptos": sorted_coins,
-        "sorted_volumes": sorted_volumes,
-        "triggers": triggers,
-        "patterns": patterns,
-        "support_resistance_levels": levels,
+        "top_cryptos": [],
+        "sorted_volumes": "[],
+        "triggers": [],
+        "patterns": [],
+        "support_resistance_levels": [],
     })
 
 
