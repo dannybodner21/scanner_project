@@ -1672,6 +1672,14 @@ def index(request):
     daily_relative_volumes = []
     sorted_volumes = []
 
+    return render(request, "index.html", {
+        "top_cryptos": [],
+        "sorted_volumes": "[],
+        "triggers": [],
+        "patterns": [],
+        "support_resistance_levels": [],
+    })
+
     # snag coins with top 25 rolling rvol
     latest_metrics = Metrics.objects.filter(coin=OuterRef('pk')).order_by('-timestamp')
 
