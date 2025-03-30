@@ -9,8 +9,6 @@ admin.site.register(Trigger)
 admin.site.register(HighLowData)
 admin.site.register(Pattern)
 admin.site.register(SupportResistance)
-admin.site.register(FiredSignal)
-admin.site.register(BacktestResult)
 
 @admin.register(Metrics)
 class MetricsAdmin(ExportMixin, admin.ModelAdmin):
@@ -27,3 +25,15 @@ class SuccessfulMoveAdmin(ExportMixin, admin.ModelAdmin):
     list_display = ('coin', 'timestamp', 'entry_price', 'move_type','metrics')
     list_filter = ('coin',)
     search_fields = ('coin__symbol',)
+
+@admin.register(BacktestResult)
+class BacktestResultAdmin(admin.ModelAdmin):
+    list_display = ("coin", "timestamp", "entry_price", "success")
+    list_filter = ("success", "coin")
+    search_fields = ("coin__symbol",)
+    raw_id_fields = ("coin", "entry_metrics")
+
+@admin.register(FiredSignal)
+class FiredSignalAdmin(admin.ModelAdmin):
+    list_display = ("coin", "fired_at", "result")
+    raw_id_fields = ("coin",)
