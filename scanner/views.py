@@ -1674,7 +1674,7 @@ def index(request):
 
     return render(request, "index.html", {
         "top_cryptos": [],
-        "sorted_volumes": "[],
+        "sorted_volumes": [],
         "triggers": [],
         "patterns": [],
         "support_resistance_levels": [],
