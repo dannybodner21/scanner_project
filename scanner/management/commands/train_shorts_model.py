@@ -15,7 +15,10 @@ class Command(BaseCommand):
     help = "Train ML model to detect short setups"
 
     def handle(self, *args, **kwargs):
-        results = BacktestResult.objects.select_related('entry_metrics').filter(success__isnull=False)[:10000]
+        results = BacktestResult.objects.select_related('entry_metrics') \
+            .filter(success__isnull=False) \
+            .order_by('?')[:10000]
+
 
 
         X = []
