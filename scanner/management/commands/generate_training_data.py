@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         cutoff = now() - timedelta(days=7)
-        metrics = Metrics.objects.filter(timestamp__gte=cutoff).order_by("coin", "timestamp")
+        metrics = Metrics.objects.filter(timestamp__gte=cutoff).order_by("coin", "timestamp")[:50000]
         metrics_by_coin = {}
 
         # Group by coin
