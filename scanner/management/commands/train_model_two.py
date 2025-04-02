@@ -9,18 +9,16 @@ import os
 from pathlib import Path
 from django.conf import settings
 
-
-# 🔐 Set model directory and create it BEFORE anything else
-MODEL_DIR = os.path.join(settings.BASE_DIR, "scanner", "model")
-os.makedirs(MODEL_DIR, exist_ok=True)
-
-MODEL_PATH = os.path.join(MODEL_DIR, "ml_model.pkl")
+MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
 
 class Command(BaseCommand):
-    help = "Train ML model using BacktestResult (includes wins and losses)"
+    help = "Train ML model using BacktestResult (LONG trades only)"
 
     def handle(self, *args, **kwargs):
-        results = BacktestResult.objects.select_related('entry_metrics').filter(success__isnull=False)
+        # Only get results where success is True or False, and limit to ~50k
+        results = BacktestResult.objects.select_related('entry_metrics')\
+            .filter(success__isnull=False, entry_metrics__isnull=False)\
+            .order_by("-timestamp")[:50000]  # limit for performance
 
         X = []
         y = []
@@ -49,11 +47,11 @@ class Command(BaseCommand):
             y.append(1 if r.success else 0)
 
         if not X:
-            print("❌ No training data found. Run backtest first.")
+            print("❌ No training data found.")
             return
 
         if len(set(y)) < 2:
-            print(f"❌ Not enough class diversity in training data. Classes: {set(y)}")
+            print(f"❌ Not enough class diversity. Classes: {set(y)}")
             return
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -63,11 +61,13 @@ class Command(BaseCommand):
 
         y_pred = model.predict(X_test)
         acc = accuracy_score(y_test, y_pred)
-        print(f"✅ Model trained. Accuracy: {acc:.2f}")
 
+        print(f"✅ Model trained. Accuracy: {acc:.2f}")
         print(f"💾 Saving model to: {MODEL_PATH}")
         print(f"📁 Directory exists? {os.path.exists(os.path.dirname(MODEL_PATH))}")
         print(f"📄 Will overwrite file? {os.path.exists(MODEL_PATH)}")
 
+        Path(os.path.dirname(MODEL_PATH)).mkdir(parents=True, exist_ok=True)
         joblib.dump(model, MODEL_PATH)
+
         print(f"📦 Model saved to {MODEL_PATH}")
