@@ -125,6 +125,7 @@ class BacktestResult(models.Model):
     success = models.BooleanField()
     confidence = models.FloatField()
     entry_metrics = models.ForeignKey(Metrics, on_delete=models.SET_NULL, null=True, blank=True)
+    trade_type = models.CharField(max_length=10, choices=[("long", "Long"), ("short", "Short")], default="long")
 
 
 class Trigger(models.Model):

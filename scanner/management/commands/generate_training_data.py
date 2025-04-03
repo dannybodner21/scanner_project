@@ -70,6 +70,7 @@ class Command(BaseCommand):
                     success=success,
                     entry_metrics=current,
                     confidence=0.0,
+                    trade_type="long",
                 )
                 total += 1
 

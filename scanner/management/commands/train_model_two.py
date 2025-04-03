@@ -17,8 +17,9 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         # Only get results where success is True or False, and limit to ~50k
         results = BacktestResult.objects.select_related('entry_metrics')\
-            .filter(success__isnull=False, entry_metrics__isnull=False)\
-            .order_by("-timestamp")[:50000]  # limit for performance
+            .filter(success__isnull=False, trade_type="long", entry_metrics__isnull=False)\
+            .order_by("-timestamp")[:50000]
+
 
         X = []
         y = []
