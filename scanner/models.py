@@ -98,6 +98,11 @@ class Metrics(models.Model):
     volume_24h = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
     last_price = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
     market_cap = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
+    volatility_5min = models.FloatField(null=True, blank=True)
+    volume_marketcap_ratio = models.FloatField(null=True, blank=True)
+    trend_slope_30min = models.FloatField(null=True, blank=True)
+    change_since_low = models.FloatField(null=True, blank=True)
+    change_since_high = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         coin_name = self.coin.name if self.coin else "Unknown"
