@@ -37,6 +37,50 @@ from django.utils.timezone import now
 
 
 
+def calculate_volatility_5min(coin, timestamp):
+    recent = ShortIntervalData.objects.filter(
+        coin=coin, timestamp__lte=timestamp
+    ).order_by("-timestamp")[:6]  # Last 30min of data (6 * 5min)
+
+    prices = [float(d.price) for d in recent if d.price]
+    if len(prices) < 2:
+        return None
+
+    return float(np.std(prices))
+
+
+def calculate_trend_slope_30min(coin, timestamp):
+    recent = ShortIntervalData.objects.filter(
+        coin=coin, timestamp__lte=timestamp
+    ).order_by("-timestamp")[:6]
+
+    prices = [float(d.price) for d in recent if d.price]
+    if len(prices) < 2:
+        return None
+
+    # Reverse to oldest → newest
+    prices.reverse()
+    X = np.arange(len(prices)).reshape(-1, 1)
+    y = np.array(prices)
+    model = LinearRegression().fit(X, y)
+
+    return float(model.coef_[0])  # slope
+
+
+def calculate_change_since_high_low(coin, timestamp, current_price):
+    hl = HighLowData.objects.filter(
+        coin=coin,
+        timestamp__date=timestamp.date()
+    ).order_by("-timestamp").first()
+
+    if not hl or not hl.daily_high or not hl.daily_low:
+        return (None, None)
+
+    change_low = float((current_price - hl.daily_low) / hl.daily_low) if hl.daily_low else None
+    change_high = float((current_price - hl.daily_high) / hl.daily_high) if hl.daily_high else None
+
+    return (change_low, change_high)
+
 
 def run_live_predictions_view(request):
     call_command("run_live_predictions")
@@ -254,8 +298,16 @@ def five_min_update(request=None):
                 if str(cmc_id) in data["data"]:
                     crypto_data = data["data"][str(cmc_id)]
 
+                    timestamp = datetime.strptime(
+                        crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                    )
                     coin = Coin.objects.get(cmc_id=cmc_id)
                     current_price = crypto_data["quote"]["USD"]["price"]
+                    volatility = calculate_volatility_5min(coin, timestamp)
+                    trend_slope = calculate_trend_slope_30min(coin, timestamp)
+                    change_low, change_high = calculate_change_since_high_low(coin, timestamp, current_price)
+                    volume_marketcap_ratio = float(crypto_data["quote"]["USD"]["volume_24h"]) / float(crypto_data["quote"]["USD"]["market_cap"]) if crypto_data["quote"]["USD"]["market_cap"] else None
+
 
                     try:
                         coin.market_cap_rank = crypto_data["cmc_rank"]
@@ -283,10 +335,6 @@ def five_min_update(request=None):
 
                     try:
 
-                        timestamp = datetime.strptime(
-                            crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                        )
-
                         metric = Metrics.objects.create(
                             coin=coin,
                             timestamp=timestamp,
@@ -302,7 +350,12 @@ def five_min_update(request=None):
                             circulating_supply=crypto_data["circulating_supply"],
                             volume_24h = crypto_data["quote"]["USD"]["volume_24h"],
                             last_price = crypto_data["quote"]["USD"]["price"],
-                            market_cap = crypto_data["quote"]["USD"]["market_cap"]
+                            market_cap = crypto_data["quote"]["USD"]["market_cap"],
+                            volatility_5min = volatility,
+                            trend_slope_30min = trend_slope,
+                            change_since_low = change_low,
+                            change_since_high = change_high,
+                            volume_marketcap_ratio = volume_marketcap_ratio,
                         )
 
                     except Exception as e:

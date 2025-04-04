@@ -18,8 +18,7 @@ class Command(BaseCommand):
         # Only get results where success is True or False, and limit to ~50k
         results = BacktestResult.objects.select_related('entry_metrics')\
         .filter(success__isnull=False, trade_type="long", entry_metrics__isnull=False)\
-        .order_by("-timestamp")[:100000]
-
+        .order_by("-timestamp")[:80000]
 
         X = []
         y = []
@@ -38,7 +37,12 @@ class Command(BaseCommand):
                 m.five_min_relative_volume,
                 m.rolling_relative_volume,
                 m.twenty_min_relative_volume,
-                m.volume_24h,
+                float(m.volume_24h) if m.volume_24h else None,
+                m.volatility_5min,
+                m.volume_marketcap_ratio,
+                m.trend_slope_30min,
+                m.change_since_low,
+                m.change_since_high,
             ]
 
             if any(f is None for f in features):
@@ -57,13 +61,7 @@ class Command(BaseCommand):
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        model = RandomForestClassifier(
-            n_estimators=200,
-            max_depth=10,
-            class_weight="balanced",
-            random_state=42
-        )
-
+        model = RandomForestClassifier(n_estimators=200, max_depth=10, random_state=42)
         model.fit(X_train, y_train)
 
         y_pred = model.predict(X_test)
