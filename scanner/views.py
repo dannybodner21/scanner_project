@@ -34,6 +34,7 @@ from scanner.utils import send_telegram_alert
 from scanner.utils import score_metrics, score_metrics_short
 from scanner.models import Coin, FiredSignal
 from django.utils.timezone import now
+from sklearn.linear_model import LinearRegression
 
 
 
@@ -114,7 +115,6 @@ def post_metrics_to_bot(request):
                         "price_change_7d": float(coin.get("price_change_7d") or 0),
                         "five_min_relative_volume": float(coin.get("five_min_relative_volume") or 0),
                         "rolling_relative_volume": float(coin.get("rolling_relative_volume") or 0),
-                        "twenty_min_relative_volume": float(coin.get("twenty_min_relative_volume") or 0),
                         "volume_24h": float(coin.get("volume_24h") or 0)
                     }
 
@@ -124,7 +124,7 @@ def post_metrics_to_bot(request):
                     print(f"🤖 {symbol} — Long: {confidence_long:.2f} | Short: {confidence_short:.2f}")
 
                     # You can change these thresholds later
-                    if confidence_long >= 0.65:
+                    if confidence_long >= 0.60:
                         msg = (
                             f"🚨 ML LONG SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_long:.2f}\n"
@@ -149,7 +149,7 @@ def post_metrics_to_bot(request):
                         newMessage = "fired signal saved successfully"
                         send_telegram_alert(newMessage)
 
-                    if confidence_short >= 0.65:
+                    if confidence_short >= 0.60:
                         msg = (
                             f"🚨 ML SHORT SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_short:.2f}\n"
@@ -227,7 +227,6 @@ def run_metrics_and_scan(request):
                 "price_change_7d": m.price_change_7d,
                 "five_min_relative_volume": m.five_min_relative_volume,
                 "rolling_relative_volume": m.rolling_relative_volume,
-                "twenty_min_relative_volume": m.twenty_min_relative_volume,
                 "volume_24h": float(m.volume_24h) if m.volume_24h else 0,
                 "price": float(m.last_price) if m.last_price else None
             })
@@ -338,10 +337,8 @@ def five_min_update(request=None):
                         metric = Metrics.objects.create(
                             coin=coin,
                             timestamp=timestamp,
-                            #daily_relative_volume=calculate_daily_relative_volume(coin),
                             rolling_relative_volume=calculate_relative_volume(coin, timestamp),
                             five_min_relative_volume=calculate_five_min_relative_volume(coin, timestamp),
-                            #twenty_min_relative_volume=calculate_twenty_min_relative_volume(coin, timestamp),
                             price_change_5min=calculate_price_change_five_min(coin, timestamp),
                             price_change_10min=calculate_price_change_thirty_min(coin, timestamp),
                             price_change_1hr = crypto_data["quote"]["USD"]["percent_change_1h"],
@@ -613,7 +610,7 @@ def calculate_all_metrics():
                             #"daily_relative_volume": calculate_daily_relative_volume(coin),
                             "rolling_relative_volume": calculate_relative_volume(coin, quote["timestamp"]),
                             "five_min_relative_volume": calculate_five_min_relative_volume(coin, quote["timestamp"]),
-                            "twenty_min_relative_volume": calculate_twenty_min_relative_volume(coin, quote["timestamp"]),
+                            #"twenty_min_relative_volume": calculate_twenty_min_relative_volume(coin, quote["timestamp"]),
                             "price_change_5min": calculate_price_change_five_min(coin, quote["timestamp"]),
                             "price_change_10min": calculate_price_change_thirty_min(coin, quote["timestamp"]),
                             "price_change_1hr": quote["quote"]["USD"]["percent_change_1h"],

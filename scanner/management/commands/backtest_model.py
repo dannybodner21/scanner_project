@@ -43,7 +43,6 @@ class Command(BaseCommand):
                     current.price_change_7d,
                     current.five_min_relative_volume,
                     current.rolling_relative_volume,
-                    current.twenty_min_relative_volume,
                     current.volume_24h,
                 ):
                     skipped += 1
@@ -57,7 +56,6 @@ class Command(BaseCommand):
                     "price_change_7d": current.price_change_7d,
                     "five_min_relative_volume": current.five_min_relative_volume,
                     "rolling_relative_volume": current.rolling_relative_volume,
-                    "twenty_min_relative_volume": current.twenty_min_relative_volume,
                     "volume_24h": current.volume_24h,
                 }
 

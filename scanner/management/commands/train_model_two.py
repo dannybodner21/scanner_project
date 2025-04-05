@@ -36,7 +36,6 @@ class Command(BaseCommand):
                 m.price_change_7d,
                 m.five_min_relative_volume,
                 m.rolling_relative_volume,
-                m.twenty_min_relative_volume,
                 float(m.volume_24h) if m.volume_24h else None,
                 m.volatility_5min,
                 m.volume_marketcap_ratio,

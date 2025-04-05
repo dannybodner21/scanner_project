@@ -33,7 +33,6 @@ class Command(BaseCommand):
                     current.price_change_1hr,
                     current.five_min_relative_volume,
                     current.rolling_relative_volume,
-                    current.twenty_min_relative_volume,
                     current.price_change_24hr,
                     current.price_change_7d,
                     current.volume_24h,
