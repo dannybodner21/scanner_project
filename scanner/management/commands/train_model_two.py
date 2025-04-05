@@ -37,11 +37,11 @@ class Command(BaseCommand):
                 m.five_min_relative_volume,
                 m.rolling_relative_volume,
                 float(m.volume_24h) if m.volume_24h else None,
-                m.volatility_5min,
-                m.volume_marketcap_ratio,
-                m.trend_slope_30min,
-                m.change_since_low,
-                m.change_since_high,
+                #m.volatility_5min,
+                #m.volume_marketcap_ratio,
+                #m.trend_slope_30min,
+                #m.change_since_low,
+                #m.change_since_high,
             ]
 
             if any(f is None for f in features):

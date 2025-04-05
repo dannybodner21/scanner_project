@@ -21,7 +21,9 @@ class MetricsAdmin(admin.ModelAdmin):
         'coin', 'timestamp', 'last_price', 'price_change_5min',
         'price_change_10min', 'price_change_1hr', 'price_change_24hr',
         'price_change_7d', 'five_min_relative_volume',
-        'rolling_relative_volume', 'twenty_min_relative_volume', 'volume_24h')
+        'rolling_relative_volume', 'twenty_min_relative_volume', 'volume_24h',
+        'volatility_5min', 'volume_marketcap_ratio', 'trend_slope_30min',
+        'change_since_low', 'change_since_high')
     raw_id_fields = ("coin",)
 
 @admin.register(FiredSignal)
