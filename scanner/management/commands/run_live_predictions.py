@@ -15,7 +15,6 @@ REQUIRED_FIELDS = [
     "price_change_1hr",
     "five_min_relative_volume",
     "rolling_relative_volume",
-    "twenty_min_relative_volume",
     "price_change_24hr",
     "price_change_7d",
     "volume_24h",

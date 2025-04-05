@@ -33,7 +33,6 @@ def score_metrics(metrics_dict):
             metrics_dict["price_change_7d"],
             metrics_dict["five_min_relative_volume"],
             metrics_dict["rolling_relative_volume"],
-            metrics_dict["twenty_min_relative_volume"],
             metrics_dict["volume_24h"],
         ]])
         proba = model.predict_proba(X)[0]
@@ -95,7 +94,6 @@ def score_metrics_short(metrics_dict):
             metrics_dict["price_change_7d"],
             metrics_dict["five_min_relative_volume"],
             metrics_dict["rolling_relative_volume"],
-            metrics_dict["twenty_min_relative_volume"],
             metrics_dict["volume_24h"],
         ]])
         proba = model.predict_proba(X)[0]
