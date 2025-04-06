@@ -32,14 +32,13 @@ class Command(BaseCommand):
                     current.price_change_7d,
                     current.five_min_relative_volume,
                     current.rolling_relative_volume,
-                    current.twenty_min_relative_volume,
                     current.volume_24h,
                 ):
                     skipped += 1
                     continue
 
                 entry_price = Decimal(current.last_price)
-                tp = entry_price * Decimal("0.97")  # take profit: -3%
+                tp = entry_price * Decimal("0.96")  # take profit: -4%
                 sl = entry_price * Decimal("1.02")  # stop loss: +2%
 
                 future_entries = entries[i + 1 : i + 49]
@@ -69,6 +68,7 @@ class Command(BaseCommand):
                     success=success,
                     confidence=0.0,
                     entry_metrics=current,
+                    trade_type="short",
                 )
                 total += 1
 
