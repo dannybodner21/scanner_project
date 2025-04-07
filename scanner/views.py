@@ -448,48 +448,51 @@ def five_min_update(request=None):
 
 
 def index_view(request):
+    # Only count trades fired in the last 3 days for tracking recent bot performance
+    recent_cutoff = now() - timedelta(days=3)
 
-    cutoff = now() - timedelta(days=2)  # Only signals in the last 2 days
-    all_open = FiredSignal.objects.filter(
-        result="unknown",
-        fired_at__gte=cutoff
-    ).select_related("coin").order_by("coin", "fired_at")
+    all_signals = FiredSignal.objects.select_related('coin').order_by("-fired_at")
 
-    # Group by coin, keep only the first open signal per coin
-    seen = set()
     open_signals = []
-    for signal in all_open:
-        if signal.coin_id not in seen:
-            seen.add(signal.coin_id)
+    closed_signals = []
+    seen = set()
 
-            # Calculate PnL %
-            try:
-                last_price = float(signal.coin.last_price or 0)
-                entry_price = float(signal.price_at_fired or 0)
-                if entry_price > 0:
-                    signal.pnl_percent = round((last_price - entry_price) / entry_price * 100, 2)
-                else:
-                    signal.pnl_percent = None
-            except:
-                signal.pnl_percent = None
+    for signal in all_signals:
+        if signal.result == "unknown":
+            if signal.coin.symbol not in seen:
+                # Only keep the first open trade for a coin
+                open_signals.append(signal)
+                seen.add(signal.coin.symbol)
+        else:
+            closed_signals.append(signal)
 
-            open_signals.append(signal)
+    # Limit closed signals to 20 most recent
+    closed_signals = closed_signals[:20]
 
-    # Recent 20 closed trades
-    closed_signals = FiredSignal.objects.filter(
-        result__in=["success", "failure"],
-        closed_at__isnull=False
-    ).select_related("coin").order_by("-closed_at")[:20]
-
-    # Basic stats for current bot session
-    session_cutoff = now() - timedelta(days=10)  # adjust if needed
-    recent_signals = FiredSignal.objects.filter(
-        fired_at__gte=session_cutoff
-    )
+    # Compute stats for signals fired after recent_cutoff
+    recent_signals = FiredSignal.objects.filter(fired_at__gte=recent_cutoff)
     total_trades = recent_signals.count()
-    wins = recent_signals.filter(result="success").count()
-    losses = recent_signals.filter(result="failure").count()
-    win_rate = round((wins / total_trades) * 100, 2) if total_trades else 0
+    wins = recent_signals.filter(result="win").count()
+    losses = recent_signals.filter(result="loss").count()
+    win_rate = round((wins / total_trades) * 100, 2) if total_trades > 0 else 0
+
+    # Precalculate PnL % for open signals
+    for signal in open_signals:
+        if signal.coin and signal.coin.last_price and signal.price_at_fired:
+            entry = float(signal.price_at_fired)
+            current = float(signal.coin.last_price)
+            signal.pnl_percent = round(((current - entry) / entry) * 100, 2)
+        else:
+            signal.pnl_percent = None
+
+    # Precalculate PnL % for closed signals
+    for signal in closed_signals:
+        if signal.price_at_fired and signal.exit_price:
+            entry = float(signal.price_at_fired)
+            exit = float(signal.exit_price)
+            signal.pnl_percent = round(((exit - entry) / entry) * 100, 2)
+        else:
+            signal.pnl_percent = None
 
     return render(request, "indextwo.html", {
         "open_signals": open_signals,
@@ -499,6 +502,7 @@ def index_view(request):
         "losses": losses,
         "win_rate": win_rate,
     })
+
 
 
 

@@ -3,6 +3,7 @@
 <head>
     <title>Trading Bot Dashboard</title>
     <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
         table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
         th { background-color: #f2f2f2; }
@@ -17,7 +18,7 @@
         <tr>
             <th>Coin</th>
             <th>Type</th>
-            <th>Time Open (min)</th>
+            <th>Time Open</th>
             <th>PnL %</th>
         </tr>
         {% for signal in open_signals %}
@@ -26,8 +27,8 @@
                 <td>{{ signal.signal_type }}</td>
                 <td>{{ signal.fired_at|timesince }} ago</td>
                 <td>
-                    {% if signal.pnl_percent is not None %}
-                        {{ signal.pnl_percent }}%
+                    {% if signal.pnl is not None %}
+                        {{ signal.pnl|floatformat:2 }}%
                     {% else %}
                         N/A
                     {% endif %}
@@ -64,10 +65,8 @@
                 <td>{{ signal.price_at_fired|floatformat:4 }}</td>
                 <td>{{ signal.exit_price|floatformat:4 }}</td>
                 <td>
-                    {% if signal.exit_price %}
-                        {% with change=((signal.exit_price - signal.price_at_fired) / signal.price_at_fired) * 100 %}
-                            {{ change|floatformat:2 }}%
-                        {% endwith %}
+                    {% if signal.pnl is not None %}
+                        {{ signal.pnl|floatformat:2 }}%
                     {% else %}
                         N/A
                     {% endif %}
@@ -83,7 +82,7 @@
         <li>Total Trades: {{ total_trades }}</li>
         <li>Wins: {{ wins }}</li>
         <li>Losses: {{ losses }}</li>
-        <li>Success Rate: {{ win_rate }}%</li>
+        <li>Success Rate: {{ win_rate|floatformat:2 }}%</li>
     </ul>
 </body>
 </html>
