@@ -12,7 +12,12 @@ def get_model():
     if _model is None:
         try:
             from django.conf import settings
-            MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
+
+            #MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model.pkl")
+
+            MODEL_DIR = os.environ.get("MODEL_DIR", "/workspace/scanner/model")  # Default fallback
+            MODEL_PATH = os.path.join(MODEL_DIR, "ml_model.pkl")
+
             _model = joblib.load(MODEL_PATH)
         except Exception as e:
             print(f"❌ Could not load model: {e}")
@@ -67,13 +72,15 @@ def send_telegram_alert(message: str):
 
 _short_model = None
 
+MODEL_DIR = os.environ.get("MODEL_DIR", os.path.join(settings.BASE_DIR, "scanner", "model"))
+SHORT_MODEL_PATH = os.path.join(MODEL_DIR, "ml_model_short.pkl")
+
+
 def get_short_model():
     global _short_model
     if _short_model is None:
         try:
-            from django.conf import settings
-            path = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model_short.pkl")
-            _short_model = joblib.load(path)
+            _short_model = joblib.load(SHORT_MODEL_PATH)
         except Exception as e:
             print(f"❌ Could not load SHORT model: {e}")
             _short_model = None

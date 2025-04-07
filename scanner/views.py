@@ -447,59 +447,35 @@ def five_min_update(request=None):
 
 
 def index_view(request):
-    all_signals = FiredSignal.objects.order_by("-fired_at")
+    
+    # Only keep the first active signal per coin
+    open_signals = {}
+    for signal in FiredSignal.objects.filter(result="unknown").order_by("fired_at"):
+        if signal.coin.symbol not in open_signals:
+            open_signals[signal.coin.symbol] = signal
+    open_signals = list(open_signals.values())
 
-    open_trades = []
-    closed_trades = []
+    # Show 20 most recent closed signals
+    closed_signals = FiredSignal.objects.filter(result__in=["success", "failure"]).order_by("-closed_at")[:20]
 
-    for signal in all_signals:
-        if signal.result == "unknown":
-            minutes_open = int((now() - signal.fired_at).total_seconds() // 60)
-            try:
-                entry_price = float(signal.price_at_fired)
-                current_price = float(signal.coin.last_price)
-                pct_change = round(((current_price - entry_price) / entry_price) * 100, 2)
-                if signal.signal_type == "short":
-                    pct_change = round(((entry_price - current_price) / entry_price) * 100, 2)
-            except:
-                pct_change = "?"
-            open_trades.append({
-                "coin": signal.coin.symbol,
-                "type": signal.signal_type,
-                "minutes_open": minutes_open,
-                "pct_change": pct_change
-            })
-        else:
-            closed_trades.append({
-                "coin": signal.coin.symbol,
-                "type": signal.signal_type,
-                "duration": int((signal.closed_at - signal.fired_at).total_seconds() // 60) if signal.closed_at else "?",
-                "result": signal.result
-            })
+    # Count new trades since "bot update"
+    # Optional: You can set a start time for this new bot launch
+    start_time = now() - timedelta(days=3)  # Change to your launch time
 
-    recent_closed = closed_trades[:20]
+    recent_trades = FiredSignal.objects.filter(result__in=["success", "failure"], fired_at__gte=start_time)
+    total = recent_trades.count()
+    wins = recent_trades.filter(result="success").count()
+    losses = recent_trades.filter(result="failure").count()
+    win_rate = round((wins / total) * 100, 2) if total else 0
 
-    # Start of new bot = last model push? Let's use a cutoff timestamp if needed
-    # Or: just base this off the signals that had a known result
-    current_signals = FiredSignal.objects.exclude(result="unknown")
-    wins = current_signals.filter(result="win").count()
-    losses = current_signals.filter(result="loss").count()
-    total = wins + losses
-    win_rate = round((wins / total) * 100, 2) if total > 0 else 0
-
-    return render(request, "indextwo.html", {
-        "open_trades": open_trades,
-        "recent_closed": recent_closed,
-        "stats": {
-            "total": total,
-            "wins": wins,
-            "losses": losses,
-            "win_rate": win_rate
-        }
+    return render(request, "index.html", {
+        "open_signals": open_signals,
+        "closed_signals": closed_signals,
+        "total_trades": total,
+        "wins": wins,
+        "losses": losses,
+        "win_rate": win_rate,
     })
-
-
-
 
 
 

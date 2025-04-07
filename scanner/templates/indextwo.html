@@ -1,72 +1,91 @@
-{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Trade Dashboard</title>
-    <meta http-equiv="refresh" content="300"> <!-- Refresh every 5 min -->
+    <title>Trading Bot Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
         th { background-color: #f2f2f2; }
-        .green { color: green; }
-        .red { color: red; }
+        h2 { margin-top: 2rem; }
     </style>
 </head>
 <body>
-    <h1>📈 Open Trades</h1>
+    <h1>🚀 Trading Bot Dashboard</h1>
+
+    <h2>📈 Open Trades</h2>
     <table>
-        <thead>
+        <tr>
+            <th>Coin</th>
+            <th>Type</th>
+            <th>Time Open (min)</th>
+            <th>PnL %</th>
+        </tr>
+        {% for signal in open_signals %}
             <tr>
-                <th>Coin</th>
-                <th>Type</th>
-                <th>Minutes Open</th>
-                <th>Current %</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for trade in open_trades %}
-            <tr>
-                <td>{{ trade.coin }}</td>
-                <td>{{ trade.type|title }}</td>
-                <td>{{ trade.minutes_open }}</td>
-                <td class="{% if trade.pct_change >= 0 %}green{% else %}red{% endif %}">{{ trade.pct_change }}%</td>
+                <td>{{ signal.coin.symbol }}</td>
+                <td>{{ signal.signal_type }}</td>
+                <td>
+                    {{ signal.fired_at|timesince }} ago
+                </td>
+                <td>
+                    {% with pct=(signal.coin.last_price|floatformat:6|default:0) %}
+                        {% with entry=signal.price_at_fired %}
+                            {% if entry and pct %}
+                                {% with change=(((pct|float - entry|float) / entry|float) * 100) %}
+                                    {{ change|floatformat:2 }}%
+                                {% endwith %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        {% endwith %}
+                    {% endwith %}
+                </td>
             </tr>
         {% empty %}
             <tr><td colspan="4">No open trades</td></tr>
         {% endfor %}
-        </tbody>
     </table>
 
-    <h2>✅ Recently Closed Trades</h2>
+    <h2>✅ Recent Closed Trades</h2>
     <table>
-        <thead>
+        <tr>
+            <th>Coin</th>
+            <th>Type</th>
+            <th>Result</th>
+            <th>Duration</th>
+            <th>Entry</th>
+            <th>Exit</th>
+            <th>PnL %</th>
+        </tr>
+        {% for signal in closed_signals %}
             <tr>
-                <th>Coin</th>
-                <th>Type</th>
-                <th>Minutes Open</th>
-                <th>Result</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for trade in recent_closed %}
-            <tr>
-                <td>{{ trade.coin }}</td>
-                <td>{{ trade.type|title }}</td>
-                <td>{{ trade.duration }}</td>
-                <td class="{% if trade.result == 'win' %}green{% else %}red{% endif %}">{{ trade.result|title }}</td>
+                <td>{{ signal.coin.symbol }}</td>
+                <td>{{ signal.signal_type }}</td>
+                <td>{{ signal.result }}</td>
+                <td>{{ signal.fired_at|timesince:signal.closed_at }} </td>
+                <td>{{ signal.price_at_fired|floatformat:4 }}</td>
+                <td>{{ signal.exit_price|floatformat:4 }}</td>
+                <td>
+                    {% if signal.exit_price %}
+                        {% with change=((signal.exit_price - signal.price_at_fired) / signal.price_at_fired) * 100 %}
+                            {{ change|floatformat:2 }}%
+                        {% endwith %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
             </tr>
         {% empty %}
-            <tr><td colspan="4">No closed trades yet</td></tr>
+            <tr><td colspan="7">No closed trades</td></tr>
         {% endfor %}
-        </tbody>
     </table>
 
-    <h2>📊 Bot Performance (Since New Model)</h2>
-    <p><strong>Total Trades:</strong> {{ stats.total }}</p>
-    <p><strong>Wins:</strong> <span class="green">{{ stats.wins }}</span></p>
-    <p><strong>Losses:</strong> <span class="red">{{ stats.losses }}</span></p>
-    <p><strong>Success Rate:</strong> {{ stats.win_rate }}%</p>
+    <h2>📊 Stats Since Launch</h2>
+    <ul>
+        <li>Total Trades: {{ total_trades }}</li>
+        <li>Wins: {{ wins }}</li>
+        <li>Losses: {{ losses }}</li>
+        <li>Success Rate: {{ win_rate }}%</li>
+    </ul>
 </body>
 </html>

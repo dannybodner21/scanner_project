@@ -83,5 +83,6 @@ class Command(BaseCommand):
         acc = accuracy_score(y_test, y_pred)
 
         print(f"✅ SHORT model trained. Accuracy: {acc:.2f}")
+        #MODEL_PATH = os.path.join(settings.BASE_DIR, "scanner", "model", "ml_model_short.pkl")
         joblib.dump(model, MODEL_PATH)
         print(f"📦 SHORT model saved to {MODEL_PATH}")
