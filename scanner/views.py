@@ -468,7 +468,7 @@ def index_view(request):
     losses = recent_trades.filter(result="failure").count()
     win_rate = round((wins / total) * 100, 2) if total else 0
 
-    return render(request, "index.html", {
+    return render(request, "indextwo.html", {
         "open_signals": open_signals,
         "closed_signals": closed_signals,
         "total_trades": total,
