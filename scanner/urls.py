@@ -3,8 +3,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("index/", views.index, name="index"),
-    path("", index_view, name="index"),
+    path("index/", views.index, name="indexold"),
+    path("", views.index_view, name="index"),
     path('five-min-update/', views.five_min_update, name='five-min-update'),
     path('daily-update/', views.daily_update, name='daily-update'),
     path('thirty-min-pattern-check/', views.thirty_min_pattern_check, name='thirty-min-pattern-check'),
