@@ -16,7 +16,7 @@ urlpatterns = [
     path('post-metrics-to-bot/', views.post_metrics_to_bot, name='post-metrics-to-bot'),
     path('run-metrics-and-scan/', views.run_metrics_and_scan, name='run-metrics-and-scan'),
     path('run-predictions/', views.run_live_predictions_view, name='run-predictions'),
-    path('update-open-trades/', views.update_open_trades, name='update-open-trades'),
+    path('update-open-trades/', views.update_open_trades_view, name='update-open-trades'),
 
     path('download/<str:filename>/', views.download_file, name='download_file'),
 ]

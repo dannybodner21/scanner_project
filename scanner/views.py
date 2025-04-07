@@ -447,7 +447,7 @@ def five_min_update(request=None):
 
 
 def index_view(request):
-    
+
     # Only keep the first active signal per coin
     open_signals = {}
     for signal in FiredSignal.objects.filter(result="unknown").order_by("fired_at"):
@@ -476,6 +476,67 @@ def index_view(request):
         "losses": losses,
         "win_rate": win_rate,
     })
+
+
+
+
+
+def update_open_trades_view(request):
+    open_signals = FiredSignal.objects.filter(result="unknown")
+    closed = 0
+    skipped = 0
+
+    for signal in open_signals:
+        recent_metric = Metrics.objects.filter(
+            coin=signal.coin,
+            timestamp__gte=signal.fired_at
+        ).order_by("-timestamp").first()
+
+        if not recent_metric or not recent_metric.last_price:
+            skipped += 1
+            continue
+
+        current_price = Decimal(recent_metric.last_price)
+        entry = Decimal(signal.price_at_fired)
+
+        tp_price = entry * Decimal("1.03")  # +3%
+        sl_price = entry * Decimal("0.98")  # -2%
+
+        if signal.signal_type == "long":
+            if current_price >= tp_price:
+                signal.result = "success"
+                signal.exit_price = current_price
+                signal.closed_at = now()
+                signal.save()
+                closed += 1
+            elif current_price <= sl_price:
+                signal.result = "failure"
+                signal.exit_price = current_price
+                signal.closed_at = now()
+                signal.save()
+                closed += 1
+
+        elif signal.signal_type == "short":
+            if current_price <= entry * Decimal("0.97"):  # -3%
+                signal.result = "success"
+                signal.exit_price = current_price
+                signal.closed_at = now()
+                signal.save()
+                closed += 1
+            elif current_price >= entry * Decimal("1.02"):  # +2%
+                signal.result = "failure"
+                signal.exit_price = current_price
+                signal.closed_at = now()
+                signal.save()
+                closed += 1
+
+    return JsonResponse({
+        "status": "ok",
+        "closed_trades": closed,
+        "skipped_trades": skipped,
+        "remaining_open": open_signals.count() - closed,
+    })
+
 
 
 
