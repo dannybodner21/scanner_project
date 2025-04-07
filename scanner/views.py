@@ -448,54 +448,44 @@ def five_min_update(request=None):
 
 
 def index_view(request):
-    # Only count trades fired in the last 3 days for tracking recent bot performance
-    recent_cutoff = now() - timedelta(days=3)
 
-    all_signals = FiredSignal.objects.select_related('coin').order_by("-fired_at")
+    # Filter open trades (result still unknown)
+    open_signals = (
+        FiredSignal.objects.filter(result="unknown")
+        .order_by("coin", "fired_at")
+    )
 
-    open_signals = []
-    closed_signals = []
-    seen = set()
+    # Deduplicate so we only get one open trade per coin
+    seen_coins = set()
+    unique_open_signals = []
+    for signal in open_signals:
+        if signal.coin_id not in seen_coins:
+            seen_coins.add(signal.coin_id)
 
-    for signal in all_signals:
-        if signal.result == "unknown":
-            if signal.coin.symbol not in seen:
-                # Only keep the first open trade for a coin
-                open_signals.append(signal)
-                seen.add(signal.coin.symbol)
-        else:
-            closed_signals.append(signal)
+            # Attach recent price for display
+            latest_metrics = signal.coin.metrics.order_by("-timestamp").first()
+            if latest_metrics and latest_metrics.last_price:
+                signal.current_price = Decimal(latest_metrics.last_price)
+            else:
+                signal.current_price = None
 
-    # Limit closed signals to 20 most recent
-    closed_signals = closed_signals[:20]
+            unique_open_signals.append(signal)
 
-    # Compute stats for signals fired after recent_cutoff
-    recent_signals = FiredSignal.objects.filter(fired_at__gte=recent_cutoff)
+    # Recent closed trades
+    closed_signals = (
+        FiredSignal.objects.exclude(result="unknown")
+        .order_by("-closed_at")[:20]
+    )
+
+    # Stats since relaunch (we can filter by recent start time if needed)
+    recent_signals = FiredSignal.objects.exclude(result="unknown")
     total_trades = recent_signals.count()
     wins = recent_signals.filter(result="win").count()
     losses = recent_signals.filter(result="loss").count()
-    win_rate = round((wins / total_trades) * 100, 2) if total_trades > 0 else 0
-
-    # Precalculate PnL % for open signals
-    for signal in open_signals:
-        if signal.coin and signal.coin.last_price and signal.price_at_fired:
-            entry = float(signal.price_at_fired)
-            current = float(signal.coin.last_price)
-            signal.pnl_percent = round(((current - entry) / entry) * 100, 2)
-        else:
-            signal.pnl_percent = None
-
-    # Precalculate PnL % for closed signals
-    for signal in closed_signals:
-        if signal.price_at_fired and signal.exit_price:
-            entry = float(signal.price_at_fired)
-            exit = float(signal.exit_price)
-            signal.pnl_percent = round(((exit - entry) / entry) * 100, 2)
-        else:
-            signal.pnl_percent = None
+    win_rate = round((wins / total_trades) * 100, 2) if total_trades else 0.0
 
     return render(request, "indextwo.html", {
-        "open_signals": open_signals,
+        "open_signals": unique_open_signals,
         "closed_signals": closed_signals,
         "total_trades": total_trades,
         "wins": wins,
