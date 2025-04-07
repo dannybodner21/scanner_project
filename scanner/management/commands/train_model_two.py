@@ -64,6 +64,19 @@ class Command(BaseCommand):
         model.fit(X_train, y_train)
 
         y_pred = model.predict(X_test)
+        
+        from sklearn.metrics import classification_report, roc_auc_score
+
+        print("\n🔬 Model Evaluation Metrics:")
+        print(classification_report(y_test, y_pred))
+
+        try:
+            proba = model.predict_proba(X_test)
+            roc_auc = roc_auc_score(y_test, proba[:,1])
+            print(f"🎯 ROC AUC Score: {roc_auc:.2f}")
+        except Exception as e:
+            print(f"⚠️ Could not compute ROC AUC: {e}")
+
         acc = accuracy_score(y_test, y_pred)
 
         print(f"✅ Model trained. Accuracy: {acc:.2f}")

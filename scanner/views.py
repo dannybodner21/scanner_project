@@ -343,7 +343,7 @@ def five_min_update(request=None):
                     current_price = crypto_data["quote"]["USD"]["price"]
                     volatility = calculate_volatility_5min(coin, timestamp)
                     trend_slope = calculate_trend_slope_30min(coin, timestamp)
-                    change_low, change_high = calculate_change_since_high_low(coin, timestamp, current_price)
+                    change_low, change_high = calculate_change_since_high_low(coin, timestamp)
                     volume_marketcap_ratio = float(crypto_data["quote"]["USD"]["volume_24h"]) / float(crypto_data["quote"]["USD"]["market_cap"]) if crypto_data["quote"]["USD"]["market_cap"] else None
 
 

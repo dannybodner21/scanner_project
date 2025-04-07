@@ -39,9 +39,9 @@ class Command(BaseCommand):
             low = min([float(p.price) for p in prices])
 
             # 3% thresholds
-            tp_long = entry_price * 1.04
+            tp_long = entry_price * 1.03
             sl_long = entry_price * 0.98
-            tp_short = entry_price * 0.96
+            tp_short = entry_price * 0.97
             sl_short = entry_price * 1.02
 
             result = "unknown"
