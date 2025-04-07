@@ -38,7 +38,7 @@ class Command(BaseCommand):
                     continue
 
                 entry_price = Decimal(current.last_price)
-                tp = entry_price * Decimal("0.96")  # take profit: -4%
+                tp = entry_price * Decimal("0.97")  # take profit: -3%
                 sl = entry_price * Decimal("1.02")  # stop loss: +2%
 
                 future_entries = entries[i + 1 : i + 49]
