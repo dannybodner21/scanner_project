@@ -24,20 +24,16 @@
             <tr>
                 <td>{{ signal.coin.symbol }}</td>
                 <td>{{ signal.signal_type }}</td>
+                <td>{{ signal.fired_at|timesince }} ago</td>
                 <td>
-                    {{ signal.fired_at|timesince }} ago
-                </td>
-                <td>
-                    {% with pct=(signal.coin.last_price|floatformat:6|default:0) %}
-                        {% with entry=signal.price_at_fired %}
-                            {% if entry and pct %}
-                                {% with change=(((pct|float - entry|float) / entry|float) * 100) %}
-                                    {{ change|floatformat:2 }}%
-                                {% endwith %}
-                            {% else %}
-                                N/A
-                            {% endif %}
-                        {% endwith %}
+                    {% with pct=signal.coin.last_price entry=signal.price_at_fired %}
+                        {% if pct and entry %}
+                            {% with change=((pct|float - entry|float) / entry|float) * 100 %}
+                                {{ change|floatformat:2 }}%
+                            {% endwith %}
+                        {% else %}
+                            N/A
+                        {% endif %}
                     {% endwith %}
                 </td>
             </tr>
@@ -62,7 +58,13 @@
                 <td>{{ signal.coin.symbol }}</td>
                 <td>{{ signal.signal_type }}</td>
                 <td>{{ signal.result }}</td>
-                <td>{{ signal.fired_at|timesince:signal.closed_at }} </td>
+                <td>
+                    {% if signal.closed_at %}
+                        {{ signal.fired_at|timesince:signal.closed_at }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
                 <td>{{ signal.price_at_fired|floatformat:4 }}</td>
                 <td>{{ signal.exit_price|floatformat:4 }}</td>
                 <td>

@@ -163,7 +163,7 @@ def post_metrics_to_bot(request):
                     print(f"🤖 {symbol} — Long: {confidence_long:.2f} | Short: {confidence_short:.2f}")
 
                     # You can change these thresholds later
-                    if confidence_long >= 0.70:
+                    if confidence_long >= 0.75:
                         msg = (
                             f"🚨 ML LONG SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_long:.2f}\n"
@@ -172,6 +172,9 @@ def post_metrics_to_bot(request):
                             f"🕒 1h Δ: {metrics['price_change_1hr']:.2f}%\n"
                             f"💸 Volume: ${int(metrics['volume_24h']):,}"
                         )
+                        if FiredSignal.objects.filter(coin=coin_obj, result="unknown").exists():
+                            continue
+
                         send_telegram_alert(msg)
 
                         FiredSignal.objects.create(
@@ -185,10 +188,7 @@ def post_metrics_to_bot(request):
                             signal_type="long",
                         )
 
-                        newMessage = "fired signal saved successfully"
-                        send_telegram_alert(newMessage)
-
-                    if confidence_short >= 0.70:
+                    if confidence_short >= 0.75:
                         msg = (
                             f"🚨 ML SHORT SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_short:.2f}\n"
@@ -197,6 +197,9 @@ def post_metrics_to_bot(request):
                             f"🕒 1h Δ: {metrics['price_change_1hr']:.2f}%\n"
                             f"💸 Volume: ${int(metrics['volume_24h']):,}"
                         )
+                        if FiredSignal.objects.filter(coin=coin_obj, result="unknown").exists():
+                            continue
+
                         send_telegram_alert(msg)
 
                         FiredSignal.objects.create(
@@ -209,8 +212,6 @@ def post_metrics_to_bot(request):
                             result="unknown",
                             signal_type="short",
                         )
-                        newMessage = "fired signal saved successfully"
-                        send_telegram_alert(newMessage)
 
                 except Exception as e:
                     print(f"⚠️ Error processing {symbol}: {e}")
