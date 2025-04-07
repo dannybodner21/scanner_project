@@ -445,55 +445,55 @@ def five_min_update(request=None):
 from decimal import Decimal
 from django.db.models import Q
 
+
 def index_view(request):
-    # Only show one open trade per coin
-    open_signals = {}
-    for signal in FiredSignal.objects.filter(closed_at__isnull=True).order_by("coin_id", "fired_at"):
-        if signal.coin_id not in open_signals:
-            open_signals[signal.coin_id] = signal
+    # Only one open trade per coin — use a dict keyed by coin
+    open_signals_dict = {}
+    open_signals = FiredSignal.objects.filter(result="unknown")
+    for signal in open_signals:
+        if signal.coin_id not in open_signals_dict:
+            open_signals_dict[signal.coin_id] = signal
+    open_signals = list(open_signals_dict.values())
 
-    open_signals = list(open_signals.values())
+    # Most recent 10 closed trades, sorted by closed_at DESC
+    closed_signals = FiredSignal.objects.filter(result__in=["win", "loss"], closed_at__isnull=False).order_by("-closed_at")[:10]
 
-    # Closed signals: show 10 most recently closed
-    closed_signals = FiredSignal.objects.filter(closed_at__isnull=False).order_by("-closed_at")[:10]
+    # Reset counters starting April 7, 2025 @ 00:01 UTC
+    reset_cutoff = datetime(2025, 4, 7, 0, 1)
 
-    # 📊 STATS reset from April 7, 2025 at 00:01
-    RESET_START_TIME = datetime(2025, 4, 7, 0, 1)
-
-    tracked_signals = FiredSignal.objects.filter(
-        closed_at__gte=RESET_START_TIME,
+    long_signals = FiredSignal.objects.filter(
+        fired_at__gte=reset_cutoff,
+        signal_type="long",
+        result__in=["win", "loss"]
+    )
+    short_signals = FiredSignal.objects.filter(
+        fired_at__gte=reset_cutoff,
+        signal_type="short",
         result__in=["win", "loss"]
     )
 
-    counts = defaultdict(lambda: {"wins": 0, "losses": 0})
+    def count_results(qs):
+        total = qs.count()
+        wins = qs.filter(result="win").count()
+        losses = qs.filter(result="loss").count()
+        win_rate = round((wins / total) * 100, 2) if total > 0 else 0.0
+        return total, wins, losses, win_rate
 
-    for signal in tracked_signals:
-        if signal.result == "win":
-            counts[signal.signal_type]["wins"] += 1
-        elif signal.result == "loss":
-            counts[signal.signal_type]["losses"] += 1
+    long_total, long_wins, long_losses, long_win_rate = count_results(long_signals)
+    short_total, short_wins, short_losses, short_win_rate = count_results(short_signals)
 
-    stats = {}
-    for trade_type, data in counts.items():
-        total = data["wins"] + data["losses"]
-        win_rate = round((data["wins"] / total) * 100, 2) if total > 0 else 0
-        stats[trade_type] = {
-            "total": total,
-            "wins": data["wins"],
-            "losses": data["losses"],
-            "win_rate": win_rate,
-        }
-
-    context = {
+    return render(request, "indextwo.html", {
         "open_signals": open_signals,
         "closed_signals": closed_signals,
-        "long_stats": stats.get("long", {"total": 0, "wins": 0, "losses": 0, "win_rate": 0}),
-        "short_stats": stats.get("short", {"total": 0, "wins": 0, "losses": 0, "win_rate": 0}),
-    }
-
-    return render(request, "indextwo.html", context)
-
-
+        "long_total": long_total,
+        "long_wins": long_wins,
+        "long_losses": long_losses,
+        "long_win_rate": long_win_rate,
+        "short_total": short_total,
+        "short_wins": short_wins,
+        "short_losses": short_losses,
+        "short_win_rate": short_win_rate,
+    })
 
 
 def update_open_trades_view(request):
