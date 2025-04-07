@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trade Dashboard</title>
+    <meta http-equiv="refresh" content="300"> <!-- Refresh every 5 min -->
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        .green { color: green; }
+        .red { color: red; }
+    </style>
+</head>
+<body>
+    <h1>📈 Open Trades</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Coin</th>
+                <th>Type</th>
+                <th>Minutes Open</th>
+                <th>Current %</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for trade in open_trades %}
+            <tr>
+                <td>{{ trade.coin }}</td>
+                <td>{{ trade.type|title }}</td>
+                <td>{{ trade.minutes_open }}</td>
+                <td class="{% if trade.pct_change >= 0 %}green{% else %}red{% endif %}">{{ trade.pct_change }}%</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="4">No open trades</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>✅ Recently Closed Trades</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Coin</th>
+                <th>Type</th>
+                <th>Minutes Open</th>
+                <th>Result</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for trade in recent_closed %}
+            <tr>
+                <td>{{ trade.coin }}</td>
+                <td>{{ trade.type|title }}</td>
+                <td>{{ trade.duration }}</td>
+                <td class="{% if trade.result == 'win' %}green{% else %}red{% endif %}">{{ trade.result|title }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="4">No closed trades yet</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>📊 Bot Performance (Since New Model)</h2>
+    <p><strong>Total Trades:</strong> {{ stats.total }}</p>
+    <p><strong>Wins:</strong> <span class="green">{{ stats.wins }}</span></p>
+    <p><strong>Losses:</strong> <span class="red">{{ stats.losses }}</span></p>
+    <p><strong>Success Rate:</strong> {{ stats.win_rate }}%</p>
+</body>
+</html>
