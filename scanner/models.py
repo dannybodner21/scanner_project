@@ -52,6 +52,7 @@ class FiredSignal(models.Model):
         choices=[("long", "Long"), ("short", "Short")],
         default="long"
     )
+    closed_at = models.DateTimeField(null=True, blank=True)
 
 
     def __str__(self):
