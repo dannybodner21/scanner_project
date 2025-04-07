@@ -449,35 +449,32 @@ def five_min_update(request=None):
 from decimal import Decimal
 def index_view(request):
 
-    # Filter open trades (result still unknown)
-    open_signals = (
-        FiredSignal.objects.filter(result="unknown")
-        .order_by("coin", "fired_at")
-    )
+    # Load open trades (result is still unknown), sorted newest first
+    open_signals_raw = FiredSignal.objects.filter(result="unknown").order_by("-fired_at")
 
-    # Deduplicate so we only get one open trade per coin
-    seen_coins = set()
-    unique_open_signals = []
-    for signal in open_signals:
-        if signal.coin_id not in seen_coins:
-            seen_coins.add(signal.coin_id)
+    # Deduplicate: only one open trade per coin
+    seen = set()
+    open_signals = []
+    for signal in open_signals_raw:
+        if signal.coin_id not in seen:
+            seen.add(signal.coin_id)
 
-            # Attach recent price for display
-            latest_metrics = signal.coin.metrics.order_by("-timestamp").first()
-            if latest_metrics and latest_metrics.last_price:
-                signal.current_price = Decimal(latest_metrics.last_price)
-            else:
-                signal.current_price = None
+            # Try to attach most recent price for comparison
+            recent_price = (
+                signal.coin.metrics.order_by("-timestamp")
+                .values_list("last_price", flat=True)
+                .first()
+            )
+            signal.current_price = Decimal(recent_price) if recent_price else None
+            open_signals.append(signal)
 
-            unique_open_signals.append(signal)
+        if len(open_signals) >= 50:
+            break
 
-    # Recent closed trades
-    closed_signals = (
-        FiredSignal.objects.exclude(result="unknown")
-        .order_by("-closed_at")[:20]
-    )
+    # Get the 20 most recent closed trades
+    closed_signals = FiredSignal.objects.exclude(result="unknown").order_by("-closed_at")[:20]
 
-    # Stats since relaunch (we can filter by recent start time if needed)
+    # Stats since relaunch
     recent_signals = FiredSignal.objects.exclude(result="unknown")
     total_trades = recent_signals.count()
     wins = recent_signals.filter(result="win").count()
@@ -485,14 +482,13 @@ def index_view(request):
     win_rate = round((wins / total_trades) * 100, 2) if total_trades else 0.0
 
     return render(request, "indextwo.html", {
-        "open_signals": unique_open_signals,
+        "open_signals": open_signals,
         "closed_signals": closed_signals,
         "total_trades": total_trades,
         "wins": wins,
         "losses": losses,
         "win_rate": win_rate,
     })
-
 
 
 
