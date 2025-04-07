@@ -26,15 +26,11 @@
                 <td>{{ signal.signal_type }}</td>
                 <td>{{ signal.fired_at|timesince }} ago</td>
                 <td>
-                    {% with pct=signal.coin.last_price entry=signal.price_at_fired %}
-                        {% if pct and entry %}
-                            {% with change=((pct|float - entry|float) / entry|float) * 100 %}
-                                {{ change|floatformat:2 }}%
-                            {% endwith %}
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    {% endwith %}
+                    {% if signal.pnl_percent is not None %}
+                        {{ signal.pnl_percent }}%
+                    {% else %}
+                        N/A
+                    {% endif %}
                 </td>
             </tr>
         {% empty %}

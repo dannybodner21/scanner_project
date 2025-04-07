@@ -449,30 +449,52 @@ def five_min_update(request=None):
 
 def index_view(request):
 
-    # Only keep the first active signal per coin
-    open_signals = {}
-    for signal in FiredSignal.objects.filter(result="unknown").order_by("fired_at"):
-        if signal.coin.symbol not in open_signals:
-            open_signals[signal.coin.symbol] = signal
-    open_signals = list(open_signals.values())
+    cutoff = now() - timedelta(days=2)  # Only signals in the last 2 days
+    all_open = FiredSignal.objects.filter(
+        result="unknown",
+        fired_at__gte=cutoff
+    ).select_related("coin").order_by("coin", "fired_at")
 
-    # Show 20 most recent closed signals
-    closed_signals = FiredSignal.objects.filter(result__in=["success", "failure"]).order_by("-closed_at")[:20]
+    # Group by coin, keep only the first open signal per coin
+    seen = set()
+    open_signals = []
+    for signal in all_open:
+        if signal.coin_id not in seen:
+            seen.add(signal.coin_id)
 
-    # Count new trades since "bot update"
-    # Optional: You can set a start time for this new bot launch
-    start_time = now() - timedelta(days=3)  # Change to your launch time
+            # Calculate PnL %
+            try:
+                last_price = float(signal.coin.last_price or 0)
+                entry_price = float(signal.price_at_fired or 0)
+                if entry_price > 0:
+                    signal.pnl_percent = round((last_price - entry_price) / entry_price * 100, 2)
+                else:
+                    signal.pnl_percent = None
+            except:
+                signal.pnl_percent = None
 
-    recent_trades = FiredSignal.objects.filter(result__in=["success", "failure"], fired_at__gte=start_time)
-    total = recent_trades.count()
-    wins = recent_trades.filter(result="success").count()
-    losses = recent_trades.filter(result="failure").count()
-    win_rate = round((wins / total) * 100, 2) if total else 0
+            open_signals.append(signal)
+
+    # Recent 20 closed trades
+    closed_signals = FiredSignal.objects.filter(
+        result__in=["success", "failure"],
+        closed_at__isnull=False
+    ).select_related("coin").order_by("-closed_at")[:20]
+
+    # Basic stats for current bot session
+    session_cutoff = now() - timedelta(days=10)  # adjust if needed
+    recent_signals = FiredSignal.objects.filter(
+        fired_at__gte=session_cutoff
+    )
+    total_trades = recent_signals.count()
+    wins = recent_signals.filter(result="success").count()
+    losses = recent_signals.filter(result="failure").count()
+    win_rate = round((wins / total_trades) * 100, 2) if total_trades else 0
 
     return render(request, "indextwo.html", {
         "open_signals": open_signals,
         "closed_signals": closed_signals,
-        "total_trades": total,
+        "total_trades": total_trades,
         "wins": wins,
         "losses": losses,
         "win_rate": win_rate,
