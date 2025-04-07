@@ -446,50 +446,52 @@ from decimal import Decimal
 from django.db.models import Q
 
 def index_view(request):
-    # Get open signals (one per coin)
-    open_signals = []
-    seen_coins = set()
-    for signal in FiredSignal.objects.filter(result="unknown").order_by("-fired_at"):
-        if signal.coin_id not in seen_coins:
-            seen_coins.add(signal.coin_id)
-            open_signals.append(signal)
+    # Only show one open trade per coin
+    open_signals = {}
+    for signal in FiredSignal.objects.filter(closed_at__isnull=True).order_by("coin_id", "fired_at"):
+        if signal.coin_id not in open_signals:
+            open_signals[signal.coin_id] = signal
 
-    # Get 10 most recent closed signals
-    closed_signals = FiredSignal.objects.filter(
-        closed_at__isnull=False,
+    open_signals = list(open_signals.values())
+
+    # Closed signals: show 10 most recently closed
+    closed_signals = FiredSignal.objects.filter(closed_at__isnull=False).order_by("-closed_at")[:10]
+
+    # 📊 STATS reset from April 7, 2025 at 00:01
+    RESET_START_TIME = datetime(2025, 4, 7, 0, 1)
+
+    tracked_signals = FiredSignal.objects.filter(
+        closed_at__gte=RESET_START_TIME,
         result__in=["win", "loss"]
-    ).order_by("-closed_at")[:10]
+    )
 
-    # Filter tracked signals (adjust logic if you want to start from a new baseline)
-    tracked_signals = FiredSignal.objects.filter(closed_at__isnull=False, result__in=["win", "loss"])
+    counts = defaultdict(lambda: {"wins": 0, "losses": 0})
 
-    # LONG stats
-    long_signals = tracked_signals.filter(signal_type="long")
-    total_longs = long_signals.count()
-    wins_long = long_signals.filter(result="win").count()
-    losses_long = long_signals.filter(result="loss").count()
-    win_rate_long = round((wins_long / total_longs) * 100, 2) if total_longs else 0
+    for signal in tracked_signals:
+        if signal.result == "win":
+            counts[signal.signal_type]["wins"] += 1
+        elif signal.result == "loss":
+            counts[signal.signal_type]["losses"] += 1
 
-    # SHORT stats
-    short_signals = tracked_signals.filter(signal_type="short")
-    total_shorts = short_signals.count()
-    wins_short = short_signals.filter(result="win").count()
-    losses_short = short_signals.filter(result="loss").count()
-    win_rate_short = round((wins_short / total_shorts) * 100, 2) if total_shorts else 0
+    stats = {}
+    for trade_type, data in counts.items():
+        total = data["wins"] + data["losses"]
+        win_rate = round((data["wins"] / total) * 100, 2) if total > 0 else 0
+        stats[trade_type] = {
+            "total": total,
+            "wins": data["wins"],
+            "losses": data["losses"],
+            "win_rate": win_rate,
+        }
 
-    return render(request, "index.html", {
+    context = {
         "open_signals": open_signals,
         "closed_signals": closed_signals,
-        "total_longs": total_longs,
-        "wins_long": wins_long,
-        "losses_long": losses_long,
-        "win_rate_long": win_rate_long,
-        "total_shorts": total_shorts,
-        "wins_short": wins_short,
-        "losses_short": losses_short,
-        "win_rate_short": win_rate_short,
-    })
+        "long_stats": stats.get("long", {"total": 0, "wins": 0, "losses": 0, "win_rate": 0}),
+        "short_stats": stats.get("short", {"total": 0, "wins": 0, "losses": 0, "win_rate": 0}),
+    }
 
+    return render(request, "indextwo.html", context)
 
 
 
