@@ -3,15 +3,15 @@
 <head>
     <title>Trading Bot Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 2rem; }
+        body { font-family: Arial, sans-serif; margin: 2rem; }
         table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
         th { background-color: #f2f2f2; }
-        h2 { margin-top: 2rem; }
+        h1, h2 { margin-top: 2rem; }
     </style>
 </head>
 <body>
-    <h1>🚀 Trading Bot Dashboard</h1>
+    <h1>📊 Trading Bot Dashboard</h1>
 
     <h2>📈 Open Trades</h2>
     <table>
@@ -19,8 +19,6 @@
             <th>Coin</th>
             <th>Type</th>
             <th>Time Open</th>
-            <th>Entry</th>
-            <th>Current</th>
             <th>PnL %</th>
         </tr>
         {% for signal in open_signals %}
@@ -28,12 +26,12 @@
                 <td>{{ signal.coin.symbol }}</td>
                 <td>{{ signal.signal_type }}</td>
                 <td>{{ signal.fired_at|timesince }} ago</td>
-                <td>{{ signal.price_at_fired|floatformat:6 }}</td>
-                <td>{{ signal.metrics.last_price|default_if_none:"N/A"|floatformat:6 }}</td>
                 <td>
                     {% if signal.metrics.last_price %}
-                        {% with change=((signal.metrics.last_price|float - signal.price_at_fired|float) / signal.price_at_fired|float) * 100 %}
-                            {{ change|floatformat:2 }}%
+                        {% with current=signal.metrics.last_price|float entry=signal.price_at_fired|float %}
+                            {% with change=((current-entry)/entry)|floatformat:2 %}
+                                {{ change }}%
+                            {% endwith %}
                         {% endwith %}
                     {% else %}
                         N/A
@@ -41,7 +39,7 @@
                 </td>
             </tr>
         {% empty %}
-            <tr><td colspan="6">No open trades</td></tr>
+            <tr><td colspan="4">No open trades</td></tr>
         {% endfor %}
     </table>
 
@@ -61,13 +59,19 @@
                 <td>{{ signal.coin.symbol }}</td>
                 <td>{{ signal.signal_type }}</td>
                 <td>{{ signal.result }}</td>
-                <td>{{ signal.fired_at|timesince:signal.closed_at }}</td>
-                <td>{{ signal.price_at_fired|floatformat:6 }}</td>
-                <td>{{ signal.exit_price|floatformat:6 }}</td>
+                <td>
+                    {% if signal.closed_at %}
+                        {{ signal.fired_at|timesince:signal.closed_at }} ago
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>{{ signal.price_at_fired|floatformat:4 }}</td>
+                <td>{{ signal.exit_price|floatformat:4 }}</td>
                 <td>
                     {% if signal.exit_price %}
-                        {% with change=((signal.exit_price|float - signal.price_at_fired|float) / signal.price_at_fired|float) * 100 %}
-                            {{ change|floatformat:2 }}%
+                        {% with change=((signal.exit_price|float - signal.price_at_fired|float) / signal.price_at_fired|float * 100)|floatformat:2 %}
+                            {{ change }}%
                         {% endwith %}
                     {% else %}
                         N/A
@@ -79,21 +83,20 @@
         {% endfor %}
     </table>
 
-    <h2>📊 Stats Since April 7</h2>
-    <h3>Long Trades</h3>
+    <h2>📈 Long Trade Stats (since April 7)</h2>
     <ul>
-        <li>Total: {{ long_stats.total }}</li>
-        <li>Wins: {{ long_stats.wins }}</li>
-        <li>Losses: {{ long_stats.losses }}</li>
-        <li>Win Rate: {{ long_stats.win_rate }}%</li>
+        <li>Total: {{ long_total }}</li>
+        <li>Wins: {{ long_wins }}</li>
+        <li>Losses: {{ long_losses }}</li>
+        <li>Success Rate: {{ long_rate }}%</li>
     </ul>
 
-    <h3>Short Trades</h3>
+    <h2>📉 Short Trade Stats (since April 7)</h2>
     <ul>
-        <li>Total: {{ short_stats.total }}</li>
-        <li>Wins: {{ short_stats.wins }}</li>
-        <li>Losses: {{ short_stats.losses }}</li>
-        <li>Win Rate: {{ short_stats.win_rate }}%</li>
+        <li>Total: {{ short_total }}</li>
+        <li>Wins: {{ short_wins }}</li>
+        <li>Losses: {{ short_losses }}</li>
+        <li>Success Rate: {{ short_rate }}%</li>
     </ul>
 </body>
 </html>
