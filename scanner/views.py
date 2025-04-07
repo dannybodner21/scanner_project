@@ -446,7 +446,7 @@ def five_min_update(request=None):
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
 
-
+from decimal import Decimal
 def index_view(request):
 
     # Filter open trades (result still unknown)
