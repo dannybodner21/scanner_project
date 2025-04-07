@@ -39,48 +39,87 @@ from sklearn.linear_model import LinearRegression
 
 
 def calculate_volatility_5min(coin, timestamp):
-    recent = ShortIntervalData.objects.filter(
-        coin=coin, timestamp__lte=timestamp
-    ).order_by("-timestamp")[:6]  # Last 30min of data (6 * 5min)
+    try:
+        recent = (
+            ShortIntervalData.objects.filter(coin=coin, timestamp__lte=timestamp)
+            .order_by("-timestamp")[:6]
+        )
 
-    prices = [float(d.price) for d in recent if d.price]
-    if len(prices) < 2:
+        prices = [float(d.price) for d in recent if d.price is not None]
+
+        if len(prices) < 3:
+            print(f"⚠️ Not enough price data for volatility — {coin.symbol}")
+            return None
+
+        import numpy as np
+        volatility = np.std(prices)
+
+        return float(volatility)
+
+    except Exception as e:
+        print(f"❌ Error calculating volatility for {coin.symbol}: {e}")
         return None
-
-    return float(np.std(prices))
 
 
 def calculate_trend_slope_30min(coin, timestamp):
-    recent = ShortIntervalData.objects.filter(
-        coin=coin, timestamp__lte=timestamp
-    ).order_by("-timestamp")[:6]
+    try:
+        # Fetch recent 30min of 5-min interval data
+        recent = (
+            ShortIntervalData.objects.filter(coin=coin, timestamp__lte=timestamp)
+            .order_by("-timestamp")[:6]
+        )
 
-    prices = [float(d.price) for d in recent if d.price]
-    if len(prices) < 2:
+        # Ensure results are in chronological order
+        recent = list(reversed(recent))
+
+        # Extract prices
+        prices = [float(d.price) for d in recent if d.price is not None]
+
+        if len(prices) < 3:
+            print(f"⚠️ Not enough price points for {coin.symbol} to calculate slope")
+            return None
+
+        # Calculate slope using linear regression
+        from sklearn.linear_model import LinearRegression
+        import numpy as np
+
+        X = np.array(range(len(prices))).reshape(-1, 1)
+        y = np.array(prices)
+        model = LinearRegression().fit(X, y)
+        slope = model.coef_[0]
+
+        return float(slope)
+
+    except Exception as e:
+        print(f"❌ Error calculating slope for {coin.symbol}: {e}")
         return None
 
-    # Reverse to oldest → newest
-    prices.reverse()
-    X = np.arange(len(prices)).reshape(-1, 1)
-    y = np.array(prices)
-    model = LinearRegression().fit(X, y)
 
-    return float(model.coef_[0])  # slope
+def calculate_change_since_high_low(coin, timestamp):
+    try:
+        recent = (
+            ShortIntervalData.objects.filter(coin=coin, timestamp__lte=timestamp)
+            .order_by("-timestamp")[:6]  # Last 30 minutes = 6 intervals
+        )
 
+        prices = [float(d.price) for d in recent if d.price is not None]
 
-def calculate_change_since_high_low(coin, timestamp, current_price):
-    hl = HighLowData.objects.filter(
-        coin=coin,
-        timestamp__date=timestamp.date()
-    ).order_by("-timestamp").first()
+        if len(prices) < 2:
+            print(f"⚠️ Not enough data for high/low change — {coin.symbol}")
+            return None, None
 
-    if not hl or not hl.daily_high or not hl.daily_low:
-        return (None, None)
+        current_price = prices[0]  # most recent price
+        highest = max(prices)
+        lowest = min(prices)
 
-    change_low = float((current_price - hl.daily_low) / hl.daily_low) if hl.daily_low else None
-    change_high = float((current_price - hl.daily_high) / hl.daily_high) if hl.daily_high else None
+        change_since_high = ((current_price - highest) / highest) * 100 if highest != 0 else None
+        change_since_low = ((current_price - lowest) / lowest) * 100 if lowest != 0 else None
 
-    return (change_low, change_high)
+        return round(change_since_high, 3), round(change_since_low, 3)
+
+    except Exception as e:
+        print(f"❌ Error calculating change since high/low for {coin.symbol}: {e}")
+        return None, None
 
 
 def run_live_predictions_view(request):
@@ -124,7 +163,7 @@ def post_metrics_to_bot(request):
                     print(f"🤖 {symbol} — Long: {confidence_long:.2f} | Short: {confidence_short:.2f}")
 
                     # You can change these thresholds later
-                    if confidence_long >= 0.60:
+                    if confidence_long >= 0.70:
                         msg = (
                             f"🚨 ML LONG SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_long:.2f}\n"
@@ -149,7 +188,7 @@ def post_metrics_to_bot(request):
                         newMessage = "fired signal saved successfully"
                         send_telegram_alert(newMessage)
 
-                    if confidence_short >= 0.60:
+                    if confidence_short >= 0.70:
                         msg = (
                             f"🚨 ML SHORT SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_short:.2f}\n"
