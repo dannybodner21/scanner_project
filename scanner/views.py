@@ -35,6 +35,7 @@ from scanner.utils import score_metrics, score_metrics_short
 from scanner.models import Coin, FiredSignal
 from django.utils.timezone import now
 from sklearn.linear_model import LinearRegression
+from collections import defaultdict
 
 
 
@@ -292,12 +293,6 @@ def run_metrics_and_scan(request):
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 
-
-
-
-
-
-
 def five_min_update(request=None):
 
     # if the time is ~0000 delete old data
@@ -446,48 +441,53 @@ def five_min_update(request=None):
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
 
+
 from decimal import Decimal
+from django.db.models import Q
+
 def index_view(request):
-
-    # Load open trades (result is still unknown), sorted newest first
-    open_signals_raw = FiredSignal.objects.filter(result="unknown").order_by("-fired_at")
-
-    # Deduplicate: only one open trade per coin
-    seen = set()
+    # Get open signals (one per coin)
     open_signals = []
-    for signal in open_signals_raw:
-        if signal.coin_id not in seen:
-            seen.add(signal.coin_id)
-
-            # Try to attach most recent price for comparison
-            recent_price = (
-                signal.coin.metrics.order_by("-timestamp")
-                .values_list("last_price", flat=True)
-                .first()
-            )
-            signal.current_price = Decimal(recent_price) if recent_price else None
+    seen_coins = set()
+    for signal in FiredSignal.objects.filter(result="unknown").order_by("-fired_at"):
+        if signal.coin_id not in seen_coins:
+            seen_coins.add(signal.coin_id)
             open_signals.append(signal)
 
-        if len(open_signals) >= 50:
-            break
+    # Get 10 most recent closed signals
+    closed_signals = FiredSignal.objects.filter(
+        closed_at__isnull=False,
+        result__in=["win", "loss"]
+    ).order_by("-closed_at")[:10]
 
-    # Get the 20 most recent closed trades
-    closed_signals = FiredSignal.objects.exclude(result="unknown").order_by("-closed_at")[:20]
+    # Filter tracked signals (adjust logic if you want to start from a new baseline)
+    tracked_signals = FiredSignal.objects.filter(closed_at__isnull=False, result__in=["win", "loss"])
 
-    # Stats since relaunch
-    recent_signals = FiredSignal.objects.exclude(result="unknown")
-    total_trades = recent_signals.count()
-    wins = recent_signals.filter(result="win").count()
-    losses = recent_signals.filter(result="loss").count()
-    win_rate = round((wins / total_trades) * 100, 2) if total_trades else 0.0
+    # LONG stats
+    long_signals = tracked_signals.filter(signal_type="long")
+    total_longs = long_signals.count()
+    wins_long = long_signals.filter(result="win").count()
+    losses_long = long_signals.filter(result="loss").count()
+    win_rate_long = round((wins_long / total_longs) * 100, 2) if total_longs else 0
 
-    return render(request, "indextwo.html", {
+    # SHORT stats
+    short_signals = tracked_signals.filter(signal_type="short")
+    total_shorts = short_signals.count()
+    wins_short = short_signals.filter(result="win").count()
+    losses_short = short_signals.filter(result="loss").count()
+    win_rate_short = round((wins_short / total_shorts) * 100, 2) if total_shorts else 0
+
+    return render(request, "index.html", {
         "open_signals": open_signals,
         "closed_signals": closed_signals,
-        "total_trades": total_trades,
-        "wins": wins,
-        "losses": losses,
-        "win_rate": win_rate,
+        "total_longs": total_longs,
+        "wins_long": wins_long,
+        "losses_long": losses_long,
+        "win_rate_long": win_rate_long,
+        "total_shorts": total_shorts,
+        "wins_short": wins_short,
+        "losses_short": losses_short,
+        "win_rate_short": win_rate_short,
     })
 
 
