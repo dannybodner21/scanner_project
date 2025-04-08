@@ -4,53 +4,55 @@ from django.utils.timezone import now
 from decimal import Decimal
 
 class Command(BaseCommand):
-    help = "Check open trades and close them if TP or SL hit"
+    help = "Efficiently check open trades and close them if TP or SL hit"
 
     def handle(self, *args, **kwargs):
-        open_signals = FiredSignal.objects.filter(result="unknown")
+        open_signals = FiredSignal.objects.select_related("coin").filter(result="unknown")
         closed = 0
 
-        for signal in open_signals:
-            recent_metric = Metrics.objects.filter(
-                coin=signal.coin,
-                timestamp__gte=signal.fired_at
-            ).order_by("-timestamp").first()
+        # Create a cache for latest metrics per coin
+        coin_ids = list(open_signals.values_list("coin_id", flat=True).distinct())
+        latest_metrics = (
+            Metrics.objects.filter(coin_id__in=coin_ids)
+            .order_by("coin_id", "-timestamp")
+        )
 
-            if not recent_metric or not recent_metric.last_price:
+        # Map coin_id -> latest metric
+        latest_by_coin = {}
+        for metric in latest_metrics:
+            if metric.coin_id not in latest_by_coin and metric.last_price:
+                latest_by_coin[metric.coin_id] = metric
+
+        for signal in open_signals:
+            metric = latest_by_coin.get(signal.coin_id)
+            if not metric or not metric.last_price:
                 continue
 
-            current_price = Decimal(recent_metric.last_price)
+            current_price = Decimal(metric.last_price)
             entry = Decimal(signal.price_at_fired)
 
-            tp_price = entry * Decimal("1.03")  # +3%
-            sl_price = entry * Decimal("0.98")  # -2%
-
             if signal.signal_type == "long":
-                if current_price >= tp_price:
+                tp = entry * Decimal("1.03")
+                sl = entry * Decimal("0.98")
+                if current_price >= tp:
                     signal.result = "success"
-                    signal.exit_price = current_price
-                    signal.closed_at = now()
-                    signal.save()
-                    closed += 1
-                elif current_price <= sl_price:
+                elif current_price <= sl:
                     signal.result = "failure"
-                    signal.exit_price = current_price
-                    signal.closed_at = now()
-                    signal.save()
-                    closed += 1
+                else:
+                    continue
+            else:  # short
+                tp = entry * Decimal("0.97")
+                sl = entry * Decimal("1.02")
+                if current_price <= tp:
+                    signal.result = "success"
+                elif current_price >= sl:
+                    signal.result = "failure"
+                else:
+                    continue
 
-            elif signal.signal_type == "short":
-                if current_price <= entry * Decimal("0.97"):  # -3%
-                    signal.result = "success"
-                    signal.exit_price = current_price
-                    signal.closed_at = now()
-                    signal.save()
-                    closed += 1
-                elif current_price >= entry * Decimal("1.02"):  # +2%
-                    signal.result = "failure"
-                    signal.exit_price = current_price
-                    signal.closed_at = now()
-                    signal.save()
-                    closed += 1
+            signal.exit_price = current_price
+            signal.closed_at = now()
+            signal.save()
+            closed += 1
 
         print(f"✅ Closed {closed} signals")
