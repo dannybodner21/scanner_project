@@ -129,6 +129,18 @@ def run_live_predictions_view(request):
 
 
 @csrf_exempt
+def run_trade_check(request):
+    if request.method == "POST":
+        def run_check():
+            call_command("check_open_trades")
+
+        threading.Thread(target=run_check).start()
+        return JsonResponse({"status": "Check started"})
+
+    return JsonResponse({"error": "POST only"}, status=405)
+    
+
+@csrf_exempt
 def post_metrics_to_bot(request):
 
     if request.method == "POST":
