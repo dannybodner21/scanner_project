@@ -144,32 +144,38 @@ def run_trade_check(request):
 
 @csrf_exempt
 def post_metrics_to_bot(request):
-
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             print(f"✅ Received metrics for {len(data)} coins")
             signals = []
 
-            for coin in data:
+            for coin_data in data:
                 try:
-                    symbol = coin.get("symbol")
-                    change_5m = float(coin.get("price_change_5min") or 0)
-                    vol_spike = float(coin.get("five_min_relative_volume") or 0)
-                    change_1h = float(coin.get("price_change_1hr") or 0)
-                    market_cap = float(coin.get("market_cap") or 0)
+                    symbol = coin_data.get("symbol")
+                    if not symbol:
+                        continue
 
-                    print(f"🔍 {symbol}: Δ5m={change_5m}%, Vol={vol_spike}x, Δ1h={change_1h}%, MC=${market_cap:,}")
+                    try:
+                        coin_obj = Coin.objects.get(symbol__iexact=symbol)
+                    except Coin.DoesNotExist:
+                        print(f"❌ Coin not found: {symbol}")
+                        continue
 
+                    # Skip if coin already has an open trade
+                    if FiredSignal.objects.filter(coin=coin_obj, result="unknown").exists():
+                        continue
+
+                    # Prepare metrics
                     metrics = {
-                        "price_change_5min": float(coin.get("price_change_5min") or 0),
-                        "price_change_10min": float(coin.get("price_change_10min") or 0),
-                        "price_change_1hr": float(coin.get("price_change_1hr") or 0),
-                        "price_change_24hr": float(coin.get("price_change_24hr") or 0),
-                        "price_change_7d": float(coin.get("price_change_7d") or 0),
-                        "five_min_relative_volume": float(coin.get("five_min_relative_volume") or 0),
-                        "rolling_relative_volume": float(coin.get("rolling_relative_volume") or 0),
-                        "volume_24h": float(coin.get("volume_24h") or 0)
+                        "price_change_5min": float(coin_data.get("price_change_5min") or 0),
+                        "price_change_10min": float(coin_data.get("price_change_10min") or 0),
+                        "price_change_1hr": float(coin_data.get("price_change_1hr") or 0),
+                        "price_change_24hr": float(coin_data.get("price_change_24hr") or 0),
+                        "price_change_7d": float(coin_data.get("price_change_7d") or 0),
+                        "five_min_relative_volume": float(coin_data.get("five_min_relative_volume") or 0),
+                        "rolling_relative_volume": float(coin_data.get("rolling_relative_volume") or 0),
+                        "volume_24h": float(coin_data.get("volume_24h") or 0),
                     }
 
                     confidence_long = score_metrics(metrics)
@@ -177,7 +183,9 @@ def post_metrics_to_bot(request):
 
                     print(f"🤖 {symbol} — Long: {confidence_long:.2f} | Short: {confidence_short:.2f}")
 
-                    # You can change these thresholds later
+                    entry_price = Decimal(str(coin_data.get("price", 0)))
+
+                    # 🚨 Long Signal
                     if confidence_long >= 0.75:
                         msg = (
                             f"🚨 ML LONG SIGNAL: {symbol}\n"
@@ -187,23 +195,22 @@ def post_metrics_to_bot(request):
                             f"🕒 1h Δ: {metrics['price_change_1hr']:.2f}%\n"
                             f"💸 Volume: ${int(metrics['volume_24h']):,}"
                         )
-                        if FiredSignal.objects.filter(coin=coin, result="unknown").exists():
-                            continue
-
                         send_telegram_alert(msg)
 
                         FiredSignal.objects.create(
-                            coin=Coin.objects.get(symbol=symbol),
+                            coin=coin_obj,
                             fired_at=now(),
-                            price_at_fired=coin.get("price"),
+                            price_at_fired=entry_price,
                             metrics=metrics,
                             take_profit_pct=3.0,
                             stop_loss_pct=2.0,
                             result="unknown",
                             signal_type="long",
                         )
+                        signals.append({"symbol": symbol, "type": "long", "confidence": confidence_long})
 
-                    if confidence_short >= 0.80:
+                    # 🚨 Short Signal
+                    elif confidence_short >= 0.80:
                         msg = (
                             f"🚨 ML SHORT SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_short:.2f}\n"
@@ -212,24 +219,22 @@ def post_metrics_to_bot(request):
                             f"🕒 1h Δ: {metrics['price_change_1hr']:.2f}%\n"
                             f"💸 Volume: ${int(metrics['volume_24h']):,}"
                         )
-                        if FiredSignal.objects.filter(coin=coin, result="unknown").exists():
-                            continue
-
                         send_telegram_alert(msg)
 
                         FiredSignal.objects.create(
-                            coin=Coin.objects.get(symbol=symbol),
+                            coin=coin_obj,
                             fired_at=now(),
-                            price_at_fired=coin.get("price"),
+                            price_at_fired=entry_price,
                             metrics=metrics,
                             take_profit_pct=3.0,
                             stop_loss_pct=2.0,
                             result="unknown",
                             signal_type="short",
                         )
+                        signals.append({"symbol": symbol, "type": "short", "confidence": confidence_short})
 
                 except Exception as e:
-                    print(f"⚠️ Error processing {symbol}: {e}")
+                    print(f"⚠️ Error processing {coin_data.get('symbol', 'Unknown')}: {e}")
                     continue
 
             return JsonResponse({
