@@ -248,6 +248,7 @@ def post_metrics_to_bot(request):
 
     return JsonResponse({"error": "Only POST allowed"}, status=405)
 
+    
 
 # Inside run_metrics_and_scan view
 from threading import Thread
