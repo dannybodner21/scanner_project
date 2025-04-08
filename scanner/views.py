@@ -849,43 +849,37 @@ def calculate_daily_relative_volume(coin):
     return relative_volume
 
 
+from django.db.models import Sum
+from django.utils.timezone import timedelta
+
 def calculate_relative_volume(coin, timestamp):
-    if isinstance(timestamp, str):
-        timestamp = datetime.fromisoformat(timestamp)
+    from scanner.models import ShortIntervalData
 
-    try:
-        threshold_24h = timestamp - timedelta(hours=24)
-        threshold_30d = timestamp - timedelta(days=30)
+    # Get 30d window
+    cutoff = timestamp - timedelta(days=30)
 
-        # Volume in past 24h
-        last_24h = ShortIntervalData.objects.filter(
-            coin=coin, timestamp__lte=timestamp, timestamp__gt=threshold_24h
-        )
+    prior_30d = ShortIntervalData.objects.filter(
+        coin=coin,
+        timestamp__gte=cutoff,
+        timestamp__lt=timestamp
+    )
 
-        # Volume from 30d before that
-        prior_30d = ShortIntervalData.objects.filter(
-            coin=coin, timestamp__lt=threshold_24h, timestamp__gte=threshold_30d
-        )
+    # Sum in DB — don't pull all rows into Python
+    total_30d_volume = prior_30d.aggregate(total=Sum("volume_5min"))["total"] or 0
 
-        total_24h_volume = sum(d.volume_5min for d in last_24h if d.volume_5min)
-        total_30d_volume = sum(d.volume_5min for d in prior_30d if d.volume_5min)
+    if total_30d_volume == 0:
+        return 0
 
-        expected_entries = 30 * 24 * 12  # 12 per hour
-        actual_entries = len(prior_30d)
+    avg_volume = total_30d_volume / 30 / 24 / 12  # avg per 5m candle
 
-        if actual_entries < 0.5 * expected_entries:
-            print(f"⚠️  Skipping {coin.symbol}: only {actual_entries} data points in 30d window")
-            return None
+    recent = ShortIntervalData.objects.filter(
+        coin=coin,
+        timestamp__lte=timestamp
+    ).order_by("-timestamp")[:6]  # last 30 minutes (6 x 5min)
 
-        avg_volume_30d = total_30d_volume / actual_entries if actual_entries else None
+    recent_volume = sum(d.volume_5min or 0 for d in recent)
 
-        if avg_volume_30d and avg_volume_30d > 0:
-            return total_24h_volume / avg_volume_30d
-
-    except Exception as e:
-        print(f"❌ Error in calculate_relative_volume for {coin.symbol}: {e}")
-
-    return None
+    return recent_volume / avg_volume if avg_volume else 0
 
 
 def calculate_price_change_five_min(coin, timestamp):
