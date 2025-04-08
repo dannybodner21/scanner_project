@@ -134,7 +134,7 @@ def run_live_predictions_view(request):
 def run_trade_check(request):
     if request.method == "POST":
         def run_check():
-            call_command("check_open_trades")
+            call_command("update_open_trades")
 
         threading.Thread(target=run_check).start()
         return JsonResponse({"status": "Check started"})
@@ -203,7 +203,7 @@ def post_metrics_to_bot(request):
                             signal_type="long",
                         )
 
-                    if confidence_short >= 0.75:
+                    if confidence_short >= 0.80:
                         msg = (
                             f"🚨 ML SHORT SIGNAL: {symbol}\n"
                             f"🤖 Confidence: {confidence_short:.2f}\n"
