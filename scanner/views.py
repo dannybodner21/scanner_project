@@ -187,7 +187,7 @@ def post_metrics_to_bot(request):
                             f"🕒 1h Δ: {metrics['price_change_1hr']:.2f}%\n"
                             f"💸 Volume: ${int(metrics['volume_24h']):,}"
                         )
-                        if FiredSignal.objects.filter(coin=coin_obj, result="unknown").exists():
+                        if FiredSignal.objects.filter(coin=coin, result="unknown").exists():
                             continue
 
                         send_telegram_alert(msg)
@@ -212,7 +212,7 @@ def post_metrics_to_bot(request):
                             f"🕒 1h Δ: {metrics['price_change_1hr']:.2f}%\n"
                             f"💸 Volume: ${int(metrics['volume_24h']):,}"
                         )
-                        if FiredSignal.objects.filter(coin=coin_obj, result="unknown").exists():
+                        if FiredSignal.objects.filter(coin=coin, result="unknown").exists():
                             continue
 
                         send_telegram_alert(msg)
