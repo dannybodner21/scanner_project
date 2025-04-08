@@ -36,6 +36,8 @@ from scanner.models import Coin, FiredSignal
 from django.utils.timezone import now
 from sklearn.linear_model import LinearRegression
 from collections import defaultdict
+import threading
+
 
 
 
@@ -138,7 +140,7 @@ def run_trade_check(request):
         return JsonResponse({"status": "Check started"})
 
     return JsonResponse({"error": "POST only"}, status=405)
-    
+
 
 @csrf_exempt
 def post_metrics_to_bot(request):
