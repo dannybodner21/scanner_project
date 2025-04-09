@@ -55,7 +55,6 @@ from scanner.utils import score_metrics
 from scanner.utils import send_telegram_alert
 from scanner.utils import score_metrics, score_metrics_short
 from scanner.models import Coin, FiredSignal
-from django.utils.timezone import now
 from sklearn.linear_model import LinearRegression
 from collections import defaultdict
 import threading
@@ -98,28 +97,35 @@ def calculate_volatility_5min(coin, timestamp):
         return None
 
 
+from django.utils.timezone import make_aware, is_naive
+from sklearn.linear_model import LinearRegression
+import numpy as np
+
 def calculate_trend_slope_30min(coin, timestamp):
     try:
-        # Fetch recent 30min of 5-min interval data
-        recent = (
-            ShortIntervalData.objects.filter(coin=coin, timestamp__lte=timestamp)
-            .order_by("-timestamp")[:6]
+        # Ensure timestamp is timezone-aware
+        if is_naive(timestamp):
+            timestamp = make_aware(timestamp)
+
+        # Fetch recent 30min of 5-min interval data (6 x 5min = 30min)
+        recent = list(
+            ShortIntervalData.objects
+            .filter(coin=coin, timestamp__lte=timestamp)
+            .order_by("-timestamp")
+            .values_list("timestamp", "price")[:6]
         )
 
         # Ensure results are in chronological order
         recent = list(reversed(recent))
 
         # Extract prices
-        prices = [float(d.price) for d in recent if d.price is not None]
+        prices = [float(p) for (_, p) in recent if p is not None]
 
         if len(prices) < 3:
             print(f"⚠️ Not enough price points for {coin.symbol} to calculate slope")
             return None
 
         # Calculate slope using linear regression
-        from sklearn.linear_model import LinearRegression
-        import numpy as np
-
         X = np.array(range(len(prices))).reshape(-1, 1)
         y = np.array(prices)
         model = LinearRegression().fit(X, y)
@@ -130,6 +136,7 @@ def calculate_trend_slope_30min(coin, timestamp):
     except Exception as e:
         print(f"❌ Error calculating slope for {coin.symbol}: {e}")
         return None
+
 
 
 def calculate_change_since_high_low(coin, timestamp):
