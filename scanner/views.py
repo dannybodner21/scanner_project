@@ -882,19 +882,21 @@ def calculate_relative_volume(coin, timestamp):
     return recent_volume / avg_volume if avg_volume else 0
 
 
-def calculate_price_change_five_min(coin, timestamp):
-    if isinstance(timestamp, str):
-        timestamp = datetime.fromisoformat(timestamp)
 
+def calculate_price_change_five_min(coin, timestamp):
     try:
+        # Convert to timezone-aware if needed
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
+        if is_naive(timestamp):
+            timestamp = make_aware(timestamp)
+
         five_min_ago = timestamp - timedelta(minutes=5)
 
-        # Get the closest price to current time
         current_data = ShortIntervalData.objects.filter(
             coin=coin, timestamp__lte=timestamp
         ).order_by('-timestamp').first()
 
-        # Get the closest price at least 5 min ago
         past_data = ShortIntervalData.objects.filter(
             coin=coin, timestamp__lte=five_min_ago
         ).order_by('-timestamp').first()
@@ -903,7 +905,7 @@ def calculate_price_change_five_min(coin, timestamp):
             print(f"⚠️ Skipping {coin.symbol}: missing current or past data")
             return None
 
-        if current_data.price is None or past_data.price is None or past_data.price == 0:
+        if not current_data.price or not past_data.price:
             print(f"⚠️ Skipping {coin.symbol}: invalid price data")
             return None
 
@@ -918,31 +920,27 @@ def calculate_price_change_thirty_min(coin, timestamp):
     try:
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
+        if is_naive(timestamp):
+            timestamp = make_aware(timestamp)
 
         thirty_min_ago = timestamp - timedelta(minutes=30)
 
-        # Get most recent data point up to current time
-        current_data = ShortIntervalData.objects.filter(
-            coin=coin, timestamp__lte=timestamp
-        ).order_by('-timestamp').first()
+        current = ShortIntervalData.objects.filter(coin=coin, timestamp__lte=timestamp).order_by('-timestamp').first()
+        past = ShortIntervalData.objects.filter(coin=coin, timestamp__lte=thirty_min_ago).order_by('-timestamp').first()
 
-        # Get closest data point up to 30 minutes ago
-        past_data = ShortIntervalData.objects.filter(
-            coin=coin, timestamp__lte=thirty_min_ago
-        ).order_by('-timestamp').first()
-
-        if not current_data or not past_data:
-            print(f"⚠️ Skipping {coin.symbol} — missing data for 30min price change")
+        if not current or not past:
+            print(f"⚠️ {coin.symbol}: Not enough data for 30-min price change")
+            return None
+        if not current.price or not past.price:
+            print(f"⚠️ {coin.symbol}: Missing price values")
+            return None
+        if past.price == 0:
             return None
 
-        if current_data.price is None or past_data.price is None or past_data.price == 0:
-            print(f"⚠️ Skipping {coin.symbol} — invalid price data")
-            return None
-
-        return float((current_data.price - past_data.price) / past_data.price * 100)
+        return float((current.price - past.price) / past.price * 100)
 
     except Exception as e:
-        print(f"❌ Error calculating 30-min price change for {coin.symbol}: {e}")
+        print(f"❌ Error in 30-min price change for {coin.symbol}: {e}")
         return None
 
 
@@ -950,40 +948,35 @@ def calculate_twenty_min_relative_volume(coin, timestamp):
     try:
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
+        if is_naive(timestamp):
+            timestamp = make_aware(timestamp)
 
         twenty_min_ago = timestamp - timedelta(minutes=20)
 
-        # Get the most recent current data point
-        current_data = ShortIntervalData.objects.filter(
-            coin=coin, timestamp__lte=timestamp
-        ).order_by('-timestamp').first()
-
-        if not current_data or current_data.volume_5min is None:
-            print(f"⚠️ Skipping {coin.symbol} — no current volume data")
+        current = ShortIntervalData.objects.filter(coin=coin, timestamp__lte=timestamp).order_by('-timestamp').first()
+        if not current or current.volume_5min is None:
+            print(f"⚠️ {coin.symbol}: Missing current volume data")
             return None
 
-        # Get past 20-minute volume data
         past_data = ShortIntervalData.objects.filter(
             coin=coin,
             timestamp__gte=twenty_min_ago,
             timestamp__lt=timestamp
         )
+        volumes = [d.volume_5min for d in past_data if d.volume_5min is not None]
 
-        past_volumes = [d.volume_5min for d in past_data if d.volume_5min is not None]
-
-        if len(past_volumes) < 4:
-            print(f"⚠️ Skipping {coin.symbol} — not enough volume data for 20-min window")
+        if len(volumes) < 4:
+            print(f"⚠️ {coin.symbol}: Insufficient volume data (20min)")
             return None
 
-        avg_volume = sum(past_volumes) / len(past_volumes)
-
+        avg_volume = sum(volumes) / len(volumes)
         if avg_volume == 0:
             return None
 
-        return float(current_data.volume_5min / avg_volume)
+        return float(current.volume_5min / avg_volume)
 
     except Exception as e:
-        print(f"❌ Error calculating 20-min relative volume for {coin.symbol}: {e}")
+        print(f"❌ Error in 20-min volume for {coin.symbol}: {e}")
         return None
 
 
@@ -991,34 +984,26 @@ def calculate_five_min_relative_volume(coin, timestamp):
     try:
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
+        if is_naive(timestamp):
+            timestamp = make_aware(timestamp)
 
         five_min_ago = timestamp - timedelta(minutes=5)
 
-        # Get most recent volume data at or before the current timestamp
-        current_data = ShortIntervalData.objects.filter(
-            coin=coin, timestamp__lte=timestamp
-        ).order_by('-timestamp').first()
+        current = ShortIntervalData.objects.filter(coin=coin, timestamp__lte=timestamp).order_by('-timestamp').first()
+        previous = ShortIntervalData.objects.filter(coin=coin, timestamp__lte=five_min_ago).order_by('-timestamp').first()
 
-        # Get volume from 5 minutes ago (or earlier)
-        previous_data = ShortIntervalData.objects.filter(
-            coin=coin, timestamp__lte=five_min_ago
-        ).order_by('-timestamp').first()
-
-        if not current_data or not previous_data:
-            print(f"⚠️ Skipping {coin.symbol} — missing current or previous volume")
+        if not current or not previous:
+            print(f"⚠️ {coin.symbol}: Missing 5-min volume data")
+            return None
+        if not current.volume_5min or not previous.volume_5min:
+            return None
+        if previous.volume_5min == 0:
             return None
 
-        if current_data.volume_5min is None or previous_data.volume_5min is None:
-            print(f"⚠️ Skipping {coin.symbol} — missing volume_5min data")
-            return None
-
-        if previous_data.volume_5min == 0:
-            return None  # Avoid division by zero
-
-        return float(current_data.volume_5min / previous_data.volume_5min)
+        return float(current.volume_5min / previous.volume_5min)
 
     except Exception as e:
-        print(f"❌ Error calculating 5-min relative volume for {coin.symbol}: {e}")
+        print(f"❌ Error in 5-min volume for {coin.symbol}: {e}")
         return None
 
 
