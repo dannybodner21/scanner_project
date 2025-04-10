@@ -354,13 +354,10 @@ def five_min_update(request=None):
                     coin = Coin.objects.get(cmc_id=cmc_id)
                     current_price = crypto_data["quote"]["USD"]["price"]
 
-                    try:
-                        volatility = calculate_volatility_5min(coin, timestamp)
-                        trend_slope = calculate_trend_slope_30min(coin, timestamp)
-                        change_low, change_high = calculate_change_since_high_low(coin, timestamp)
-                        volume_marketcap_ratio = float(crypto_data["quote"]["USD"]["volume_24h"]) / float(crypto_data["quote"]["USD"]["market_cap"]) if crypto_data["quote"]["USD"]["market_cap"] else None
-                    except:
-                        print("TREND SLOPE FAILED...................")
+                    #volatility = calculate_volatility_5min(coin, timestamp)
+                    #trend_slope = calculate_trend_slope_30min(coin, timestamp)
+                    #change_low, change_high = calculate_change_since_high_low(coin, timestamp)
+                    #volume_marketcap_ratio = float(crypto_data["quote"]["USD"]["volume_24h"]) / float(crypto_data["quote"]["USD"]["market_cap"]) if crypto_data["quote"]["USD"]["market_cap"] else None
 
 
 
@@ -404,11 +401,11 @@ def five_min_update(request=None):
                             volume_24h = crypto_data["quote"]["USD"]["volume_24h"],
                             last_price = crypto_data["quote"]["USD"]["price"],
                             market_cap = crypto_data["quote"]["USD"]["market_cap"],
-                            volatility_5min = volatility,
+                            #volatility_5min = volatility,
                             #trend_slope_30min = trend_slope,
-                            change_since_low = change_low,
-                            change_since_high = change_high,
-                            volume_marketcap_ratio = volume_marketcap_ratio,
+                            #change_since_low = change_low,
+                            #change_since_high = change_high,
+                            #volume_marketcap_ratio = volume_marketcap_ratio,
                         )
 
                     except Exception as e:
