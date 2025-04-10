@@ -74,6 +74,7 @@ from django.db.models import Prefetch, OuterRef, Subquery
 <<<<<<< HEAD
 
 
+
 def calculate_volatility_5min(coin, timestamp):
     try:
         recent = (
