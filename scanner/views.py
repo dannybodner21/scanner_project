@@ -984,26 +984,36 @@ def calculate_five_min_relative_volume(coin, timestamp):
     try:
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
-        if is_naive(timestamp):
-            timestamp = make_aware(timestamp)
 
         five_min_ago = timestamp - timedelta(minutes=5)
 
-        current = ShortIntervalData.objects.filter(coin=coin, timestamp__lte=timestamp).order_by('-timestamp').first()
-        previous = ShortIntervalData.objects.filter(coin=coin, timestamp__lte=five_min_ago).order_by('-timestamp').first()
+        current_data = (
+            ShortIntervalData.objects
+            .filter(coin=coin, timestamp__lte=timestamp)
+            .only("volume_5min")  # Load only needed field
+            .order_by('-timestamp')
+            .first()
+        )
 
-        if not current or not previous:
-            print(f"⚠️ {coin.symbol}: Missing 5-min volume data")
-            return None
-        if not current.volume_5min or not previous.volume_5min:
-            return None
-        if previous.volume_5min == 0:
+        previous_data = (
+            ShortIntervalData.objects
+            .filter(coin=coin, timestamp__lte=five_min_ago)
+            .only("volume_5min")
+            .order_by('-timestamp')
+            .first()
+        )
+
+        if not current_data or not previous_data:
+            print(f"⚠️ Skipping {coin.symbol} — missing volume points")
             return None
 
-        return float(current.volume_5min / previous.volume_5min)
+        if current_data.volume_5min is None or previous_data.volume_5min in (None, 0):
+            return None
+
+        return float(current_data.volume_5min / previous_data.volume_5min)
 
     except Exception as e:
-        print(f"❌ Error in 5-min volume for {coin.symbol}: {e}")
+        print(f"❌ Error calculating 5-min relative volume for {coin.symbol}: {e}")
         return None
 
 
