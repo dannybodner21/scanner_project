@@ -353,13 +353,15 @@ def five_min_update(request=None):
                     )
                     coin = Coin.objects.get(cmc_id=cmc_id)
                     current_price = crypto_data["quote"]["USD"]["price"]
-                    volatility = calculate_volatility_5min(coin, timestamp)
+
                     try:
+                        volatility = calculate_volatility_5min(coin, timestamp)
                         trend_slope = calculate_trend_slope_30min(coin, timestamp)
+                        change_low, change_high = calculate_change_since_high_low(coin, timestamp)
+                        volume_marketcap_ratio = float(crypto_data["quote"]["USD"]["volume_24h"]) / float(crypto_data["quote"]["USD"]["market_cap"]) if crypto_data["quote"]["USD"]["market_cap"] else None
                     except:
                         print("TREND SLOPE FAILED...................")
-                    change_low, change_high = calculate_change_since_high_low(coin, timestamp)
-                    volume_marketcap_ratio = float(crypto_data["quote"]["USD"]["volume_24h"]) / float(crypto_data["quote"]["USD"]["market_cap"]) if crypto_data["quote"]["USD"]["market_cap"] else None
+
 
 
                     try:
