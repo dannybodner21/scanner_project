@@ -352,7 +352,7 @@ def five_min_update(request=None):
                         crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
                     )
 
-                    if timezone.is_naive(timestamp):
+                    if is_naive(timestamp):
                         timestamp = make_aware(timestamp)
 
                     coin = Coin.objects.get(cmc_id=cmc_id)
