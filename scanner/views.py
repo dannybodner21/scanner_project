@@ -374,7 +374,7 @@ def five_min_update(request=None):
                         print(e)
 
                     if current_price is None:
-                        print(f"⚠️ Skipping {symbol} — missing price value")
+                        print(f"⚠️ Skipping — missing price value")
                         continue  # or return, depending on context
 
 
