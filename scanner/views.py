@@ -351,6 +351,10 @@ def five_min_update(request=None):
                     timestamp = datetime.strptime(
                         crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
                     )
+
+                    if timezone.is_naive(timestamp):
+                        timestamp = make_aware(timestamp)
+
                     coin = Coin.objects.get(cmc_id=cmc_id)
                     current_price = crypto_data["quote"]["USD"]["price"]
 
@@ -363,20 +367,21 @@ def five_min_update(request=None):
 
                     try:
                         coin.market_cap_rank = crypto_data["cmc_rank"]
-                        coin.last_updated = datetime.strptime(
-                            crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                        )
+                        coin.last_updated = timestamp
                         coin.save()
                     except Exception as e:
                         print("FAILED IN GROUP 1")
                         print(e)
 
+                    if current_price is None:
+                        print(f"⚠️ Skipping {symbol} — missing price value")
+                        continue  # or return, depending on context
+
+
                     try:
                         ShortIntervalData.objects.create(
                             coin=coin,
-                            timestamp=datetime.strptime(
-                                crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                            ),
+                            timestamp=timestamp,
                             price=crypto_data["quote"]["USD"]["price"],
                             volume_5min=crypto_data["quote"]["USD"]["volume_24h"],
                             circulating_supply=crypto_data["circulating_supply"]
