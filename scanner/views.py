@@ -311,15 +311,6 @@ def run_metrics_and_scan(request):
 
 def five_min_update(request=None):
 
-    # if the time is ~0000 delete old data
-    #now = datetime.now()
-    #if now.hour == 0 and now.minute <= 5:
-        #manually_clean_database()
-        #print("not deleting right now...")
-
-    # delete old Triggers
-    #delete_old_triggers()
-
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
     headers = {
@@ -329,6 +320,9 @@ def five_min_update(request=None):
 
     coins = Coin.objects.all()
     cmc_ids = [coin.cmc_id for coin in coins]
+
+    totalCount = 0
+    actualCount = 0
 
     # API limit: Up to 100 IDs per call
     batch_size = 100
@@ -392,6 +386,8 @@ def five_min_update(request=None):
 
                     try:
 
+                        totalCount += 1
+
                         metric = Metrics.objects.create(
                             coin=coin,
                             timestamp=timestamp,
@@ -413,6 +409,13 @@ def five_min_update(request=None):
                             #volume_marketcap_ratio = volume_marketcap_ratio,
                         )
 
+                        print("Metric created for.")
+
+                        actualCount +=1
+
+                        print(f"total count = {totalCount}")
+                        print(f"actual count = {actualCount}")
+
                     except Exception as e:
                         print("FAILED IN GROUP 3")
                         print(e)
@@ -424,32 +427,6 @@ def five_min_update(request=None):
             print(f"Error updating tracked coins for batch {cmc_id_batch}: {e}")
 
     print("five minute update complete.")
-
-    # check triggers here
-    #print("=============================")
-    #print("checking triggers")
-
-    '''
-    coins = Coin.objects.prefetch_related(
-        Prefetch(
-            'metrics',  # The related_name defined in Metrics
-            queryset=Metrics.objects.order_by('-timestamp')[:6],  # Fetch the 6 most recent metrics
-            to_attr='prefetched_metrics'  # Use a unique name for the prefetched attribute
-        )
-    )
-    '''
-
-
-    #for coin in coins:
-
-        #metrics_queryset = coin.prefetched_metrics
-        #check_triggers(metrics_queryset)
-
-        # check if there is a new high or low for the day
-        #check_high_low(metrics_queryset)
-
-    print("NOT checking triggers at the moment, come back later.")
-
 
 
     # now we want to track the coin after a trigger went off for it
@@ -463,6 +440,11 @@ def five_min_update(request=None):
 
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
+
+
+
+
+
 
 
 from decimal import Decimal
