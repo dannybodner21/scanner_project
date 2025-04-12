@@ -311,6 +311,9 @@ def run_metrics_and_scan(request):
 
 def five_min_update(request=None):
 
+    start = datetime.now()
+    print(f"⏱️ Start: {start}")
+
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
     headers = {
@@ -437,6 +440,8 @@ def five_min_update(request=None):
     #     - send telegram message when the current price is 1% up or down
     #     - and other messsages as the price moves so I know what do to
     #     - without having to stare at the chart
+
+    print(f"✅ Done in: {datetime.now() - start}")
 
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
