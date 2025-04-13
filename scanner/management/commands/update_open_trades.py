@@ -17,9 +17,6 @@ class Command(BaseCommand):
             .order_by("coin_id", "-timestamp")
         )
 
-        print(latest_metrics)
-        
-
         # Map coin_id -> latest metric
         latest_by_coin = {}
         for metric in latest_metrics:
@@ -55,8 +52,7 @@ class Command(BaseCommand):
 
             signal.exit_price = current_price
 
-            # this is wrong. should not be now, should be timestamp of closing metric
-            signal.closed_at = now()
+            signal.closed_at = metric.timestamp
             signal.save()
             closed += 1
 
