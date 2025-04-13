@@ -451,9 +451,7 @@ def run_five_min_update_logic():
 
     print(f"✅ Done in: {datetime.now() - start}")
 
-    if request:
-        return JsonResponse({"status": "success", "message": "Update triggered successfully"})
-
+    return
 
 
 
