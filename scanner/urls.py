@@ -18,7 +18,7 @@ urlpatterns = [
     path('run-predictions/', views.run_live_predictions_view, name='run-predictions'),
     path('update-open-trades-wrong/', views.update_open_trades_view, name='update-open-trades-wrong'),
 
-    path("update-open-trades/", views.run_trade_check, name="update_open_trades"),
+    path("update-open-trades/", views.run_trade_check, name="update-open-trades"),
 
     path('download/<str:filename>/', views.download_file, name='download_file'),
 ]
