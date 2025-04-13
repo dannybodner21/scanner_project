@@ -8,24 +8,27 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         open_signals = FiredSignal.objects.select_related("coin").filter(result="unknown")
-        closed = 0
+        if not open_signals.exists():
+            print("✅ No open signals to check.")
+            return
 
-        # Create a cache for latest metrics per coin
         coin_ids = list(open_signals.values_list("coin_id", flat=True).distinct())
-        latest_metrics = (
-            Metrics.objects.filter(coin_id__in=coin_ids)
-            .order_by("coin_id", "-timestamp")
-        )
 
-        # Map coin_id -> latest metric
+        # Get most recent metric per coin
         latest_by_coin = {}
-        for metric in latest_metrics:
-            if metric.coin_id not in latest_by_coin and metric.last_price:
-                latest_by_coin[metric.coin_id] = metric
+        for coin_id in coin_ids:
+            metric = (
+                Metrics.objects.filter(coin_id=coin_id, last_price__isnull=False)
+                .order_by("-timestamp")
+                .first()
+            )
+            if metric:
+                latest_by_coin[coin_id] = metric
 
+        closed = 0
         for signal in open_signals:
             metric = latest_by_coin.get(signal.coin_id)
-            if not metric or not metric.last_price:
+            if not metric:
                 continue
 
             current_price = Decimal(metric.last_price)
@@ -40,7 +43,7 @@ class Command(BaseCommand):
                     signal.result = "failure"
                 else:
                     continue
-            else:  # short
+            elif signal.signal_type == "short":
                 tp = entry * Decimal("0.97")
                 sl = entry * Decimal("1.02")
                 if current_price <= tp:
@@ -49,11 +52,13 @@ class Command(BaseCommand):
                     signal.result = "failure"
                 else:
                     continue
+            else:
+                continue
 
             signal.exit_price = current_price
-
-            signal.closed_at = metric.timestamp
+            signal.closed_at = metric.timestamp  # ← accurate time
             signal.save()
             closed += 1
+            print(f"✅ Closed {signal.coin.symbol} at {current_price:.4f} ({signal.result})")
 
         print(f"✅ Closed {closed} signals")
