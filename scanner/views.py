@@ -311,7 +311,9 @@ def run_metrics_and_scan(request):
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 
-def five_min_update(request=None):
+
+
+def run_five_min_update_logic():
 
     start = datetime.now()
     print(f"⏱️ Start: {start}")
@@ -328,6 +330,7 @@ def five_min_update(request=None):
 
     totalCount = 0
     actualCount = 0
+    shortDatas = []
 
     # API limit: Up to 100 IDs per call
     batch_size = 100
@@ -378,13 +381,167 @@ def five_min_update(request=None):
 
 
                     try:
-                        ShortIntervalData.objects.create(
+                        shortData = ShortIntervalData.objects.create(
                             coin=coin,
                             timestamp=timestamp,
                             price=crypto_data["quote"]["USD"]["price"],
                             volume_5min=crypto_data["quote"]["USD"]["volume_24h"],
                             circulating_supply=crypto_data["circulating_supply"]
                         )
+
+                        shortDatas.append(shortData)
+
+                    except Exception as e:
+                        print("FAILED IN GROUP 2")
+                        print(e)
+
+                    try:
+
+                        totalCount += 1
+
+                        metric = Metrics.objects.create(
+                            coin=coin,
+                            timestamp=timestamp,
+                            rolling_relative_volume=calculate_relative_volume(coin, timestamp),
+                            five_min_relative_volume=calculate_five_min_relative_volume(coin, timestamp),
+                            price_change_5min=calculate_price_change_five_min(coin, timestamp),
+                            price_change_10min=calculate_price_change_thirty_min(coin, timestamp),
+                            price_change_1hr = crypto_data["quote"]["USD"]["percent_change_1h"],
+                            price_change_24hr = crypto_data["quote"]["USD"]["percent_change_24h"],
+                            price_change_7d = crypto_data["quote"]["USD"]["percent_change_7d"],
+                            circulating_supply=crypto_data["circulating_supply"],
+                            volume_24h = crypto_data["quote"]["USD"]["volume_24h"],
+                            last_price = crypto_data["quote"]["USD"]["price"],
+                            market_cap = crypto_data["quote"]["USD"]["market_cap"],
+                            #volatility_5min = volatility,
+                            #trend_slope_30min = trend_slope,
+                            #change_since_low = change_low,
+                            #change_since_high = change_high,
+                            #volume_marketcap_ratio = volume_marketcap_ratio,
+                        )
+
+                        print("Metric created for.")
+
+                        actualCount +=1
+
+                        print(f"total count = {totalCount}")
+                        print(f"actual count = {actualCount}")
+
+                    except Exception as e:
+                        print("FAILED IN GROUP 3")
+                        print(e)
+
+                    now = datetime.now()
+
+
+        except Exception as e:
+            print(f"Error updating tracked coins for batch {cmc_id_batch}: {e}")
+
+    print("five minute update complete.")
+
+
+    # now we want to track the coin after a trigger went off for it
+    # every five minutes
+    #     - take note of the coin price at the time of the trigger
+    #     - get the most recent price of the coin
+    #     - compare it against the price at the time the trigger went off
+    #     - send telegram message when the current price is 1% up or down
+    #     - and other messsages as the price moves so I know what do to
+    #     - without having to stare at the chart
+
+    print(f"✅ Done in: {datetime.now() - start}")
+
+    if request:
+        return JsonResponse({"status": "success", "message": "Update triggered successfully"})
+
+
+
+
+
+@csrf_exempt
+def five_min_update(request):
+    Thread(target=run_five_min_update_logic).start()
+    return JsonResponse({"status": "started"})
+
+
+def five_min_update_old(request=None):
+
+    start = datetime.now()
+    print(f"⏱️ Start: {start}")
+
+    API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+    headers = {
+        "Accepts": "application/json",
+        "X-CMC_PRO_API_KEY": API_KEY,
+    }
+
+    coins = Coin.objects.all()
+    cmc_ids = [coin.cmc_id for coin in coins]
+
+    totalCount = 0
+    actualCount = 0
+    shortDatas = []
+
+    # API limit: Up to 100 IDs per call
+    batch_size = 100
+    for i in range(0, len(cmc_ids), batch_size):
+        cmc_id_batch = cmc_ids[i:i + batch_size]
+        params = {
+            "id": ",".join(map(str, cmc_id_batch)),
+            "convert": "USD",
+        }
+
+        try:
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            for cmc_id in cmc_id_batch:
+                if str(cmc_id) in data["data"]:
+                    crypto_data = data["data"][str(cmc_id)]
+
+                    timestamp = datetime.strptime(
+                        crypto_data["last_updated"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                    )
+
+                    if is_naive(timestamp):
+                        timestamp = make_aware(timestamp)
+
+                    coin = Coin.objects.get(cmc_id=cmc_id)
+                    current_price = crypto_data["quote"]["USD"]["price"]
+
+                    #volatility = calculate_volatility_5min(coin, timestamp)
+                    #trend_slope = calculate_trend_slope_30min(coin, timestamp)
+                    #change_low, change_high = calculate_change_since_high_low(coin, timestamp)
+                    #volume_marketcap_ratio = float(crypto_data["quote"]["USD"]["volume_24h"]) / float(crypto_data["quote"]["USD"]["market_cap"]) if crypto_data["quote"]["USD"]["market_cap"] else None
+
+
+
+                    try:
+                        coin.market_cap_rank = crypto_data["cmc_rank"]
+                        coin.last_updated = timestamp
+                        coin.save()
+                    except Exception as e:
+                        print("FAILED IN GROUP 1")
+                        print(e)
+
+                    if current_price is None:
+                        print(f"⚠️ Skipping — missing price value")
+                        continue  # or return, depending on context
+
+
+                    try:
+                        shortData = ShortIntervalData.objects.create(
+                            coin=coin,
+                            timestamp=timestamp,
+                            price=crypto_data["quote"]["USD"]["price"],
+                            volume_5min=crypto_data["quote"]["USD"]["volume_24h"],
+                            circulating_supply=crypto_data["circulating_supply"]
+                        )
+
+                        shortDatas.append(shortData)
+
                     except Exception as e:
                         print("FAILED IN GROUP 2")
                         print(e)
