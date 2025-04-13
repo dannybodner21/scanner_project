@@ -159,8 +159,8 @@ def post_metrics_to_bot(request):
                         continue
 
                     # Skip if coin already has an open trade
-                    if FiredSignal.objects.filter(coin=coin_obj, result="unknown").exists():
-                        continue
+                    #if FiredSignal.objects.filter(coin=coin_obj, result="unknown").exists():
+                        #continue
 
                     # Prepare metrics
                     metrics = {
@@ -228,6 +228,8 @@ def post_metrics_to_bot(request):
                             signal_type="short",
                         )
                         signals.append({"symbol": symbol, "type": "short", "confidence": confidence_short})
+
+                    print("not good confidence for this metric.")
 
                 except Exception as e:
                     print(f"⚠️ Error processing {coin_data.get('symbol', 'Unknown')}: {e}")

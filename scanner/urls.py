@@ -20,6 +20,5 @@ urlpatterns = [
 
     path("update-open-trades/", views.run_trade_check, name="update_open_trades"),
 
-
     path('download/<str:filename>/', views.download_file, name='download_file'),
 ]
