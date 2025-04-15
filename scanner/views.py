@@ -39,8 +39,12 @@ import threading
 from django.utils.timezone import make_aware, is_naive
 from sklearn.linear_model import LinearRegression
 import numpy as np
+from django.db.models import Sum
+from django.utils.timezone import timedelta
 
 
+
+# functions for ML Model -------------------------------------------------------
 def calculate_volatility_5min(coin, timestamp):
     try:
         recent = (
@@ -247,7 +251,6 @@ def post_metrics_to_bot(request):
     return JsonResponse({"error": "Only POST allowed"}, status=405)
 
 
-
 # Inside run_metrics_and_scan view
 from threading import Thread
 
@@ -311,6 +314,7 @@ def run_metrics_and_scan(request):
     return JsonResponse({"error": "Invalid method"}, status=405)
 
 
+# five min update --------------------------------------------------------------
 
 
 def run_five_min_update_logic():
@@ -331,6 +335,9 @@ def run_five_min_update_logic():
     totalCount = 0
     actualCount = 0
     shortDatas = []
+
+    # RickisMetric Coins
+    rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK"]
 
     # API limit: Up to 100 IDs per call
     batch_size = 100
@@ -384,7 +391,7 @@ def run_five_min_update_logic():
                         shortData = ShortIntervalData.objects.create(
                             coin=coin,
                             timestamp=timestamp,
-                            price=crypto_data["quote"]["USD"]["price"],
+                            price=current_price,
                             volume_5min=crypto_data["quote"]["USD"]["volume_24h"],
                             circulating_supply=crypto_data["circulating_supply"]
                         )
@@ -411,7 +418,7 @@ def run_five_min_update_logic():
                             price_change_7d = crypto_data["quote"]["USD"]["percent_change_7d"],
                             circulating_supply=crypto_data["circulating_supply"],
                             volume_24h = crypto_data["quote"]["USD"]["volume_24h"],
-                            last_price = crypto_data["quote"]["USD"]["price"],
+                            last_price = current_price,
                             market_cap = crypto_data["quote"]["USD"]["market_cap"],
                             #volatility_5min = volatility,
                             #trend_slope_30min = trend_slope,
@@ -420,10 +427,8 @@ def run_five_min_update_logic():
                             #volume_marketcap_ratio = volume_marketcap_ratio,
                         )
 
-                        print("Metric created for.")
-
+                        print("Metric created.")
                         actualCount +=1
-
                         print(f"total count = {totalCount}")
                         print(f"actual count = {actualCount}")
 
@@ -432,6 +437,35 @@ def run_five_min_update_logic():
                         print(e)
 
                     now = datetime.now()
+
+                    if (coin.symbol in rickisCoins):
+
+                        try:
+                            # create RickisMetrics
+                            print(f"creating RickisMetric for {coin.symbol}")
+                            RickisMetrics.objects.create(
+                                coin=coin,
+                                timestamp=timestamp,
+                                price=current_price,
+                                high_24h=crypto_data["quote"]["USD"].get("high_24h"),
+                                change_5m=calculate_price_change_five_min(coin, timestamp),
+                                change_1h=crypto_data["quote"]["USD"].get("percent_change_1h"),
+                                change_24h=crypto_data["quote"]["USD"].get("percent_change_24h"),
+                                volume=crypto_data["quote"]["USD"].get("volume_24h"),
+                                avg_volume_1h=calculate_avg_volume_1h(coin, timestamp),
+                                rsi=None,
+                                macd=None,
+                                macd_signal=None,
+                                stochastic_k=None,
+                                stochastic_d=None,
+                                support_level=None,
+                                resistance_level=None,
+                            )
+                            print(f"succesfully created RickisMetric for {coin.symbol}")
+
+                        except Exception as e:
+                            print("FAILED IN RickisMetrics:")
+                            print(e)
 
 
         except Exception as e:
@@ -452,8 +486,6 @@ def run_five_min_update_logic():
     print(f"✅ Done in: {datetime.now() - start}")
 
     return
-
-
 
 
 @csrf_exempt
@@ -603,6 +635,37 @@ def five_min_update_old(request=None):
     if request:
         return JsonResponse({"status": "success", "message": "Update triggered successfully"})
 
+
+# functions for RickisMetrics --------------------------------------------------
+
+# high of day momentum scaner
+#    price
+#    high_24h
+#    volume
+#    avg_volume_1h
+#    change_5m
+#    change_1h
+#    rsi
+#    macd
+
+def calculate_avg_volume_1h(coin, timestamp):
+
+    start_time = timestamp - timedelta(minutes=60)
+
+    past_entries = RickisMetrics.objects.filter(
+        coin=coin,
+        timestamp__lte=timestamp,
+        timestamp__gte=start_time
+    ).order_by('-timestamp')[:12]
+
+    volumes = [entry.volume for entry in past_entries if entry.volume is not None]
+
+    if not volumes:
+        return None
+
+    print(f"successfully created avg volume 1h for {coin.symbol}")
+
+    return sum(volumes, Decimal("0")) / Decimal(len(volumes))
 
 
 
@@ -997,9 +1060,6 @@ def calculate_daily_relative_volume(coin):
     return relative_volume
 
 
-from django.db.models import Sum
-from django.utils.timezone import timedelta
-
 def calculate_relative_volume(coin, timestamp):
     from scanner.models import ShortIntervalData
 
@@ -1028,7 +1088,6 @@ def calculate_relative_volume(coin, timestamp):
     recent_volume = sum(d.volume_5min or 0 for d in recent)
 
     return recent_volume / avg_volume if avg_volume else 0
-
 
 
 def calculate_price_change_five_min(coin, timestamp):
