@@ -446,6 +446,24 @@ def run_five_min_update_logic():
                             stochastic_k, stochastic_d = calculate_stochastic(coin, timestamp)
                             support, resistance = calculate_support_resistance(coin, timestamp)
 
+                            if macd is None:
+                                macd = Decimal("0")
+
+                            if signal is None:
+                                signal = Decimal("0")
+
+                            if stochastic_k is None:
+                                stochastic_k = Decimal("0")
+
+                            if stochastic_d is None:
+                                stochastic_d = Decimal("0")
+
+                            if support is None:
+                                support = Decimal("0")
+
+                            if resistance is None:
+                                resistance = Decimal("0")
+
                             # create RickisMetrics
                             print(f"creating RickisMetric for {coin.symbol}")
                             RickisMetrics.objects.create(
