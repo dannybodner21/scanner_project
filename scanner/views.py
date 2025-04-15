@@ -792,8 +792,6 @@ def calculate_macd(coin, timestamp):
 
 
 def calculate_stochastic(coin, timestamp, period=14):
-    from rickisapp.models import RickisMetrics
-    import pandas as pd
 
     # Get last N rows
     qs = (
