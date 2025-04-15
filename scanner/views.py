@@ -441,26 +441,30 @@ def run_five_min_update_logic():
                     if (coin.symbol in rickisCoins):
 
                         try:
+
+                            macd, signal = calculate_macd(coin, timestamp)
+                            stochastic_k, stochastic_d = calculate_stochastic(coin, timestamp)
+                            support, resistance = calculate_support_resistance(coin, timestamp)
+
                             # create RickisMetrics
                             print(f"creating RickisMetric for {coin.symbol}")
                             RickisMetrics.objects.create(
                                 coin=coin,
                                 timestamp=timestamp,
                                 price=current_price,
-                                #high_24h=crypto_data["quote"]["USD"].get("high_24h"),
-                                high_24h=None,
+                                high_24h=0.0,
                                 change_5m=calculate_price_change_five_min(coin, timestamp),
                                 change_1h=crypto_data["quote"]["USD"].get("percent_change_1h"),
                                 change_24h=crypto_data["quote"]["USD"].get("percent_change_24h"),
                                 volume=crypto_data["quote"]["USD"].get("volume_24h"),
                                 avg_volume_1h=calculate_avg_volume_1h(coin, timestamp),
-                                rsi=None,
-                                macd=None,
-                                macd_signal=None,
-                                stochastic_k=None,
-                                stochastic_d=None,
-                                support_level=None,
-                                resistance_level=None,
+                                rsi=calculate_rsi(coin, timestamp),
+                                macd=macd,
+                                macd_signal=signal,
+                                stochastic_k=stochastic_k,
+                                stochastic_d=stochastic_d,
+                                support_level=support,
+                                resistance_level=resistance,
                             )
                             print(f"succesfully created RickisMetric for {coin.symbol}")
 
@@ -723,13 +727,137 @@ def calculate_avg_volume_1h(coin, timestamp):
     return sum(volumes, Decimal("0")) / Decimal(len(volumes))
 
 
-def calculate_rsi(coin):
+def calculate_rsi(coin, timestamp, periods=14):
 
-    return None
+    # Get at least (periods + 1) rows to compute changes
+    qs = (
+        RickisMetrics.objects
+        .filter(coin=coin, timestamp__lte=timestamp)
+        .order_by("-timestamp")[:periods + 1]
+    )
 
-def calculate_macd(coin):
+    if qs.count() < periods + 1:
+        return None  # Not enough data
 
-    return None
+    # Convert queryset to DataFrame (in correct order)
+    data = list(qs)[::-1]  # oldest to newest
+    prices = [row.price for row in data]
+    df = pd.Series(prices)
+
+    # Calculate price differences
+    delta = df.diff()
+
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+
+    avg_gain = gain.rolling(window=periods).mean().iloc[-1]
+    avg_loss = loss.rolling(window=periods).mean().iloc[-1]
+
+    if avg_loss == 0:
+        return 100.0  # RSI maxed
+
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+
+    return round(float(rsi), 2)
+
+
+def calculate_macd(coin, timestamp):
+
+    # Get enough price history (at least 35 for smoothing)
+    qs = (
+        RickisMetrics.objects
+        .filter(coin=coin, timestamp__lte=timestamp)
+        .order_by("-timestamp")[:50]
+    )
+
+    if qs.count() < 35:
+        return None, None  # Not enough data
+
+    data = list(qs)[::-1]  # oldest to newest
+    prices = [row.price for row in data]
+    df = pd.Series(prices)
+
+    # Calculate EMAs
+    ema_12 = df.ewm(span=12, adjust=False).mean()
+    ema_26 = df.ewm(span=26, adjust=False).mean()
+    macd_line = ema_12 - ema_26
+    signal_line = macd_line.ewm(span=9, adjust=False).mean()
+
+    # Return the latest values
+    macd_value = macd_line.iloc[-1]
+    signal_value = signal_line.iloc[-1]
+
+    return round(float(macd_value), 6), round(float(signal_value), 6)
+
+
+def calculate_stochastic(coin, timestamp, period=14):
+    from rickisapp.models import RickisMetrics
+    import pandas as pd
+
+    # Get last N rows
+    qs = (
+        RickisMetrics.objects
+        .filter(coin=coin, timestamp__lte=timestamp)
+        .order_by("-timestamp")[:period]
+    )
+
+    if qs.count() < period:
+        return None, None
+
+    data = list(qs)[::-1]  # oldest to newest
+    highs = [row.high_24h for row in data if row.high_24h is not None]
+    lows = [row.price for row in data if row.price is not None]  # using current price for simplicity
+
+    if not highs or not lows:
+        return None, None
+
+    current_price = data[-1].price
+    lowest_low = min(lows)
+    highest_high = max(highs)
+
+    if highest_high == lowest_low:
+        return 0.0, 0.0  # prevent division by zero
+
+    k = 100 * (current_price - lowest_low) / (highest_high - lowest_low)
+
+    # Create dummy %K series to calculate %D (3-period SMA of %K)
+    k_series = pd.Series([
+        100 * (row.price - min(lows)) / (max(highs) - min(lows)) if (max(highs) - min(lows)) != 0 else 0
+        for row in data[-3:]
+    ])
+
+    d = k_series.mean()
+
+    return round(float(k), 2), round(float(d), 2)
+
+
+def calculate_support_resistance(coin, timestamp, period=20):
+
+    qs = (
+        RickisMetrics.objects
+        .filter(coin=coin, timestamp__lte=timestamp)
+        .order_by("-timestamp")[:period]
+    )
+
+    if qs.count() < period:
+        return None, None
+
+    data = list(qs)[::-1]  # oldest to newest
+
+    prices = [row.price for row in data if row.price is not None]
+    highs = [row.high_24h for row in data if row.high_24h is not None]
+
+    if not prices:
+        return None, None
+
+    support = min(prices)
+    resistance = max(highs) if highs else max(prices)
+
+    return round(float(support), 6), round(float(resistance), 6)
+
+
+
 
 
 # Rickis scanner functions ------------------------------------------------------------
