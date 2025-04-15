@@ -447,7 +447,8 @@ def run_five_min_update_logic():
                                 coin=coin,
                                 timestamp=timestamp,
                                 price=current_price,
-                                high_24h=crypto_data["quote"]["USD"].get("high_24h"),
+                                #high_24h=crypto_data["quote"]["USD"].get("high_24h"),
+                                high_24h=None,
                                 change_5m=calculate_price_change_five_min(coin, timestamp),
                                 change_1h=crypto_data["quote"]["USD"].get("percent_change_1h"),
                                 change_24h=crypto_data["quote"]["USD"].get("percent_change_24h"),
@@ -485,7 +486,61 @@ def run_five_min_update_logic():
 
     print(f"✅ Done in: {datetime.now() - start}")
 
+    # additional thread for more OHCLV data
+    Thread(target=run_ohlcv_update).start()
+
     return
+
+
+# get additional data for RickisMetrics
+def run_ohlcv_update():
+
+    print("📊 Starting OHLCV update thread")
+
+    API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    url = 'https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/latest'
+    headers = {
+        "Accepts": "application/json",
+        "X-CMC_PRO_API_KEY": API_KEY,
+    }
+
+    rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK"]
+    coins = Coin.objects.filter(symbol__in=rickisCoins)
+    cmc_ids = [coin.cmc_id for coin in coins]
+
+    batch_size = 100
+    for i in range(0, len(cmc_ids), batch_size):
+        batch = cmc_ids[i:i + batch_size]
+
+        try:
+            response = requests.get(url, headers=headers, params={
+                "id": ",".join(map(str, batch)),
+                "convert": "USD"
+            })
+            response.raise_for_status()
+            data = response.json()["data"]
+
+            for cmc_id in batch:
+                coin = Coin.objects.get(cmc_id=cmc_id)
+                quote = data[str(cmc_id)]["quote"]["USD"]
+                high_24h = Decimal(str(quote.get("high", 0)))
+
+                # update latest RickisMetrics row with high_24h
+                latest = (
+                    RickisMetrics.objects
+                    .filter(coin=coin)
+                    .order_by("-timestamp")
+                    .first()
+                )
+
+                if latest:
+                    latest.high_24h = high_24h
+                    latest.save()
+
+        except Exception as e:
+            print("❌ OHLCV error:", e)
+
+    print("✅ OHLCV update thread complete.")
 
 
 @csrf_exempt
@@ -668,9 +723,52 @@ def calculate_avg_volume_1h(coin, timestamp):
     return sum(volumes, Decimal("0")) / Decimal(len(volumes))
 
 
+def calculate_rsi(coin):
+
+    return None
+
+def calculate_macd(coin):
+
+    return None
+
+
+# Rickis scanner functions ------------------------------------------------------------
+
+# High of Day Scanner
+def get_hod_movers(request):
+    latest_metrics = (
+        RickisMetrics.objects
+        .order_by('coin_id', '-timestamp')
+        .distinct('coin_id')
+    )
+
+    data = []
+
+    for row in latest_metrics:
+        data.append({
+            "symbol": row.coin.symbol,
+            "name": row.coin.name,
+            "price": float(row.price),
+            "high_24h": float(row.high_24h or 0),
+            "change_5m": float(row.change_5m or 0),
+            "change_1h": float(row.change_1h or 0),
+            "change_24h": float(row.change_24h or 0),
+            "volume": float(row.volume or 0),
+            "avg_volume_1h": float(row.avg_volume_1h or 0),
+            "timestamp": row.timestamp.isoformat(),
+        })
+
+    return JsonResponse(data, safe=False)
 
 
 
+
+
+
+
+
+
+# INDEX ------------------------------------------------------------------------
 
 from decimal import Decimal
 from django.db.models import Q
@@ -782,8 +880,7 @@ def update_open_trades_view(request):
         "remaining_open": open_signals.count() - closed,
     })
 
-
-
+# ------------------------------------------------------------------------------
 
 
 

@@ -21,4 +21,8 @@ urlpatterns = [
     path("update-open-trades/", views.run_trade_check, name="update-open-trades"),
 
     path('download/<str:filename>/', views.download_file, name='download_file'),
+
+    # RickisScanner URLs
+    path("api/ricki/latest", views.get_hod_movers, name="get-hod-movers"),
+
 ]
