@@ -163,6 +163,39 @@ class Pattern(models.Model):
         return f"{self.symbol}, {self.timestamp}"
 
 
+class RickisMetrics(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField()
+    price = models.DecimalField(max_digits=20, decimal_places=10)
+
+    # High of Day Momentum
+    high_24h = models.DecimalField(max_digits=20, decimal_places=10)
+
+    # Top Gainers
+    change_5m = models.FloatField()
+    change_1h = models.FloatField()
+    change_24h = models.FloatField()
+
+    # Volume Spike
+    volume = models.DecimalField(max_digits=30, decimal_places=2)
+    avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2)
+
+    # Reversal
+    rsi = models.FloatField(null=True)
+    macd = models.FloatField(null=True)
+    macd_signal = models.FloatField(null=True)
+    stochastic_k = models.FloatField(null=True)
+    stochastic_d = models.FloatField(null=True)
+
+    # Support/Resistance
+    support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+
+    def __str__(self):
+        return f"{self.coin.symbol} @ {self.timestamp}"
+
+
+
 
 
 
