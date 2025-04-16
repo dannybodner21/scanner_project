@@ -512,10 +512,7 @@ def run_five_min_update_logic():
 # get additional data for RickisMetrics
 def run_ohlcv_update():
 
-    print("📊 Starting OHLCV update thread")
-
-    text = ["starting OHLCV update thread"]
-    send_text(text)
+    print("📊 Starting OHLCV update thread -----------------------------------")
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     url = 'https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/latest'
@@ -548,7 +545,7 @@ def run_ohlcv_update():
             for cmc_id in batch:
                 coin = Coin.objects.get(cmc_id=cmc_id)
 
-                if str(cmc_id) not in ohlcv_data:
+                if str(cmc_id) not in data:
                     print(f"❌ {coin.symbol} missing in OHLCV response.")
                     continue
 
