@@ -547,13 +547,16 @@ def run_ohlcv_update():
 
             for cmc_id in batch:
                 coin = Coin.objects.get(cmc_id=cmc_id)
+
+                if str(cmc_id) not in ohlcv_data:
+                    print(f"❌ {coin.symbol} missing in OHLCV response.")
+                    continue
+
                 quote = data[str(cmc_id)]["quote"]["USD"]
-
-                print(quote)
-
                 high_24h = Decimal(str(quote.get("high", 0)))
 
-                print(high_24h)
+                print(f"🔎 {coin.symbol} → High 24h from OHLCV: {high_24h}")
+
 
                 # update latest RickisMetrics row with high_24h
                 latest = (
@@ -566,9 +569,10 @@ def run_ohlcv_update():
                 print(latest)
 
                 if latest:
+                    print(f"📌 Updating RickisMetrics row ID {latest.id} for {coin.symbol}")
                     latest.high_24h = high_24h
                     latest.save()
-                    print(f"saved high for {coin.symbol}")
+                    print(f"✅ Saved high_24h = {high_24h} for {coin.symbol}")
 
         except Exception as e:
             print("❌ OHLCV error:", e)
@@ -910,6 +914,18 @@ def get_hod_movers(request):
             "change_24h": float(row.change_24h or 0),
             "volume": float(row.volume or 0),
             "avg_volume_1h": float(row.avg_volume_1h or 0),
+
+            # Momentum indicators
+            "rsi": float(row.rsi) if row.rsi is not None else None,
+            "macd": float(row.macd) if row.macd is not None else None,
+            "macd_signal": float(row.macd_signal) if row.macd_signal is not None else None,
+            "stochastic_k": float(row.stochastic_k) if row.stochastic_k is not None else None,
+            "stochastic_d": float(row.stochastic_d) if row.stochastic_d is not None else None,
+
+            # Levels
+            "support_level": float(row.support_level) if row.support_level is not None else None,
+            "resistance_level": float(row.resistance_level) if row.resistance_level is not None else None,
+
             "timestamp": row.timestamp.isoformat(),
         })
 
