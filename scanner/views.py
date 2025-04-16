@@ -532,8 +532,7 @@ def run_ohlcv_update():
     for i in range(0, len(cmc_ids), batch_size):
         batch = cmc_ids[i:i + batch_size]
 
-        text = ["entered loop"]
-        send_text(text)
+        print("entered loop")
 
         try:
             response = requests.get(url, headers=headers, params={
@@ -543,14 +542,18 @@ def run_ohlcv_update():
             response.raise_for_status()
             data = response.json()["data"]
 
+            print("data: ")
+            print(data)
+
             for cmc_id in batch:
                 coin = Coin.objects.get(cmc_id=cmc_id)
                 quote = data[str(cmc_id)]["quote"]["USD"]
 
-                text = [quote]
-                send_text(text)
+                print(quote)
 
                 high_24h = Decimal(str(quote.get("high", 0)))
+
+                print(high_24h)
 
                 # update latest RickisMetrics row with high_24h
                 latest = (
@@ -560,9 +563,12 @@ def run_ohlcv_update():
                     .first()
                 )
 
+                print(latest)
+
                 if latest:
                     latest.high_24h = high_24h
                     latest.save()
+                    print(f"saved high for {coin.symbol}")
 
         except Exception as e:
             print("❌ OHLCV error:", e)
