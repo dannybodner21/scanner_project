@@ -448,19 +448,14 @@ def run_five_min_update_logic():
 
                             if macd is None:
                                 macd = Decimal("0")
-
                             if signal is None:
                                 signal = Decimal("0")
-
                             if stochastic_k is None:
                                 stochastic_k = Decimal("0")
-
                             if stochastic_d is None:
                                 stochastic_d = Decimal("0")
-
                             if support is None:
                                 support = Decimal("0")
-
                             if resistance is None:
                                 resistance = Decimal("0")
 
@@ -519,6 +514,9 @@ def run_ohlcv_update():
 
     print("📊 Starting OHLCV update thread")
 
+    text = ["starting OHLCV update thread"]
+    send_text(text)
+
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     url = 'https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/latest'
     headers = {
@@ -534,6 +532,9 @@ def run_ohlcv_update():
     for i in range(0, len(cmc_ids), batch_size):
         batch = cmc_ids[i:i + batch_size]
 
+        text = ["entered loop"]
+        send_text(text)
+
         try:
             response = requests.get(url, headers=headers, params={
                 "id": ",".join(map(str, batch)),
@@ -545,6 +546,10 @@ def run_ohlcv_update():
             for cmc_id in batch:
                 coin = Coin.objects.get(cmc_id=cmc_id)
                 quote = data[str(cmc_id)]["quote"]["USD"]
+
+                text = [quote]
+                send_text(text)
+
                 high_24h = Decimal(str(quote.get("high", 0)))
 
                 # update latest RickisMetrics row with high_24h
