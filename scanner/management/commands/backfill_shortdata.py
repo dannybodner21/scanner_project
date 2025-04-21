@@ -104,10 +104,6 @@ class Command(BaseCommand):
                         else:
                             print(f"✅ Inserted {coin.symbol} at {timestamp}")
 
-                        print(f"✅ Inserted {coin.symbol} at {timestamp}")
-
-                    time.sleep(2)
-
                 except Exception as e:
                     print(f"❌ Error during API call: {e}")
 

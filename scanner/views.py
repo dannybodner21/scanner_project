@@ -343,7 +343,14 @@ def run_five_min_update_logic():
     # RickisMetric Coins
     rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
                     "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
-                    "HYPE","BGB","DAI","PI","XMR","UNI","PEPE"]
+                    "HYPE","BGB","DAI","PI","XMR","UNI","PEPE","OKB","APT","GT",
+                    "NEAR","ONDO","TAO","ICP","ETC","RENDER","MNT","KAS","CRO",
+                    "AAVE","POL","VET","FIL","TRUMP","ALGO","ENA","ATOM","TIA",
+                    "FET","ARB","S","KCS","DEXE","OP","JUP","MKR","XDC","STX",
+                    "FLR","EOS","WLD","IP","BONK","FARTCOIN","SEI","INJ","IMX",
+                    "GRT","FORM","QNT","PAXG","CRV","JASMY","SAND","GALA",
+                    "NEXO","CORE","RAY","KAIA","LDO","THETA","IOTA","HNT",
+                    "MANA","FLOW","CAKE","MOVE","FLOKI","XCN"]
 
     # API limit: Up to 100 IDs per call
     batch_size = 100
@@ -531,9 +538,16 @@ def run_ohlcv_update():
         "X-CMC_PRO_API_KEY": API_KEY,
     }
 
-    rickisCoins = ["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LEO", "LINK",
-                   "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
-                   "HYPE", "BGB", "DAI", "PI", "XMR", "UNI", "PEPE"]
+    rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
+                    "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
+                    "HYPE","BGB","DAI","PI","XMR","UNI","PEPE","OKB","APT","GT",
+                    "NEAR","ONDO","TAO","ICP","ETC","RENDER","MNT","KAS","CRO",
+                    "AAVE","POL","VET","FIL","TRUMP","ALGO","ENA","ATOM","TIA",
+                    "FET","ARB","S","KCS","DEXE","OP","JUP","MKR","XDC","STX",
+                    "FLR","EOS","WLD","IP","BONK","FARTCOIN","SEI","INJ","IMX",
+                    "GRT","FORM","QNT","PAXG","CRV","JASMY","SAND","GALA",
+                    "NEXO","CORE","RAY","KAIA","LDO","THETA","IOTA","HNT",
+                    "MANA","FLOW","CAKE","MOVE","FLOKI","XCN"]
 
     coins = Coin.objects.filter(symbol__in=rickisCoins)
     cmc_ids = [coin.cmc_id for coin in coins]
@@ -907,11 +921,13 @@ def calculate_support_resistance(coin, timestamp, period=20):
 from django.db.models import Q
 
 def get_hod_movers(request):
-    latest_metrics = (
+
+    latest_metrics = list(
         RickisMetrics.objects
         .order_by('coin_id', '-timestamp')
         .distinct('coin_id')
-    )
+        .order_by('coin_id')
+    )[:10]
 
     data = []
 
