@@ -337,7 +337,10 @@ def run_five_min_update_logic():
     shortDatas = []
 
     # RickisMetric Coins
-    rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK"]
+    # rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK"]
+    rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
+                    "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
+                    "HYPE","BGB","DAI","PI","XMR","UNI","PEPE"]
 
     # API limit: Up to 100 IDs per call
     batch_size = 100
