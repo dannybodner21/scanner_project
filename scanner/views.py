@@ -514,7 +514,7 @@ def run_five_min_update_logic():
 
 # get additional data for RickisMetrics
 def run_ohlcv_update():
-
+    
     print("📊 Starting OHLCV update thread -------------------------------------------------------------------")
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
@@ -524,9 +524,9 @@ def run_ohlcv_update():
         "X-CMC_PRO_API_KEY": API_KEY,
     }
 
-    rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
-                    "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
-                    "HYPE","BGB","DAI","PI","XMR","UNI","PEPE"]
+    rickisCoins = ["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LEO", "LINK",
+                   "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+                   "HYPE", "BGB", "DAI", "PI", "XMR", "UNI", "PEPE"]
 
     coins = Coin.objects.filter(symbol__in=rickisCoins)
     cmc_ids = [coin.cmc_id for coin in coins]
@@ -534,7 +534,6 @@ def run_ohlcv_update():
     batch_size = 100
     for i in range(0, len(cmc_ids), batch_size):
         batch = cmc_ids[i:i + batch_size]
-
         print("entered loop")
 
         try:
@@ -543,7 +542,7 @@ def run_ohlcv_update():
                 "convert": "USD"
             })
             response.raise_for_status()
-            data = response.json()["data"]
+            data = response.json().get("data", {})
 
             for cmc_id in batch:
                 coin = Coin.objects.get(cmc_id=cmc_id)
@@ -552,32 +551,38 @@ def run_ohlcv_update():
                     print(f"❌ {coin.symbol} missing in OHLCV response.")
                     continue
 
-                quote = data[str(cmc_id)]["quote"]["USD"]
-                high_24h = Decimal(str(quote.get("high", 0)))
+                quote = data[str(cmc_id)].get("quote", {}).get("USD", {})
+                high_raw = quote.get("high")
+
+                if high_raw is None:
+                    print(f"⚠️ No high_24h found for {coin.symbol}, skipping update.")
+                    continue
+
+                try:
+                    high_24h = Decimal(str(high_raw))
+                except Exception as parse_err:
+                    print(f"⚠️ Could not parse high_24h for {coin.symbol}: {high_raw}")
+                    continue
 
                 print(f"🔎 {coin.symbol} → High 24h from OHLCV: {high_24h}")
 
+                if high_24h > 0:
+                    latest = RickisMetrics.objects.filter(coin=coin).order_by("-timestamp").first()
 
-                # update latest RickisMetrics row with high_24h
-                latest = (
-                    RickisMetrics.objects
-                    .filter(coin=coin)
-                    .order_by("-timestamp")
-                    .first()
-                )
-
-                print(latest)
-
-                if latest:
-                    print(f"📌 Updating RickisMetrics row ID {latest.id} for {coin.symbol}")
-                    latest.high_24h = high_24h
-                    latest.save()
-                    print(f"✅ Saved high_24h = {high_24h} for {coin.symbol}")
+                    if latest:
+                        print(f"📌 Updating RickisMetrics row ID {latest.id} for {coin.symbol}")
+                        latest.high_24h = high_24h
+                        latest.save()
+                        print(f"✅ Saved high_24h = {high_24h} for {coin.symbol}")
+                else:
+                    print(f"⚠️ Skipping update for {coin.symbol} — high_24h was 0")
 
         except Exception as e:
             print("❌ OHLCV error:", e)
 
     print("✅ OHLCV update thread complete.")
+
+
 
 
 @csrf_exempt
@@ -896,6 +901,7 @@ def calculate_support_resistance(coin, timestamp, period=20):
 
 # High of Day Scanner
 def get_hod_movers(request):
+
     latest_metrics = (
         RickisMetrics.objects
         .order_by('coin_id', '-timestamp')
