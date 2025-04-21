@@ -44,6 +44,10 @@ from django.utils.timezone import timedelta
 from django.core.management.base import BaseCommand
 
 
+# round all timestamps to store rounded numbers
+def round_to_five_minutes(dt):
+    return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
+
 # functions for ML Model -------------------------------------------------------
 def calculate_volatility_5min(coin, timestamp):
     try:
@@ -366,6 +370,8 @@ def run_five_min_update_logic():
                     if is_naive(timestamp):
                         timestamp = make_aware(timestamp)
 
+                    timestamp = round_to_five_minutes(timestamp)
+
                     coin = Coin.objects.get(cmc_id=cmc_id)
                     current_price = crypto_data["quote"]["USD"]["price"]
 
@@ -378,6 +384,7 @@ def run_five_min_update_logic():
                         coin.market_cap_rank = crypto_data["cmc_rank"]
                         coin.last_updated = timestamp
                         coin.save()
+
                     except Exception as e:
                         print("FAILED IN GROUP 1")
                         print(e)
@@ -957,9 +964,6 @@ def get_hod_movers(request):
 
 API_KEY_TWO = 'c35740fd-4f78-45b5-9350-c4afdd929432'
 CMC_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
-
-def round_to_five_minutes(dt):
-    return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
 
 class Command(BaseCommand):
 
