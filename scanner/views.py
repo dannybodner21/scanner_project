@@ -509,16 +509,13 @@ def run_five_min_update_logic():
 
     print(f"✅ Done in: {datetime.now() - start}")
 
-    # additional thread for more OHCLV data
-    Thread(target=run_ohlcv_update).start()
-
     return
 
 
 # get additional data for RickisMetrics
 def run_ohlcv_update():
 
-    print("📊 Starting OHLCV update thread -----------------------------------")
+    print("📊 Starting OHLCV update thread -------------------------------------------------------------------")
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
     url = 'https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/latest'
@@ -530,7 +527,7 @@ def run_ohlcv_update():
     rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
                     "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
                     "HYPE","BGB","DAI","PI","XMR","UNI","PEPE"]
-                    
+
     coins = Coin.objects.filter(symbol__in=rickisCoins)
     cmc_ids = [coin.cmc_id for coin in coins]
 
@@ -547,9 +544,6 @@ def run_ohlcv_update():
             })
             response.raise_for_status()
             data = response.json()["data"]
-
-            print("data: ")
-            print(data)
 
             for cmc_id in batch:
                 coin = Coin.objects.get(cmc_id=cmc_id)
@@ -589,6 +583,7 @@ def run_ohlcv_update():
 @csrf_exempt
 def five_min_update(request):
     Thread(target=run_five_min_update_logic).start()
+    Thread(target=run_ohlcv_update).start()
     return JsonResponse({"status": "started"})
 
 
