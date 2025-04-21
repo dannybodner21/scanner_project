@@ -442,7 +442,7 @@ def run_five_min_update_logic():
                         )
 
                         print("Metric created.")
-                        actualCount +=1
+                        actualCount += 1
                         print(f"total count = {totalCount}")
                         print(f"actual count = {actualCount}")
 
