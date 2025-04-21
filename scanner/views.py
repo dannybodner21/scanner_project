@@ -337,7 +337,6 @@ def run_five_min_update_logic():
     shortDatas = []
 
     # RickisMetric Coins
-    # rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK"]
     rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
                     "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
                     "HYPE","BGB","DAI","PI","XMR","UNI","PEPE"]
@@ -374,8 +373,6 @@ def run_five_min_update_logic():
                     #trend_slope = calculate_trend_slope_30min(coin, timestamp)
                     #change_low, change_high = calculate_change_since_high_low(coin, timestamp)
                     #volume_marketcap_ratio = float(crypto_data["quote"]["USD"]["volume_24h"]) / float(crypto_data["quote"]["USD"]["market_cap"]) if crypto_data["quote"]["USD"]["market_cap"] else None
-
-
 
                     try:
                         coin.market_cap_rank = crypto_data["cmc_rank"]
@@ -451,16 +448,22 @@ def run_five_min_update_logic():
 
                             if macd is None:
                                 macd = Decimal("0")
+                                print(f"MACD is None for {coin.symbol}")
                             if signal is None:
                                 signal = Decimal("0")
+                                print(f"signal is None for {coin.symbol}")
                             if stochastic_k is None:
                                 stochastic_k = Decimal("0")
+                                print(f"stochastic k is None for {coin.symbol}")
                             if stochastic_d is None:
                                 stochastic_d = Decimal("0")
+                                print(f"stochastic d is None for {coin.symbol}")
                             if support is None:
                                 support = Decimal("0")
+                                print(f"support is None for {coin.symbol}")
                             if resistance is None:
                                 resistance = Decimal("0")
+                                print(f"resistance is None for {coin.symbol}")
 
                             # create RickisMetrics
                             print(f"creating RickisMetric for {coin.symbol}")
@@ -524,7 +527,10 @@ def run_ohlcv_update():
         "X-CMC_PRO_API_KEY": API_KEY,
     }
 
-    rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK"]
+    rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
+                    "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
+                    "HYPE","BGB","DAI","PI","XMR","UNI","PEPE"]
+                    
     coins = Coin.objects.filter(symbol__in=rickisCoins)
     cmc_ids = [coin.cmc_id for coin in coins]
 
