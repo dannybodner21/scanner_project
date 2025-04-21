@@ -514,7 +514,7 @@ def run_five_min_update_logic():
 
 # get additional data for RickisMetrics
 def run_ohlcv_update():
-    
+
     print("📊 Starting OHLCV update thread -------------------------------------------------------------------")
 
     API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
@@ -900,8 +900,9 @@ def calculate_support_resistance(coin, timestamp, period=20):
 # Rickis scanner functions ------------------------------------------------------------
 
 # High of Day Scanner
-def get_hod_movers(request):
+from django.db.models import Q
 
+def get_hod_movers(request):
     latest_metrics = (
         RickisMetrics.objects
         .order_by('coin_id', '-timestamp')
@@ -911,25 +912,41 @@ def get_hod_movers(request):
     data = []
 
     for row in latest_metrics:
+        high_24h = row.high_24h
+
+        # If missing or zero, look for previous non-zero high_24h for this coin
+        if not high_24h or high_24h == 0:
+            previous = (
+                RickisMetrics.objects
+                .filter(
+                    coin=row.coin,
+                    high_24h__isnull=False,
+                    high_24h__gt=0,
+                    timestamp__lt=row.timestamp
+                )
+                .order_by('-timestamp')
+                .first()
+            )
+            if previous:
+                high_24h = previous.high_24h
+
         data.append({
             "symbol": row.coin.symbol,
             "name": row.coin.name,
             "price": float(row.price),
-            "high_24h": float(row.high_24h or 0),
+            "high_24h": float(high_24h or 0),
             "change_5m": float(row.change_5m or 0),
             "change_1h": float(row.change_1h or 0),
             "change_24h": float(row.change_24h or 0),
             "volume": float(row.volume or 0),
             "avg_volume_1h": float(row.avg_volume_1h or 0),
 
-            # Momentum indicators
             "rsi": float(row.rsi) if row.rsi is not None else None,
             "macd": float(row.macd) if row.macd is not None else None,
             "macd_signal": float(row.macd_signal) if row.macd_signal is not None else None,
             "stochastic_k": float(row.stochastic_k) if row.stochastic_k is not None else None,
             "stochastic_d": float(row.stochastic_d) if row.stochastic_d is not None else None,
 
-            # Levels
             "support_level": float(row.support_level) if row.support_level is not None else None,
             "resistance_level": float(row.resistance_level) if row.resistance_level is not None else None,
 
@@ -937,6 +954,7 @@ def get_hod_movers(request):
         })
 
     return JsonResponse(data, safe=False)
+
 
 
 
