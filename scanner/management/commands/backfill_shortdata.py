@@ -29,6 +29,7 @@ class Command(BaseCommand):
         end = make_aware(datetime.strptime(kwargs['end'], "%Y-%m-%dT%H:%M"))
 
         #symbol = kwargs.get('symbol')
+        
 
         rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
                         "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
