@@ -24,14 +24,16 @@ class Command(BaseCommand):
 
     # python manage.py backfill_shortdata --start="2024-03-22T00:00" --end="2024-04-20T23:55" --symbol=BTC
 
+    # python manage.py backfill_shortdata --start="2024-03-22T00:00" --end="2024-03-23T00:05"
+
     def handle(self, *args, **kwargs):
         start = make_aware(datetime.strptime(kwargs['start'], "%Y-%m-%dT%H:%M"))
         end = make_aware(datetime.strptime(kwargs['end'], "%Y-%m-%dT%H:%M"))
 
         #symbol = kwargs.get('symbol')
-        
 
-        rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
+
+        target_symbols = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
                         "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
                         "HYPE","BGB","DAI","PI","XMR","UNI","PEPE","OKB","APT","GT",
                         "NEAR","ONDO","TAO","ICP","ETC","RENDER","MNT","KAS","CRO",
@@ -42,7 +44,12 @@ class Command(BaseCommand):
                         "NEXO","CORE","RAY","KAIA","LDO","THETA","IOTA","HNT",
                         "MANA","FLOW","CAKE","MOVE","FLOKI","XCN"]
 
-        target_symbols = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK"]
+
+        # symbols = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK"]
+
+        # one day at a time with all coins at once.
+        # starting at March 22nd
+
         coins = Coin.objects.filter(symbol__in=target_symbols)
 
         #if symbol:
