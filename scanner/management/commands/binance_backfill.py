@@ -6,13 +6,17 @@ from decimal import Decimal
 import requests
 import time
 
-BINANCE_URL = "https://api.binance.com/api/v3/klines"
+COINGECKO_URL = "https://api.coingecko.com/api/v3/coins/{id}/market_chart/range"
+
+COINGECKO_IDS = {
+    "BTC": "bitcoin"
+}
 
 def round_to_five_minutes(dt):
     return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
 
 class Command(BaseCommand):
-    help = "Backfill ShortIntervalData for BTC using Binance 5m candles"
+    help = "Backfill ShortIntervalData for BTC using CoinGecko 5m data"
 
     def add_arguments(self, parser):
         parser.add_argument('--start', type=str, help='Start date (YYYY-MM-DD)')
@@ -20,59 +24,50 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start_date = datetime.strptime(kwargs['start'], "%Y-%m-%d")
-        end_date = datetime.strptime(kwargs['end'], "%Y-%m-%d")
-        end_date += timedelta(days=1)  # include full end day
+        end_date = datetime.strptime(kwargs['end'], "%Y-%m-%d") + timedelta(days=1)
 
         coin = Coin.objects.get(symbol="BTC")
-        symbol = "BTCUSDT"
-        interval = "5m"
-        limit = 1000  # max Binance allows
+        gecko_id = COINGECKO_IDS["BTC"]
 
-        current = start_date
-        while current < end_date:
-            start_ts = int(current.timestamp() * 1000)
-            end_ts = int((current + timedelta(minutes=limit * 5)).timestamp() * 1000)
+        from_timestamp = int(start_date.timestamp())
+        to_timestamp = int(end_date.timestamp())
 
-            params = {
-                "symbol": symbol,
-                "interval": interval,
-                "startTime": start_ts,
-                "endTime": end_ts,
-                "limit": limit
-            }
+        params = {
+            "vs_currency": "usd",
+            "from": from_timestamp,
+            "to": to_timestamp
+        }
 
-            try:
-                response = requests.get(BINANCE_URL, params=params)
-                response.raise_for_status()
-                candles = response.json()
+        try:
+            response = requests.get(COINGECKO_URL.format(id=gecko_id), params=params)
+            response.raise_for_status()
+            data = response.json()
+            prices = data.get("prices", [])
+            volumes = data.get("total_volumes", [])
 
-                for candle in candles:
-                    raw_time = datetime.utcfromtimestamp(candle[0] / 1000)
-                    rounded_time = round_to_five_minutes(raw_time)
-                    open_time = make_aware(rounded_time)
-                    close_price = Decimal(candle[4])
-                    volume = Decimal(candle[5])
+            volume_dict = {round_to_five_minutes(datetime.utcfromtimestamp(v[0] / 1000)): Decimal(v[1]) for v in volumes}
 
-                    obj, created = ShortIntervalData.objects.get_or_create(
-                        coin=coin,
-                        timestamp=open_time,
-                        defaults={
-                            'price': close_price,
-                            'volume_5min': volume
-                        }
-                    )
+            for entry in prices:
+                ts = round_to_five_minutes(datetime.utcfromtimestamp(entry[0] / 1000))
+                aware_ts = make_aware(ts)
+                price = Decimal(entry[1])
+                volume = volume_dict.get(ts, Decimal("0"))
 
-                    if created:
-                        print(f"✅ Inserted BTC at {open_time}")
-                    else:
-                        print(f"⏩ Skipped (exists) BTC at {open_time}")
+                obj, created = ShortIntervalData.objects.get_or_create(
+                    coin=coin,
+                    timestamp=aware_ts,
+                    defaults={
+                        'price': price,
+                        'volume_5min': volume
+                    }
+                )
 
-                time.sleep(0.5)  # avoid hammering API
+                if created:
+                    print(f"✅ Inserted BTC at {aware_ts}")
+                else:
+                    print(f"⏩ Skipped (exists) BTC at {aware_ts}")
 
-            except Exception as e:
-                print(f"❌ Error fetching candles: {e}")
-                break
-
-            current += timedelta(minutes=limit * 5)
+        except Exception as e:
+            print(f"❌ Error fetching data from CoinGecko: {e}")
 
         print("✅ Backfill complete.")
