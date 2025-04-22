@@ -10,7 +10,7 @@ import time
 
 # python manage.py backfill_shortdata --start="2024-03-22T00:00" --end="2024-04-20T23:55" --symbol=BTC
 
-# python manage.py backfill_shortdata --start="2024-03-22T00:00" --end="2024-03-23T00:05"
+# python manage.py backfill_shortdata --start="2024-03-24T00:00" --end="2024-03-25T00:05"
 
 
 def round_to_five_minutes(dt):
@@ -66,7 +66,7 @@ class Command(BaseCommand):
             for i in range(0, len(cmc_ids), batch_size):
 
                 time.sleep(1.6)
-                
+
                 batch = cmc_ids[i:i + batch_size]
                 params = {"id": ",".join(map(str, batch)), "convert": "USD"}
                 headers = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": API_KEY_TWO}
