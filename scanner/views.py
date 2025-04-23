@@ -1024,7 +1024,7 @@ def short_interval_table_view(request):
                 actual_count = query.count()
 
                 # Add pagination to handle large result sets
-                paginator = Paginator(query, 100)  # Show 100 intervals per page
+                paginator = Paginator(query, 300)  # Show 300 intervals per page
                 page_obj = paginator.get_page(page_number)
                 intervals = page_obj
 
