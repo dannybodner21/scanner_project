@@ -12,7 +12,7 @@ import time
 
 # python manage.py backfill_shortdata --start="2025-03-24T00:00" --end="2025-03-25T00:05"
 
-# python manage.py backfill_shortdata --start="2025-03-25T12:20" --end="2025-03-28T00:05"
+# python manage.py backfill_shortdata --start="2025-03-29T12:20" --end="2025-04-01T00:05"
 
 
 def round_to_five_minutes(dt):
@@ -54,7 +54,8 @@ class Command(BaseCommand):
 
         # Cache all existing entries in one query
         existing_entries = set(
-            ShortIntervalData.objects.filter(
+            (coin_id, round_to_five_minutes(ts))
+            for coin_id, ts in ShortIntervalData.objects.filter(
                 coin__in=coins,
                 timestamp__gte=start,
                 timestamp__lte=end
