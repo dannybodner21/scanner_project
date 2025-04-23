@@ -23,6 +23,7 @@ urlpatterns = [
     path('download/<str:filename>/', views.download_file, name='download_file'),
 
     # RickisScanner URLs
-    path("api/ricki/latest", views.get_hod_movers, name="get-hod-movers"),
+    path("api/ricki/latest/", views.get_hod_movers, name="get-hod-movers"),
+    path("short-intervals/", views.short_interval_table_view, name="short-intervals"),
 
 ]

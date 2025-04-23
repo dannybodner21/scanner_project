@@ -981,6 +981,28 @@ def get_hod_movers(request):
 
 
 
+# VIEW SHORT INTERVAL DATA BY COIN ---------------------------------------------
+
+def short_interval_table_view(request):
+    selected_symbol = request.GET.get("symbol", "BTC")
+    start = make_aware(datetime.strptime("2024-03-20T00:00", "%Y-%m-%dT%H:%M"))
+    end = make_aware(datetime.strptime("2024-04-22T23:55", "%Y-%m-%dT%H:%M"))
+
+    coins = Coin.objects.all().order_by("symbol")
+    coin = Coin.objects.filter(symbol=selected_symbol).first()
+
+    intervals = []
+    if coin:
+        intervals = ShortIntervalData.objects.filter(
+            coin=coin,
+            timestamp__range=(start, end)
+        ).order_by("timestamp")
+
+    return render(request, "short_intervals.html", {
+        "coins": coins,
+        "selected_symbol": selected_symbol,
+        "intervals": intervals,
+    })
 
 
 # INDEX ------------------------------------------------------------------------
