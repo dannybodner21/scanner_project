@@ -1,51 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Short Interval Data</title>
+  <meta charset="UTF-8">
+  <title>Short Interval Viewer</title>
   <style>
     body {
       font-family: sans-serif;
       background: #111;
-      color: #fff;
-      padding: 24px;
+      color: #eee;
+      padding: 20px;
     }
-
-    select {
-      padding: 8px;
+    select, button {
+      padding: 6px;
+      margin-right: 10px;
       font-size: 16px;
-      margin-bottom: 16px;
     }
-
     table {
-      border-collapse: collapse;
       width: 100%;
-      max-height: 500px;
+      border-collapse: collapse;
+      margin-top: 20px;
     }
-
-    thead th {
-      position: sticky;
-      top: 0;
-      background: #222;
-      color: #fff;
-      padding: 10px;
-      border: 1px solid #444;
-    }
-
-    tbody td {
+    th, td {
       padding: 8px;
       border: 1px solid #444;
-      background: #1a1a1a;
-      color: #ddd;
     }
-
+    th {
+      background-color: #333;
+    }
     tbody {
-      display: block;
       max-height: 500px;
       overflow-y: auto;
+      display: block;
     }
-
-    thead, tbody tr {
+    tbody tr {
       display: table;
       width: 100%;
       table-layout: fixed;
@@ -53,38 +40,47 @@
   </style>
 </head>
 <body>
-  <h1>Short Interval Data Viewer</h1>
+  <h1>Short Interval Viewer</h1>
 
   <form method="get">
-    <label for="coin">Choose a coin:</label>
-    <select name="coin" id="coin" onchange="this.form.submit()">
-      {% for symbol in coin_list %}
-        <option value="{{ symbol }}" {% if selected_coin == symbol %}selected{% endif %}>{{ symbol }}</option>
+    <label for="coin">Coin:</label>
+    <select name="coin" id="coin">
+      {% for symbol in coins %}
+        <option value="{{ symbol }}" {% if symbol == selected_coin %}selected{% endif %}>{{ symbol }}</option>
       {% endfor %}
     </select>
+
+    <label for="date">Date:</label>
+    <select name="date" id="date">
+      {% for date in date_range %}
+        <option value="{{ date }}" {% if date == selected_date %}selected{% endif %}>{{ date }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit">Load Data</button>
   </form>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Timestamp (UTC)</th>
-        <th>Price</th>
-        <th>Volume (5min)</th>
-        <th>Circulating Supply</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for entry in short_data %}
+  {% if data %}
+    <table>
+      <thead>
         <tr>
-          <td>{{ entry.timestamp }}</td>
-          <td>${{ entry.price }}</td>
-          <td>{{ entry.volume_5min }}</td>
-          <td>{{ entry.circulating_supply|default:"-" }}</td>
+          <th>Timestamp (UTC)</th>
+          <th>Price</th>
+          <th>Volume (5m)</th>
+          <th>Circulating Supply</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="4">No data available.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for row in data %}
+          <tr>
+            <td>{{ row.timestamp }}</td>
+            <td>{{ row.price }}</td>
+            <td>{{ row.volume_5min }}</td>
+            <td>{{ row.circulating_supply }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 </body>
 </html>
