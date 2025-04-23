@@ -984,23 +984,39 @@ def get_hod_movers(request):
 # VIEW SHORT INTERVAL DATA BY COIN ---------------------------------------------
 
 def short_interval_table_view(request):
-    selected_symbol = request.GET.get("symbol", "BTC")
-    start = make_aware(datetime.strptime("2024-03-20T00:00", "%Y-%m-%dT%H:%M"))
-    end = make_aware(datetime.strptime("2024-04-22T23:55", "%Y-%m-%dT%H:%M"))
+    selected_symbol = request.GET.get("symbol", "")
+    selected_date = request.GET.get("date", "")
 
     coins = Coin.objects.all().order_by("symbol")
-    coin = Coin.objects.filter(symbol=selected_symbol).first()
+
+    # Define full date range for dropdown: March 20 – April 22
+    start_date = datetime(2024, 3, 20)
+    end_date = datetime(2024, 4, 22)
+    date_range = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d")
+                  for i in range((end_date - start_date).days + 1)]
 
     intervals = []
-    if coin:
-        intervals = ShortIntervalData.objects.filter(
-            coin=coin,
-            timestamp__range=(start, end)
-        ).order_by("timestamp")
+
+    if selected_symbol and selected_date:
+        try:
+            coin = Coin.objects.get(symbol=selected_symbol.upper())
+            day_start = make_aware(datetime.strptime(selected_date, "%Y-%m-%d"))
+            day_end = day_start + timedelta(days=1)
+
+            intervals = ShortIntervalData.objects.filter(
+                coin=coin,
+                timestamp__gte=day_start,
+                timestamp__lt=day_end
+            ).order_by("timestamp")
+
+        except Coin.DoesNotExist:
+            intervals = []
 
     return render(request, "short_intervals.html", {
         "coins": coins,
         "selected_symbol": selected_symbol,
+        "selected_date": selected_date,
+        "date_range": date_range,
         "intervals": intervals,
     })
 
