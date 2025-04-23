@@ -75,6 +75,12 @@
     <button type="submit">Submit</button>
   </form>
 
+  {% if selected_symbol and selected_date %}
+    <h3>{{ selected_symbol }} on {{ selected_date }}</h3>
+    <p><strong>Expected entries:</strong> {{ expected_count }}</p>
+    <p><strong>Actual entries:</strong> {{ actual_count }}</p>
+  {% endif %}
+
   {% if data %}
     <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc;">
       <table border="1" cellpadding="6" cellspacing="0" style="width: 100%; font-family: sans-serif;">

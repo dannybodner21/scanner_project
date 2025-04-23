@@ -984,6 +984,7 @@ def get_hod_movers(request):
 # VIEW SHORT INTERVAL DATA BY COIN ---------------------------------------------
 
 def short_interval_table_view(request):
+
     selected_symbol = request.GET.get("symbol")
     selected_date = request.GET.get("date")
 
@@ -994,6 +995,8 @@ def short_interval_table_view(request):
     date_range = [(start + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end - start).days + 1)]
 
     intervals = []
+    actual_count = 0
+    expected_count = 288
 
     if selected_symbol and selected_date:
         coin = Coin.objects.filter(symbol=selected_symbol).first()
@@ -1006,12 +1009,16 @@ def short_interval_table_view(request):
                 timestamp__range=(day_start, day_end)
             ).order_by("timestamp")
 
+            actual_count = intervals.count()
+
     return render(request, "short_intervals.html", {
         "coins": coins,
         "date_range": date_range,
         "selected_symbol": selected_symbol,
         "selected_date": selected_date,
-        "data": intervals
+        "data": intervals,
+        "expected_count": expected_count,
+        "actual_count": actual_count,
     })
 
 # INDEX ------------------------------------------------------------------------
