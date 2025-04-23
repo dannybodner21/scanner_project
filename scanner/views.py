@@ -990,8 +990,8 @@ def short_interval_table_view(request):
 
     # Generate coin list and date range
     coins = Coin.objects.all().order_by("symbol")
-    start = datetime(2024, 3, 20)
-    end = datetime(2024, 4, 22)
+    start = datetime(2025, 3, 20)
+    end = datetime(2025, 4, 22)
     date_range = [(start + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end - start).days + 1)]
 
     intervals = []
@@ -999,7 +999,9 @@ def short_interval_table_view(request):
     expected_count = 288
 
     if selected_symbol and selected_date:
+        
         coin = Coin.objects.filter(symbol=selected_symbol).first()
+
         if coin:
             day_start = make_aware(datetime.strptime(selected_date + "T00:00", "%Y-%m-%dT%H:%M"))
             day_end = make_aware(datetime.strptime(selected_date + "T23:55", "%Y-%m-%dT%H:%M"))
