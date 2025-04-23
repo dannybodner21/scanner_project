@@ -20,6 +20,11 @@ class ShortIntervalData(models.Model):
     volume_5min = models.DecimalField(max_digits=20, decimal_places=2)
     circulating_supply = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['coin', 'timestamp'], name='coin_timestamp_idx'),
+        ]
+
     def __str__(self):
         return f"Short interval for {self.coin.name} at {self.timestamp}"
 

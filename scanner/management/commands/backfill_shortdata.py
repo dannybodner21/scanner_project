@@ -8,11 +8,11 @@ from decimal import Decimal
 import time
 
 
-# python manage.py backfill_shortdata --start="2024-03-22T00:00" --end="2024-04-20T23:55" --symbol=BTC
+# python manage.py backfill_shortdata --start="2025-03-22T00:00" --end="2025-04-20T23:55" --symbol=BTC
 
-# python manage.py backfill_shortdata --start="2024-03-24T00:00" --end="2024-03-25T00:05"
+# python manage.py backfill_shortdata --start="2025-03-24T00:00" --end="2025-03-25T00:05"
 
-# python manage.py backfill_shortdata --start="2024-03-29T00:20" --end="2024-04-20T00:05"
+# python manage.py backfill_shortdata --start="2025-03-29T00:20" --end="2025-04-20T00:05"
 
 
 def round_to_five_minutes(dt):

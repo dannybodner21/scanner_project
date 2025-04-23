@@ -983,35 +983,54 @@ def get_hod_movers(request):
 
 # VIEW SHORT INTERVAL DATA BY COIN ---------------------------------------------
 
+from django.core.paginator import Paginator
+from django.db.models import Prefetch
+
 def short_interval_table_view(request):
 
     selected_symbol = request.GET.get("symbol")
     selected_date = request.GET.get("date")
+    page_number = request.GET.get("page", 1)
 
-    # Generate coin list and date range
-    coins = Coin.objects.all().order_by("symbol")
+    # Only fetch symbols for dropdown - we don't need all coin data
+    coins = Coin.objects.values('id', 'symbol').order_by("symbol")
+
+    # Precompute date range once
     start = datetime(2025, 3, 20)
     end = datetime(2025, 4, 22)
     date_range = [(start + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end - start).days + 1)]
 
     intervals = []
     actual_count = 0
-    expected_count = 288
+    expected_count = 288  # 5-minute intervals in a day
 
     if selected_symbol and selected_date:
-        
-        coin = Coin.objects.filter(symbol=selected_symbol).first()
+        try:
+            # Get coin ID efficiently
+            coin = Coin.objects.filter(symbol=selected_symbol).only('id').first()
 
-        if coin:
-            day_start = make_aware(datetime.strptime(selected_date + "T00:00", "%Y-%m-%dT%H:%M"))
-            day_end = make_aware(datetime.strptime(selected_date + "T23:55", "%Y-%m-%dT%H:%M"))
+            if coin:
+                # Create timezone-aware datetime objects
+                day_start = make_aware(datetime.strptime(f"{selected_date}T00:00", "%Y-%m-%dT%H:%M"))
+                day_end = make_aware(datetime.strptime(f"{selected_date}T23:59:59", "%Y-%m-%dT%H:%M:%S"))
 
-            intervals = ShortIntervalData.objects.filter(
-                coin=coin,
-                timestamp__range=(day_start, day_end)
-            ).order_by("timestamp")
+                # Use the index efficiently with coin_id first (matches your composite index)
+                query = ShortIntervalData.objects.filter(
+                    coin_id=coin.id,
+                    timestamp__range=(day_start, day_end)
+                ).order_by("timestamp")
 
-            actual_count = intervals.count()
+                # Get count for displaying stats
+                actual_count = query.count()
+
+                # Add pagination to handle large result sets
+                paginator = Paginator(query, 100)  # Show 100 intervals per page
+                page_obj = paginator.get_page(page_number)
+                intervals = page_obj
+
+        except Exception as e:
+            # Handle errors gracefully
+            print(f"Error retrieving data: {e}")
 
     return render(request, "short_intervals.html", {
         "coins": coins,
@@ -1021,6 +1040,7 @@ def short_interval_table_view(request):
         "data": intervals,
         "expected_count": expected_count,
         "actual_count": actual_count,
+        "page_obj": intervals if isinstance(intervals, Paginator) else None,
     })
 
 # INDEX ------------------------------------------------------------------------
