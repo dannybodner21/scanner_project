@@ -922,11 +922,16 @@ from django.db.models import Q
 
 def get_hod_movers(request):
 
-    latest_metrics = list(
-        RickisMetrics.objects.filter(coin__symbol__in=["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LEO", "LINK"])
-        .order_by('coin_id', '-timestamp')
-        .distinct('coin_id')
-        .order_by('coin_id')
+    latest_per_coin = (
+        RickisMetrics.objects
+        .filter(coin__symbol__in=["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LEO", "LINK"])
+        .values("coin_id")
+        .annotate(latest_ts=Max("timestamp"))
+    )
+
+    latest_metrics = RickisMetrics.objects.filter(
+        coin_id__in=[item["coin_id"] for item in latest_per_coin],
+        timestamp__in=[item["latest_ts"] for item in latest_per_coin]
     )
 
     data = []
