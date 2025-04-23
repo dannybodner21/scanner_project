@@ -1075,10 +1075,10 @@ def short_interval_summary(request):
                     "count": count,
                     "expected": 288,
                 })
-                
+
                 current_date = next_day
 
-    return render(request, "short_interval_summary.html", {
+    return render(request, "short_intervals.html", {
         "coins": coins,
         "selected_coin_id": int(selected_coin_id) if selected_coin_id else None,
         "results": results

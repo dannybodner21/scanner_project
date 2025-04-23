@@ -12,7 +12,7 @@ import time
 
 # python manage.py backfill_shortdata --start="2025-03-24T00:00" --end="2025-03-25T00:05"
 
-# python manage.py backfill_shortdata --start="2025-03-29T00:20" --end="2025-04-20T00:05"
+# python manage.py backfill_shortdata --start="2025-03-25T12:20" --end="2025-03-28T00:05"
 
 
 def round_to_five_minutes(dt):
