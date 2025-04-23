@@ -1043,6 +1043,47 @@ def short_interval_table_view(request):
         "page_obj": intervals if isinstance(intervals, Paginator) else None,
     })
 
+
+def short_interval_summary(request):
+    selected_coin_id = request.GET.get("coin")
+    results = []
+    coins = Coin.objects.all()
+
+    if selected_coin_id:
+        try:
+            coin = Coin.objects.get(id=selected_coin_id)
+        except Coin.DoesNotExist:
+            coin = None
+
+        if coin:
+            start_date = datetime(2025, 3, 20)
+            end_date = datetime(2025, 4, 23)  # Inclusive range
+
+            current_date = start_date
+
+            while current_date < end_date:
+
+                next_day = current_date + timedelta(days=1)
+                count = ShortIntervalData.objects.filter(
+                    coin=coin,
+                    timestamp__gte=current_date,
+                    timestamp__lt=next_day
+                ).count()
+
+                results.append({
+                    "date": current_date.date(),
+                    "count": count,
+                    "expected": 288,
+                })
+                
+                current_date = next_day
+
+    return render(request, "short_interval_summary.html", {
+        "coins": coins,
+        "selected_coin_id": int(selected_coin_id) if selected_coin_id else None,
+        "results": results
+    })
+
 # INDEX ------------------------------------------------------------------------
 
 from decimal import Decimal

@@ -24,6 +24,6 @@ urlpatterns = [
 
     # RickisScanner URLs
     path("api/ricki/latest/", views.get_hod_movers, name="get-hod-movers"),
-    path("short-intervals/", views.short_interval_table_view, name="short-intervals"),
+    path("short-intervals/", views.short_interval_summary, name="short-intervals"),
 
 ]

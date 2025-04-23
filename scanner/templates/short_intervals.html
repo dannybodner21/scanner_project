@@ -53,27 +53,7 @@
     <h1>Short Interval Viewer</h1>
   </div>
 
-  <form method="GET" style="margin-bottom: 16px;">
-    <label for="symbol">Select Coin:</label>
-    <select name="symbol" id="symbol">
-      {% for coin in coins %}
-        <option value="{{ coin.symbol }}" {% if selected_symbol == coin.symbol %}selected{% endif %}>
-          {{ coin.symbol }}
-        </option>
-      {% endfor %}
-    </select>
 
-    <label for="date">Select Date:</label>
-    <select name="date" id="date">
-      {% for d in date_range %}
-        <option value="{{ d }}" {% if selected_date == d %}selected{% endif %}>
-          {{ d }}
-        </option>
-      {% endfor %}
-    </select>
-
-    <button type="submit">Submit</button>
-  </form>
 
   {% if selected_symbol and selected_date %}
     <h3>{{ selected_symbol }} on {{ selected_date }}</h3>
@@ -81,35 +61,38 @@
     <p><strong>Actual entries:</strong> {{ actual_count }}</p>
   {% endif %}
 
-  {% if data %}
-    <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc;">
-      <table border="1" cellpadding="6" cellspacing="0" style="width: 100%; font-family: sans-serif;">
-        <thead>
+  <form method="get">
+    <select name="coin">
+      {% for coin in coins %}
+        <option value="{{ coin.id }}" {% if coin.id == selected_coin_id %}selected{% endif %}>
+          {{ coin.symbol }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Submit</button>
+  </form>
+
+  {% if results %}
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Count</th>
+          <th>Expected</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in results %}
           <tr>
-            <th>Timestamp (UTC)</th>
-            <th>Price</th>
-            <th>Volume (5m)</th>
-            <th>Circulating Supply</th>
+            <td>{{ row.date }}</td>
+            <td>{{ row.count }}</td>
+            <td>{{ row.expected }}</td>
           </tr>
-        </thead>
-        <tbody>
-          {% for row in data %}
-            <tr>
-              <td>{{ row.timestamp }}</td>
-              <td>{{ row.price }}</td>
-              <td>{{ row.volume_5min }}</td>
-              <td>{{ row.circulating_supply }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    {% if selected_symbol and selected_date %}
-      <p>No data found for {{ selected_symbol }} on {{ selected_date }}</p>
-    {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
   {% endif %}
 
 
-</body>
+  </body>
 </html>
