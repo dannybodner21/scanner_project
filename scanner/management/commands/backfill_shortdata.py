@@ -33,7 +33,7 @@ class Command(BaseCommand):
         start = make_aware(datetime.strptime(kwargs['start'], "%Y-%m-%dT%H:%M"))
         end = make_aware(datetime.strptime(kwargs['end'], "%Y-%m-%dT%H:%M"))
 
-        target_symbols = [
+        target_symbols_old = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LEO", "LINK",
             "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC", "HYPE",
             "BGB", "DAI", "PI", "XMR", "UNI", "PEPE", "OKB", "APT", "GT", "NEAR",
@@ -43,6 +43,10 @@ class Command(BaseCommand):
             "IP", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT", "FORM", "QNT", "PAXG",
             "CRV", "JASMY", "SAND", "GALA", "NEXO", "CORE", "RAY", "KAIA", "LDO", "THETA",
             "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI", "XCN"
+        ]
+
+        target_symbols = [
+            "BTC"
         ]
 
         coins = Coin.objects.filter(symbol__in=target_symbols)

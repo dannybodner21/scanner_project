@@ -55,6 +55,8 @@ class Command(BaseCommand):
                     self.stdout.write(f"❌ Deleted duplicate for {coin.symbol} at {rounded_ts}")
 
             aligned_entries = list(grouped.values())
+            aligned_entries.sort(key=lambda x: x.timestamp)  # ✅ Ensure deterministic ordering
+
             if len(aligned_entries) > 288:
                 overflow = aligned_entries[288:]
                 to_delete += overflow
