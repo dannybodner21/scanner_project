@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
         # Limit to BTC only for now
         try:
-            coin = Coin.objects.get(symbol="BTC")
+            coin = Coin.objects.get(symbol="ETH")
         except Coin.DoesNotExist:
             self.stdout.write("❌ BTC coin not found in the database.")
             return
