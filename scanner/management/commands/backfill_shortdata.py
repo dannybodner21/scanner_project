@@ -8,7 +8,7 @@ from decimal import Decimal
 import time
 
 
-# python manage.py backfill_shortdata --start="2025-03-22T00:00" --end="2025-04-22T23:55" --symbol=BTC
+# python manage.py backfill_shortdata --start="2025-03-24T00:00" --end="2025-04-22T23:55" --symbol=BTC
 
 # python manage.py backfill_shortdata --start="2025-03-24T00:00" --end="2025-03-25T00:05"
 
@@ -34,7 +34,7 @@ class Command(BaseCommand):
         end = make_aware(datetime.strptime(kwargs['end'], "%Y-%m-%dT%H:%M"))
 
         target_symbols_old = [
-            "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LEO", "LINK",
+            "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
             "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC", "HYPE",
             "BGB", "DAI", "PI", "XMR", "UNI", "PEPE", "OKB", "APT", "GT", "NEAR",
             "ONDO", "TAO", "ICP", "ETC", "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL",

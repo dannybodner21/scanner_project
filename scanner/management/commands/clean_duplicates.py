@@ -14,7 +14,7 @@ class Command(BaseCommand):
             return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
 
 
-        rickisCoins = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK",
+        symbols = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LINK",
                         "AVAX","XLM","TON","SHIB","SUI","HBAR","BCH","DOT","LTC",
                         "HYPE","BGB","DAI","PI","XMR","UNI","PEPE","OKB","APT","GT",
                         "NEAR","ONDO","TAO","ICP","ETC","RENDER","MNT","KAS","CRO",
@@ -24,8 +24,6 @@ class Command(BaseCommand):
                         "GRT","FORM","QNT","PAXG","CRV","JASMY","SAND","GALA",
                         "NEXO","CORE","RAY","KAIA","LDO","THETA","IOTA","HNT",
                         "MANA","FLOW","CAKE","MOVE","FLOKI","XCN"]
-
-        symbols = ["BTC","ETH","XRP","BNB","SOL","TRX","DOGE","ADA","LEO","LINK"]
 
         for symbol in symbols:
             try:
