@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = 'Report missing ShortIntervalData timestamps for a list of coins between March 20, 2025, and April 22, 2025.'
 
     def handle(self, *args, **kwargs):
-        start_date = make_aware(datetime(2025, 3, 20))
+        start_date = make_aware(datetime(2025, 3, 22))
         end_date = make_aware(datetime(2025, 4, 23))
 
         def round_to_five_minutes(dt):
@@ -24,7 +24,7 @@ class Command(BaseCommand):
             "KCS", "DEXE", "OP", "JUP", "MKR", "XDC", "STX", "FLR", "EOS", "WLD",
             "IP", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT", "FORM", "QNT", "PAXG",
             "CRV", "JASMY", "SAND", "GALA", "NEXO", "CORE", "RAY", "KAIA", "LDO", "THETA",
-            "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI", "XCN"
+            "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
         ]
 
         for symbol in symbols:
