@@ -12,8 +12,6 @@ class Command(BaseCommand):
 
         def round_to_five_minutes(dt):
             return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
-j
-        symbols_temp = ["BTC", "ETH"]
 
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
