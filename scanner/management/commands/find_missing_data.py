@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
         def round_to_five_minutes(dt):
             return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
-
+j
         symbols_temp = ["BTC", "ETH"]
 
         symbols = [
@@ -20,10 +20,10 @@ class Command(BaseCommand):
             "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC", "HYPE",
             "BGB", "DAI", "PI", "XMR", "UNI", "PEPE", "OKB", "APT", "GT", "NEAR",
             "ONDO", "TAO", "ICP", "ETC", "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL",
-            "VET", "FIL", "TRUMP", "ALGO", "ENA", "ATOM", "TIA", "FET", "ARB", "S",
-            "KCS", "DEXE", "OP", "JUP", "MKR", "XDC", "STX", "FLR", "EOS", "WLD",
-            "IP", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT", "FORM", "QNT", "PAXG",
-            "CRV", "JASMY", "SAND", "GALA", "NEXO", "CORE", "RAY", "KAIA", "LDO", "THETA",
+            "VET", "FIL", "TRUMP", "ALGO", "ENA", "ATOM", "TIA", "FET", "ARB",
+            "DEXE", "OP", "JUP", "MKR", "STX", "EOS", "WLD",
+            "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT", "PAXG",
+            "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO", "THETA",
             "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
         ]
 
@@ -60,8 +60,6 @@ class Command(BaseCommand):
                     self.stdout.write(f"\n❗ {current.date()} - Missing {len(missing_times)} entries:")
                     for ts in missing_times:
                         self.stdout.write(f"   - {ts.strftime('%Y-%m-%d %H:%M')}")
-                else:
-                    self.stdout.write(f"{current.date()}: ✅ All 288 entries present")
 
                 current = next_day
 
