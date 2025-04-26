@@ -11,6 +11,9 @@ class Command(BaseCommand):
         start_date = make_aware(datetime(2025, 3, 22))
         end_date = make_aware(datetime(2025, 4, 23))  # exclusive
 
+        def round_to_five_minutes(dt):
+            return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
+
         try:
             coin = Coin.objects.get(symbol="BTC")
         except Coin.DoesNotExist:
@@ -28,11 +31,11 @@ class Command(BaseCommand):
             ).order_by('timestamp')
         )
 
-        short_data_map = {entry.timestamp: entry for entry in short_data}
-        timestamps = [entry.timestamp for entry in short_data]
+        short_data_map = {round_to_five_minutes(entry.timestamp): entry for entry in short_data}
+        rounded_timestamps = sorted(short_data_map.keys())
 
-        for idx, entry in enumerate(short_data):
-            ts = entry.timestamp
+        for idx, ts in enumerate(rounded_timestamps):
+            entry = short_data_map[ts]
             price_now = entry.price
 
             # Check if RickisMetrics already exists, else create basic one
@@ -50,6 +53,10 @@ class Command(BaseCommand):
                 }
             )
 
+            if rickis.timestamp != ts:
+                rickis.timestamp = ts
+                rickis.save()
+
             # Only label if long_result/short_result not already set
             if rickis.long_result is not None and rickis.short_result is not None:
                 continue
@@ -59,7 +66,7 @@ class Command(BaseCommand):
             short_take_profit = price_now * Decimal('0.96')
             short_stop_loss = price_now * Decimal('1.02')
 
-            future_prices = short_data[idx+1:]
+            future_prices = [short_data_map[t] for t in rounded_timestamps[idx+1:] if t in short_data_map]
 
             long_outcome = None
             short_outcome = None

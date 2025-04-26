@@ -210,6 +210,11 @@ class RickisMetrics(models.Model):
     short_result = models.BooleanField(null=True)  # True = win, False = loss
 
     class Meta:
+
+        constraints = [
+            models.UniqueConstraint(fields=['coin', 'timestamp'], name='unique_coin_timestamp_rickis')
+        ]
+        
         indexes = [
             models.Index(fields=['coin', 'timestamp'], name='rickismetrics_idx'),
         ]
