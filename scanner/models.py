@@ -206,6 +206,14 @@ class RickisMetrics(models.Model):
     stddev_1h = models.FloatField(null=True)
     atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
 
+    long_result = models.BooleanField(null=True)  # True = win, False = loss
+    short_result = models.BooleanField(null=True)  # True = win, False = loss
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['coin', 'timestamp'], name='rickismetrics_idx'),
+        ]
+
     def __str__(self):
         return f"{self.coin.symbol} @ {self.timestamp}"
 
