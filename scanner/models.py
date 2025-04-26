@@ -196,6 +196,16 @@ class RickisMetrics(models.Model):
     support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
 
+    # Other
+    price_slope_1h = models.FloatField(null=True)
+    relative_volume = models.FloatField(null=True)
+    sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    ema_12 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    ema_26 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    stddev_1h = models.FloatField(null=True)
+    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+
     def __str__(self):
         return f"{self.coin.symbol} @ {self.timestamp}"
 
