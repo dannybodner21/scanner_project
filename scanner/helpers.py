@@ -48,7 +48,7 @@ def calculate_rsi(coin, timestamp, period=14):
         return 100 - (100 / (1 + rs))
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_rsi: {e}")
 
 
 def calculate_ema_from_prices(prices, window):
@@ -69,7 +69,7 @@ def calculate_ema_from_prices(prices, window):
         return float(ema[-1])  # Return the latest EMA value
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_ema_from_prices: {e}")
 
 
 def calculate_macd(coin, timestamp):
@@ -109,7 +109,7 @@ def calculate_macd(coin, timestamp):
         return macd_line, signal_line
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_macd: {e}")
 
 
 def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
@@ -138,7 +138,7 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
         return k, d
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_stochastic: {e}")
 
 
 def calculate_support_resistance(coin, timestamp, period=20):
@@ -151,7 +151,7 @@ def calculate_support_resistance(coin, timestamp, period=20):
         return min(prices), max(prices)
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_support_resistance: {e}")
 
 
 def calculate_avg_volume_1h(coin, timestamp):
@@ -164,7 +164,7 @@ def calculate_avg_volume_1h(coin, timestamp):
         return np.mean(volumes)
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_avg_volume_1h: {e}")
 
 
 def calculate_relative_volume(coin, timestamp):
@@ -181,7 +181,7 @@ def calculate_relative_volume(coin, timestamp):
         return None
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_relative_volume: {e}")
 
 
 def calculate_sma(coin, timestamp, window):
@@ -194,7 +194,7 @@ def calculate_sma(coin, timestamp, window):
         return np.mean(prices)
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_sma: {e}")
 
 
 def calculate_ema(coin, timestamp, window):
@@ -211,7 +211,7 @@ def calculate_ema(coin, timestamp, window):
         return float(ema[-1]) if len(ema) > 0 else None
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_ema: {e}")
 
 
 def calculate_stddev_1h(coin, timestamp):
@@ -224,7 +224,7 @@ def calculate_stddev_1h(coin, timestamp):
         return np.std(prices)
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_stddev_1h: {e}")
 
 
 def calculate_price_slope_1h(coin, timestamp):
@@ -239,7 +239,7 @@ def calculate_price_slope_1h(coin, timestamp):
         return slope
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_price_slope_1h: {e}")
 
 
 def calculate_atr_1h(coin, timestamp):
@@ -257,7 +257,7 @@ def calculate_atr_1h(coin, timestamp):
         return np.mean(trs)
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_atr_1h: {e}")
 
 
 def calculate_price_change_five_min(coin, timestamp):
@@ -278,4 +278,4 @@ def calculate_price_change_five_min(coin, timestamp):
         return ((current - previous) / previous) * 100
 
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error in calculate_price_change_five_min: {e}")

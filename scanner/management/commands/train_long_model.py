@@ -42,10 +42,11 @@ class Command(BaseCommand):
             if df[col].dtype == 'object' and col != 'long_result':
                 df[col] = df[col].astype('float')
 
-        # Ensure long_result is an integer (binary classification)
+        # Drop rows with missing or None values specifically in 'long_result'
+        df = df.dropna(subset=['long_result'])
         df['long_result'] = df['long_result'].astype(int)
 
-        # Drop rows with missing values
+        # Drop remaining rows with missing values
         df = df.dropna()
         self.stdout.write(f"✅ {len(df)} entries after dropping missing values.")
 
