@@ -47,7 +47,15 @@ class Command(BaseCommand):
 
         self.stdout.write("🚀 Training XGBoost model...")
 
-        model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+        #model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+        model = XGBClassifier(
+            use_label_encoder=False,
+            eval_metric='logloss',
+            random_state=42,
+            max_depth=3,      # limit tree depth
+            n_estimators=50   # fewer trees
+        )
+
         model.fit(X_train, y_train)
 
         y_pred = model.predict(X_test)
