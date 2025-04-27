@@ -25,7 +25,8 @@ def predict_live_logic():
 
     print("🚀 Sending alerts...")
     for metric, confidence in zip(metrics, preds):
-        if confidence > 0.75:
+        print(f"🔎 {metric.coin.symbol} — Confidence: {confidence:.2f}")
+        if confidence > 0.70:
             post_metrics_to_bot(metric, confidence)
 
     print("✅ Live prediction complete.")
