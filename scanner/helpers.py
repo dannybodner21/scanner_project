@@ -57,16 +57,16 @@ def calculate_ema_from_prices(prices, window):
     """
     try:
 
-        if len(prices) < window:
+        if not prices or len(prices) < window:
             return None
 
-        prices = np.array(prices)
-        weights = np.exp(np.linspace(-1., 0., window))  # Exponential weights
-        weights /= weights.sum()  # Normalize the weights
+        prices = [float(p) for p in prices]
+        k = 2 / (window + 1)
+        ema = prices[0]
 
-        # Apply the weighted moving average
-        ema = np.convolve(prices, weights, mode='valid')  # 'valid' ensures the result is the right size
-        return float(ema[-1])  # Return the latest EMA value
+        for price in prices[1:]:
+            ema = (price * k) + (ema * (1 - k))
+        return ema
 
     except Exception as e:
         print(f"error in calculate_ema_from_prices: {e}")
@@ -201,14 +201,16 @@ def calculate_ema(coin, timestamp, window):
 
     try:
 
-        prices = get_recent_prices(coin, timestamp, window * 2)  # Get more to stabilize EMA
+        prices = ShortIntervalData.objects.filter(
+            coin=coin, timestamp__lte=timestamp
+        ).order_by('-timestamp').values_list('price', flat=True)[:window]
+
+        prices = list(prices)
         if len(prices) < window:
             return None
-        prices = np.array(prices)
-        weights = np.exp(np.linspace(-1., 0., window))
-        weights /= weights.sum()
-        ema = np.convolve(prices, weights, mode='valid')
-        return float(ema[-1]) if len(ema) > 0 else None
+
+        prices = [float(p) for p in prices]
+        return calculate_ema_from_prices(prices, window)
 
     except Exception as e:
         print(f"error in calculate_ema: {e}")
@@ -231,11 +233,29 @@ def calculate_price_slope_1h(coin, timestamp):
 
     try:
 
-        prices = get_recent_prices(coin, timestamp, 12)
+        prices = ShortIntervalData.objects.filter(
+            coin=coin, timestamp__lte=timestamp
+        ).order_by('-timestamp').values_list('price', flat=True)[:12]
+
+        prices = list(prices)
         if len(prices) < 2:
             return None
-        x = np.arange(len(prices))
-        slope = np.polyfit(x, prices, 1)[0]
+
+        prices = [float(p) for p in prices]  # <<< ADD THIS
+        x = list(range(len(prices)))
+        y = prices
+
+        # Simple linear regression
+        n = len(x)
+        sum_x = sum(x)
+        sum_y = sum(y)
+        sum_xx = sum(xi * xi for xi in x)
+        sum_xy = sum(xi * yi for xi, yi in zip(x, y))
+        denominator = n * sum_xx - sum_x ** 2
+        if denominator == 0:
+            return None
+
+        slope = (n * sum_xy - sum_x * sum_y) / denominator
         return slope
 
     except Exception as e:
@@ -273,6 +293,10 @@ def calculate_price_change_five_min(coin, timestamp):
             coin=coin,
             timestamp=prev_timestamp
         ).values_list('price', flat=True).first()
+
+        current = float(current) if current is not None else None
+        previous = float(previous) if previous is not None else None
+
         if current is None or previous is None or previous == 0:
             return None
         return ((current - previous) / previous) * 100
