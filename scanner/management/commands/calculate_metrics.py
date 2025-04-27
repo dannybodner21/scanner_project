@@ -48,11 +48,10 @@ class Command(BaseCommand):
             ema_26 = None
             ema_alpha_12 = 2 / (12 + 1)
             ema_alpha_26 = 2 / (26 + 1)
-            atr_window = []
 
             to_update = []
 
-            for entry in metrics:
+            for idx, entry in enumerate(metrics):
                 price = float(entry.price)
                 price_window.append(price)
                 volume_window.append(float(entry.volume))
@@ -119,20 +118,25 @@ class Command(BaseCommand):
 
                 if len(price_window) >= 16:
                     ks = []
-                    for i in range(-3, 0):
-                        h14 = max(high_window[i-13:i+1])
-                        l14 = min(low_window[i-13:i+1])
-                        if h14 != l14:
-                            ks.append((price_window[i] - l14) / (h14 - l14) * 100)
+                    for offset in range(-3, 0):
+                        if idx + offset - 13 >= 0:
+                            h14 = max(high_window[idx + offset - 13:idx + offset + 1])
+                            l14 = min(low_window[idx + offset - 13:idx + offset + 1])
+                            if h14 != l14:
+                                ks.append((price_window[idx + offset] - l14) / (h14 - l14) * 100)
                     entry.stochastic_d = np.mean(ks) if ks else 0
 
-                if high_window and low_window:
+                if len(high_window) >= 12 and len(low_window) >= 12:
                     entry.support_level = min(low_window[-12:])
                     entry.resistance_level = max(high_window[-12:])
 
                 if len(high_window) >= 2 and len(low_window) >= 2 and len(price_window) >= 2:
-                    atr = np.mean([max(high_window[i] - low_window[i], abs(high_window[i] - price_window[i-1]), abs(low_window[i] - price_window[i-1])) for i in range(1, len(high_window))][-12:])
-                    entry.atr_1h = atr
+                    trs = [
+                        max(high_window[i] - low_window[i], abs(high_window[i] - price_window[i-1]), abs(low_window[i] - price_window[i-1]))
+                        for i in range(1, len(high_window))
+                    ]
+                    if len(trs) >= 12:
+                        entry.atr_1h = np.mean(trs[-12:])
 
                 to_update.append(entry)
 
