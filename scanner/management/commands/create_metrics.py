@@ -26,8 +26,7 @@ class Command(BaseCommand):
         ]
 
         symbols = [
-            "VET", "FIL", "ALGO",
-            "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+            "STX",
             "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
             "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
             "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
