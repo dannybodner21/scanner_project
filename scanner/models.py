@@ -176,6 +176,8 @@ class RickisMetrics(models.Model):
     # High of Day Momentum
     high_24h = models.DecimalField(max_digits=20, decimal_places=10)
 
+    low_24h = models.DecimalField(max_digits=20, decimal_places=10)
+
     # Top Gainers
     change_5m = models.FloatField()
     change_1h = models.FloatField()
@@ -214,7 +216,7 @@ class RickisMetrics(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['coin', 'timestamp'], name='unique_coin_timestamp_rickis')
         ]
-        
+
         indexes = [
             models.Index(fields=['coin', 'timestamp'], name='rickismetrics_idx'),
         ]
