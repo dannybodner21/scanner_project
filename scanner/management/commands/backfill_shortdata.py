@@ -35,14 +35,13 @@ class Command(BaseCommand):
 
         target_symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
-            "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC", "HYPE",
-            "BGB", "DAI", "PI", "XMR", "UNI", "PEPE", "OKB", "APT", "GT", "NEAR",
-            "ONDO", "TAO", "ICP", "ETC", "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL",
-            "VET", "FIL", "TRUMP", "ALGO", "ENA", "ATOM", "TIA", "FET", "ARB", "S",
-            "KCS", "DEXE", "OP", "JUP", "MKR", "XDC", "STX", "FLR", "EOS", "WLD",
-            "IP", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT", "FORM", "QNT", "PAXG",
-            "CRV", "JASMY", "SAND", "GALA", "NEXO", "CORE", "RAY", "KAIA", "LDO", "THETA",
-            "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI", "XCN"
+            "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+            "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
+            "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
+            "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+            "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
+            "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
+            "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
         ]
 
         coins = Coin.objects.filter(symbol__in=target_symbols)

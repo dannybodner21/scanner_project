@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score
 from xgboost import XGBClassifier
 from django.utils.timezone import make_aware
 from datetime import datetime
+import joblib
 
 class Command(BaseCommand):
     help = 'Train XGBoost model on full RickisMetrics between March 22, 2025 and April 22, 2025'
@@ -72,3 +73,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"✅ Model training complete."))
         self.stdout.write(self.style.SUCCESS(f"✅ Model Accuracy: {accuracy:.4f}"))
+
+        # ✅ NEW: Save model
+        joblib.dump(model, '/workspace/scanner/xgboost_long_model.pkl')
+        self.stdout.write(self.style.SUCCESS(f"✅ Model saved to /workspace/scanner/xgboost_long_model.pkl"))
