@@ -43,8 +43,6 @@ from django.db.models import Sum
 from django.utils.timezone import timedelta
 from django.core.management.base import BaseCommand
 from threading import Thread
-from scanner.helpers import post_metrics_to_bot
-from scanner.helpers import post_metrics_to_bot
 from scanner.management.commands.run_five_min_update_logic import run_five_min_update_logic
 from scanner.management.commands.predict_live import predict_live_logic
 
