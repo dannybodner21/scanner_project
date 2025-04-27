@@ -8,7 +8,7 @@ from django.utils.timezone import make_aware
 from datetime import datetime
 
 class Command(BaseCommand):
-    help = 'Train XGBoost model on RickisMetrics from 2025-03-22 to 2025-04-22'
+    help = 'Train XGBoost model on full RickisMetrics between March 22, 2025 and April 22, 2025'
 
     def handle(self, *args, **kwargs):
         self.stdout.write("🚀 Loading RickisMetrics data...")
@@ -35,29 +35,33 @@ class Command(BaseCommand):
 
         self.stdout.write(f"✅ Loaded {len(df)} entries.")
 
+        # Drop rows with missing values
         df = df.dropna()
-        self.stdout.write(f"✅ {len(df)} entries after dropping rows with missing values.")
+        self.stdout.write(f"✅ {len(df)} entries after dropping missing values.")
 
+        # Split into features and labels
         X = df.drop(columns=['long_result'])
         y = df['long_result']
 
+        # Train/test split
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
         )
 
         self.stdout.write("🚀 Training XGBoost model...")
 
-        #model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+        # Train XGBoost
         model = XGBClassifier(
             use_label_encoder=False,
             eval_metric='logloss',
             random_state=42,
-            max_depth=3,      # limit tree depth
-            n_estimators=50   # fewer trees
+            n_estimators=100,
+            max_depth=6,
+            tree_method='hist'  # Best for 4GB RAM
         )
-
         model.fit(X_train, y_train)
 
+        # Evaluate
         y_pred = model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
 
