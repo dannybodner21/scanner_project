@@ -51,6 +51,10 @@ def run_five_min_update_logic():
             data_quotes = response_quotes.json()
             data_ohlcv = response_ohlcv.json()
 
+            print("Quotes Data:", data_quotes)
+            print("OHLCV Data:", data_ohlcv)
+
+
             for cmc_id in cmc_id_batch:
                 if str(cmc_id) in data_quotes["data"] and str(cmc_id) in data_ohlcv["data"]:
                     crypto_data = data_quotes["data"][str(cmc_id)]

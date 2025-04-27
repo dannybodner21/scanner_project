@@ -2,11 +2,12 @@ from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 from xgboost import XGBClassifier
 from django.utils.timezone import make_aware
 from datetime import datetime
 import joblib
+import os
 
 class Command(BaseCommand):
     help = 'Train XGBoost model on full RickisMetrics between March 22, 2025 and April 22, 2025'
@@ -38,8 +39,11 @@ class Command(BaseCommand):
 
         # Convert object columns to float
         for col in df.columns:
-            if df[col].dtype == 'object':
+            if df[col].dtype == 'object' and col != 'long_result':
                 df[col] = df[col].astype('float')
+
+        # Ensure long_result is an integer (binary classification)
+        df['long_result'] = df['long_result'].astype(int)
 
         # Drop rows with missing values
         df = df.dropna()
@@ -70,10 +74,12 @@ class Command(BaseCommand):
         # Evaluate
         y_pred = model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
-
         self.stdout.write(self.style.SUCCESS(f"✅ Model training complete."))
         self.stdout.write(self.style.SUCCESS(f"✅ Model Accuracy: {accuracy:.4f}"))
+        self.stdout.write(self.style.SUCCESS(f"\nClassification Report:\n{classification_report(y_test, y_pred)}"))
 
         # ✅ NEW: Save model
-        joblib.dump(model, '/workspace/scanner/xgboost_long_model.pkl')
-        self.stdout.write(self.style.SUCCESS(f"✅ Model saved to /workspace/scanner/xgboost_long_model.pkl"))
+        model_path = '/workspace/scanner/xgboost_long_model.pkl'
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        joblib.dump(model, model_path)
+        self.stdout.write(self.style.SUCCESS(f"✅ Model saved to {model_path}"))
