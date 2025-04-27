@@ -5,7 +5,7 @@ from . import views
 urlpatterns = [
     path("index/", views.index, name="indexold"),
     path("", views.index_view, name="index"),
-    path('five-min-update/', views.five_min_update, name='five-min-update'),
+
     path('daily-update/', views.daily_update, name='daily-update'),
     path('thirty-min-pattern-check/', views.thirty_min_pattern_check, name='thirty-min-pattern-check'),
     path('five-min-pattern-check/', views.five_min_pattern_check, name='five-min-pattern-check'),
@@ -25,5 +25,8 @@ urlpatterns = [
     # RickisScanner URLs
     path("api/ricki/latest/", views.get_hod_movers, name="get-hod-movers"),
     path("short-intervals/", views.short_interval_summary, name="short-intervals"),
+
+    path('five-min-update/', views.five_min_update, name='five-min-update'),
+    path("predict-long/", views.predict_live, name="predict-long"),
 
 ]
