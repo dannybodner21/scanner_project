@@ -57,7 +57,7 @@ def calculate_ema_from_prices(prices, window):
     """
     try:
 
-        if not prices or len(prices) < window:
+        if prices is None or len(prices) < window:
             return None
 
         prices = [float(p) for p in prices]
