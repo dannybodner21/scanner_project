@@ -47,6 +47,22 @@ def calculate_rsi(coin, timestamp, period=14):
     return 100 - (100 / (1 + rs))
 
 
+def calculate_ema_from_prices(prices, window):
+    """
+    Calculate the Exponential Moving Average (EMA) of the given prices for a specified window.
+    """
+    if len(prices) < window:
+        return None
+
+    prices = np.array(prices)
+    weights = np.exp(np.linspace(-1., 0., window))  # Exponential weights
+    weights /= weights.sum()  # Normalize the weights
+
+    # Apply the weighted moving average
+    ema = np.convolve(prices, weights, mode='valid')  # 'valid' ensures the result is the right size
+    return float(ema[-1])  # Return the latest EMA value
+
+
 def calculate_macd(coin, timestamp):
     prices = get_recent_prices(coin, timestamp, window=50)  # get more history
     if len(prices) < 26:

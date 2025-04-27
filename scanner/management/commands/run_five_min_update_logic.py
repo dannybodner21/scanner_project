@@ -4,7 +4,7 @@ from scanner.helpers import (
     round_to_five_minutes, calculate_rsi, calculate_macd, calculate_stochastic,
     calculate_support_resistance, calculate_avg_volume_1h, calculate_relative_volume,
     calculate_sma, calculate_ema, calculate_stddev_1h, calculate_price_slope_1h,
-    calculate_atr_1h, calculate_price_change_five_min
+    calculate_atr_1h, calculate_price_change_five_min, calculate_ema_from_prices
 )
 from django.utils.timezone import make_aware, is_naive
 from datetime import datetime
