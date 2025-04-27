@@ -175,7 +175,6 @@ class RickisMetrics(models.Model):
 
     # High of Day Momentum
     high_24h = models.DecimalField(max_digits=20, decimal_places=10)
-
     low_24h = models.DecimalField(max_digits=20, decimal_places=10)
 
     # Top Gainers
@@ -212,8 +211,6 @@ class RickisMetrics(models.Model):
     short_result = models.BooleanField(null=True)  # True = win, False = loss
 
     class Meta:
-
-
 
         indexes = [
             models.Index(fields=['coin', 'timestamp'], name='rickismetrics_idx'),
