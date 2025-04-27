@@ -1,44 +1,38 @@
-from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
 from django.utils.timezone import now
+from datetime import timedelta
 import joblib
 import numpy as np
 import threading
 import requests
 
-# Load your trained model
 MODEL_PATH = '/workspace/scanner/xgboost_long_model.pkl'
 BOT_TOKEN = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
 CHAT_ID = '1077594551'
 
-class Command(BaseCommand):
-    help = 'Run live predictions on latest RickisMetrics and send signals to Telegram.'
+def predict_live_logic():
+    print("\n🚀 Loading trained model...")
+    model = joblib.load(MODEL_PATH)
 
-    def handle(self, *args, **kwargs):
-        print("\n🚀 Loading trained model...")
-        model = joblib.load(MODEL_PATH)
+    print("🚀 Loading latest RickisMetrics...")
+    metrics = load_latest_rickismetrics()
+    if not metrics.exists():
+        print("⚠️ No recent RickisMetrics found.")
+        return
 
-        print("🚀 Loading latest RickisMetrics...")
-        metrics = load_latest_rickismetrics()
-        if not metrics.exists():
-            print("⚠️ No recent RickisMetrics found.")
-            return
+    X = preprocess_metrics(metrics)
+    preds = model.predict_proba(X)[:, 1]
 
-        X = preprocess_metrics(metrics)
-        preds = model.predict_proba(X)[:, 1]
+    print("🚀 Sending alerts...")
+    for metric, confidence in zip(metrics, preds):
+        if confidence > 0.75:
+            post_metrics_to_bot(metric, confidence)
 
-        print("🚀 Sending alerts...")
-        for metric, confidence in zip(metrics, preds):
-            if confidence > 0.75:
-                post_metrics_to_bot(metric, confidence)
-
-        print("✅ Live prediction complete.")
-
+    print("✅ Live prediction complete.")
 
 def load_latest_rickismetrics():
     timestamp_cutoff = now() - timedelta(minutes=10)
     return RickisMetrics.objects.filter(timestamp__gte=timestamp_cutoff)
-
 
 def preprocess_metrics(metrics_queryset):
     features = []
@@ -70,11 +64,9 @@ def preprocess_metrics(metrics_queryset):
         ])
     return np.array(features)
 
-
 def post_metrics_to_bot(metric, confidence):
     message = f"🚀 {metric.coin.symbol} | {metric.timestamp.strftime('%Y-%m-%d %H:%M')}\nLong Confidence: {confidence:.2f}"
     async_post_to_bot(message)
-
 
 def async_post_to_bot(text):
     def post():
