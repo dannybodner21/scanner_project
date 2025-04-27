@@ -213,9 +213,7 @@ class RickisMetrics(models.Model):
 
     class Meta:
 
-        constraints = [
-            models.UniqueConstraint(fields=['coin', 'timestamp'], name='unique_coin_timestamp_rickis')
-        ]
+
 
         indexes = [
             models.Index(fields=['coin', 'timestamp'], name='rickismetrics_idx'),
