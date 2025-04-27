@@ -35,6 +35,11 @@ class Command(BaseCommand):
 
         self.stdout.write(f"✅ Loaded {len(df)} entries.")
 
+        # Convert object columns to float
+        for col in df.columns:
+            if df[col].dtype == 'object':
+                df[col] = df[col].astype('float')
+
         # Drop rows with missing values
         df = df.dropna()
         self.stdout.write(f"✅ {len(df)} entries after dropping missing values.")
