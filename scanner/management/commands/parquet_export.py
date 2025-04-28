@@ -3,7 +3,8 @@ from scanner.models import RickisMetrics
 import pandas as pd
 
 class Command(BaseCommand):
-    help = 'Export RickisMetrics to Parquet file (fix types)'
+
+    help = 'Export RickisMetrics to Parquet file (force all numerics to float)'
 
     def handle(self, *args, **kwargs):
         self.stdout.write("🚀 Exporting RickisMetrics...")
@@ -30,15 +31,12 @@ class Command(BaseCommand):
 
         df.rename(columns={'coin__symbol': 'coin_symbol'}, inplace=True)
 
-        # Force critical decimals to float32/float64
-        float_fields = [
-            'atr_1h', 'price_slope_1h', 'stddev_1h', 'relative_volume'
+        columns_to_cast = [
+            col for col in df.columns if col not in ['timestamp', 'coin_symbol']
         ]
-        for field in float_fields:
-            if field in df.columns:
-                df[field] = pd.to_numeric(df[field], errors='coerce')
+        df[columns_to_cast] = df[columns_to_cast].apply(pd.to_numeric, errors='coerce')
 
-        output_path = '/workspace/scanner/rickismetrics_export_fixed.parquet'
+        output_path = '/workspace/scanner/metrics_export.parquet'
         df.to_parquet(output_path)
 
         self.stdout.write(self.style.SUCCESS(f"✅ Export complete. {len(df)} rows saved to {output_path}"))
