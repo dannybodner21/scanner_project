@@ -14,6 +14,7 @@ urlpatterns = [
     path('finn/', views.finn, name='finn'),
 
     path('download/<str:filename>/', views.download_file, name='download_file'),
+    path('download-parquet/<str:filename>/', views.download_parquet_file, name='download_parquet_file'),
 
     # RickisScanner URLs
     path("api/ricki/latest/", views.get_hod_movers, name="get-hod-movers"),

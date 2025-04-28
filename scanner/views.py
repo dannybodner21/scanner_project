@@ -2090,6 +2090,16 @@ def daily_update(request=None):
 
 # ------------------------------------------------------------------------------
 
+import os
+from django.http import FileResponse, Http404
+
+def download_parquet_file(request, filename):
+    try:
+        # Adjust path to the scanner folder
+        filepath = os.path.join('/workspace/scanner/', filename)
+        return FileResponse(open(filepath, 'rb'), as_attachment=True)
+    except FileNotFoundError:
+        raise Http404("File does not exist")
 
 
 def download_file(request, filename):
