@@ -3,11 +3,10 @@ from scanner.models import RickisMetrics
 import pandas as pd
 
 class Command(BaseCommand):
-    
-    help = 'Export RickisMetrics to Parquet file (only fully labeled rows)'
+    help = 'Export RickisMetrics to Parquet file (fix types)'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write("🚀 Exporting RickisMetrics (only fully labeled rows)...")
+        self.stdout.write("🚀 Exporting RickisMetrics...")
 
         queryset = RickisMetrics.objects.filter(
             long_result__isnull=False,
@@ -26,13 +25,20 @@ class Command(BaseCommand):
         df = pd.DataFrame(list(queryset))
 
         if df.empty:
-            self.stdout.write(self.style.ERROR("❌ No RickisMetrics entries with both long_result and short_result filled."))
+            self.stdout.write(self.style.ERROR("❌ No RickisMetrics entries found."))
             return
 
-        # Rename coin__symbol to coin_symbol
         df.rename(columns={'coin__symbol': 'coin_symbol'}, inplace=True)
 
-        output_path = '/workspace/scanner/rickismetrics_export.parquet'
+        # Force critical decimals to float32/float64
+        float_fields = [
+            'atr_1h', 'price_slope_1h', 'stddev_1h', 'relative_volume'
+        ]
+        for field in float_fields:
+            if field in df.columns:
+                df[field] = pd.to_numeric(df[field], errors='coerce')
+
+        output_path = '/workspace/scanner/rickismetrics_export_fixed.parquet'
         df.to_parquet(output_path)
 
         self.stdout.write(self.style.SUCCESS(f"✅ Export complete. {len(df)} rows saved to {output_path}"))
