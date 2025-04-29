@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         project = 'bodner-main-project'        # <<< your real project id
-        endpoint_id = '1612984812077842432'    # <<< your real endpoint id
+        endpoint_id = '298034721336590336'    # <<< your real endpoint id
         region = 'us-central1'                 # <<< Example: 'us-central1'
 
         # Authenticate and get token

@@ -47,6 +47,8 @@ from scanner.management.commands.run_five_min_update_logic import run_five_min_u
 from scanner.management.commands.predict_live import predict_live_logic
 import google.auth
 from google.auth.transport.requests import Request
+from google.oauth2 import service_account
+from google.auth import jwt
 
 
 # FLOW OF THE ML MODEL:
@@ -55,7 +57,6 @@ from google.auth.transport.requests import Request
 # predict live -> run XGBoost model live and get confidence scores
 # post metrics to bot -> send telegram message on trade opportunity
 # async post to bot -> async HTTP POST to telegram API
-
 
 @csrf_exempt
 def five_min_update(request):
@@ -67,20 +68,104 @@ def predict_live(request):
     Thread(target=predict_live_logic).start()
     return JsonResponse({"status": "started"})
 
-
 # predict live
 # management command file predict_live.py
 
 
-from google.oauth2 import service_account
+PROJECT_ID = 'bodner-main-project'
+ENDPOINT_ID = '298034721336590336'
+REGION = 'us-central1'
+#SERVICE_ACCOUNT_PATH = '/workspace/service_account.json'
+SERVICE_ACCOUNT_PATH = json.loads(os.environ['GOOGLE_APPLICATION_CREDENTIALS_JSON'])
 
-# Load credentials from environment variable
-service_account_info = json.loads(os.environ['GOOGLE_APPLICATION_CREDENTIALS_JSON'])
-credentials = service_account.Credentials.from_service_account_info(service_account_info)
+def get_google_jwt_token():
+
+    audience = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
+
+    try:
+        service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
+        credentials = jwt.Credentials.from_service_account_info(
+            service_account_info, audience=audience
+        )
+        credentials.refresh(Request())
+        return credentials.token
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to load service account from env: {e}")
 
 def predict_live_vertex(request):
+
+    try:
+        access_token = get_google_jwt_token()
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
+
+    # Load RickisMetrics
+    cutoff = now() - timedelta(minutes=10)
+    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
+
+    if not metrics.exists():
+        return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
+
+    # Build instances
+    instances = []
+    for metric in metrics:
+        try:
+            instances.append({
+                "price": float(metric.price),
+                "volume": float(metric.volume),
+                "change_5m": float(metric.change_5m),
+                "change_1h": float(metric.change_1h),
+                "change_24h": float(metric.change_24h),
+                "high_24h": float(metric.high_24h),
+                "low_24h": float(metric.low_24h),
+                "avg_volume_1h": float(metric.avg_volume_1h),
+                "relative_volume": float(metric.relative_volume),
+                "sma_5": float(metric.sma_5),
+                "sma_20": float(metric.sma_20),
+                "ema_12": float(metric.ema_12),
+                "ema_26": float(metric.ema_26),
+                "macd": float(metric.macd),
+                "macd_signal": float(metric.macd_signal),
+                "rsi": float(metric.rsi),
+                "stochastic_k": float(metric.stochastic_k),
+                "stochastic_d": float(metric.stochastic_d),
+                "support_level": float(metric.support_level),
+                "resistance_level": float(metric.resistance_level),
+                "stddev_1h": float(metric.stddev_1h),
+                "price_slope_1h": float(metric.price_slope_1h),
+                "atr_1h": float(metric.atr_1h),
+            })
+        except Exception as e:
+            continue  # skip bad row
+
+    if not instances:
+        return JsonResponse({"status": "error", "message": "No valid metrics to send."}, status=500)
+
+    # Send request to Vertex
+    url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json={"instances": instances})
+        response.raise_for_status()
+        return JsonResponse({"status": "success", "predictions": response.json()})
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e),
+            "response": getattr(response, "text", "No response")
+        }, status=500)
+
+
+def predict_live_vertex_V1(request):
     project = 'bodner-main-project'        # <<< your real project id
-    endpoint_id = '1612984812077842432'    # <<< your real endpoint id
+    endpoint_id = '298034721336590336'    # <<< your real endpoint id
     region = 'us-central1'              # <<< example: us-central1
 
     # Load credentials from environment variable
@@ -96,7 +181,7 @@ def predict_live_vertex(request):
         return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
 
     # Endpoint URL
-    url = f"https://{region}-aiplatform.googleapis.com/v1/projects/{project}/locations/{region}/models/{endpoint_id}:predict"
+    url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/endpoints/{endpoint_id}:predict"
 
     # Load latest RickisMetrics
     cutoff = now() - timedelta(minutes=10)
