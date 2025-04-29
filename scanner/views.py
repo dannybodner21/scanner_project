@@ -86,7 +86,10 @@ def predict_live_vertex(request):
     # Load credentials from environment variable
     try:
         service_account_info = json.loads(os.environ['GOOGLE_APPLICATION_CREDENTIALS_JSON'])
-        credentials = service_account.Credentials.from_service_account_info(service_account_info)
+        credentials = service_account.Credentials.from_service_account_info(
+            service_account_info,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
         credentials.refresh(Request())
         access_token = credentials.token
     except Exception as e:
