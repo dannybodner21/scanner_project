@@ -152,7 +152,13 @@ def predict_live_vertex(request):
     try:
         response = requests.post(url, headers=headers, json={"instances": instances})
         response.raise_for_status()
-        return JsonResponse({"status": "success", "predictions": response.json()})
+        predictions = response.json().get("predictions", [])
+
+        for metric, confidence in zip(metrics, predictions):
+            print(f"🔎 {metric.coin.symbol} — Confidence: {confidence:.4f}")
+
+        return JsonResponse({"status": "success", "count": len(predictions)})
+
 
     except Exception as e:
         return JsonResponse({
