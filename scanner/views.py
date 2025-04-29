@@ -80,8 +80,7 @@ credentials = service_account.Credentials.from_service_account_info(service_acco
 
 def predict_live_vertex(request):
     project = 'bodner-main-project'        # <<< your real project id
-    #endpoint_id = '1612984812077842432'    # <<< your real endpoint id
-    endpoint_id = '3927936020997210112'
+    endpoint_id = '1612984812077842432'    # <<< your real endpoint id
     region = 'us-central1'              # <<< example: us-central1
 
     # Load credentials from environment variable
@@ -97,7 +96,7 @@ def predict_live_vertex(request):
         return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
 
     # Endpoint URL
-    url = f"https://{region}-aiplatform.googleapis.com/v1/projects/{project}/locations/{region}/endpoints/{endpoint_id}:predict"
+    url = f"https://{region}-aiplatform.googleapis.com/v1/projects/{project}/locations/{region}/models/{endpoint_id}:predict"
 
     # Load latest RickisMetrics
     cutoff = now() - timedelta(minutes=10)
