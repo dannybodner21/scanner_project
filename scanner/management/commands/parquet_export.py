@@ -19,6 +19,7 @@ class Command(BaseCommand):
             'long_result'
         )
 
+
         df = pd.DataFrame(list(qs))
 
         if df.empty:
