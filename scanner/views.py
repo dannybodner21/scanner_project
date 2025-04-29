@@ -109,6 +109,7 @@ def predict_live_vertex(request):
     instances = []
     for metric in metrics:
         instances.append({
+            "id": str(metric.id),
             "price": float(metric.price),
             "volume": float(metric.volume),
             "change_5m": float(metric.change_5m),
