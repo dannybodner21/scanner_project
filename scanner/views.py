@@ -48,7 +48,6 @@ from scanner.management.commands.predict_live import predict_live_logic
 import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
-from google.auth import jwt
 
 
 # FLOW OF THE ML MODEL:
@@ -75,8 +74,6 @@ def predict_live(request):
 PROJECT_ID = 'bodner-main-project'
 ENDPOINT_ID = '298034721336590336'
 REGION = 'us-central1'
-#SERVICE_ACCOUNT_PATH = '/workspace/service_account.json'
-SERVICE_ACCOUNT_PATH = json.loads(os.environ['GOOGLE_APPLICATION_CREDENTIALS_JSON'])
 
 def get_google_jwt_token():
 
@@ -84,8 +81,9 @@ def get_google_jwt_token():
 
     try:
         service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
-        credentials = jwt.Credentials.from_service_account_info(
-            service_account_info, audience=audience
+        credentials = service_account.Credentials.from_service_account_info(
+            service_account_info,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
         )
         credentials.refresh(Request())
         return credentials.token
@@ -137,8 +135,9 @@ def predict_live_vertex(request):
                 "price_slope_1h": float(metric.price_slope_1h),
                 "atr_1h": float(metric.atr_1h),
             })
+
         except Exception as e:
-            continue  # skip bad row
+            continue
 
     if not instances:
         return JsonResponse({"status": "error", "message": "No valid metrics to send."}, status=500)
