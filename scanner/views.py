@@ -70,15 +70,25 @@ def predict_live(request):
 # management command file predict_live.py
 
 
+from google.oauth2 import service_account
+
+# Load credentials from environment variable
+service_account_info = json.loads(os.environ['GOOGLE_APPLICATION_CREDENTIALS_JSON'])
+credentials = service_account.Credentials.from_service_account_info(service_account_info)
+
 def predict_live_vertex(request):
     project = 'bodner-main-project'        # <<< your real project id
     endpoint_id = '5739649708595347456'    # <<< your real endpoint id
     region = 'us-central1'              # <<< example: us-central1
 
-    # Authenticate
-    credentials, _ = google.auth.default()
-    credentials.refresh(Request())
-    access_token = credentials.token
+    # Load credentials from environment variable
+    try:
+        service_account_info = json.loads(os.environ['GOOGLE_APPLICATION_CREDENTIALS_JSON'])
+        credentials = service_account.Credentials.from_service_account_info(service_account_info)
+        credentials.refresh(Request())
+        access_token = credentials.token
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
 
     # Endpoint URL
     url = f"https://{region}-aiplatform.googleapis.com/v1/projects/{project}/locations/{region}/endpoints/{endpoint_id}:predict"
