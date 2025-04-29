@@ -46,6 +46,8 @@ from threading import Thread
 from scanner.management.commands.run_five_min_update_logic import run_five_min_update_logic
 from scanner.management.commands.predict_live import predict_live_logic
 import google.auth
+from google.auth.transport.requests import Request
+
 
 # FLOW OF THE ML MODEL:
 # run five min update logic -> get new metrics
