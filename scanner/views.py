@@ -145,13 +145,14 @@ def predict_live_vertex(request):
     }
 
     # POST to Vertex AI
-    response = requests.post(url, headers=headers, json=payload)
-
-    if response.status_code == 200:
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
         predictions = response.json()
         return JsonResponse({"status": "success", "predictions": predictions})
-    else:
-        return JsonResponse({"status": "error", "details": response.text}, status=500)
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "details": str(e), "response": response.text}, status=500)
 
 
 
