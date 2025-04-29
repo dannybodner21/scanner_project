@@ -45,6 +45,7 @@ from django.core.management.base import BaseCommand
 from threading import Thread
 from scanner.management.commands.run_five_min_update_logic import run_five_min_update_logic
 from scanner.management.commands.predict_live import predict_live_logic
+import google.auth
 
 # FLOW OF THE ML MODEL:
 # run five min update logic -> get new metrics
@@ -69,6 +70,72 @@ def predict_live(request):
 # management command file predict_live.py
 
 
+def predict_live_vertex(request):
+    project = 'bodner-main-project'        # <<< your real project id
+    endpoint_id = '5739649708595347456'    # <<< your real endpoint id
+    region = 'us-central1'              # <<< example: us-central1
+
+    # Authenticate
+    credentials, _ = google.auth.default()
+    credentials.refresh(Request())
+    access_token = credentials.token
+
+    # Endpoint URL
+    url = f"https://{region}-aiplatform.googleapis.com/v1/projects/{project}/locations/{region}/endpoints/{endpoint_id}:predict"
+
+    # Load latest RickisMetrics
+    cutoff = now() - timedelta(minutes=10)
+    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
+
+    if not metrics.exists():
+        return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
+
+    # Prepare instances
+    instances = []
+    for metric in metrics:
+        instances.append({
+            "price": float(metric.price),
+            "volume": float(metric.volume),
+            "change_5m": float(metric.change_5m),
+            "change_1h": float(metric.change_1h),
+            "change_24h": float(metric.change_24h),
+            "high_24h": float(metric.high_24h),
+            "low_24h": float(metric.low_24h),
+            "avg_volume_1h": float(metric.avg_volume_1h),
+            "relative_volume": float(metric.relative_volume),
+            "sma_5": float(metric.sma_5),
+            "sma_20": float(metric.sma_20),
+            "ema_12": float(metric.ema_12),
+            "ema_26": float(metric.ema_26),
+            "macd": float(metric.macd),
+            "macd_signal": float(metric.macd_signal),
+            "rsi": float(metric.rsi),
+            "stochastic_k": float(metric.stochastic_k),
+            "stochastic_d": float(metric.stochastic_d),
+            "support_level": float(metric.support_level),
+            "resistance_level": float(metric.resistance_level),
+            "stddev_1h": float(metric.stddev_1h),
+            "price_slope_1h": float(metric.price_slope_1h),
+            "atr_1h": float(metric.atr_1h),
+        })
+
+    payload = {
+        "instances": instances
+    }
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    # POST to Vertex AI
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        predictions = response.json()
+        return JsonResponse({"status": "success", "predictions": predictions})
+    else:
+        return JsonResponse({"status": "error", "details": response.text}, status=500)
 
 
 

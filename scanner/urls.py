@@ -21,6 +21,8 @@ urlpatterns = [
     path("short-intervals/", views.short_interval_summary, name="short-intervals"),
 
     path('five-min-update/', views.five_min_update, name='five-min-update'),
+    path('predict-live-vertex/', views.predict_live_vertex, name='predict-live-vertex'),
+
     path("predict-long/", views.predict_live, name="predict-long"),
 
 ]
