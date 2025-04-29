@@ -80,7 +80,8 @@ credentials = service_account.Credentials.from_service_account_info(service_acco
 
 def predict_live_vertex(request):
     project = 'bodner-main-project'        # <<< your real project id
-    endpoint_id = '5739649708595347456'    # <<< your real endpoint id
+    #endpoint_id = '1612984812077842432'    # <<< your real endpoint id
+    endpoint_id = '3927936020997210112'
     region = 'us-central1'              # <<< example: us-central1
 
     # Load credentials from environment variable

@@ -5,6 +5,7 @@ from datetime import timedelta
 import requests
 import google.auth
 from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 import numpy as np
 import json
 
@@ -13,7 +14,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         project = 'bodner-main-project'        # <<< your real project id
-        endpoint_id = '4811204497915248640'    # <<< your real endpoint id
+        endpoint_id = '1612984812077842432'    # <<< your real endpoint id
         region = 'us-central1'                 # <<< Example: 'us-central1'
 
         # Authenticate and get token
