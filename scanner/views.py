@@ -162,6 +162,9 @@ def predict_live_vertex(request):
                 confidence = pred["scores"][class_idx]
                 print(f"🔎 {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
+                print("✅ Predictions complete.")
+                return JsonResponse({"status": "done"})
+
             except Exception as e:
                 print(f"❌ Failed to parse prediction for {metric.coin.symbol}: {e}")
 
