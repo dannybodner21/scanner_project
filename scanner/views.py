@@ -154,11 +154,16 @@ def predict_live_vertex(request):
         response.raise_for_status()
         predictions = response.json().get("predictions", [])
 
-        for metric, confidence in zip(metrics, predictions):
-            print(f"🔎 {metric.coin.symbol} — Confidence: {confidence:.4f}")
+        for metric, pred in zip(metrics, predictions):
 
-        return JsonResponse({"status": "success", "count": len(predictions)})
+            try:
+                # Find index of "true" class (sometimes it's index 0, sometimes 1)
+                class_idx = pred["classes"].index("true")
+                confidence = pred["scores"][class_idx]
+                print(f"🔎 {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
+            except Exception as e:
+                print(f"❌ Failed to parse prediction for {metric.coin.symbol}: {e}")
 
     except Exception as e:
         return JsonResponse({
