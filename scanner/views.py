@@ -164,7 +164,7 @@ def predict_live_vertex(request):
                 confidence = pred["scores"][class_idx]
                 print(f"🔎 {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
-                if confidence >= 0.7:
+                if confidence > 0.5:
 
                     messages.append(f"{metric.coin.symbol} — Confidence: {confidence:.4f}")
 
