@@ -154,6 +154,8 @@ def predict_live_vertex(request):
         response.raise_for_status()
         predictions = response.json().get("predictions", [])
 
+        messages = []
+
         for metric, pred in zip(metrics, predictions):
 
             try:
@@ -162,8 +164,15 @@ def predict_live_vertex(request):
                 confidence = pred["scores"][class_idx]
                 print(f"🔎 {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
+                if confidence >= 0.7:
+
+                    messages.append(f"{metric.coin.symbol} — Confidence: {confidence:.4f}")
+
             except Exception as e:
                 print(f"❌ Failed to parse prediction for {metric.coin.symbol}: {e}")
+
+        if len(messages) > 0:
+            send_text(messages)
 
         print("✅ Predictions complete.")
         return JsonResponse({"status": "done"})
@@ -1849,18 +1858,18 @@ def send_text(true_triggers_two):
 
                 message += trigger + " "
 
-                payload = {
-                    "chat_id": chat_id,
-                    "text": message,
-                    "parse_mode": "Markdown",
-                }
+            payload = {
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "Markdown",
+            }
 
-                response = requests.post(url, data=payload)
+            response = requests.post(url, data=payload)
 
-                if response.status_code == 200:
-                    print("Message sent successfully.")
-                else:
-                    print(f"Failed to send message: {response.content}")
+            if response.status_code == 200:
+                print("Message sent successfully.")
+            else:
+                print(f"Failed to send message: {response.content}")
 
     return
 
