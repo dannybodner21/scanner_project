@@ -166,7 +166,7 @@ def predict_live_vertex(request):
 
                 if confidence > 0.5:
 
-                    messages.append(f"{metric.coin.symbol} — Confidence: {confidence:.4f}")
+                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
             except Exception as e:
                 print(f"❌ Failed to parse prediction for {metric.coin.symbol}: {e}")
@@ -278,11 +278,12 @@ def predict_live_short(request):
             region_name="us-east-1"
         )
         client = session.client("sagemaker-runtime")
+
     except Exception as e:
         return JsonResponse({"status": "error", "message": f"Failed to set up AWS client: {e}"}, status=500)
 
     # Pull recent metrics
-    cutoff = now() - timedelta(minutes=10)
+    cutoff = now() - timedelta(minutes=5)
     metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
 
     instances = []
@@ -314,9 +315,10 @@ def predict_live_short(request):
                 "price_slope_1h": float(m.price_slope_1h),
                 "atr_1h": float(m.atr_1h),
             }
+
             instances.append(instance)
             symbols.append(m.coin.symbol)
-            
+
         except Exception:
             continue
 
@@ -331,15 +333,20 @@ def predict_live_short(request):
         response = client.invoke_endpoint(
             EndpointName="short-model-endpoint",
             ContentType="application/json",
-            Body=json.dumps(payload)
+            Body=json.dumps(payload),
+            InferenceComponentName="default",
         )
 
         predictions = json.loads(response["Body"].read())
 
         # Print results
         for symbol, result in zip(symbols, predictions["predictions"]):
+
             confidence = result.get("probabilities", [0])[0]
-            print(f"🔻 {symbol} — Confidence: {confidence:.4f}")
+            print(f"🔻 SHORT: {symbol} — Confidence: {confidence:.4f}")
+
+            if confidence > 0.5:
+                messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
 
         return JsonResponse({"status": "success", "predictions": predictions})
 
