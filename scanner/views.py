@@ -333,7 +333,7 @@ def predict_live_short(request):
         response = client.invoke_endpoint(
             EndpointName="short-model-endpoint",
             ContentType="application/json",
-            CustomAttributes="InferenceComponentName=short-model-endpoint-1746117775904",
+            CustomAttributes="X-Amzn-SageMaker-Inference-Component-Name=short-model-endpoint-1746117775904"
             Body=json.dumps(payload),
         )
 
