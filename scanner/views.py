@@ -264,55 +264,87 @@ def predict_live_vertex_V1(request):
 
 
 
+
+
 import boto3
 
 def predict_live_short(request):
-    ENDPOINT_NAME = "short-model-endpoint"
-    REGION_NAME = "us-east-1"
 
-    runtime = boto3.client('sagemaker-runtime', region_name=REGION_NAME)
+    try:
+        aws_credentials = json.loads(os.environ["AWS_CREDENTIALS_JSON"])
+        session = boto3.Session(
+            aws_access_key_id=aws_credentials["aws_access_key_id"],
+            aws_secret_access_key=aws_credentials["aws_secret_access_key"],
+            region_name="us-east-1"
+        )
+        client = session.client("sagemaker-runtime")
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"Failed to set up AWS client: {e}"}, status=500)
 
+    # Pull recent metrics
     cutoff = now() - timedelta(minutes=10)
     metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
 
-    if not metrics.exists():
-        return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
+    instances = []
+    symbols = []
 
-    predictions = []
-
-    for metric in metrics:
+    for m in metrics:
         try:
-            features = [
-                metric.price, metric.volume, metric.change_1h, metric.change_24h,
-                metric.high_24h, metric.low_24h, metric.avg_volume_1h, metric.relative_volume,
-                metric.sma_5, metric.sma_20, metric.ema_12, metric.ema_26, metric.macd, metric.macd_signal,
-                metric.rsi, metric.stochastic_k, metric.stochastic_d, metric.support_level,
-                metric.resistance_level, metric.stddev_1h, metric.price_slope_1h, metric.atr_1h
-            ]
-            payload = ",".join(map(str, features))
-
-            response = runtime.invoke_endpoint(
-                EndpointName=ENDPOINT_NAME,
-                ContentType="text/csv",
-                Body=payload
-            )
-
-            result = json.loads(response['Body'].read().decode())
-            confidence = float(result[0])
-            predictions.append({
-                "symbol": metric.coin.symbol,
-                "confidence": confidence
-            })
-
-            print(f"🔻 {metric.coin.symbol} — Confidence: {confidence:.2f}")
-
-        except Exception as e:
-            print(f"[Error] {metric.coin.symbol}: {e}")
+            instance = {
+                "price": float(m.price),
+                "volume": float(m.volume),
+                "change_1h": float(m.change_1h),
+                "change_24h": float(m.change_24h),
+                "high_24h": float(m.high_24h),
+                "low_24h": float(m.low_24h),
+                "avg_volume_1h": float(m.avg_volume_1h),
+                "relative_volume": float(m.relative_volume),
+                "sma_5": float(m.sma_5),
+                "sma_20": float(m.sma_20),
+                "ema_12": float(m.ema_12),
+                "ema_26": float(m.ema_26),
+                "macd": float(m.macd),
+                "macd_signal": float(m.macd_signal),
+                "rsi": float(m.rsi),
+                "stochastic_k": float(m.stochastic_k),
+                "stochastic_d": float(m.stochastic_d),
+                "support_level": float(m.support_level),
+                "resistance_level": float(m.resistance_level),
+                "stddev_1h": float(m.stddev_1h),
+                "price_slope_1h": float(m.price_slope_1h),
+                "atr_1h": float(m.atr_1h),
+            }
+            instances.append(instance)
+            symbols.append(m.coin.symbol)
+            
+        except Exception:
             continue
 
-    return JsonResponse({"status": "success", "predictions": predictions})
+    if not instances:
+        return JsonResponse({"status": "error", "message": "No valid instances"}, status=500)
 
+    try:
+        payload = {
+            "instances": instances
+        }
 
+        response = client.invoke_endpoint(
+            EndpointName="short-model-endpoint",
+            ContentType="application/json",
+            Body=json.dumps(payload)
+        )
+
+        predictions = json.loads(response["Body"].read())
+
+        # Print results
+        for symbol, result in zip(symbols, predictions["predictions"]):
+            confidence = result.get("probabilities", [0])[0]
+            print(f"🔻 {symbol} — Confidence: {confidence:.4f}")
+
+        return JsonResponse({"status": "success", "predictions": predictions})
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
 
