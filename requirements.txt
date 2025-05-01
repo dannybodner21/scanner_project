@@ -133,3 +133,4 @@ xxhash==3.5.0
 yarl==1.9.4
 mplfinance
 django-import-export==4.3.3
+boto3>=1.28.0

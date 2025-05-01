@@ -334,7 +334,7 @@ def predict_live_short(request):
             EndpointName="short-model-endpoint",
             ContentType="application/json",
             Body=json.dumps(payload),
-            InferenceComponentName="default",
+            InferenceComponentName="short-model-endpoint",
         )
 
         predictions = json.loads(response["Body"].read())
