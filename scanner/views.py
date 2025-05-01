@@ -264,57 +264,53 @@ def predict_live_vertex_V1(request):
 
 
 
-import pandas as pd
-import joblib
-import numpy as np
+import boto3
 
 def predict_live_short(request):
-    model_path = '/workspace/scanner/short_model.joblib'
+    ENDPOINT_NAME = "short-model-endpoint"
+    REGION_NAME = "us-east-1"
 
-    try:
-        model = joblib.load(model_path)
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": f"Failed to load model: {e}"}, status=500)
+    runtime = boto3.client('sagemaker-runtime', region_name=REGION_NAME)
 
-    # Load latest metrics
-    cutoff = now() - timedelta(minutes=5)
+    cutoff = now() - timedelta(minutes=10)
     metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
 
     if not metrics.exists():
         return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
 
-    # Build features
-    features = []
-    coin_symbols = []
-    for m in metrics:
+    predictions = []
+
+    for metric in metrics:
         try:
-            features.append([
-                float(m.price), float(m.volume), float(m.change_1h), float(m.change_24h),
-                float(m.high_24h), float(m.low_24h), float(m.avg_volume_1h), float(m.relative_volume),
-                float(m.sma_5), float(m.sma_20), float(m.ema_12), float(m.ema_26), float(m.macd), float(m.macd_signal),
-                float(m.rsi), float(m.stochastic_k), float(m.stochastic_d), float(m.support_level),
-                float(m.resistance_level), float(m.stddev_1h), float(m.price_slope_1h), float(m.atr_1h)
-            ])
-            coin_symbols.append(m.coin.symbol)
-        except:
+            features = [
+                metric.price, metric.volume, metric.change_1h, metric.change_24h,
+                metric.high_24h, metric.low_24h, metric.avg_volume_1h, metric.relative_volume,
+                metric.sma_5, metric.sma_20, metric.ema_12, metric.ema_26, metric.macd, metric.macd_signal,
+                metric.rsi, metric.stochastic_k, metric.stochastic_d, metric.support_level,
+                metric.resistance_level, metric.stddev_1h, metric.price_slope_1h, metric.atr_1h
+            ]
+            payload = ",".join(map(str, features))
+
+            response = runtime.invoke_endpoint(
+                EndpointName=ENDPOINT_NAME,
+                ContentType="text/csv",
+                Body=payload
+            )
+
+            result = json.loads(response['Body'].read().decode())
+            confidence = float(result[0])
+            predictions.append({
+                "symbol": metric.coin.symbol,
+                "confidence": confidence
+            })
+
+            print(f"🔻 {metric.coin.symbol} — Confidence: {confidence:.2f}")
+
+        except Exception as e:
+            print(f"[Error] {metric.coin.symbol}: {e}")
             continue
 
-    if not features:
-        return JsonResponse({"status": "error", "message": "No valid rows to predict."})
-
-    X = np.array(features)
-    preds = model.predict_proba(X)[:, 1]
-
-    for sym, confidence in zip(coin_symbols, preds):
-
-        print(f"🔻 {sym} — Short Confidence: {confidence:.2f}")
-
-        if confidence > 0.70:
-            
-            message = f"🔻 {sym} | Confidence: {confidence:.2f} (Short)"
-            send_text(message)
-
-    return JsonResponse({"status": "success", "predictions": list(zip(coin_symbols, preds))})
+    return JsonResponse({"status": "success", "predictions": predictions})
 
 
 
