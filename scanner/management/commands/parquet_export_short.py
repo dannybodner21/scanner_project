@@ -3,7 +3,6 @@ from scanner.models import RickisMetrics
 import pandas as pd
 
 class Command(BaseCommand):
-    
     help = 'Export RickisMetrics to Parquet with full real features + label, excluding incomplete rows'
 
     def handle(self, *args, **kwargs):
@@ -19,20 +18,19 @@ class Command(BaseCommand):
         ]
 
         qs = RickisMetrics.objects.filter(short_result__isnull=False).values(*fields)
-        df = pd.DataFrame(list(qs)).reset_index(drop=True)
+        df = pd.DataFrame(list(qs))
 
         if df.empty:
             self.stdout.write(self.style.ERROR("❌ No data found."))
             return
 
-        # Convert to numeric and drop invalid rows
+        # Clean the data
         df = df.apply(pd.to_numeric, errors='coerce')
         df.dropna(inplace=True)
 
-        # Remove any stray index columns
-        if '__index_level_0__' in df.columns:
-            df.drop(columns='__index_level_0__', inplace=True)
+        # Drop problematic double-underscore columns (e.g. __index_level_0__)
+        df.columns = [col for col in df.columns if not col.startswith('__')]
 
-        df.to_parquet('/workspace/scanner/metrics_export_short_cleaned.parquet')
+        df.to_parquet('/workspace/scanner/metrics_export_short_cleaned.parquet', index=False)
 
         self.stdout.write(self.style.SUCCESS(f"✅ Done. {len(df)} clean rows exported."))

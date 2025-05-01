@@ -24,5 +24,6 @@ urlpatterns = [
     path('predict-live-vertex/', views.predict_live_vertex, name='predict-live-vertex'),
 
     path("predict-long/", views.predict_live, name="predict-long"),
+    path("predict-short/", views.predict_live_short, name="predict-short"),
 
 ]

@@ -264,6 +264,61 @@ def predict_live_vertex_V1(request):
 
 
 
+import pandas as pd
+import joblib
+import numpy as np
+
+def predict_live_short(request):
+    model_path = '/workspace/scanner/short_model.joblib'
+
+    try:
+        model = joblib.load(model_path)
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"Failed to load model: {e}"}, status=500)
+
+    # Load latest metrics
+    cutoff = now() - timedelta(minutes=5)
+    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
+
+    if not metrics.exists():
+        return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
+
+    # Build features
+    features = []
+    coin_symbols = []
+    for m in metrics:
+        try:
+            features.append([
+                float(m.price), float(m.volume), float(m.change_1h), float(m.change_24h),
+                float(m.high_24h), float(m.low_24h), float(m.avg_volume_1h), float(m.relative_volume),
+                float(m.sma_5), float(m.sma_20), float(m.ema_12), float(m.ema_26), float(m.macd), float(m.macd_signal),
+                float(m.rsi), float(m.stochastic_k), float(m.stochastic_d), float(m.support_level),
+                float(m.resistance_level), float(m.stddev_1h), float(m.price_slope_1h), float(m.atr_1h)
+            ])
+            coin_symbols.append(m.coin.symbol)
+        except:
+            continue
+
+    if not features:
+        return JsonResponse({"status": "error", "message": "No valid rows to predict."})
+
+    X = np.array(features)
+    preds = model.predict_proba(X)[:, 1]
+
+    for sym, confidence in zip(coin_symbols, preds):
+
+        print(f"🔻 {sym} — Short Confidence: {confidence:.2f}")
+
+        if confidence > 0.70:
+            
+            message = f"🔻 {sym} | Confidence: {confidence:.2f} (Short)"
+            send_text(message)
+
+    return JsonResponse({"status": "success", "predictions": list(zip(coin_symbols, preds))})
+
+
+
+
 
 
 
