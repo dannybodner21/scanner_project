@@ -340,10 +340,12 @@ def predict_short_vertex(request):
 
         # Print SHORT signals
         for symbol, result in zip(symbols, predictions["predictions"]):
-            confidence = result.get("probabilities", [0])[0]
+
+            true_index = result["classes"].index("true")
+            confidence = result["scores"][true_index]
 
             print(f"🔻 SHORT: {symbol} — Confidence: {confidence:.4f}")
-
+    
             if confidence > 0.5:
                 messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
 
