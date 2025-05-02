@@ -263,7 +263,7 @@ def predict_live_vertex_V1(request):
 
 SHORT_PROJECT_ID = 'bodner-main-project'
 SHORT_REGION = 'us-central1'
-SHORT_ENDPOINT_ID = '4533388695901831168'
+SHORT_ENDPOINT_ID = '4998948307381256192'
 
 def get_vertex_access_token():
     creds = service_account.Credentials.from_service_account_info(
@@ -311,8 +311,6 @@ def predict_short_vertex(request):
                 "stddev_1h": float(m.stddev_1h),
                 "price_slope_1h": float(m.price_slope_1h),
                 "atr_1h": float(m.atr_1h),
-                "__index_level_0__": "0",
-
             }
             instances.append(instance)
             symbols.append(m.coin.symbol)
