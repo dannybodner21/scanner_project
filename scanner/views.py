@@ -311,6 +311,8 @@ def predict_short_vertex(request):
                 "stddev_1h": float(m.stddev_1h),
                 "price_slope_1h": float(m.price_slope_1h),
                 "atr_1h": float(m.atr_1h),
+                "__index_level_0__" = 0,
+
             }
             instances.append(instance)
             symbols.append(m.coin.symbol)
