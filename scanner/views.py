@@ -261,12 +261,102 @@ def predict_live_vertex_V1(request):
     except Exception as e:
         return JsonResponse({"status": "error", "details": str(e), "response": response.text}, status=500)
 
+SHORT_PROJECT_ID = 'bodner-main-project'
+SHORT_REGION = 'us-central1'
+SHORT_ENDPOINT_ID = '4533388695901831168'
+
+def get_vertex_access_token():
+    creds = service_account.Credentials.from_service_account_info(
+        json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"]),
+        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+    )
+    creds.refresh(Request())
+    return creds.token
+
+def predict_short_vertex(request):
+    try:
+        access_token = get_vertex_access_token()
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"Auth failed: {e}"}, status=500)
+
+    # Query latest metrics
+    cutoff = now() - timedelta(minutes=5)
+    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
+
+    instances = []
+    symbols = []
+
+    for m in metrics:
+        try:
+            instance = {
+                "price": float(m.price),
+                "volume": float(m.volume),
+                "change_1h": float(m.change_1h),
+                "change_24h": float(m.change_24h),
+                "high_24h": float(m.high_24h),
+                "low_24h": float(m.low_24h),
+                "avg_volume_1h": float(m.avg_volume_1h),
+                "relative_volume": float(m.relative_volume),
+                "sma_5": float(m.sma_5),
+                "sma_20": float(m.sma_20),
+                "ema_12": float(m.ema_12),
+                "ema_26": float(m.ema_26),
+                "macd": float(m.macd),
+                "macd_signal": float(m.macd_signal),
+                "rsi": float(m.rsi),
+                "stochastic_k": float(m.stochastic_k),
+                "stochastic_d": float(m.stochastic_d),
+                "support_level": float(m.support_level),
+                "resistance_level": float(m.resistance_level),
+                "stddev_1h": float(m.stddev_1h),
+                "price_slope_1h": float(m.price_slope_1h),
+                "atr_1h": float(m.atr_1h),
+            }
+            instances.append(instance)
+            symbols.append(m.coin.symbol)
+
+        except Exception:
+            continue
+
+    if not instances:
+        return JsonResponse({"status": "error", "message": "No valid instances"}, status=500)
+
+    url = (
+        f"https://{SHOT_REGION}-aiplatform.googleapis.com/v1/"
+        f"projects/{SHORT_PROJECT_ID}/locations/{SHORT_REGION}/endpoints/{SHORT_ENDPOINT_ID}:predict"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json={"instances": instances})
+        response.raise_for_status()
+        predictions = response.json()
+
+        # Print SHORT signals
+        for symbol, result in zip(symbols, predictions["predictions"]):
+            confidence = result.get("probabilities", [0])[0]
+            
+            print(f"🔻 SHORT: {symbol} — Confidence: {confidence:.4f}")
+
+            if confidence > 0.5:
+                messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
+
+        return JsonResponse({"status": "success", "predictions": predictions})
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e),
+            "response": getattr(response, "text", "No response")
+        }, status=500)
 
 
 
 
-
-import boto3
 
 def predict_live_short(request):
 

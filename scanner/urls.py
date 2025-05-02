@@ -22,7 +22,7 @@ urlpatterns = [
 
     path('five-min-update/', views.five_min_update, name='five-min-update'),
     path('predict-live-vertex/', views.predict_live_vertex, name='predict-live-vertex'),
-    path("predict-live-short/", views.predict_live_short, name="predict-live-short"),
+    path("predict-short-vertex/", views.predict_short_vertex, name="predict-short-vertex"),
 
 
     path("predict-long/", views.predict_live, name="predict-long"),
