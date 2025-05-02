@@ -322,7 +322,7 @@ def predict_short_vertex(request):
         return JsonResponse({"status": "error", "message": "No valid instances"}, status=500)
 
     url = (
-        f"https://{SHOT_REGION}-aiplatform.googleapis.com/v1/"
+        f"https://{SHORT_REGION}-aiplatform.googleapis.com/v1/"
         f"projects/{SHORT_PROJECT_ID}/locations/{SHORT_REGION}/endpoints/{SHORT_ENDPOINT_ID}:predict"
     )
 
@@ -336,14 +336,19 @@ def predict_short_vertex(request):
         response.raise_for_status()
         predictions = response.json()
 
+        messages = []
+
         # Print SHORT signals
         for symbol, result in zip(symbols, predictions["predictions"]):
             confidence = result.get("probabilities", [0])[0]
-            
+
             print(f"🔻 SHORT: {symbol} — Confidence: {confidence:.4f}")
 
             if confidence > 0.5:
                 messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
+
+        if len(messages) > 0:
+            send_text(messages)
 
         return JsonResponse({"status": "success", "predictions": predictions})
 
