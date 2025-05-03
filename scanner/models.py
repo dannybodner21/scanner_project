@@ -169,7 +169,7 @@ class Pattern(models.Model):
 
 
 class RickisMetrics(models.Model):
-    
+
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
     timestamp = models.DateTimeField()
     price = models.DecimalField(max_digits=20, decimal_places=10)
@@ -207,6 +207,10 @@ class RickisMetrics(models.Model):
     ema_26 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     stddev_1h = models.FloatField(null=True)
     atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+
+    # fear / greed index score
+    market_sentiment_score = models.IntegerField(null=True)
+    market_sentiment_label = models.CharField(max_length=32, null=True)
 
     long_result = models.BooleanField(null=True)  # True = win, False = loss
     short_result = models.BooleanField(null=True)  # True = win, False = loss

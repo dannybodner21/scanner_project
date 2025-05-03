@@ -319,3 +319,33 @@ def calculate_price_change_five_min(coin, timestamp):
     except Exception as e:
         print(f"error in calculate_price_change_five_min: {e}")
         return None
+
+
+def calculate_change_since_high(price, high_24h):
+    if high_24h and high_24h > 0:
+        return ((price - high_24h) / high_24h) * 100
+    return None
+
+
+def calculate_change_since_low(price, low_24h):
+    if low_24h and low_24h > 0:
+        return ((price - low_24h) / low_24h) * 100
+    return None
+
+
+def calculate_volume_to_market_cap(volume, market_cap):
+    if volume is not None and market_cap and market_cap > 0:
+        return float(volume) / float(market_cap)
+    return None
+
+
+def fetch_fear_and_greed_index():
+    try:
+        res = requests.get("https://api.alternative.me/fng/?limit=1").json()
+        data = res["data"][0]
+        score = int(data["value"])
+        label = data["value_classification"]
+        return score, label
+    except Exception as e:
+        print(f"Error fetching Fear & Greed Index: {e}")
+        return None, None
