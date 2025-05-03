@@ -3,6 +3,9 @@ from django.utils.timezone import make_aware
 from scanner.models import ShortIntervalData
 import numpy as np
 from decimal import Decimal
+import pandas as pd
+from ta.trend import ADXIndicator
+from ta.volatility import BollingerBands
 
 
 def round_to_five_minutes(dt):
@@ -349,3 +352,83 @@ def fetch_fear_and_greed_index():
     except Exception as e:
         print(f"Error fetching Fear & Greed Index: {e}")
         return None, None
+
+
+def calculate_obv(coin, timestamp):
+    from scanner.models import ShortIntervalData
+    current = ShortIntervalData.objects.filter(coin=coin, timestamp=timestamp).first()
+    prev_time = timestamp - timedelta(minutes=5)
+    previous = ShortIntervalData.objects.filter(coin=coin, timestamp=prev_time).first()
+
+    if not current or not previous:
+        return None
+
+    current_price = float(current.price)
+    previous_price = float(previous.price)
+    current_volume = float(current.volume)
+
+    previous_obv = RickisMetrics.objects.filter(
+        coin=coin,
+        timestamp=prev_time
+    ).values_list('obv', flat=True).first() or 0
+
+    if current_price > previous_price:
+        return previous_obv + current_volume
+    elif current_price < previous_price:
+        return previous_obv - current_volume
+    return previous_obv
+
+
+def calculate_adx(coin, timestamp):
+    from scanner.models import ShortIntervalData
+    candles = ShortIntervalData.objects.filter(
+        coin=coin,
+        timestamp__lte=timestamp
+    ).order_by('-timestamp')[:14]
+
+    if len(candles) < 14:
+        return None
+
+    data = list(candles)[::-1]
+    df = pd.DataFrame([{
+        "high": float(c.high),
+        "low": float(c.low),
+        "close": float(c.price)
+    } for c in data])
+
+    indicator = ADXIndicator(df['high'], df['low'], df['close'], window=14)
+    return indicator.adx().iloc[-1]
+
+
+def calculate_bollinger_bands(coin, timestamp):
+    from scanner.models import ShortIntervalData
+    candles = ShortIntervalData.objects.filter(
+        coin=coin,
+        timestamp__lte=timestamp
+    ).order_by('-timestamp')[:20]
+
+    if len(candles) < 20:
+        return None, None, None
+
+    data = list(candles)[::-1]
+    prices = [float(c.price) for c in data]
+    df = pd.DataFrame({"close": prices})
+
+    bb = BollingerBands(close=df["close"], window=20, window_dev=2)
+    return (
+        bb.bollinger_hband().iloc[-1],
+        bb.bollinger_mavg().iloc[-1],
+        bb.bollinger_lband().iloc[-1],
+    )
+
+
+def calculate_fib_distances(high, low, current_price):
+    diff = high - low
+    levels = {
+        "fib_0.236": low + 0.236 * diff,
+        "fib_0.382": low + 0.382 * diff,
+        "fib_0.5":   low + 0.5 * diff,
+        "fib_0.618": low + 0.618 * diff,
+        "fib_0.786": low + 0.786 * diff,
+    }
+    return {k: (current_price - v) / v * 100 for k, v in levels.items()}

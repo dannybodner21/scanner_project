@@ -216,6 +216,18 @@ class RickisMetrics(models.Model):
     change_since_low = models.FloatField(null=True)   # price vs low_24h
     volume_mc_ratio = models.FloatField(null=True)
 
+    obv = models.FloatField(null=True)
+    adx = models.FloatField(null=True)
+    bollinger_upper = models.FloatField(null=True)
+    bollinger_middle = models.FloatField(null=True)
+    bollinger_lower = models.FloatField(null=True)
+    fib_distance_0_236 = models.FloatField(null=True)
+    fib_distance_0_382 = models.FloatField(null=True)
+    fib_distance_0_5   = models.FloatField(null=True)
+    fib_distance_0_618 = models.FloatField(null=True)
+    fib_distance_0_786 = models.FloatField(null=True)
+
+
     long_result = models.BooleanField(null=True)  # True = win, False = loss
     short_result = models.BooleanField(null=True)  # True = win, False = loss
 
@@ -227,8 +239,6 @@ class RickisMetrics(models.Model):
 
     def __str__(self):
         return f"{self.coin.symbol} @ {self.timestamp}"
-
-
 
 
 
