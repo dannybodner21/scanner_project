@@ -1,23 +1,32 @@
 from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
+from datetime import timedelta
 
 class Command(BaseCommand):
-    help = "Delete RickisMetrics entries not aligned to 5-minute timestamps"
+    
+    help = "Delete RickisMetrics entries not aligned to exact 5-minute timestamps"
 
     def handle(self, *args, **kwargs):
-        bad_entries = RickisMetrics.objects.exclude(
-            timestamp__minute__in=[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55],
-        ).union(
-            RickisMetrics.objects.exclude(timestamp__second=0),
-            RickisMetrics.objects.exclude(timestamp__microsecond=0)
-        )
+        print("🔍 Checking for RickisMetrics on invalid timestamps...")
 
-        total = bad_entries.count()
-        print(f"🗑️ Found {total} RickisMetrics entries on incorrect timestamps.")
+        bad_entries = RickisMetrics.objects.all().iterator()
+        to_delete = []
 
-        confirm = input("⚠️ Are you sure you want to delete them? Type YES to confirm: ")
+        for entry in bad_entries:
+            ts = entry.timestamp
+            if (
+                ts.minute % 5 != 0
+                or ts.second != 0
+                or ts.microsecond != 0
+            ):
+                to_delete.append(entry.id)
+
+        total = len(to_delete)
+        print(f"🗑️ Found {total} bad entries to delete.")
+
+        confirm = input("⚠️ Type YES to confirm deletion: ")
         if confirm == "YES":
-            bad_entries.delete()
+            RickisMetrics.objects.filter(id__in=to_delete).delete()
             print("✅ Deleted.")
         else:
-            print("❌ Aborted.")
+            print("❌ Deletion canceled.")
