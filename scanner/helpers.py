@@ -281,25 +281,41 @@ def calculate_atr_1h(coin, timestamp):
 
 
 def calculate_price_change_five_min(coin, timestamp):
-
     try:
-
+        # Current price
         current = ShortIntervalData.objects.filter(
             coin=coin,
             timestamp=timestamp
         ).values_list('price', flat=True).first()
-        prev_timestamp = timestamp - timedelta(minutes=5)
-        previous = ShortIntervalData.objects.filter(
-            coin=coin,
-            timestamp=prev_timestamp
-        ).values_list('price', flat=True).first()
 
-        current = float(current) if current is not None else None
-        previous = float(previous) if previous is not None else None
-
-        if current is None or previous is None or previous == 0:
+        if current is None:
             return None
+
+        current = float(current)
+
+        # Find closest price between 4–6 minutes ago
+        target_time = timestamp - timedelta(minutes=5)
+        window_start = target_time - timedelta(minutes=1)
+        window_end = target_time + timedelta(minutes=1)
+
+        previous = (
+            ShortIntervalData.objects.filter(
+                coin=coin,
+                timestamp__gte=window_start,
+                timestamp__lte=window_end
+            )
+            .order_by('timestamp')
+            .values_list('price', flat=True)
+            .first()
+        )
+
+        if previous is None or previous == 0:
+            return None
+
+        previous = float(previous)
+
         return ((current - previous) / previous) * 100
 
     except Exception as e:
         print(f"error in calculate_price_change_five_min: {e}")
+        return None

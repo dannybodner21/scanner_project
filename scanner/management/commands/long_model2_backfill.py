@@ -12,7 +12,11 @@ class Command(BaseCommand):
         end = make_aware(datetime(2025, 5, 3))
 
         metrics = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end)
-        df = pd.DataFrame(list(metrics.values()))
+        df = pd.DataFrame(list(metrics.values(
+            'coin', 'timestamp', 'rsi', 'macd', 'macd_signal', 'stochastic_k', 'stochastic_d',
+            'support_level', 'resistance_level', 'price_slope_1h', 'relative_volume',
+            'sma_5', 'sma_20', 'ema_12', 'ema_26', 'stddev_1h', 'atr_1h'
+        )))
 
         print(f"Total entries: {len(df)}")
 
@@ -24,7 +28,7 @@ class Command(BaseCommand):
         print(missing[missing > 0])
 
         # 2. Count per coin
-        coin_counts = df['symbol'].value_counts()
+        coin_counts = df['coin'].value_counts()
         print("\n📊 Entries per coin:")
         print(coin_counts)
 
