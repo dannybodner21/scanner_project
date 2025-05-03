@@ -11,8 +11,7 @@ HEADERS = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
 BASE_URL = "https://pro-api.coinmarketcap.com/v2"
 
 class Command(BaseCommand):
-
-    help = "Backfill raw price/volume/change/high/low data into RickisMetrics from CoinMarketCap"
+    help = "Backfill price/volume/change data into RickisMetrics from CoinMarketCap quotes endpoint"
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 4, 23))
@@ -28,14 +27,6 @@ class Command(BaseCommand):
 
             while current < end:
                 next_day = current + timedelta(days=1)
-
-                # Fetch OHLCV data
-                try:
-                    ohlcv = self.get_ohlcv(symbol, current)
-                except Exception as e:
-                    print(f"❌ OHLCV error for {symbol} on {current.date()}: {e}")
-                    current = next_day
-                    continue
 
                 # Fetch Historical Quotes
                 try:
@@ -59,36 +50,11 @@ class Command(BaseCommand):
                         rm.volume = q.get("volume_24h")
                         rm.change_1h = q.get("percent_change_1h")
                         rm.change_24h = q.get("percent_change_24h")
-
-                    if str(ts) in ohlcv:
-                        o = ohlcv[str(ts)]
-                        rm.high_24h = o.get("high")
-                        rm.low_24h = o.get("low")
-
-                    rm.save()
+                        rm.save()
 
                 print(f"✅ {symbol} on {current.date()} done.")
                 current = next_day
-                time.sleep(1.1)  # Respect API rate limits
-
-    def get_ohlcv(self, symbol, date):
-        url = f"{BASE_URL}/cryptocurrency/ohlcv/historical"
-        params = {
-            "symbol": symbol,
-            "time_start": date.strftime("%Y-%m-%d"),
-            "time_end": (date + timedelta(days=1)).strftime("%Y-%m-%d"),
-            "interval": "5m"
-        }
-        res = requests.get(url, headers=HEADERS, params=params)
-        res.raise_for_status()
-        data = res.json()["data"]["quotes"]
-        return {
-            int(datetime.fromisoformat(item["timestamp"]).timestamp()): {
-                "high": item["quote"]["USD"]["high"],
-                "low": item["quote"]["USD"]["low"]
-            }
-            for item in data
-        }
+                time.sleep(1.2)  # Respect API rate limits
 
     def get_quotes(self, symbol, date):
         url = f"{BASE_URL}/cryptocurrency/quotes/historical"
