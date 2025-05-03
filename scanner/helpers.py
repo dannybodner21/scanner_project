@@ -423,12 +423,22 @@ def calculate_bollinger_bands(coin, timestamp):
 
 
 def calculate_fib_distances(high, low, current_price):
+    if high is None or low is None or current_price is None:
+        return {}
+
     diff = high - low
+    if diff == 0:
+        return {}
+
     levels = {
-        "fib_0.236": low + 0.236 * diff,
-        "fib_0.382": low + 0.382 * diff,
-        "fib_0.5":   low + 0.5 * diff,
-        "fib_0.618": low + 0.618 * diff,
-        "fib_0.786": low + 0.786 * diff,
+        "fib_0_236": low + 0.236 * diff,
+        "fib_0_382": low + 0.382 * diff,
+        "fib_0_5":   low + 0.5 * diff,
+        "fib_0_618": low + 0.618 * diff,
+        "fib_0_786": low + 0.786 * diff,
     }
-    return {k: (current_price - v) / v * 100 for k, v in levels.items()}
+
+    return {
+        key: ((current_price - val) / val) * 100 if val != 0 else None
+        for key, val in levels.items()
+    }
