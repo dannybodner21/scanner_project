@@ -175,17 +175,17 @@ class RickisMetrics(models.Model):
     price = models.DecimalField(max_digits=20, decimal_places=10)
 
     # High of Day Momentum
-    high_24h = models.DecimalField(max_digits=20, decimal_places=10)
-    low_24h = models.DecimalField(max_digits=20, decimal_places=10)
+    high_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    low_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
 
     # Top Gainers
-    change_5m = models.FloatField()
-    change_1h = models.FloatField()
-    change_24h = models.FloatField()
+    change_5m = models.FloatField(null=True)
+    change_1h = models.FloatField(null=True)
+    change_24h = models.FloatField(null=True)
 
     # Volume Spike
     volume = models.DecimalField(max_digits=30, decimal_places=2)
-    avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2)
+    avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True)
 
     # Reversal
     rsi = models.FloatField(null=True)
@@ -211,6 +211,10 @@ class RickisMetrics(models.Model):
     # fear / greed index score
     market_sentiment_score = models.IntegerField(null=True)
     market_sentiment_label = models.CharField(max_length=32, null=True)
+
+    change_since_high = models.FloatField(null=True)  # price vs high_24h
+    change_since_low = models.FloatField(null=True)   # price vs low_24h
+    volume_mc_ratio = models.FloatField(null=True)
 
     long_result = models.BooleanField(null=True)  # True = win, False = loss
     short_result = models.BooleanField(null=True)  # True = win, False = loss

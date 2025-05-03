@@ -30,6 +30,8 @@ class Command(BaseCommand):
         total_created = 0
         current_time = start
 
+        print("starting")
+
         while current_time < end:
             rounded_time = round_to_5min(current_time)
             for symbol in rickisSymbols:
@@ -53,5 +55,7 @@ class Command(BaseCommand):
                     )
                     total_created += 1
             current_time += timedelta(minutes=5)
+
+            print("on to the next loop")
 
         print(f"✅ Created {total_created} missing RickisMetrics entries.")
