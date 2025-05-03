@@ -23,7 +23,7 @@ class Command(BaseCommand):
         print(f"Backfilling {total} entries...")
 
         for i, entry in enumerate(entries.iterator()):
-            change = calculate_price_change_five_min(entry.symbol, entry.timestamp)
+            change = calculate_price_change_five_min(entry.coin.symbol, entry.timestamp)
             entry.change_5m = change
             entry.save(update_fields=['change_5m'])
 
