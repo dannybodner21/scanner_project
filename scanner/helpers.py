@@ -375,7 +375,7 @@ def calculate_obv(coin, timestamp):
         return None
     current_price = float(current.price)
     previous_price = float(previous.price)
-    current_volume = float(current.volume)
+    current_volume = float(current.volume_5min)
     previous_obv = RickisMetrics.objects.filter(
         coin=coin,
         timestamp=prev_time
