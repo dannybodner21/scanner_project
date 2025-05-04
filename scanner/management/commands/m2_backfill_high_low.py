@@ -1,3 +1,4 @@
+
 from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics, Coin
 from django.utils.timezone import make_aware
@@ -13,8 +14,10 @@ HEADERS = {
     "X-CMC_PRO_API_KEY": CMC_API_KEY
 }
 
+MAX_RETRIES = 5
+
+
 class Command(BaseCommand):
-    
     help = "Backfill OHLCV (daily) data into RickisMetrics"
 
     def handle(self, *args, **kwargs):
@@ -36,45 +39,59 @@ class Command(BaseCommand):
                 start_str = day.strftime("%Y-%m-%d")
                 end_str = (day + timedelta(days=1)).strftime("%Y-%m-%d")
 
-                params = {
-                    "symbol": symbol,
-                    "time_start": start_str,
-                    "time_end": end_str,
-                    "interval": "daily",
-                    "convert": "USD"
-                }
+                retries = 0
+                success = False
 
-                try:
-                    res = requests.get(CMC_URL, headers=HEADERS, params=params)
-                    if res.status_code != 200:
-                        print(f"❌ {symbol} {start_str} — API error {res.status_code}")
-                        continue
+                while retries < MAX_RETRIES and not success:
+                    params = {
+                        "symbol": symbol,
+                        "time_start": start_str,
+                        "time_end": end_str,
+                        "interval": "daily",
+                        "convert": "USD"
+                    }
 
-                    quotes = res.json().get("data", {}).get("quotes", [])
-                    if not quotes:
-                        print(f"⚠️ {symbol} {start_str} — No data returned")
-                        continue
+                    try:
+                        res = requests.get(CMC_URL, headers=HEADERS, params=params)
 
-                    quote = quotes[0]["quote"]["USD"]
-                    open_price = Decimal(str(quote.get("open")))
-                    high_price = Decimal(str(quote.get("high")))
-                    low_price = Decimal(str(quote.get("low")))
-                    close_price = Decimal(str(quote.get("close")))
+                        if res.status_code == 429:
+                            wait_time = 10 + retries * 5
+                            print(f"⏳ {symbol} {start_str} — Rate limit hit. Retrying in {wait_time}s...")
+                            time.sleep(wait_time)
+                            retries += 1
+                            continue
 
-                    updated = RickisMetrics.objects.filter(
-                        coin=coin,
-                        timestamp__date=day,
-                        open__isnull=True
-                    ).update(
-                        open=open_price,
-                        high_24h=high_price,
-                        low_24h=low_price,
-                        close=close_price
-                    )
+                        if res.status_code != 200:
+                            print(f"❌ {symbol} {start_str} — API error {res.status_code}")
+                            break
 
-                    print(f"✅ {symbol} {start_str} — Updated {updated} rows")
+                        quotes = res.json().get("data", {}).get("quotes", [])
+                        if not quotes:
+                            print(f"⚠️ {symbol} {start_str} — No data returned")
+                            break
 
-                except Exception as e:
-                    print(f"💥 {symbol} {start_str} — Error: {e}")
+                        quote = quotes[0]["quote"]["USD"]
+                        open_price = Decimal(str(quote.get("open")))
+                        high_price = Decimal(str(quote.get("high")))
+                        low_price = Decimal(str(quote.get("low")))
+                        close_price = Decimal(str(quote.get("close")))
 
-                time.sleep(1)  # stay under CMC rate limit
+                        updated = RickisMetrics.objects.filter(
+                            coin=coin,
+                            timestamp__date=day,
+                            open__isnull=True
+                        ).update(
+                            open=open_price,
+                            high_24h=high_price,
+                            low_24h=low_price,
+                            close=close_price
+                        )
+
+                        print(f"✅ {symbol} {start_str} — Updated {updated} rows")
+                        success = True
+
+                    except Exception as e:
+                        print(f"💥 {symbol} {start_str} — Error: {e}")
+                        break
+
+                time.sleep(1)  # base delay between requests
