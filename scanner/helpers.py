@@ -391,12 +391,12 @@ def calculate_adx(coin, timestamp):
     candles = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp
-    ).order_by('-timestamp')[:30]
+    ).order_by('-timestamp')[:30]  # fetch extra just in case
 
     if len(candles) < 14:
         return None
 
-    data = list(candles)[::-1]
+    data = list(candles)[::-1]  # oldest to newest
     df = pd.DataFrame([{
         "high": float(c.high_24h),
         "low": float(c.low_24h),
@@ -405,8 +405,10 @@ def calculate_adx(coin, timestamp):
 
     indicator = ADXIndicator(df['high'], df['low'], df['close'], window=14)
     adx_series = indicator.adx()
-    if len(adx_series) < 14:
+
+    if adx_series.empty or len(adx_series) < 14:
         return None
+
     return adx_series.iloc[-1]
 
 
