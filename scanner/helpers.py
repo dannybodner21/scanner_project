@@ -388,7 +388,7 @@ def calculate_obv(coin, timestamp):
 
 
 def calculate_adx(coin, timestamp):
-    candles = ShortIntervalData.objects.filter(
+    candles = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp
     ).order_by('-timestamp')[:14]
@@ -398,9 +398,9 @@ def calculate_adx(coin, timestamp):
 
     data = list(candles)[::-1]
     df = pd.DataFrame([{
-        "high": float(c.high),
-        "low": float(c.low),
-        "close": float(c.price)
+        "high": float(c.high_24h),
+        "low": float(c.low_24h),
+        "close": float(c.close)
     } for c in data])
 
     indicator = ADXIndicator(df['high'], df['low'], df['close'], window=14)
@@ -408,7 +408,7 @@ def calculate_adx(coin, timestamp):
 
 
 def calculate_bollinger_bands(coin, timestamp):
-    candles = ShortIntervalData.objects.filter(
+    candles = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp
     ).order_by('-timestamp')[:20]
@@ -417,8 +417,8 @@ def calculate_bollinger_bands(coin, timestamp):
         return None, None, None
 
     data = list(candles)[::-1]
-    prices = [float(c.price) for c in data]
-    df = pd.DataFrame({"close": prices})
+    closes = [float(c.close) for c in data]
+    df = pd.DataFrame({"close": closes})
 
     bb = BollingerBands(close=df["close"], window=20, window_dev=2)
     return (
