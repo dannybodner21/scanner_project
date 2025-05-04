@@ -1,69 +1,63 @@
-
 from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
 from datetime import datetime, timedelta
-from scanner.models import RickisMetrics
+from scanner.models import Coin, RickisMetrics
+from decimal import Decimal
 import requests
 import time
-from decimal import Decimal
 
 API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
 CMC_OHLCV_URL = 'https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical'
 
 class Command(BaseCommand):
-    help = 'Backfill 24h high and low into RickisMetrics from CMC hourly OHLCV data'
+    help = 'Backfill RickisMetrics with high_24h and low_24h using hourly OHLCV data from CMC'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 13))
+        start_date = make_aware(datetime(2025, 3, 22))
+        end_date = make_aware(datetime(2025, 4, 13))
 
-        entries = RickisMetrics.objects.filter(
-            timestamp__gte=start, timestamp__lt=end
-        ).order_by('timestamp')
+        coins = Coin.objects.all()
+        total = RickisMetrics.objects.filter(timestamp__gte=start_date, timestamp__lt=end_date).count()
+        queryset = RickisMetrics.objects.filter(timestamp__gte=start_date, timestamp__lt=end_date).select_related('coin').order_by('timestamp')
 
-        total = entries.count()
-        print(f"\U0001F4CA Processing {total} entries...")
+        self.stdout.write(f"📊 Processing {total} entries...")
 
-        for i, rm in enumerate(entries, start=1):
-            ts = rm.timestamp
+        for idx, metric in enumerate(queryset, 1):
+            symbol = metric.coin.symbol
+            ts = metric.timestamp
             date_str = ts.strftime('%Y-%m-%d')
-            coin_symbol = rm.coin.symbol
+            hour_before = (ts - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
             try:
-                data = self.fetch_ohlcv_hourly(symbol=coin_symbol, date=date_str)
-                if not data:
-                    print(f"\u274C [{i}/{total}] No OHLCV data returned for {coin_symbol} @ {ts}")
-                    continue
+                ohlcv_data = self.fetch_hourly_ohlcv(symbol, hour_before, ts.strftime('%Y-%m-%dT%H:%M:%S'))
+                if ohlcv_data is None:
+                    raise ValueError("No OHLCV data returned")
 
-                # Find the hourly bar matching the metric timestamp
-                ts_unix = int(ts.timestamp())
-                matching_bar = next((item for item in data if int(datetime.fromisoformat(item['quote']['USD']['timestamp'].replace('Z', '+00:00')).timestamp()) == ts_unix), None)
+                # Match the exact timestamp in results
+                quote = next((q for q in ohlcv_data if q['quote']['USD']['timestamp'].startswith(ts.strftime('%Y-%m-%dT%H'))), None)
+                if not quote:
+                    raise ValueError("No matching OHLCV record for timestamp")
 
-                if matching_bar:
-                    quote = matching_bar['quote']['USD']
-                    rm.high_24h = Decimal(str(quote.get('high', 0)))
-                    rm.low_24h = Decimal(str(quote.get('low', 0)))
-                    rm.save()
-                    print(f"✅ [{i}/{total}] {coin_symbol} @ {ts} - High: {rm.high_24h}, Low: {rm.low_24h}")
-                else:
-                    print(f"\u274C [{i}/{total}] No matching hourly bar for {coin_symbol} @ {ts}")
-
+                metric.high_24h = Decimal(str(quote['quote']['USD']['high']))
+                metric.low_24h = Decimal(str(quote['quote']['USD']['low']))
+                metric.save()
             except Exception as e:
-                print(f"\u274C [{i}/{total}] Error for {coin_symbol} @ {ts}: {e}")
+                self.stdout.write(f"❌ [{idx}/{total}] Error for {symbol} @ {ts}: {e}")
 
-            time.sleep(1.1)  # Prevent hitting rate limits
+            if idx % 100 == 0:
+                time.sleep(1.5)
 
-    def fetch_ohlcv_hourly(self, symbol, date):
+    def fetch_hourly_ohlcv(self, symbol, time_start, time_end):
         headers = {"X-CMC_PRO_API_KEY": API_KEY}
         params = {
             "symbol": symbol,
             "time_period": "hourly",
-            "time_start": date,  # ISO date only
-            "time_end": date,
+            "time_start": time_start,
+            "time_end": time_end,
             "convert": "USD"
         }
 
-        response = requests.get(CMC_OHLCV_URL, headers=headers, params=params)
-        response.raise_for_status()
-        quotes = response.json().get("data", {}).get("quotes", [])
-        return quotes
+        res = requests.get(CMC_OHLCV_URL, headers=headers, params=params)
+        res.raise_for_status()
+        data = res.json().get("data", {})
+        return data.get("quotes")
