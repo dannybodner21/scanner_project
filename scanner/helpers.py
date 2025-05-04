@@ -391,7 +391,7 @@ def calculate_adx(coin, timestamp):
     candles = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp
-    ).order_by('-timestamp')[:14]
+    ).order_by('-timestamp')[:30]
 
     if len(candles) < 14:
         return None
@@ -404,7 +404,10 @@ def calculate_adx(coin, timestamp):
     } for c in data])
 
     indicator = ADXIndicator(df['high'], df['low'], df['close'], window=14)
-    return indicator.adx().iloc[-1]
+    adx_series = indicator.adx()
+    if len(adx_series) < 14:
+        return None
+    return adx_series.iloc[-1]
 
 
 def calculate_bollinger_bands(coin, timestamp):
