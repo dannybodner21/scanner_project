@@ -68,12 +68,14 @@ class Command(BaseCommand):
 
                 batch.append(rm)
 
+                print("working")
+
                 if len(batch) >= 100:
                     RickisMetrics.objects.bulk_update(batch, [
                         "rsi", "macd", "macd_signal", "stochastic_k", "stochastic_d",
                         "support_level", "resistance_level", "price_slope_1h", "relative_volume",
                         "sma_5", "sma_20", "ema_12", "ema_26", "stddev_1h", "atr_1h",
-                        "change_since_high", "change_since_low", "volume_mc_ratio",
+                        "change_since_high", "change_since_low",
                         "fib_0_236", "fib_0_382", "fib_0_5", "fib_0_618", "fib_0_786",
                         "obv", "adx", "bollinger_upper", "bollinger_middle", "bollinger_lower"
                     ])
@@ -88,7 +90,7 @@ class Command(BaseCommand):
                 "rsi", "macd", "macd_signal", "stochastic_k", "stochastic_d",
                 "support_level", "resistance_level", "price_slope_1h", "relative_volume",
                 "sma_5", "sma_20", "ema_12", "ema_26", "stddev_1h", "atr_1h",
-                "change_since_high", "change_since_low", "volume_mc_ratio",
+                "change_since_high", "change_since_low",
                 "fib_0_236", "fib_0_382", "fib_0_5", "fib_0_618", "fib_0_786",
                 "obv", "adx", "bollinger_upper", "bollinger_middle", "bollinger_lower"
             ])
