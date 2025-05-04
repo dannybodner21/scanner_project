@@ -229,7 +229,6 @@ class RickisMetrics(models.Model):
     fib_distance_0_618 = models.FloatField(null=True)
     fib_distance_0_786 = models.FloatField(null=True)
 
-
     long_result = models.BooleanField(null=True)  # True = win, False = loss
     short_result = models.BooleanField(null=True)  # True = win, False = loss
 
