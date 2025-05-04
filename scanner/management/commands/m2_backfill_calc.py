@@ -57,11 +57,11 @@ class Command(BaseCommand):
                 rm.change_since_high = calculate_change_since_high(rm.price, rm.high_24h)
                 rm.change_since_low = calculate_change_since_low(rm.price, rm.low_24h)
                 fibs = calculate_fib_distances(rm.high_24h, rm.low_24h, rm.price)
-                rm.fib_distance_0_236 = fibs.get("fib_0_236")
-                rm.fib_distance_0_382 = fibs.get("fib_0_382")
-                rm.fib_distance_0_5 = fibs.get("fib_0_5")
-                rm.fib_distance_0_618 = fibs.get("fib_0_618")
-                rm.fib_distance_0_786 = fibs.get("fib_0_786")
+                rm.fib_distance_0_236 = fibs.get("fib_distance_0_236")
+                rm.fib_distance_0_382 = fibs.get("fib_distance_0_382")
+                rm.fib_distance_0_5 = fibs.get("fib_distance_0_5")
+                rm.fib_distance_0_618 = fibs.get("fib_distance_0_618")
+                rm.fib_distance_0_786 = fibs.get("fib_distance_0_786")
                 rm.obv = calculate_obv(rm.coin, rm.timestamp)
                 rm.adx = calculate_adx(rm.coin, rm.timestamp)
                 rm.bollinger_upper, rm.bollinger_middle, rm.bollinger_lower = calculate_bollinger_bands(rm.coin, rm.timestamp)
@@ -75,7 +75,7 @@ class Command(BaseCommand):
                         "support_level", "resistance_level", "price_slope_1h", "relative_volume",
                         "sma_5", "sma_20", "ema_12", "ema_26", "stddev_1h", "atr_1h",
                         "change_since_high", "change_since_low",
-                        "fib_0_236", "fib_0_382", "fib_0_5", "fib_0_618", "fib_0_786",
+                        "fib_distance_0_236", "fib_distance_0_382", "fib_distance_0_5", "fib_distance_0_618", "fib_distance_0_786",
                         "obv", "adx", "bollinger_upper", "bollinger_middle", "bollinger_lower"
                     ])
                     print(f"✅ {i}/{total} updated")
@@ -90,7 +90,7 @@ class Command(BaseCommand):
                 "support_level", "resistance_level", "price_slope_1h", "relative_volume",
                 "sma_5", "sma_20", "ema_12", "ema_26", "stddev_1h", "atr_1h",
                 "change_since_high", "change_since_low",
-                "fib_0_236", "fib_0_382", "fib_0_5", "fib_0_618", "fib_0_786",
+                "fib_distance_0_236", "fib_distance_0_382", "fib_distance_0_5", "fib_distance_0_618", "fib_distance_0_786",
                 "obv", "adx", "bollinger_upper", "bollinger_middle", "bollinger_lower"
             ])
             print("✅ Final batch saved.")
