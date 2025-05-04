@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import requests
 import time
 
-CMC_API_KEY = "c35740fd-4f78-45b5-9350-c4afdd929432"
+CMC_API_KEY = "7dd5dd98-35d0-475d-9338-407631033cd9"
 HEADERS = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
 
 BASE_URL = "https://pro-api.coinmarketcap.com/v2"

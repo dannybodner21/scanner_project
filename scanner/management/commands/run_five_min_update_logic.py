@@ -15,9 +15,9 @@ def run_five_min_update_logic():
     start = datetime.now()
     print(f"\n⏱️ Start: {start}")
 
-    API_KEY_QUOTES = '7dd5dd98-35d0-475d-9338-407631033cd9'
-    #API_KEY_OHLCV = 'c35740fd-4f78-45b5-9350-c4afdd929432'
-    API_KEY_OHLCV = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    API_KEY_QUOTES = 'c35740fd-4f78-45b5-9350-c4afdd929432'
+    #API_KEY_OHLCV = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    API_KEY_OHLCV = 'c35740fd-4f78-45b5-9350-c4afdd929432'
 
     url_quotes = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
     url_ohlcv = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/latest'

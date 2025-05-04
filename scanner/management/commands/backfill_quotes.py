@@ -12,8 +12,8 @@ class Command(BaseCommand):
     help = 'Backfill RickisMetrics with CMC quotes (change_5m, change_1h, change_24h)'
 
     def handle(self, *args, **kwargs):
-        start_date = make_aware(datetime(2025, 3, 22))
-        end_date = make_aware(datetime(2025, 4, 23))
+        start_date = make_aware(datetime(2025, 4, 23))
+        end_date = make_aware(datetime(2025, 5, 3))
 
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -52,13 +52,13 @@ class Command(BaseCommand):
             for entry in metrics:
                 if symbol in cmc_data:
                     quote = cmc_data[symbol]['quote']['USD']
-                    entry.change_5m = quote.get('percent_change_5m', 0)
+                    entry.volume_24h = quote.get('volume_24h', 0)
                     entry.change_1h = quote.get('percent_change_1h', 0)
                     entry.change_24h = quote.get('percent_change_24h', 0)
                     to_update.append(entry)
 
             RickisMetrics.objects.bulk_update(to_update, fields=[
-                'change_5m', 'change_1h', 'change_24h'
+                'volume_24h', 'change_1h', 'change_24h'
             ], batch_size=100)
 
             self.stdout.write(self.style.SUCCESS(f"✅ CMC quotes backfilled for {symbol}"))
