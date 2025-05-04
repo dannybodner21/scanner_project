@@ -7,7 +7,7 @@ from scanner.helpers import (
     calculate_macd,
     calculate_stochastic,
     calculate_support_resistance,
-    calculate_price_slope,
+    calculate_price_slope_1h,
     calculate_relative_volume,
     calculate_sma,
     calculate_ema,
@@ -43,7 +43,7 @@ class Command(BaseCommand):
                 calculate_macd(metric)
                 calculate_stochastic(metric)
                 calculate_support_resistance(metric)
-                calculate_price_slope(metric)
+                calculate_price_slope_1h(metric)
                 calculate_relative_volume(metric)
                 calculate_sma(metric)
                 calculate_ema(metric)
