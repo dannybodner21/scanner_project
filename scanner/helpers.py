@@ -437,11 +437,11 @@ def calculate_fib_distances(high, low, current_price):
         if diff == 0:
             return {}
         levels = {
-            "fib_0_236": low + 0.236 * diff,
-            "fib_0_382": low + 0.382 * diff,
-            "fib_0_5":   low + 0.5 * diff,
-            "fib_0_618": low + 0.618 * diff,
-            "fib_0_786": low + 0.786 * diff,
+            "fib_distance_0_236": low + 0.236 * diff,
+            "fib_distance_0_382": low + 0.382 * diff,
+            "fib_distance_0_5":   low + 0.5 * diff,
+            "fib_distance_0_618": low + 0.618 * diff,
+            "fib_distance_0_786": low + 0.786 * diff,
         }
         return {
             key: ((current_price - val) / val) * 100 if val != 0 else None
