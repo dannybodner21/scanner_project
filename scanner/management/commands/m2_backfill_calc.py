@@ -57,7 +57,7 @@ class Command(BaseCommand):
                 rm.atr_1h = calculate_atr_1h(rm.coin, rm.timestamp)
                 rm.change_since_high = calculate_change_since_high(rm.price, rm.high_24h)
                 rm.change_since_low = calculate_change_since_low(rm.price, rm.low_24h)
-                rm.volume_mc_ratio = calculate_volume_to_market_cap(rm.volume_24h, rm.market_cap)
+                rm.volume_mc_ratio = calculate_volume_to_market_cap(rm.volume, rm.market_cap)
                 fibs = calculate_fib_distances(rm.high_24h, rm.low_24h, rm.price)
                 rm.fib_0_236 = fibs.get("fib_0_236")
                 rm.fib_0_382 = fibs.get("fib_0_382")
