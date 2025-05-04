@@ -177,6 +177,8 @@ class RickisMetrics(models.Model):
     # High of Day Momentum
     high_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     low_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    open = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    close = models.DecimalField(max_digits=20, decimal_places=10, null=True)
 
     # Top Gainers
     change_5m = models.FloatField(null=True)

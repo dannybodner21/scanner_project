@@ -408,7 +408,6 @@ def calculate_adx(coin, timestamp):
 
 
 def calculate_bollinger_bands(coin, timestamp):
-    from scanner.models import ShortIntervalData
     candles = ShortIntervalData.objects.filter(
         coin=coin,
         timestamp__lte=timestamp
