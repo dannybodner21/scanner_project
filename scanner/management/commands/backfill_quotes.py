@@ -9,7 +9,7 @@ API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
 CMC_QUOTES_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 
 class Command(BaseCommand):
-    help = 'Backfill RickisMetrics with CMC quotes (change_5m, change_1h, change_24h)'
+    help = 'Backfill RickisMetrics with latest CMC quotes (volume_24h, change_1h, change_24h)'
 
     def handle(self, *args, **kwargs):
         start_date = make_aware(datetime(2025, 4, 23))
@@ -46,25 +46,28 @@ class Command(BaseCommand):
             to_update = []
 
             cmc_data = self.fetch_cmc_quotes(symbol)
-            if not cmc_data:
+            if not cmc_data or symbol not in cmc_data:
+                self.stdout.write(self.style.WARNING(f"⚠️  No CMC data for {symbol}"))
                 continue
 
+            quote = cmc_data[symbol]['quote']['USD']
+            volume = quote.get('volume_24h', 0)
+            change_1h = quote.get('percent_change_1h', 0)
+            change_24h = quote.get('percent_change_24h', 0)
+
             for entry in metrics:
-                if symbol in cmc_data:
-                    quote = cmc_data[symbol]['quote']['USD']
-                    entry.volume_24h = quote.get('volume_24h', 0)
-                    entry.change_1h = quote.get('percent_change_1h', 0)
-                    entry.change_24h = quote.get('percent_change_24h', 0)
-                    to_update.append(entry)
+                entry.volume = volume
+                entry.change_1h = change_1h
+                entry.change_24h = change_24h
+                to_update.append(entry)
 
             RickisMetrics.objects.bulk_update(to_update, fields=[
-                'volume_24h', 'change_1h', 'change_24h'
+                'volume', 'change_1h', 'change_24h'
             ], batch_size=100)
 
-            self.stdout.write(self.style.SUCCESS(f"✅ CMC quotes backfilled for {symbol}"))
+            self.stdout.write(self.style.SUCCESS(f"✅ Quotes backfilled for {symbol}"))
 
-            # Sleep between API calls to avoid rate limits
-            time.sleep(2)
+            time.sleep(2)  # Respect rate limits
 
     def fetch_cmc_quotes(self, symbol):
         headers = {"X-CMC_PRO_API_KEY": API_KEY}
