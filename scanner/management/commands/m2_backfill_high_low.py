@@ -52,7 +52,7 @@ class Command(BaseCommand):
                     }
 
                     try:
-                        time.sleep(1)
+                        time.sleep(0.2)
                         res = requests.get(CMC_URL, headers=HEADERS, params=params)
 
                         if res.status_code == 429:
@@ -95,4 +95,4 @@ class Command(BaseCommand):
                         print(f"💥 {symbol} {start_str} — Error: {e}")
                         break
 
-                time.sleep(3)  # base delay between requests
+                time.sleep(2)  # base delay between requests
