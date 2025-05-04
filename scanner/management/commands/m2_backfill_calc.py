@@ -1,7 +1,7 @@
 from datetime import datetime
-from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
 from scanner.models import RickisMetrics
+from django.core.management.base import BaseCommand
 from scanner.helpers import (
     calculate_rsi,
     calculate_macd,
@@ -11,11 +11,11 @@ from scanner.helpers import (
     calculate_relative_volume,
     calculate_sma,
     calculate_ema,
-    calculate_stddev,
-    calculate_atr,
+    calculate_stddev_1h,
+    calculate_atr_1h,
     calculate_change_since_high,
     calculate_change_since_low,
-    calculate_volume_mc_ratio,
+    calculate_volume_to_market_cap,
     calculate_fib_distances,
     calculate_obv,
     calculate_adx,
@@ -23,43 +23,54 @@ from scanner.helpers import (
 )
 
 class Command(BaseCommand):
-    help = "Backfill all calculated indicators on RickisMetrics entries"
+    help = "Backfill all derived metrics on RickisMetrics"
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 22))
         end = make_aware(datetime(2025, 5, 3))
-        queryset = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related('coin').order_by('coin', 'timestamp')
 
-        total = queryset.count()
+        metrics = RickisMetrics.objects.filter(
+            timestamp__gte=start,
+            timestamp__lt=end
+        ).select_related("coin").order_by("timestamp")
+
+        total = metrics.count()
         print(f"📊 Processing {total} entries...")
 
         batch = []
-        for i, metric in enumerate(queryset, start=1):
+        for i, rm in enumerate(metrics, 1):
             try:
-                if not metric.price:
+                if not rm.price or not rm.coin:
                     continue
 
-                calculate_rsi(metric)
-                calculate_macd(metric)
-                calculate_stochastic(metric)
-                calculate_support_resistance(metric)
-                calculate_price_slope_1h(metric)
-                calculate_relative_volume(metric)
-                calculate_sma(metric)
-                calculate_ema(metric)
-                calculate_stddev(metric)
-                calculate_atr(metric)
-                calculate_change_since_high(metric)
-                calculate_change_since_low(metric)
-                calculate_volume_mc_ratio(metric)
-                calculate_fib_distances(metric)
-                calculate_obv(metric)
-                calculate_adx(metric)
-                calculate_bollinger_bands(metric)
+                rm.rsi = calculate_rsi(rm.coin, rm.timestamp)
+                rm.macd, rm.macd_signal = calculate_macd(rm.coin, rm.timestamp)
+                rm.stochastic_k, rm.stochastic_d = calculate_stochastic(rm.coin, rm.timestamp)
+                rm.support_level, rm.resistance_level = calculate_support_resistance(rm.coin, rm.timestamp)
+                rm.price_slope_1h = calculate_price_slope_1h(rm.coin, rm.timestamp)
+                rm.relative_volume = calculate_relative_volume(rm.coin, rm.timestamp)
+                rm.sma_5 = calculate_sma(rm.coin, rm.timestamp, 5)
+                rm.sma_20 = calculate_sma(rm.coin, rm.timestamp, 20)
+                rm.ema_12 = calculate_ema(rm.coin, rm.timestamp, 12)
+                rm.ema_26 = calculate_ema(rm.coin, rm.timestamp, 26)
+                rm.stddev_1h = calculate_stddev_1h(rm.coin, rm.timestamp)
+                rm.atr_1h = calculate_atr_1h(rm.coin, rm.timestamp)
+                rm.change_since_high = calculate_change_since_high(rm.price, rm.high_24h)
+                rm.change_since_low = calculate_change_since_low(rm.price, rm.low_24h)
+                rm.volume_mc_ratio = calculate_volume_to_market_cap(rm.volume_24h, rm.market_cap)
+                fibs = calculate_fib_distances(rm.high_24h, rm.low_24h, rm.price)
+                rm.fib_0_236 = fibs.get("fib_0_236")
+                rm.fib_0_382 = fibs.get("fib_0_382")
+                rm.fib_0_5 = fibs.get("fib_0_5")
+                rm.fib_0_618 = fibs.get("fib_0_618")
+                rm.fib_0_786 = fibs.get("fib_0_786")
+                rm.obv = calculate_obv(rm.coin, rm.timestamp)
+                rm.adx = calculate_adx(rm.coin, rm.timestamp)
+                rm.bollinger_upper, rm.bollinger_middle, rm.bollinger_lower = calculate_bollinger_bands(rm.coin, rm.timestamp)
 
-                batch.append(metric)
+                batch.append(rm)
 
-                if i % 100 == 0:
+                if len(batch) >= 100:
                     RickisMetrics.objects.bulk_update(batch, [
                         "rsi", "macd", "macd_signal", "stochastic_k", "stochastic_d",
                         "support_level", "resistance_level", "price_slope_1h", "relative_volume",
@@ -72,7 +83,7 @@ class Command(BaseCommand):
                     batch.clear()
 
             except Exception as e:
-                print(f"❌ Error on {metric.coin.symbol} @ {metric.timestamp}: {e}")
+                print(f"❌ Error for {rm.coin.symbol} @ {rm.timestamp}: {e}")
 
         if batch:
             RickisMetrics.objects.bulk_update(batch, [
@@ -83,6 +94,6 @@ class Command(BaseCommand):
                 "fib_0_236", "fib_0_382", "fib_0_5", "fib_0_618", "fib_0_786",
                 "obv", "adx", "bollinger_upper", "bollinger_middle", "bollinger_lower"
             ])
-            print(f"✅ Final batch of {len(batch)} saved.")
+            print("✅ Final batch saved.")
 
-        print("🏁 All entries processed.")
+        print("🏁 All metrics processed.")
