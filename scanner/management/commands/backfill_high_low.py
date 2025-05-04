@@ -1,63 +1,55 @@
+
 from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
-from datetime import datetime, timedelta
-from scanner.models import Coin, RickisMetrics
-from decimal import Decimal
+from datetime import datetime
+from scanner.models import RickisMetrics
 import requests
+from decimal import Decimal
 import time
 
 API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
 CMC_OHLCV_URL = 'https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical'
+HEADERS = {"X-CMC_PRO_API_KEY": API_KEY}
 
 class Command(BaseCommand):
-    help = 'Backfill RickisMetrics with high_24h and low_24h using hourly OHLCV data from CMC'
+    help = 'Backfill high_24h and low_24h for RickisMetrics using daily OHLCV data'
 
     def handle(self, *args, **kwargs):
-        start_date = make_aware(datetime(2025, 3, 22))
-        end_date = make_aware(datetime(2025, 4, 13))
+        metrics = RickisMetrics.objects.filter(
+            timestamp__gte=make_aware(datetime(2025, 3, 22)),
+            timestamp__lt=make_aware(datetime(2025, 4, 13)),
+        ).order_by("timestamp")
 
-        coins = Coin.objects.all()
-        total = RickisMetrics.objects.filter(timestamp__gte=start_date, timestamp__lt=end_date).count()
-        queryset = RickisMetrics.objects.filter(timestamp__gte=start_date, timestamp__lt=end_date).select_related('coin').order_by('timestamp')
+        total = metrics.count()
+        print(f"📊 Processing {total} entries...")
 
-        self.stdout.write(f"📊 Processing {total} entries...")
-
-        for idx, metric in enumerate(queryset, 1):
-            symbol = metric.coin.symbol
-            ts = metric.timestamp
-            date_str = ts.strftime('%Y-%m-%d')
-            hour_before = (ts - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
+        for idx, entry in enumerate(metrics, start=1):
+            date_str = entry.timestamp.date().isoformat()
+            symbol = entry.coin.symbol
 
             try:
-                ohlcv_data = self.fetch_hourly_ohlcv(symbol, hour_before, ts.strftime('%Y-%m-%dT%H:%M:%S'))
-                if ohlcv_data is None:
+                data = self.fetch_ohlcv(symbol, date_str)
+                if not data:
                     raise ValueError("No OHLCV data returned")
 
-                # Match the exact timestamp in results
-                quote = next((q for q in ohlcv_data if q['quote']['USD']['timestamp'].startswith(ts.strftime('%Y-%m-%dT%H'))), None)
-                if not quote:
-                    raise ValueError("No matching OHLCV record for timestamp")
-
-                metric.high_24h = Decimal(str(quote['quote']['USD']['high']))
-                metric.low_24h = Decimal(str(quote['quote']['USD']['low']))
-                metric.save()
+                quote = data["quote"]["USD"]
+                entry.high_24h = Decimal(str(quote["high"]))
+                entry.low_24h = Decimal(str(quote["low"]))
+                entry.save()
+                print(f"✅ [{idx}/{total}] {symbol} @ {date_str}")
             except Exception as e:
-                self.stdout.write(f"❌ [{idx}/{total}] Error for {symbol} @ {ts}: {e}")
+                print(f"❌ [{idx}/{total}] Error for {symbol} @ {date_str}: {e}")
 
-            if idx % 100 == 0:
-                time.sleep(1.5)
+            time.sleep(1.1)  # Respect rate limits
 
-    def fetch_hourly_ohlcv(self, symbol, time_start, time_end):
-        headers = {"X-CMC_PRO_API_KEY": API_KEY}
+    def fetch_ohlcv(self, symbol, date_str):
         params = {
             "symbol": symbol,
-            "time_period": "hourly",
-            "time_start": time_start,
-            "time_end": time_end,
-            "convert": "USD"
+            "time_period": "daily",
+            "time_start": date_str,
+            "time_end": date_str,
         }
-
-        res = requests.get(CMC_OHLCV_URL, headers=headers, params=params)
-        res.raise_for_status()
-        data = res.json().get("data", {})
-        return data.get("quotes")
+        response = requests.get(CMC_OHLCV_URL, headers=HEADERS, params=params)
+        response.raise_for_status()
+        quotes = response.json().get("data", {}).get("quotes")
+        return quotes[0] if quotes else None
