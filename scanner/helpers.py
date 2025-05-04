@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
 from scanner.models import ShortIntervalData
+from scanner.models import RickisMetrics
 import numpy as np
+import requests
 from decimal import Decimal
 import pandas as pd
 from ta.trend import ADXIndicator
@@ -325,21 +327,32 @@ def calculate_price_change_five_min(coin, timestamp):
 
 
 def calculate_change_since_high(price, high_24h):
-    if high_24h and high_24h > 0:
-        return ((price - high_24h) / high_24h) * 100
+    try:
+        price = float(price)
+        high_24h = float(high_24h)
+        if high_24h > 0:
+            return ((price - high_24h) / high_24h) * 100
+    except:
+        pass
     return None
 
 
 def calculate_change_since_low(price, low_24h):
-    if low_24h and low_24h > 0:
-        return ((price - low_24h) / low_24h) * 100
+    try:
+        price = float(price)
+        low_24h = float(low_24h)
+        if low_24h > 0:
+            return ((price - low_24h) / low_24h) * 100
+    except:
+        pass
     return None
 
 
 def calculate_volume_to_market_cap(volume, market_cap):
-    if volume is not None and market_cap and market_cap > 0:
-        return float(volume) / float(market_cap)
-    return None
+    try:
+        return float(volume) / float(market_cap) if market_cap > 0 else None
+    except:
+        return None
 
 
 def fetch_fear_and_greed_index():
@@ -355,23 +368,18 @@ def fetch_fear_and_greed_index():
 
 
 def calculate_obv(coin, timestamp):
-    from scanner.models import ShortIntervalData
     current = ShortIntervalData.objects.filter(coin=coin, timestamp=timestamp).first()
     prev_time = timestamp - timedelta(minutes=5)
     previous = ShortIntervalData.objects.filter(coin=coin, timestamp=prev_time).first()
-
     if not current or not previous:
         return None
-
     current_price = float(current.price)
     previous_price = float(previous.price)
     current_volume = float(current.volume)
-
     previous_obv = RickisMetrics.objects.filter(
         coin=coin,
         timestamp=prev_time
-    ).values_list('obv', flat=True).first() or 0
-
+    ).values_list('obv', flat=True).first() or 0.0
     if current_price > previous_price:
         return previous_obv + current_volume
     elif current_price < previous_price:
@@ -380,7 +388,6 @@ def calculate_obv(coin, timestamp):
 
 
 def calculate_adx(coin, timestamp):
-    from scanner.models import ShortIntervalData
     candles = ShortIntervalData.objects.filter(
         coin=coin,
         timestamp__lte=timestamp
@@ -423,22 +430,24 @@ def calculate_bollinger_bands(coin, timestamp):
 
 
 def calculate_fib_distances(high, low, current_price):
-    if high is None or low is None or current_price is None:
+    try:
+        high = float(high)
+        low = float(low)
+        current_price = float(current_price)
+        diff = high - low
+        if diff == 0:
+            return {}
+        levels = {
+            "fib_0_236": low + 0.236 * diff,
+            "fib_0_382": low + 0.382 * diff,
+            "fib_0_5":   low + 0.5 * diff,
+            "fib_0_618": low + 0.618 * diff,
+            "fib_0_786": low + 0.786 * diff,
+        }
+        return {
+            key: ((current_price - val) / val) * 100 if val != 0 else None
+            for key, val in levels.items()
+        }
+    except Exception as e:
+        print(f"error in calculate_fib_distances: {e}")
         return {}
-
-    diff = high - low
-    if diff == 0:
-        return {}
-
-    levels = {
-        "fib_0_236": low + 0.236 * diff,
-        "fib_0_382": low + 0.382 * diff,
-        "fib_0_5":   low + 0.5 * diff,
-        "fib_0_618": low + 0.618 * diff,
-        "fib_0_786": low + 0.786 * diff,
-    }
-
-    return {
-        key: ((current_price - val) / val) * 100 if val != 0 else None
-        for key, val in levels.items()
-    }
