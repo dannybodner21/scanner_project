@@ -1,78 +1,66 @@
 from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
-from datetime import datetime
-from scanner.models import Coin, RickisMetrics
+from datetime import datetime, timedelta
+from scanner.models import RickisMetrics
 import requests
 import time
 from decimal import Decimal
 
-API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
-CMC_OHLCV_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/latest'
+CMC_API_KEY = "7dd5dd98-35d0-475d-9338-407631033cd9"
+HEADERS = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
+CMC_OHLCV_URL = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical"
 
 class Command(BaseCommand):
-    help = 'Backfill RickisMetrics with CMC OHLCV data (high_24h, low_24h)'
+    help = "Backfill RickisMetrics with 24h high/low for every timestamp using CMC OHLCV historical API"
 
     def handle(self, *args, **kwargs):
         start_date = make_aware(datetime(2025, 3, 22))
-        end_date = make_aware(datetime(2025, 4, 23))
+        end_date = make_aware(datetime(2025, 5, 3))
 
-        symbols = [
-            "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
-            "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
-            "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
-            "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
-            "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
-            "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
-            "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
-            "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
-        ]
+        queryset = RickisMetrics.objects.select_related("coin").filter(
+            timestamp__gte=start_date,
+            timestamp__lt=end_date
+        ).order_by("timestamp")
 
-        coins = Coin.objects.filter(symbol__in=symbols)
-        coin_map = {coin.symbol: coin for coin in coins}
+        total = queryset.count()
+        self.stdout.write(f"📊 Processing {total} entries...")
 
-        for symbol in symbols:
-            coin = coin_map.get(symbol)
-            if not coin:
-                self.stdout.write(self.style.ERROR(f"❌ {symbol} coin not found."))
-                continue
+        for idx, entry in enumerate(queryset):
+            symbol = entry.coin.symbol
+            date_str = entry.timestamp.strftime("%Y-%m-%d")
+            next_day_str = (entry.timestamp + timedelta(days=1)).strftime("%Y-%m-%d")
 
-            self.stdout.write(self.style.NOTICE(f"\n🚀 Backfilling CMC OHLCV for {symbol}"))
+            try:
+                res = requests.get(
+                    CMC_OHLCV_URL,
+                    headers=HEADERS,
+                    params={
+                        "symbol": symbol,
+                        "time_start": date_str,
+                        "time_end": next_day_str,
+                        "interval": "5m"
+                    },
+                    timeout=10
+                )
+                res.raise_for_status()
+                data = res.json().get("data", {}).get("quotes", [])
 
-            metrics = list(RickisMetrics.objects.filter(
-                coin=coin,
-                timestamp__gte=start_date,
-                timestamp__lt=end_date
-            ).order_by('timestamp'))
+                timestamp_unix = int(entry.timestamp.timestamp())
+                closest = min(
+                    data,
+                    key=lambda item: abs(
+                        int(datetime.fromisoformat(item["timestamp"]).timestamp()) - timestamp_unix
+                    )
+                )
 
-            to_update = []
+                quote = closest["quote"]["USD"]
+                entry.high_24h = Decimal(str(quote.get("high", 0)))
+                entry.low_24h = Decimal(str(quote.get("low", 0)))
+                entry.save()
 
-            cmc_data = self.fetch_cmc_ohlcv(symbol)
-            if not cmc_data:
-                continue
+                self.stdout.write(f"✅ [{idx + 1}/{total}] {symbol} {entry.timestamp} updated")
 
-            for entry in metrics:
-                if symbol in cmc_data:
-                    ohlcv = cmc_data[symbol]['quote']['USD']
-                    entry.high_24h = Decimal(str(ohlcv.get('high', 0)))
-                    entry.low_24h = Decimal(str(ohlcv.get('low', 0)))
-                    to_update.append(entry)
+            except Exception as e:
+                self.stdout.write(f"❌ [{idx + 1}/{total}] Error for {symbol} @ {entry.timestamp}: {e}")
 
-            RickisMetrics.objects.bulk_update(to_update, fields=[
-                'high_24h', 'low_24h'
-            ], batch_size=100)
-
-            self.stdout.write(self.style.SUCCESS(f"✅ CMC OHLCV backfilled for {symbol}"))
-
-            # Sleep between API calls to avoid rate limits
-            time.sleep(2)
-
-    def fetch_cmc_ohlcv(self, symbol):
-        headers = {"X-CMC_PRO_API_KEY": API_KEY}
-        params = {"symbol": symbol, "convert": "USD"}
-        try:
-            response = requests.get(CMC_OHLCV_URL, headers=headers, params=params)
-            response.raise_for_status()
-            return response.json().get("data", {})
-        except Exception as e:
-            print(f"Error fetching OHLCV for {symbol}: {e}")
-            return None
+            time.sleep(1.1)  # Rate limit respect
