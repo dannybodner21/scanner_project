@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start_date = make_aware(datetime(2025, 3, 22))
-        end_date = make_aware(datetime(2025, 5, 3))
+        end_date = make_aware(datetime(2025, 4, 13))
 
         queryset = RickisMetrics.objects.select_related("coin").filter(
             timestamp__gte=start_date,
