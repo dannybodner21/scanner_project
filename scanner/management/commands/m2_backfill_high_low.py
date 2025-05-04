@@ -52,10 +52,11 @@ class Command(BaseCommand):
                     }
 
                     try:
+                        time.sleep(1)
                         res = requests.get(CMC_URL, headers=HEADERS, params=params)
 
                         if res.status_code == 429:
-                            wait_time = 10 + retries * 5
+                            wait_time = 15 + retries * 15
                             print(f"⏳ {symbol} {start_str} — Rate limit hit. Retrying in {wait_time}s...")
                             time.sleep(wait_time)
                             retries += 1
@@ -94,4 +95,4 @@ class Command(BaseCommand):
                         print(f"💥 {symbol} {start_str} — Error: {e}")
                         break
 
-                time.sleep(1)  # base delay between requests
+                time.sleep(3)  # base delay between requests
