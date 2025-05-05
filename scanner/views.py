@@ -49,6 +49,7 @@ import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from django.db.models import Q
+import traceback
 
 
 # FLOW OF THE ML MODEL:
@@ -481,7 +482,6 @@ def daily_metrics_health(request):
         "fib_distance_0_618", "fib_distance_0_786"
     ]
 
-    response = {}
     coins = [
         "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
         "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
@@ -493,7 +493,15 @@ def daily_metrics_health(request):
         "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
     ]
 
-    for coin in coins:
+    response = {}
+
+    for coin_symbol in coins:
+
+        try:
+            coin = Coin.objects.get(symbol=coin_symbol)
+
+        except Coin.DoesNotExist:
+            continue
 
         entries = RickisMetrics.objects.filter(
             coin=coin,
@@ -511,7 +519,7 @@ def daily_metrics_health(request):
             missing_count = entries.filter(Q(**{f"{field}__isnull": True})).count()
             if missing_count > 0:
                 missing[field] = missing_count
-                
+
         response[coin.symbol] = {
             "total": total,
             "missing": missing
