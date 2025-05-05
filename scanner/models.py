@@ -242,6 +242,31 @@ class RickisMetrics(models.Model):
         return f"{self.coin.symbol} @ {self.timestamp}"
 
 
+class ModelTrade(models.Model):
+    TRADE_TYPE_CHOICES = [
+        ('long', 'Long'),
+        ('short', 'Short'),
+    ]
+
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
+    trade_type = models.CharField(max_length=5, choices=TRADE_TYPE_CHOICES)
+    entry_timestamp = models.DateTimeField()
+    exit_timestamp = models.DateTimeField(null=True, blank=True)
+
+    entry_price = models.DecimalField(max_digits=20, decimal_places=10)
+    exit_price = models.DecimalField(max_digits=20, decimal_places=10, null=True, blank=True)
+
+    model_confidence = models.FloatField()
+    take_profit_percent = models.FloatField()
+    stop_loss_percent = models.FloatField()
+
+    duration_minutes = models.IntegerField(null=True, blank=True)  # optional: calculated later
+    result = models.BooleanField(null=True, blank=True)  # True = win, False = loss
+
+    def __str__(self):
+        return f"{self.coin.symbol} | {self.trade_type.upper()} | {self.entry_timestamp.strftime('%Y-%m-%d %H:%M')}"
+
+
 
 
 #

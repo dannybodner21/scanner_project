@@ -328,6 +328,8 @@ def calculate_price_change_five_min(coin, timestamp):
 
 def calculate_change_since_high(price, high_24h):
     try:
+        if price is None or high_24h is None:
+            return None
         price = float(price)
         high_24h = float(high_24h)
         if high_24h > 0:
@@ -339,6 +341,8 @@ def calculate_change_since_high(price, high_24h):
 
 def calculate_change_since_low(price, low_24h):
     try:
+        if price is None or low_24h is None:
+            return None
         price = float(price)
         low_24h = float(low_24h)
         if low_24h > 0:
@@ -373,9 +377,12 @@ def calculate_obv(coin, timestamp):
     previous = ShortIntervalData.objects.filter(coin=coin, timestamp=prev_time).first()
     if not current or not previous:
         return None
-    current_price = float(current.price)
-    previous_price = float(previous.price)
-    current_volume = float(current.volume_5min)
+    try:
+        current_price = float(current.price)
+        previous_price = float(previous.price)
+        current_volume = float(current.volume_5min)
+    except:
+        return None
     previous_obv = RickisMetrics.objects.filter(
         coin=coin,
         timestamp=prev_time
@@ -391,18 +398,29 @@ def calculate_adx(coin, timestamp):
     candles = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp
-    ).order_by('-timestamp')[:30]  # fetch extra just in case
+    ).order_by('-timestamp')[:30]
 
     if len(candles) < 14:
         return None
 
-    data = list(candles)[::-1]  # oldest to newest
-    df = pd.DataFrame([{
-        "high": float(c.high_24h),
-        "low": float(c.low_24h),
-        "close": float(c.close)
-    } for c in data])
+    data = list(candles)[::-1]
+    rows = []
+    for c in data:
+        try:
+            if c.high_24h is None or c.low_24h is None or c.close is None:
+                continue
+            rows.append({
+                "high": float(c.high_24h),
+                "low": float(c.low_24h),
+                "close": float(c.close)
+            })
+        except:
+            continue
 
+    if len(rows) < 14:
+        return None
+
+    df = pd.DataFrame(rows)
     indicator = ADXIndicator(df['high'], df['low'], df['close'], window=14)
     adx_series = indicator.adx()
 
@@ -421,10 +439,18 @@ def calculate_bollinger_bands(coin, timestamp):
     if len(candles) < 20:
         return None, None, None
 
-    data = list(candles)[::-1]
-    closes = [float(c.close) for c in data]
-    df = pd.DataFrame({"close": closes})
+    closes = []
+    for c in candles[::-1]:
+        if c.close is not None:
+            try:
+                closes.append(float(c.close))
+            except:
+                continue
 
+    if len(closes) < 20:
+        return None, None, None
+
+    df = pd.DataFrame({"close": closes})
     bb = BollingerBands(close=df["close"], window=20, window_dev=2)
     return (
         bb.bollinger_hband().iloc[-1],
@@ -435,6 +461,8 @@ def calculate_bollinger_bands(coin, timestamp):
 
 def calculate_fib_distances(high, low, current_price):
     try:
+        if high is None or low is None or current_price is None:
+            return {}
         high = float(high)
         low = float(low)
         current_price = float(current_price)

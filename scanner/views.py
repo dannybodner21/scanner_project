@@ -13,7 +13,7 @@ import finnhub
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
@@ -48,6 +48,7 @@ from scanner.management.commands.predict_live import predict_live_logic
 import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
+from django.db.models import Q
 
 
 # FLOW OF THE ML MODEL:
@@ -345,7 +346,7 @@ def predict_short_vertex(request):
             confidence = result["scores"][true_index]
 
             print(f"🔻 SHORT: {symbol} — Confidence: {confidence:.4f}")
-    
+
             if confidence > 0.5:
                 messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
 
@@ -452,8 +453,71 @@ def predict_live_short(request):
 
 
 
+# views for Webflow ------------------------------------------------------------
 
 
+# display RickisMetrics
+def daily_metrics_health(request):
+
+    date_str = request.GET.get("date")
+    if not date_str:
+        return JsonResponse({"error": "Missing ?date=YYYY-MM-DD"}, status=400)
+
+    try:
+        target_date = datetime.strptime(date_str, "%Y-%m-%d")
+        start = target_date
+        end = target_date + timedelta(days=1)
+
+    except:
+        return JsonResponse({"error": "Invalid date format"}, status=400)
+
+    fields_to_check = [
+        "rsi", "macd", "macd_signal", "stochastic_k", "stochastic_d",
+        "support_level", "resistance_level", "price_slope_1h", "relative_volume",
+        "sma_5", "sma_20", "ema_12", "ema_26", "stddev_1h", "atr_1h",
+        "change_since_high", "change_since_low", "volume_mc_ratio",
+        "obv", "adx", "bollinger_upper", "bollinger_middle", "bollinger_lower",
+        "fib_distance_0_236", "fib_distance_0_382", "fib_distance_0_5",
+        "fib_distance_0_618", "fib_distance_0_786"
+    ]
+
+    response = {}
+    coins = [
+        "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
+        "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+        "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
+        "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
+        "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+        "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
+        "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
+        "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
+    ]
+
+    for coin in coins:
+
+        entries = RickisMetrics.objects.filter(
+            coin=coin,
+            timestamp__gte=start,
+            timestamp__lt=end
+        )
+
+        total = entries.count()
+        if total == 0:
+            continue
+
+        missing = {}
+        for field in fields_to_check:
+
+            missing_count = entries.filter(Q(**{f"{field}__isnull": True})).count()
+            if missing_count > 0:
+                missing[field] = missing_count
+                
+        response[coin.symbol] = {
+            "total": total,
+            "missing": missing
+        }
+
+    return JsonResponse(response)
 
 
 
