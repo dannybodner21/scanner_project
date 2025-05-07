@@ -25,7 +25,7 @@ class Command(BaseCommand):
     help = "Backfill all missing derived metrics in RickisMetrics"
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 4, 16))
+        start = make_aware(datetime(2025, 4, 23))
         end = make_aware(datetime(2025, 5, 3))
 
         metrics = RickisMetrics.objects.filter(
