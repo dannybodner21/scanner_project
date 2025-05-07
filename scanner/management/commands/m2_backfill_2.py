@@ -26,7 +26,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 4, 23))
-        end = make_aware(datetime(2025, 5, 3))
+        end = make_aware(datetime(2025, 4, 25))
 
         metrics = RickisMetrics.objects.filter(
             timestamp__gte=start,
@@ -34,7 +34,7 @@ class Command(BaseCommand):
         ).select_related("coin").order_by("timestamp")
 
         total = metrics.count()
-        print(f"\U0001F4CA Processing {total} entries...")
+        print(f"📊 Processing {total} entries...")
 
         batch = []
         updated = 0
@@ -48,7 +48,7 @@ class Command(BaseCommand):
 
                 def set_if_missing(field, value):
                     nonlocal modified
-                    if getattr(rm, field) is None:
+                    if getattr(rm, field) is None and value is not None:
                         setattr(rm, field, value)
                         modified = True
 
@@ -80,7 +80,7 @@ class Command(BaseCommand):
                 fibs = calculate_fib_distances(rm.high_24h, rm.low_24h, rm.price)
                 set_if_missing("fib_distance_0_236", fibs.get("fib_distance_0_236"))
                 set_if_missing("fib_distance_0_382", fibs.get("fib_distance_0_382"))
-                set_if_missing("fib_distance_0_5",   fibs.get("fib_distance_0_5"))
+                set_if_missing("fib_distance_0_5", fibs.get("fib_distance_0_5"))
                 set_if_missing("fib_distance_0_618", fibs.get("fib_distance_0_618"))
                 set_if_missing("fib_distance_0_786", fibs.get("fib_distance_0_786"))
 
