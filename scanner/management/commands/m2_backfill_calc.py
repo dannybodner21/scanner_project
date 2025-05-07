@@ -24,12 +24,12 @@ class Command(BaseCommand):
 
     help = "Backfill all missing derived metrics in RickisMetrics"
 
-    # nohup python manage.py m2_trade_outcomes > backfill.log 2>&1 &
+    # nohup python manage.py m2_backfill_calc > backfill.log 2>&1 &
     # tail -f backfill.log
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 26))
-        end = make_aware(datetime(2025, 4, 4))
+        start = make_aware(datetime(2025, 4, 6))
+        end = make_aware(datetime(2025, 5, 3))
 
         metrics = RickisMetrics.objects.filter(
             timestamp__gte=start,
