@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
-from scanner.models import ShortIntervalData
 from scanner.models import RickisMetrics
 import numpy as np
 import requests
@@ -16,7 +15,7 @@ def round_to_five_minutes(dt):
 
 # get recent prices for a coin in a given window - oldest to newest
 def get_recent_prices(coin, timestamp, window):
-    queryset = ShortIntervalData.objects.filter(
+    queryset = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp
     ).order_by('-timestamp')[:window]
@@ -25,11 +24,11 @@ def get_recent_prices(coin, timestamp, window):
 
 # get recent volumes for a coin in a given window - oldest to newest
 def get_recent_volumes(coin, timestamp, window):
-    queryset = ShortIntervalData.objects.filter(
+    queryset = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp
     ).order_by('-timestamp')[:window]
-    volumes = list(queryset.values_list('volume_5min', flat=True))
+    volumes = list(queryset.values_list('volume', flat=True))
     return volumes[::-1]
 
 # take a coin and calculate RSI based on 14 time periods
@@ -195,10 +194,11 @@ def calculate_relative_volume(coin, timestamp):
 
     try:
 
-        last_volume = ShortIntervalData.objects.filter(
+        last_volume = RickisMetrics.objects.filter(
             coin=coin,
             timestamp=timestamp
-        ).values_list('volume_5min', flat=True).first()
+        ).values_list('volume', flat=True).first()
+
         avg_volume = calculate_avg_volume_1h(coin, timestamp)
 
         if avg_volume and avg_volume != 0:
@@ -215,31 +215,37 @@ def calculate_sma(coin, timestamp, window):
     try:
 
         prices = get_recent_prices(coin, timestamp, window)
+
         if not prices:
             return None
+
         return np.mean(prices)
 
     except Exception as e:
         print(f"error in calculate_sma: {e}")
 
-
+# NEED TO RECALCULATE ALL OF THESE WITH THIS NEW FUNCTION
 def calculate_ema(coin, timestamp, window):
 
     try:
-
-        prices = ShortIntervalData.objects.filter(
-            coin=coin, timestamp__lte=timestamp
+        prices = RickisMetrics.objects.filter(
+            coin=coin,
+            timestamp__lte=timestamp
         ).order_by('-timestamp').values_list('price', flat=True)[:window]
 
         prices = list(prices)
+
         if len(prices) < window:
             return None
 
         prices = [float(p) for p in prices]
-        return calculate_ema_from_prices(prices, window)
+
+        return calculate_ema_from_prices(prices[::-1], window)
 
     except Exception as e:
+
         print(f"error in calculate_ema: {e}")
+        return None
 
 
 def calculate_stddev_1h(coin, timestamp):
@@ -247,31 +253,32 @@ def calculate_stddev_1h(coin, timestamp):
     try:
 
         prices = get_recent_prices(coin, timestamp, 12)
+
         if not prices:
             return None
+
         return np.std(prices)
 
     except Exception as e:
         print(f"error in calculate_stddev_1h: {e}")
 
-
+# NEED TO RECALCULATE ALL OF THESE WITH THIS NEW FUNCTION
 def calculate_price_slope_1h(coin, timestamp):
 
     try:
+        prices = RickisMetrics.objects.filter(
+            coin=coin,
+            timestamp__lte=timestamp
+        ).order_by('timestamp')
+        prices = list(prices.values_list('price', flat=True))[-12:]
 
-        prices = ShortIntervalData.objects.filter(
-            coin=coin, timestamp__lte=timestamp
-        ).order_by('-timestamp').values_list('price', flat=True)[:12]
-
-        prices = list(prices)
         if len(prices) < 2:
             return None
 
-        prices = [float(p) for p in prices]  # <<< ADD THIS
+        prices = [float(p) for p in prices]
         x = list(range(len(prices)))
         y = prices
 
-        # Simple linear regression
         n = len(x)
         sum_x = sum(x)
         sum_y = sum(y)
@@ -286,34 +293,52 @@ def calculate_price_slope_1h(coin, timestamp):
 
     except Exception as e:
         print(f"error in calculate_price_slope_1h: {e}")
+        return None
 
 
+# NEED TO RECALCULATE ALL OF THESE WITH THIS NEW FUNCTION
 # Average True Rating over 1 hour
 # Used to measure how much an asset moves on average over a time period
 # ATR_1h = mean of price differences over 1 hour
 def calculate_atr_1h(coin, timestamp):
 
     try:
-
-        # get coin data over an hour period
-        queryset = ShortIntervalData.objects.filter(
+        # Get last 12 RickisMetrics (1 hour of 5-minute candles)
+        candles = RickisMetrics.objects.filter(
             coin=coin,
             timestamp__lte=timestamp
         ).order_by('-timestamp')[:12]
 
-        prices = list(queryset.values_list('price', flat=True))
-
-        if len(prices) < 2:
+        if len(candles) < 2:
             return None
 
-        # calculate absolute difference over our range
-        true_range = [abs(prices[i] - prices[i-1]) for i in range(1, len(prices))]
+        candles = list(candles)[::-1]  # oldest to newest
 
-        # return the mean
-        return np.mean(true_range)
+        true_ranges = []
+        for i in range(1, len(candles)):
+            high = float(candles[i].high_24h)
+            low = float(candles[i].low_24h)
+            prev_close = float(candles[i-1].close)
+
+            if high is None or low is None or prev_close is None:
+                continue
+
+            tr = max(
+                high - low,
+                abs(high - prev_close),
+                abs(low - prev_close)
+            )
+            true_ranges.append(tr)
+
+        if not true_ranges:
+            return None
+
+        return np.mean(true_ranges)
 
     except Exception as e:
         print(f"error in calculate_atr_1h: {e}")
+        return None
+
 
 
 # function to calculate the price change over a 5 min period
@@ -322,8 +347,8 @@ def calculate_price_change_five_min(coin, timestamp):
 
     try:
 
-        # get current price
-        current = ShortIntervalData.objects.filter(
+        # current price from RickisMetrics
+        current = RickisMetrics.objects.filter(
             coin=coin,
             timestamp=timestamp
         ).values_list('price', flat=True).first()
@@ -333,13 +358,13 @@ def calculate_price_change_five_min(coin, timestamp):
 
         current = float(current)
 
-        # get closest recent price between 4–6 minutes ago
+        # look back 5 min ±1 min window to account for slight gaps
         target_time = timestamp - timedelta(minutes=5)
         window_start = target_time - timedelta(minutes=1)
         window_end = target_time + timedelta(minutes=1)
 
         previous = (
-            ShortIntervalData.objects.filter(
+            RickisMetrics.objects.filter(
                 coin=coin,
                 timestamp__gte=window_start,
                 timestamp__lte=window_end
@@ -354,7 +379,6 @@ def calculate_price_change_five_min(coin, timestamp):
 
         previous = float(previous)
 
-        # calculate and return 5 min price change
         return ((current - previous) / previous) * 100
 
     except Exception as e:
@@ -367,6 +391,7 @@ def calculate_price_change_five_min(coin, timestamp):
 def calculate_change_since_high(price, high_24h):
 
     try:
+
         if price is None or high_24h is None:
             return None
 
@@ -430,41 +455,36 @@ def fetch_fear_and_greed_index():
 # A momentum indicator that is used to detect trend strength or reversals
 # Shows if volume is flowing in or out of an asset
 def calculate_obv(coin, timestamp):
-
-    # get current and previous coin data
-    current = ShortIntervalData.objects.filter(coin=coin, timestamp=timestamp).first()
-    prev_time = timestamp - timedelta(minutes=5)
-    previous = ShortIntervalData.objects.filter(coin=coin, timestamp=prev_time).first()
-
-    if not current or not previous:
-        return None
-
     try:
+        # get current and previous RickisMetrics rows
+        current = RickisMetrics.objects.filter(coin=coin, timestamp=timestamp).first()
+        prev_time = timestamp - timedelta(minutes=5)
+        previous = RickisMetrics.objects.filter(coin=coin, timestamp=prev_time).first()
+
+        if not current or not previous:
+            return None
+
         current_price = float(current.price)
         previous_price = float(previous.price)
-        current_volume = float(current.volume_5min)
+        current_volume = float(current.volume)
 
-    except:
+        previous_obv = previous.obv or 0.0
+
+        if current_price > previous_price:
+            return previous_obv + current_volume
+        elif current_price < previous_price:
+            return previous_obv - current_volume
+        else:
+            return previous_obv
+
+    except Exception as e:
+        print(f"error in calculate_obv: {e}")
         return None
 
-    # get previous obv
-    previous_obv = RickisMetrics.objects.filter(
-        coin=coin,
-        timestamp=prev_time
-    ).values_list('obv', flat=True).first() or 0.0
-
-    # price is rising -> return previous obv + current volume
-    if current_price > previous_price:
-        return previous_obv + current_volume
-
-    # price is falling -> return previous obv - current volume
-    elif current_price < previous_price:
-        return previous_obv - current_volume
-
-    return previous_obv
 
 
 def calculate_adx(coin, timestamp):
+
     candles = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp

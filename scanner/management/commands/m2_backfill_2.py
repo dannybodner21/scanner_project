@@ -26,7 +26,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 4, 23))
-        end = make_aware(datetime(2025, 4, 25))
+        end = make_aware(datetime(2025, 4, 30))
 
         metrics = RickisMetrics.objects.filter(
             timestamp__gte=start,
