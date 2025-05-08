@@ -41,7 +41,7 @@ class Command(BaseCommand):
             while date <= end_date:
                 time_str = date.strftime("%Y-%m-%d")
                 try:
-                    url = f"{BASE_URL}?symbol={symbol}&time_start={time_str}&time_end={time_str}&interval=5m"
+                    url = f"{BASE_URL}?symbol={symbol}&time_start={time_str}&time_end={time_str}&interval=daily"
                     headers = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
                     res = requests.get(url, headers=headers)
                     res.raise_for_status()

@@ -456,6 +456,34 @@ def predict_live_short(request):
 
 # views for Webflow ------------------------------------------------------------
 
+# function to get trade data on Webflow
+from scanner.models import ModelTrade
+
+def get_open_trades(request):
+    open_trades = Trade.objects.filter(closing_timestamp__isnull=True).select_related("coin").order_by("-entry_time")[:20]
+
+    data = []
+    for trade in open_trades:
+        data.append({
+            "coin": trade.coin.symbol,
+            "trade_type": trade.trade_type,  # "long" or "short"
+            "model_confidence": trade.model_confidence,
+            "entry_timestamp": trade.entry_timestamp.isoformat(),
+            "exit_timestamp": trade.exit_timestamp.isoformat(),
+            "entry_price": float(trade.entry_price),
+            "exit_price": float(trade.exit_price),
+            "take_profit_percent": trade.take_profit_percent,
+            "stop_loss_percent": trade.stop_loss_percent,
+            "duration_minutes": trade.duration_minutes,
+            "result": trade.result,
+        })
+
+    return JsonResponse(data, safe=False)
+
+
+
+
+
 
 # display RickisMetrics
 def daily_metrics_health(request):

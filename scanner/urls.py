@@ -25,7 +25,7 @@ urlpatterns = [
     path("predict-short-vertex/", views.predict_short_vertex, name="predict-short-vertex"),
 
     path("api/metrics-health-daily/", views.daily_metrics_health, name="daily-metrics-health"),
-
+    path("api/open-trades/", views.get_open_trades, name="open-trades"),
 
 
     path("predict-long/", views.predict_live, name="predict-long"),
