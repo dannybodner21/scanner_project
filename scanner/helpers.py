@@ -301,9 +301,8 @@ def calculate_price_slope_1h(coin, timestamp):
 # Used to measure how much an asset moves on average over a time period
 # ATR_1h = mean of price differences over 1 hour
 def calculate_atr_1h(coin, timestamp):
-
+    
     try:
-        # Get last 12 RickisMetrics (1 hour of 5-minute candles)
         candles = RickisMetrics.objects.filter(
             coin=coin,
             timestamp__lte=timestamp
@@ -312,16 +311,20 @@ def calculate_atr_1h(coin, timestamp):
         if len(candles) < 2:
             return None
 
-        candles = list(candles)[::-1]  # oldest to newest
-
+        candles = list(candles)[::-1]
         true_ranges = []
-        for i in range(1, len(candles)):
-            high = float(candles[i].high_24h)
-            low = float(candles[i].low_24h)
-            prev_close = float(candles[i-1].close)
 
-            if high is None or low is None or prev_close is None:
+        for i in range(1, len(candles)):
+            high_val = candles[i].high_24h
+            low_val = candles[i].low_24h
+            prev_close_val = candles[i-1].close
+
+            if high_val is None or low_val is None or prev_close_val is None:
                 continue
+
+            high = float(high_val)
+            low = float(low_val)
+            prev_close = float(prev_close_val)
 
             tr = max(
                 high - low,
@@ -338,6 +341,7 @@ def calculate_atr_1h(coin, timestamp):
     except Exception as e:
         print(f"error in calculate_atr_1h: {e}")
         return None
+
 
 
 
