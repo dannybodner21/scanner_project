@@ -300,8 +300,10 @@ def calculate_price_slope_1h(coin, timestamp):
 # Average True Rating over 1 hour
 # Used to measure how much an asset moves on average over a time period
 # ATR_1h = mean of price differences over 1 hour
+
+# this wont work, delete it 
 def calculate_atr_1h(coin, timestamp):
-    
+
     try:
         candles = RickisMetrics.objects.filter(
             coin=coin,

@@ -35,7 +35,7 @@ class Command(BaseCommand):
                 print(f"❌ Coin not found: {symbol}")
                 continue
 
-            print(f"🔄 Fetching OHLCV for: {symbol}")
+            print(f"\n🔄 Fetching OHLCV for: {symbol}")
             current_date = start_date
             request_count = 0
 
@@ -55,19 +55,18 @@ class Command(BaseCommand):
                         time.sleep(12)
 
                     data = res.json()
-                    candles = data.get("data", {}).get("quotes", [])
+                    candles = data.get("data", {}).get(symbol, {}).get("quotes", [])
+
                     if not candles:
-                        print(f"⚠️ No data for {symbol} on {api_time_end}")
+                        print(f"⚠️ No data for {symbol} on {api_time_end}. Response was: {data}")
                         current_date += timedelta(days=1)
                         continue
 
                     daily_ohlcv = candles[0]["quote"]["USD"]
 
-                    # Define the full day's timestamp range
                     day_start = make_aware(datetime.combine(current_date, datetime.min.time()))
                     day_end = day_start + timedelta(days=1)
 
-                    # Get all RickisMetrics records for the day
                     rms = RickisMetrics.objects.filter(
                         coin=coin,
                         timestamp__gte=day_start,
@@ -77,7 +76,6 @@ class Command(BaseCommand):
                     modified_count = 0
                     for rm in rms:
                         modified = False
-
                         if rm.open is None:
                             rm.open = daily_ohlcv["open"]
                             modified = True
@@ -95,12 +93,14 @@ class Command(BaseCommand):
                             rm.save()
                             modified_count += 1
 
-                    print(f"✅ {symbol} on {api_time_end}: {modified_count} records updated")
+                    print(f"✅ {symbol} {current_date.strftime('%Y-%m-%d')}: {modified_count} metrics updated")
 
+                except requests.HTTPError as http_err:
+                    print(f"❌ HTTP error fetching {symbol} on {api_time_end}: {http_err}, Response: {res.text}")
                 except Exception as e:
-                    print(f"❌ Error fetching {symbol} on {api_time_end}: {e}, Response: {res.text}")
+                    print(f"❌ Error processing {symbol} on {api_time_end}: {e}")
 
                 current_date += timedelta(days=1)
                 time.sleep(1.2)
 
-        print("🎉 Backfill completed successfully.")
+        print("\n🎉 Backfill completed successfully.")
