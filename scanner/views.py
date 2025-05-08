@@ -469,7 +469,6 @@ def get_open_trades(request):
             "trade_type": trade.trade_type,  # "long" or "short"
             "model_confidence": trade.model_confidence,
             "entry_timestamp": trade.entry_timestamp.isoformat(),
-            "exit_timestamp": trade.exit_timestamp.isoformat(),
             "entry_price": float(trade.entry_price),
             "exit_price": float(trade.exit_price),
             "take_profit_percent": trade.take_profit_percent,
