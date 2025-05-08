@@ -8,7 +8,7 @@ import time
 CMC_API_KEY = "6520549c-03bb-41cd-86e3-30355ece87ba"
 BASE_URL = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical"
 
-rickis_symbols = [
+rickis_symbols_one = [
     "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
     "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
     "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
@@ -19,6 +19,8 @@ rickis_symbols = [
     "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
 ]
 
+rickis_symbols = ["FLOW"]
+
 class Command(BaseCommand):
     help = "Backfill missing OHLCV fields in RickisMetrics"
 
@@ -26,8 +28,8 @@ class Command(BaseCommand):
         coins = Coin.objects.filter(symbol__in=rickis_symbols)
         coin_map = {coin.symbol: coin for coin in coins}
 
-        start_date = datetime(2025, 4, 20)
-        end_date = datetime(2025, 5, 3)
+        start_date = datetime(2025, 4, 12)
+        end_date = datetime(2025, 4, 15)
 
         for symbol in rickis_symbols:
             coin = coin_map.get(symbol)
