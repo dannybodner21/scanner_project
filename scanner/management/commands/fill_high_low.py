@@ -54,8 +54,18 @@ class Command(BaseCommand):
                     if request_count % 10 == 0:
                         time.sleep(12)
 
-                    data = res.json()
-                    candles = data.get("data", {}).get(symbol, {}).get("quotes", [])
+                    data = res.json().get("data", {})
+
+                    if "quotes" in data:
+                        # single symbol response
+                        candles = data.get("quotes", [])
+
+                    elif symbol in data:
+                        # multiple symbol response (just in case)
+                        candles = data.get(symbol, {}).get("quotes", [])
+
+                    else:
+                        candles = []
 
                     if not candles:
                         print(f"⚠️ No data for {symbol} on {api_time_end}. Response was: {data}")
