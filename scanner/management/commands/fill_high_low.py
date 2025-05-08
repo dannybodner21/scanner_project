@@ -36,16 +36,17 @@ class Command(BaseCommand):
                 continue
 
             print(f"🔄 Fetching OHLCV for: {symbol}")
-            date = start_date
+            current_date = start_date
             request_count = 0
 
-            while date <= end_date:
-                time_end = date.strftime("%Y-%m-%d")
-                time_start = (date - timedelta(days=1)).strftime("%Y-%m-%d")
+            while current_date <= end_date:
+                api_time_start = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
+                api_time_end = current_date.strftime("%Y-%m-%d")
+
+                url = f"{BASE_URL}?symbol={symbol}&time_start={api_time_start}&time_end={api_time_end}&interval=daily"
+                headers = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
 
                 try:
-                    url = f"{BASE_URL}?symbol={symbol}&time_start={time_start}&time_end={time_end}&interval=daily"
-                    headers = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
                     res = requests.get(url, headers=headers)
                     res.raise_for_status()
 
@@ -53,54 +54,53 @@ class Command(BaseCommand):
                     if request_count % 10 == 0:
                         time.sleep(12)
 
-                    candles = res.json().get("data", {}).get("quotes", [])
+                    data = res.json()
+                    candles = data.get("data", {}).get("quotes", [])
                     if not candles:
-                        print(f"⚠️ No data for {symbol} on {time_end}")
-                        date += timedelta(days=1)
+                        print(f"⚠️ No data for {symbol} on {api_time_end}")
+                        current_date += timedelta(days=1)
                         continue
 
+                    daily_ohlcv = candles[0]["quote"]["USD"]
+
+                    # Define the full day's timestamp range
+                    day_start = make_aware(datetime.combine(current_date, datetime.min.time()))
+                    day_end = day_start + timedelta(days=1)
+
+                    # Get all RickisMetrics records for the day
+                    rms = RickisMetrics.objects.filter(
+                        coin=coin,
+                        timestamp__gte=day_start,
+                        timestamp__lt=day_end
+                    )
+
                     modified_count = 0
-                    for candle in candles:
-                        try:
-                            ts_raw = candle["timestamp"]
-                            try:
-                                ts = make_aware(datetime.strptime(ts_raw, "%Y-%m-%dT%H:%M:%S.%fZ"))
-                            except ValueError:
-                                ts = make_aware(datetime.strptime(ts_raw, "%Y-%m-%dT%H:%M:%SZ"))
+                    for rm in rms:
+                        modified = False
 
-                            rm = RickisMetrics.objects.filter(coin=coin, timestamp=ts).first()
-                            if not rm:
-                                continue
+                        if rm.open is None:
+                            rm.open = daily_ohlcv["open"]
+                            modified = True
+                        if rm.high_24h is None:
+                            rm.high_24h = daily_ohlcv["high"]
+                            modified = True
+                        if rm.low_24h is None:
+                            rm.low_24h = daily_ohlcv["low"]
+                            modified = True
+                        if rm.close is None:
+                            rm.close = daily_ohlcv["close"]
+                            modified = True
 
-                            ohlcv = candle["quote"]["USD"]
-                            modified = False
+                        if modified:
+                            rm.save()
+                            modified_count += 1
 
-                            if rm.open is None:
-                                rm.open = ohlcv.get("open")
-                                modified = True
-                            if rm.high_24h is None:
-                                rm.high_24h = ohlcv.get("high")
-                                modified = True
-                            if rm.low_24h is None:
-                                rm.low_24h = ohlcv.get("low")
-                                modified = True
-                            if rm.close is None:
-                                rm.close = ohlcv.get("close")
-                                modified = True
-
-                            if modified:
-                                rm.save()
-                                modified_count += 1
-
-                        except Exception as inner_e:
-                            print(f"⚠️ Error parsing candle for {symbol} on {time_end}: {inner_e}")
-
-                    print(f"✅ {symbol} - {time_end}: {modified_count} updated")
+                    print(f"✅ {symbol} on {api_time_end}: {modified_count} records updated")
 
                 except Exception as e:
-                    print(f"❌ Request error for {symbol} on {time_end}: {e}")
+                    print(f"❌ Error fetching {symbol} on {api_time_end}: {e}, Response: {res.text}")
 
-                date += timedelta(days=1)
-                time.sleep(1.2)  # base rate limit safety
+                current_date += timedelta(days=1)
+                time.sleep(1.2)
 
-        print("🎉 Backfill completed.")
+        print("🎉 Backfill completed successfully.")
