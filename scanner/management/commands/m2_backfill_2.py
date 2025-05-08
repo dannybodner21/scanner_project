@@ -25,8 +25,8 @@ class Command(BaseCommand):
     help = "Backfill all missing derived metrics in RickisMetrics"
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 4, 2))
-        end = make_aware(datetime(2025, 4, 6))
+        start = make_aware(datetime(2025, 4, 23))
+        end = make_aware(datetime(2025, 4, 30))
 
         metrics = RickisMetrics.objects.filter(
             timestamp__gte=start,
@@ -92,6 +92,7 @@ class Command(BaseCommand):
                 if modified:
                     batch.append(rm)
                     updated += 1
+                    print(f"updated: {updated}")
 
                 if len(batch) >= 100:
                     RickisMetrics.objects.bulk_update(batch, [
