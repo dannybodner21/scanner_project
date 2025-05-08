@@ -470,11 +470,9 @@ def get_open_trades(request):
             "model_confidence": trade.model_confidence,
             "entry_timestamp": trade.entry_timestamp.isoformat(),
             "entry_price": float(trade.entry_price),
-            "exit_price": float(trade.exit_price),
             "take_profit_percent": trade.take_profit_percent,
             "stop_loss_percent": trade.stop_loss_percent,
             "duration_minutes": trade.duration_minutes,
-            "result": trade.result,
         })
 
     return JsonResponse(data, safe=False)

@@ -54,21 +54,16 @@ class Command(BaseCommand):
                     if request_count % 10 == 0:
                         time.sleep(12)
 
-                    data = res.json().get("data", {})
+                    json_response = res.json()
+                    data_list = json_response.get("data", [])
 
-                    if "quotes" in data:
-                        # single symbol response
-                        candles = data.get("quotes", [])
-
-                    elif symbol in data:
-                        # multiple symbol response (just in case)
-                        candles = data.get(symbol, {}).get("quotes", [])
-
-                    else:
-                        candles = []
+                    candles = []
+                    if isinstance(data_list, list) and len(data_list) > 0:
+                        first_entry = data_list[0]
+                        candles = first_entry.get("quotes", [])
 
                     if not candles:
-                        print(f"⚠️ No data for {symbol} on {api_time_end}. Response was: {data}")
+                        print(f"⚠️ No data for {symbol} on {api_time_end}. Full response: {json_response}")
                         current_date += timedelta(days=1)
                         continue
 
@@ -108,7 +103,7 @@ class Command(BaseCommand):
                 except requests.HTTPError as http_err:
                     print(f"❌ HTTP error fetching {symbol} on {api_time_end}: {http_err}, Response: {res.text}")
                 except Exception as e:
-                    print(f"❌ Error processing {symbol} on {api_time_end}: {e}")
+                    print(f"❌ Error processing {symbol} on {api_time_end}: {e}, Response: {res.text}")
 
                 current_date += timedelta(days=1)
                 time.sleep(1.2)
