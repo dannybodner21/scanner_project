@@ -57,10 +57,7 @@ class Command(BaseCommand):
                     json_response = res.json()
                     data_list = json_response.get("data", [])
 
-                    candles = []
-                    if isinstance(data_list, list) and len(data_list) > 0:
-                        first_entry = data_list[0]
-                        candles = first_entry.get("quotes", [])
+                    candles = json_response["status"]["data"]
 
                     if not candles:
                         print(f"⚠️ No data for {symbol} on {api_time_end}. Full response: {json_response}")
