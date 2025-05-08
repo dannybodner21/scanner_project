@@ -265,5 +265,4 @@ class ModelTrade(models.Model):
 
 
 
-
 #
