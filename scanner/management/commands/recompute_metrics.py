@@ -22,7 +22,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # Inclusive date window
         start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 5, 2)) + timedelta(days=1)
+        end = make_aware(datetime(2025, 4, 20)) + timedelta(days=1)
 
         qs = RickisMetrics.objects.filter(
             timestamp__gte=start,
