@@ -30,7 +30,9 @@ class Command(BaseCommand):
         ).order_by('timestamp')
 
         total = qs.count()
-        self.stdout.write(f"🔄 Recomputing {total} records from {start.date()} to {end.date() - timedelta(days=1)}...")
+        self.stdout.write(
+            f"🔄 Recomputing {total} records from {start.date()} to {end.date() - timedelta(days=1)}..."
+        )
 
         for rm in qs.iterator():
             # Fibonacci distances
@@ -47,8 +49,11 @@ class Command(BaseCommand):
             rm.bollinger_middle = middle
             rm.bollinger_lower  = lower
 
-            # ADX
-            rm.adx = calculate_adx(rm.coin, rm.timestamp)
+            # ADX (guard against insufficient data or calculation errors)
+            try:
+                rm.adx = calculate_adx(rm.coin, rm.timestamp)
+            except Exception:
+                rm.adx = None
 
             # Change since low/high
             rm.change_since_low  = calculate_change_since_low(rm.price, rm.low_24h)
@@ -61,5 +66,9 @@ class Command(BaseCommand):
             rm.ema = calculate_ema(rm.coin, rm.timestamp, window=12)
 
             rm.save()
+
+            self.stdout.write(
+                f"one done."
+            )
 
         self.stdout.write("✅ All metrics recomputed successfully.")
