@@ -55,9 +55,19 @@ class Command(BaseCommand):
                         time.sleep(12)
 
                     json_response = res.json()
-                    data_list = json_response.get("data", [])
+                    # Extract list of entries under the symbol key
+                    entries = json_response.get("data", {}).get(symbol, [])
 
-                    candles = json_response["status"]["data"]
+                    # Find matching entry by CMC ID
+                    record = None
+                    for entry in entries:
+                        if entry.get("id") == coin.cmc_id:
+                            record = entry
+                            break
+                    if record is None and entries:
+                        record = entries[0]
+
+                    candles = record.get("quotes", []) if record else []
 
                     if not candles:
                         print(f"⚠️ No data for {symbol} on {api_time_end}. Full response: {json_response}")
