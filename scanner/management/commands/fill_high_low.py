@@ -5,7 +5,7 @@ from scanner.models import RickisMetrics, Coin
 import requests
 import time
 
-CMC_API_KEY = "7dd5dd98-35d0-475d-9338-407631033cd9"
+CMC_API_KEY = "6520549c-03bb-41cd-86e3-30355ece87ba"
 BASE_URL = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical"
 
 rickis_symbols = [
@@ -35,50 +35,72 @@ class Command(BaseCommand):
                 print(f"❌ Coin not found: {symbol}")
                 continue
 
-            print(f"🔄 Fetching: {symbol}")
+            print(f"🔄 Fetching OHLCV for: {symbol}")
             date = start_date
+            request_count = 0
 
             while date <= end_date:
-                time_str = date.strftime("%Y-%m-%d")
+                time_end = date.strftime("%Y-%m-%d")
+                time_start = (date - timedelta(days=1)).strftime("%Y-%m-%d")
+
                 try:
-                    url = f"{BASE_URL}?symbol={symbol}&time_start={time_str}&time_end={time_str}&interval=daily"
+                    url = f"{BASE_URL}?symbol={symbol}&time_start={time_start}&time_end={time_end}&interval=daily"
                     headers = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
                     res = requests.get(url, headers=headers)
                     res.raise_for_status()
 
+                    request_count += 1
+                    if request_count % 10 == 0:
+                        time.sleep(12)
+
                     candles = res.json().get("data", {}).get("quotes", [])
                     if not candles:
-                        print(f"⚠️ No data for {symbol} on {time_str}")
+                        print(f"⚠️ No data for {symbol} on {time_end}")
                         date += timedelta(days=1)
                         continue
 
+                    modified_count = 0
                     for candle in candles:
-                        ts = make_aware(datetime.strptime(candle["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"))
-                        rm = RickisMetrics.objects.filter(coin=coin, timestamp=ts).first()
-                        if not rm:
-                            continue
+                        try:
+                            ts_raw = candle["timestamp"]
+                            try:
+                                ts = make_aware(datetime.strptime(ts_raw, "%Y-%m-%dT%H:%M:%S.%fZ"))
+                            except ValueError:
+                                ts = make_aware(datetime.strptime(ts_raw, "%Y-%m-%dT%H:%M:%SZ"))
 
-                        modified = False
-                        ohlcv = candle["quote"]["USD"]
-                        if rm.open is None:
-                            rm.open = ohlcv["open"]
-                            modified = True
-                        if rm.high_24h is None:
-                            rm.high_24h = ohlcv["high"]
-                            modified = True
-                        if rm.low_24h is None:
-                            rm.low_24h = ohlcv["low"]
-                            modified = True
-                        if rm.close is None:
-                            rm.close = ohlcv["close"]
-                            modified = True
-                        if modified:
-                            rm.save()
+                            rm = RickisMetrics.objects.filter(coin=coin, timestamp=ts).first()
+                            if not rm:
+                                continue
 
-                    print(f"✅ {symbol} done for {time_str}")
+                            ohlcv = candle["quote"]["USD"]
+                            modified = False
+
+                            if rm.open is None:
+                                rm.open = ohlcv.get("open")
+                                modified = True
+                            if rm.high_24h is None:
+                                rm.high_24h = ohlcv.get("high")
+                                modified = True
+                            if rm.low_24h is None:
+                                rm.low_24h = ohlcv.get("low")
+                                modified = True
+                            if rm.close is None:
+                                rm.close = ohlcv.get("close")
+                                modified = True
+
+                            if modified:
+                                rm.save()
+                                modified_count += 1
+
+                        except Exception as inner_e:
+                            print(f"⚠️ Error parsing candle for {symbol} on {time_end}: {inner_e}")
+
+                    print(f"✅ {symbol} - {time_end}: {modified_count} updated")
 
                 except Exception as e:
-                    print(f"❌ Error for {symbol} on {time_str}: {e}")
+                    print(f"❌ Request error for {symbol} on {time_end}: {e}")
 
                 date += timedelta(days=1)
-                time.sleep(1)  # respect API limits
+                time.sleep(1.2)  # base rate limit safety
+
+        print("🎉 Backfill completed.")
