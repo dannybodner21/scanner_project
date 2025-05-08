@@ -460,7 +460,7 @@ def predict_live_short(request):
 from scanner.models import ModelTrade
 
 def get_open_trades(request):
-    open_trades = Trade.objects.filter(closing_timestamp__isnull=True).select_related("coin").order_by("-entry_time")[:20]
+    open_trades = ModelTrade.objects.filter(closing_timestamp__isnull=True).select_related("coin").order_by("-entry_time")[:20]
 
     data = []
     for trade in open_trades:
