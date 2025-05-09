@@ -86,6 +86,7 @@ class Command(BaseCommand):
             if len(to_update) >= self.BATCH_SIZE:
                 RickisMetrics.objects.bulk_update(to_update, fields)
                 to_update.clear()
+                self.stdout.write("batch complete")
 
         # Final bulk update of any remaining records
         if to_update:
