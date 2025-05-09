@@ -13,8 +13,6 @@ from datetime import datetime, timedelta
 from scanner.models import RickisMetrics
 from scanner.helpers import (
     calculate_fib_distances,
-    calculate_bollinger_bands,
-    calculate_adx,
     calculate_change_since_low,
     calculate_change_since_high,
     calculate_price_slope_1h
@@ -22,15 +20,14 @@ from scanner.helpers import (
 
 class Command(BaseCommand):
     help = (
-        "Recompute OHLCV-derived metrics (fib distances, Bollinger bands, ADX, "
-        "change since low/high, 1h price slope) for RickisMetrics between "
-        "March 29 and April 14, 2025 inclusive."
+        "Fast recompute of core OHLCV-derived metrics (fib distances, change since low/high, price slope) "
+        "for RickisMetrics between March 29 and April 14, 2025 inclusive."
     )
 
-    BATCH_SIZE = 500  # Safer batch size
+    BATCH_SIZE = 500
 
     def handle(self, *args, **options):
-        start = make_aware(datetime(2025, 3, 30))
+        start = make_aware(datetime(2025, 4, 4))
         end = make_aware(datetime(2025, 5, 2)) + timedelta(days=1)
 
         qs = (
@@ -48,8 +45,7 @@ class Command(BaseCommand):
         fields = [
             'fib_distance_0_236', 'fib_distance_0_382', 'fib_distance_0_5',
             'fib_distance_0_618', 'fib_distance_0_786',
-            'bollinger_upper', 'bollinger_middle', 'bollinger_lower',
-            'adx', 'change_since_low', 'change_since_high',
+            'change_since_low', 'change_since_high',
             'price_slope_1h'
         ]
 
@@ -62,29 +58,12 @@ class Command(BaseCommand):
             rm.fib_distance_0_618 = fibs.get('fib_distance_0_618')
             rm.fib_distance_0_786 = fibs.get('fib_distance_0_786')
 
-            # Bollinger Bands
-            bb_result = calculate_bollinger_bands(rm.coin, rm.timestamp)
-            if bb_result:
-                upper, middle, lower = bb_result
-                rm.bollinger_upper = upper
-                rm.bollinger_middle = middle
-                rm.bollinger_lower = lower
-            else:
-                rm.bollinger_upper = None
-                rm.bollinger_middle = None
-                rm.bollinger_lower = None
-
-            # ADX
-            adx = calculate_adx(rm.coin, rm.timestamp)
-            rm.adx = adx if adx is not None else None
-
             # Change Since Low/High
-            rm.change_since_low = calculate_change_since_low(rm.price, rm.low_24h)
+            rm.change_since_low  = calculate_change_since_low(rm.price, rm.low_24h)
             rm.change_since_high = calculate_change_since_high(rm.price, rm.high_24h)
 
             # Price Slope 1h
-            slope = calculate_price_slope_1h(rm.coin, rm.timestamp)
-            rm.price_slope_1h = slope if slope is not None else None
+            rm.price_slope_1h = calculate_price_slope_1h(rm.coin, rm.timestamp)
 
             # Add to batch
             to_update.append(rm)
@@ -95,7 +74,6 @@ class Command(BaseCommand):
                 self.stdout.write(f"✅ {processed}/{total} records processed...")
                 to_update.clear()
 
-        # Final batch
         if to_update:
             RickisMetrics.objects.bulk_update(to_update, fields)
             self.stdout.write(f"✅ {processed}/{total} records processed (final batch).")

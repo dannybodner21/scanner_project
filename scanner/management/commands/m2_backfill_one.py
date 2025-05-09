@@ -6,57 +6,62 @@ import requests
 import time
 
 CMC_API_KEY = "7dd5dd98-35d0-475d-9338-407631033cd9"
-HEADERS = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
 
+
+HEADERS = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
 BASE_URL = "https://pro-api.coinmarketcap.com/v2"
 
 class Command(BaseCommand):
-    help = "Backfill price/volume/change data into RickisMetrics from CoinMarketCap quotes endpoint"
+
+    help = "Backfill price/volume/price change data"
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 4, 23))
+        start = make_aware(datetime(2025, 3, 22))
         end = make_aware(datetime(2025, 5, 3))
 
-        symbols = RickisMetrics.objects.filter(
+        symbols = Metrics.objects.filter(
             timestamp__gte=start, timestamp__lt=end
         ).values_list("coin__symbol", flat=True).distinct()
 
         for symbol in symbols:
-            print(f"📊 Processing {symbol}...")
+
             current = start
 
             while current < end:
                 next_day = current + timedelta(days=1)
 
-                # Fetch Historical Quotes
+                # get historical quotes from Coinmarketcap
                 try:
                     quotes = self.get_quotes(symbol, current)
+
                 except Exception as e:
-                    print(f"❌ Quotes error for {symbol} on {current.date()}: {e}")
+                    print(f"error for {symbol} on {current.date()}: {e}")
                     current = next_day
                     continue
 
-                # Map timestamp to RickisMetrics and update
-                for rm in RickisMetrics.objects.filter(
+                # loop through Metrics
+                for metric in Metrics.objects.filter(
                     coin__symbol=symbol,
                     timestamp__gte=current,
                     timestamp__lt=next_day,
                 ):
-                    ts = int(rm.timestamp.timestamp())
+                    ts = int(metric.timestamp.timestamp())
 
+                    # fill in Metric
                     if str(ts) in quotes:
                         q = quotes[str(ts)]
-                        rm.price = q.get("price")
-                        rm.volume = q.get("volume_24h")
-                        rm.change_1h = q.get("percent_change_1h")
-                        rm.change_24h = q.get("percent_change_24h")
-                        rm.save()
+                        metric.price = q.get("price")
+                        metric.volume = q.get("volume_24h")
+                        metric.change_1h = q.get("percent_change_1h")
+                        metric.change_24h = q.get("percent_change_24h")
+                        metric.save()
 
-                print(f"✅ {symbol} on {current.date()} done.")
                 current = next_day
-                time.sleep(1.2)  # Respect API rate limits
+                time.sleep(1.2)
 
+    # function to fetch historical quotes from Coinmarketcap
     def get_quotes(self, symbol, date):
+
         url = f"{BASE_URL}/cryptocurrency/quotes/historical"
         params = {
             "symbol": symbol,
@@ -64,9 +69,12 @@ class Command(BaseCommand):
             "time_start": date.strftime("%Y-%m-%d"),
             "time_end": (date + timedelta(days=1)).strftime("%Y-%m-%d"),
         }
-        res = requests.get(url, headers=HEADERS, params=params)
-        res.raise_for_status()
-        data = res.json()["data"]["quotes"]
+
+        response = requests.get(url, headers=HEADERS, params=params)
+        response.raise_for_status()
+        data = response.json()["data"]["quotes"]
+
+        # return the relevant data
         return {
             int(datetime.fromisoformat(item["timestamp"]).timestamp()): {
                 "price": item["quote"]["USD"]["price"],

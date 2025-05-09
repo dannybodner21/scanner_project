@@ -5,7 +5,8 @@ from scanner.models import Coin, ShortIntervalData, RickisMetrics
 from decimal import Decimal
 
 class Command(BaseCommand):
-    help = 'Label RickisMetrics with long/short results based on ShortIntervalData for BTC.'
+
+    help = 'Label Metrics with long/short results based on ShortIntervalData for BTC.'
 
     def handle(self, *args, **kwargs):
         start_date = make_aware(datetime(2025, 3, 22))

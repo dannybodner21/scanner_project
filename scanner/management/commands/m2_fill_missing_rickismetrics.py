@@ -4,10 +4,13 @@ from django.utils.timezone import make_aware
 from datetime import datetime, timedelta
 
 class Command(BaseCommand):
-    help = "Ensure RickisMetrics exists for tracked coins at every 5-minute interval between Mar 22 and May 2"
+
+    help = "Ensure Metrics exist for each coin on a 5-minute interval between Mar 22 and May 2"
 
     def handle(self, *args, **kwargs):
-        rickisSymbols = [
+
+        # tracked coins
+        symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
             "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
             "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
@@ -18,13 +21,16 @@ class Command(BaseCommand):
             "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
         ]
 
+        # define the time interval
         start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 5, 3))  # exclusive upper bound
+        end = make_aware(datetime(2025, 5, 3))
 
+        # make sure all the timestamps are rounded to a five min interval
         def round_to_5min(dt):
             return dt.replace(second=0, microsecond=0, minute=(dt.minute // 5) * 5)
 
-        coins = Coin.objects.filter(symbol__in=rickisSymbols)
+        # get the coin objects
+        coins = Coin.objects.filter(symbol__in=symbols)
         coin_map = {c.symbol: c for c in coins}
 
         total_created = 0
@@ -32,16 +38,19 @@ class Command(BaseCommand):
 
         print("starting")
 
+        # loop through on a five min interval
         while current_time < end:
             rounded_time = round_to_5min(current_time)
-            for symbol in rickisSymbols:
+
+            for symbol in symbols:
                 coin = coin_map.get(symbol)
                 if not coin:
                     continue
 
-                exists = RickisMetrics.objects.filter(coin=coin, timestamp=rounded_time).exists()
+                # if there isn't a Metric create one
+                exists = Metrics.objects.filter(coin=coin, timestamp=rounded_time).exists()
                 if not exists:
-                    RickisMetrics.objects.create(
+                    Metrics.objects.create(
                         coin=coin,
                         timestamp=rounded_time,
                         price=0,
@@ -58,4 +67,4 @@ class Command(BaseCommand):
 
             print("on to the next loop")
 
-        print(f"✅ Created {total_created} missing RickisMetrics entries.")
+        print(f"created {total_created} Metric entries")

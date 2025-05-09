@@ -173,64 +173,54 @@ class RickisMetrics(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
     timestamp = models.DateTimeField()
     price = models.DecimalField(max_digits=20, decimal_places=10)
-
-    # High of Day Momentum
     high_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     low_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     open = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     close = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-
-    # Top Gainers
     change_5m = models.FloatField(null=True)
     change_1h = models.FloatField(null=True)
     change_24h = models.FloatField(null=True)
-
-    # Volume Spike
     volume = models.DecimalField(max_digits=30, decimal_places=2)
     avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True)
-
-    # Reversal
     rsi = models.FloatField(null=True)
     macd = models.FloatField(null=True)
     macd_signal = models.FloatField(null=True)
     stochastic_k = models.FloatField(null=True)
     stochastic_d = models.FloatField(null=True)
-
-    # Support/Resistance
     support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-
-    # Other
-    price_slope_1h = models.FloatField(null=True)
     relative_volume = models.FloatField(null=True)
     sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    ema_12 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    ema_26 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     stddev_1h = models.FloatField(null=True)
     atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-
-    # fear / greed index score
-    market_sentiment_score = models.IntegerField(null=True)
-    market_sentiment_label = models.CharField(max_length=32, null=True)
-
-    change_since_high = models.FloatField(null=True)  # price vs high_24h
-    change_since_low = models.FloatField(null=True)   # price vs low_24h
-    volume_mc_ratio = models.FloatField(null=True)
-
     obv = models.FloatField(null=True)
-    adx = models.FloatField(null=True)
-    bollinger_upper = models.FloatField(null=True)
-    bollinger_middle = models.FloatField(null=True)
-    bollinger_lower = models.FloatField(null=True)
+    long_result = models.BooleanField(null=True)
+    short_result = models.BooleanField(null=True)
+
+    change_since_high = models.FloatField(null=True)
+    change_since_low = models.FloatField(null=True)
     fib_distance_0_236 = models.FloatField(null=True)
     fib_distance_0_382 = models.FloatField(null=True)
     fib_distance_0_5   = models.FloatField(null=True)
     fib_distance_0_618 = models.FloatField(null=True)
     fib_distance_0_786 = models.FloatField(null=True)
+    price_slope_1h = models.FloatField(null=True)
 
-    long_result = models.BooleanField(null=True)  # True = win, False = loss
-    short_result = models.BooleanField(null=True)  # True = win, False = loss
+    adx = models.FloatField(null=True)
+    bollinger_upper = models.FloatField(null=True)
+    bollinger_middle = models.FloatField(null=True)
+    bollinger_lower = models.FloatField(null=True)
+
+
+
+    market_sentiment_score = models.IntegerField(null=True)
+    market_sentiment_label = models.CharField(max_length=32, null=True)
+
+
+    ema_12 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    ema_26 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    volume_mc_ratio = models.FloatField(null=True)
 
     class Meta:
 
@@ -257,8 +247,8 @@ class ModelTrade(models.Model):
     model_confidence = models.FloatField()
     take_profit_percent = models.FloatField()
     stop_loss_percent = models.FloatField()
-    duration_minutes = models.IntegerField(null=True, blank=True)  # optional: calculated later
-    result = models.BooleanField(null=True, blank=True)  # True = win, False = loss
+    duration_minutes = models.IntegerField(null=True, blank=True)
+    result = models.BooleanField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.coin.symbol} | {self.trade_type.upper()} | {self.entry_timestamp.strftime('%Y-%m-%d %H:%M')}"

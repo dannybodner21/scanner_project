@@ -8,16 +8,14 @@ import time
 from decimal import Decimal
 
 CMC_API_KEY = "7dd5dd98-35d0-475d-9338-407631033cd9"
-CMC_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
 
-HEADERS = {
-    "X-CMC_PRO_API_KEY": CMC_API_KEY
-}
+CMC_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
+HEADERS = { "X-CMC_PRO_API_KEY": CMC_API_KEY }
 
 MAX_RETRIES = 5
 
-
 class Command(BaseCommand):
+    
     help = "Backfill OHLCV (daily) data into RickisMetrics"
 
     def handle(self, *args, **kwargs):
