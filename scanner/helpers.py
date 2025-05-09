@@ -303,7 +303,7 @@ def calculate_atr_1h(coin, timestamp):
 
     try:
         # get an hour of metrics
-        candles = Metrics.objects.filter(
+        candles = RickisMetrics.objects.filter(
             coin=coin,
             timestamp__lte=timestamp
         ).order_by('-timestamp')[:12]
@@ -352,8 +352,7 @@ def calculate_atr_1h(coin, timestamp):
 def calculate_price_change_five_min(coin, timestamp):
 
     try:
-
-        # current price from RickisMetrics
+        # current price from Metrics
         current = RickisMetrics.objects.filter(
             coin=coin,
             timestamp=timestamp
@@ -364,11 +363,10 @@ def calculate_price_change_five_min(coin, timestamp):
 
         current = float(current)
 
-        # look back 5 min ±1 min window to account for slight gaps
+        # look back 5 min (4-6 min)
         target_time = timestamp - timedelta(minutes=5)
         window_start = target_time - timedelta(minutes=1)
         window_end = target_time + timedelta(minutes=1)
-
         previous = (
             RickisMetrics.objects.filter(
                 coin=coin,
@@ -384,7 +382,6 @@ def calculate_price_change_five_min(coin, timestamp):
             return None
 
         previous = float(previous)
-
         return ((current - previous) / previous) * 100
 
     except Exception as e:
@@ -419,6 +416,7 @@ def calculate_change_since_high(price, high_24h):
 def calculate_change_since_low(price, low_24h):
 
     try:
+
         if price is None or low_24h is None:
             return None
 
@@ -433,6 +431,39 @@ def calculate_change_since_low(price, low_24h):
         pass
 
     return None
+
+
+# OBV -> On Balance Volume
+# A momentum indicator that is used to detect trend strength or reversals
+# Shows if volume is flowing in or out of an asset
+# current price > previous = previous obv + volume
+# current price < previous = previous obv - volume
+def calculate_obv(coin, timestamp):
+    try:
+        # get current and previous Metrics
+        current = RickisMetrics.objects.filter(coin=coin, timestamp=timestamp).first()
+        prev_time = timestamp - timedelta(minutes=5)
+        previous = RickisMetrics.objects.filter(coin=coin, timestamp=prev_time).first()
+
+        if not current or not previous:
+            return None
+
+        current_price = float(current.price)
+        previous_price = float(previous.price)
+        current_volume = float(current.volume)
+
+        previous_obv = previous.obv or 0.0
+
+        if current_price > previous_price:
+            return previous_obv + current_volume
+        elif current_price < previous_price:
+            return previous_obv - current_volume
+        else:
+            return previous_obv
+
+    except Exception as e:
+        print(f"error in calculate_obv: {e}")
+        return None
 
 
 # GOING TO DELETE THIS FUNCTION - NOT WORKING RIGHT
@@ -457,35 +488,7 @@ def fetch_fear_and_greed_index():
         return None, None
 
 
-# OBV -> On Balance Volume
-# A momentum indicator that is used to detect trend strength or reversals
-# Shows if volume is flowing in or out of an asset
-def calculate_obv(coin, timestamp):
-    try:
-        # get current and previous RickisMetrics rows
-        current = RickisMetrics.objects.filter(coin=coin, timestamp=timestamp).first()
-        prev_time = timestamp - timedelta(minutes=5)
-        previous = RickisMetrics.objects.filter(coin=coin, timestamp=prev_time).first()
 
-        if not current or not previous:
-            return None
-
-        current_price = float(current.price)
-        previous_price = float(previous.price)
-        current_volume = float(current.volume)
-
-        previous_obv = previous.obv or 0.0
-
-        if current_price > previous_price:
-            return previous_obv + current_volume
-        elif current_price < previous_price:
-            return previous_obv - current_volume
-        else:
-            return previous_obv
-
-    except Exception as e:
-        print(f"error in calculate_obv: {e}")
-        return None
 
 
 
@@ -563,6 +566,12 @@ def calculate_bollinger_bands(coin, timestamp):
         bb.bollinger_lband().iloc[-1],
     )
 
+
+
+
+
+
+
 # Fibonacci retracement levels based on recent highs / lows
 # technical indicators used to determine support and resistance levels
 def calculate_fib_distances(high, low, current_price):
@@ -597,3 +606,8 @@ def calculate_fib_distances(high, low, current_price):
     except Exception as e:
         print(f"error in calculate_fib_distances: {e}")
         return {}
+
+
+
+
+        

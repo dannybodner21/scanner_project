@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
 
 class Command(BaseCommand):
-    help = "Label RickisMetrics entries with long_result and short_result based on TP/SL rules"
+    help = "Label Metrics with long_result and short_result."
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 22))
@@ -16,25 +16,28 @@ class Command(BaseCommand):
 
         batch = []
 
-        for i, entry in enumerate(entries, 1):
+        # get entry price / SL = 2% / TP = 6%
+        for entry in enumerate(entries, 1):
             entry_price = float(entry.price)
-            tp_long = entry_price * 1.10
+            tp_long = entry_price * 1.06
             sl_long = entry_price * 0.98
-            tp_short = entry_price * 0.90
+            tp_short = entry_price * 0.94
             sl_short = entry_price * 1.02
 
+            # look at future prices for 24 hours
             future_metrics = RickisMetrics.objects.filter(
                 coin=entry.coin,
                 timestamp__gt=entry.timestamp,
-                timestamp__lte=entry.timestamp + timedelta(hours=4)
+                timestamp__lte=entry.timestamp + timedelta(hours=24)
             ).order_by("timestamp")
 
             long_result = None
             short_result = None
-
-            for fm in future_metrics:
+            # loop through future metrics and check prices
+            # against the TP and SL for long and short trades
+            for metric in future_metrics:
                 try:
-                    price = float(fm.price)
+                    price = float(metric.price)
 
                     if long_result is None:
                         if price >= tp_long:
@@ -54,6 +57,13 @@ class Command(BaseCommand):
                 except:
                     continue
 
+            # if trade is open after 24 hours, mark it as a losing trade
+            if long_result is None:
+                long_result = False
+            if short_result is None:
+                short_result = False
+
+            # save results
             entry.long_result = long_result
             entry.short_result = short_result
             batch.append(entry)
