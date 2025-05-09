@@ -43,14 +43,24 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR("❌ No labeled short-result metrics found in the given date range."))
             return
 
-        # 4️⃣ Clean numeric columns only
+        # 4️⃣ Cast high-precision decimals to float so Parquet writes them as DOUBLE
+        decimal_cols = [
+            "price", "high_24h", "low_24h", "open", "close",
+            "avg_volume_1h", "support_level", "resistance_level",
+            "atr_1h"
+        ]
+        for col in decimal_cols:
+            if col in df.columns:
+                df[col] = df[col].astype(float)
+
+        # 5️⃣ Clean numeric columns only (excluding coin__symbol and timestamp)
         numeric_cols = [c for c in df.columns if c not in ('coin__symbol', 'timestamp')]
         df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
 
-        # 5️⃣ Drop any rows with NaNs in numeric features or the label
+        # 6️⃣ Drop any rows with NaNs in numeric features or the label
         df.dropna(subset=numeric_cols + ['short_result'], inplace=True)
 
-        output_path = '/workspace/scanner/metrics_export_short_cleaned.parquet'
+        output_path = '/workspace/scanner/short.parquet'
         df.to_parquet(output_path, index=False)
 
         self.stdout.write(self.style.SUCCESS(f"✅ Exported {len(df)} rows to {output_path}"))

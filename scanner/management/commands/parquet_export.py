@@ -23,7 +23,7 @@ class Command(BaseCommand):
             .select_related('coin')
         )
 
-        # Build values list, include timestamp and coin symbol
+        # Fields to retrieve, include coin symbol and timestamp
         fields = [
             'coin__symbol', 'timestamp', 'price', 'volume',
             'change_5m', 'change_1h', 'change_24h',
@@ -43,9 +43,26 @@ class Command(BaseCommand):
         df = pd.DataFrame.from_records(metrics)
 
         if df.empty:
-            self.stdout.write("⚠️ No labeled long-result metrics found in the given date range.")
+            self.stdout.write(self.style.WARNING("⚠️ No labeled long-result metrics found in the given date range."))
             return
 
-        output_path = '/workspace/scanner/long_metrics_export.parquet'
+        # Cast high-precision decimals to floats (DOUBLE) to avoid BigQuery NUMERIC limits
+        decimal_cols = [
+            'price', 'high_24h', 'low_24h', 'open', 'close',
+            'avg_volume_1h', 'support_level', 'resistance_level',
+            'atr_1h'
+        ]
+        for col in decimal_cols:
+            if col in df.columns:
+                df[col] = df[col].astype(float)
+
+        # Clean numeric columns, excluding identifiers
+        numeric_cols = [c for c in df.columns if c not in ('coin__symbol', 'timestamp')]
+        df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
+
+        # Drop rows with any NaNs in features or label
+        df.dropna(subset=numeric_cols + ['long_result'], inplace=True)
+
+        output_path = '/workspace/scanner/long.parquet'
         df.to_parquet(output_path, index=False)
-        self.stdout.write(f"✅ Exported {len(df)} rows to {output_path}")
+        self.stdout.write(self.style.SUCCESS(f"✅ Exported {len(df)} rows to {output_path}"))
