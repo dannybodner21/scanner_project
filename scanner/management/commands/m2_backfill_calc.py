@@ -24,7 +24,7 @@ class Command(BaseCommand):
 
     help = "Backfill all missing derived metrics in RickisMetrics"
 
-    # nohup python manage.py recompute_metrics_two > backfill.log 2>&1 &
+    # nohup python manage.py recompute_metrics > backfill.log 2>&1 &
     # tail -f backfill.log
 
     def handle(self, *args, **kwargs):

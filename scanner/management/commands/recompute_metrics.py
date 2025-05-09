@@ -30,8 +30,8 @@ class Command(BaseCommand):
     BATCH_SIZE = 500  # Safer batch size
 
     def handle(self, *args, **options):
-        start = make_aware(datetime(2025, 3, 29))
-        end = make_aware(datetime(2025, 4, 1)) + timedelta(days=1)
+        start = make_aware(datetime(2025, 3, 30))
+        end = make_aware(datetime(2025, 5, 2)) + timedelta(days=1)
 
         qs = (
             RickisMetrics.objects
