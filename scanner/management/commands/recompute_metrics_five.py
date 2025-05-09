@@ -21,8 +21,8 @@ class Command(BaseCommand):
     BATCH_SIZE = 250
 
     def handle(self, *args, **options):
-        start = make_aware(datetime(2025, 4, 7))
-        end = make_aware(datetime(2025, 4, 10))
+        start = make_aware(datetime(2025, 4, 16))
+        end = make_aware(datetime(2025, 4, 19))
 
         qs = (
             RickisMetrics.objects

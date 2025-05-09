@@ -46,12 +46,13 @@ def calculate_rsi(coin, timestamp, period=14):
                 gains.append(delta)
             else:
                 losses.append(abs(delta))
+        # numpy for mean
         avg_gain = np.mean(gains) if gains else 0
         avg_loss = np.mean(losses) if losses else 0
         if avg_loss == 0:
             return 100
-        rs = avg_gain / avg_loss
-        return 100 - (100 / (1 + rs))
+        temp = avg_gain / avg_loss
+        return 100 - (100 / (1 + temp))
 
     except Exception as e:
         print(f"error in calculate_rsi: {e}")
@@ -61,16 +62,15 @@ def calculate_rsi(coin, timestamp, period=14):
 def calculate_ema_from_prices(prices, window):
 
     try:
-
         if prices is None or len(prices) < window:
             return None
 
-        prices = [float(p) for p in prices]
+        prices = [float(price) for price in prices]
         k = 2 / (window + 1)
         ema = prices[0]
 
-        for price in prices[1:]:
-            ema = (price * k) + (ema * (1 - k))
+        for priceTwo in prices[1:]:
+            ema = (priceTwo * k) + (ema * (1 - k))
         return ema
 
     except Exception as e:
@@ -83,24 +83,22 @@ def calculate_ema_from_prices(prices, window):
 def calculate_macd(coin, timestamp):
 
     try:
-
         prices = get_recent_prices(coin, timestamp, window=50)
         if len(prices) < 26:
             return None, None
 
         prices = np.array(prices)
 
-        # Calculate EMA 12 and EMA 26
+        # calculate EMA 12 and EMA 26
         ema12 = calculate_ema_from_prices(prices, 12)
         ema26 = calculate_ema_from_prices(prices, 26)
 
         if ema12 is None or ema26 is None:
             return None, None
 
-        # MACD Line = EMA12 - EMA26
         macd_line = ema12 - ema26
 
-        # Now create a short MACD history for Signal Line
+        # calculate signal line
         macd_history = []
         for i in range(len(prices) - 26):
             ema12_hist = calculate_ema_from_prices(prices[:26+i], 12)
@@ -111,9 +109,7 @@ def calculate_macd(coin, timestamp):
         if len(macd_history) < 9:
             return macd_line, macd_line
 
-        # Signal Line = EMA(9) of MACD history
         signal_line = calculate_ema_from_prices(np.array(macd_history), 9)
-
         return macd_line, signal_line
 
     except Exception as e:
@@ -122,6 +118,7 @@ def calculate_macd(coin, timestamp):
 # Stochastic K and Stochastic D
 # K shows current position of the price relative to recent high/low range
 # D shows the moving average of K and is the signal line
+# D = SMA(3) of K values
 # K = (C - Ln) / (Hn - Ln) x 100
 # C = current closing price
 # Ln = lowest low over last n periods (I am using 14)
@@ -129,7 +126,6 @@ def calculate_macd(coin, timestamp):
 def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
 
     try:
-
         # get recent prices -> can't be lower than 16 time periods
         prices = get_recent_prices(coin, timestamp, period + smoothing - 1)
         if len(prices) < period + smoothing - 1:
@@ -148,7 +144,7 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
             k_values.append(k)
 
         k = k_values[-1]
-        d = np.mean(k_values)  # D = SMA(3) of K values
+        d = np.mean(k_values)
 
         return k, d
 
@@ -159,7 +155,6 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
 def calculate_support_resistance(coin, timestamp, period=20):
 
     try:
-
         # get recent price action
         prices = get_recent_prices(coin, timestamp, period)
 
@@ -301,7 +296,7 @@ def calculate_price_slope_1h(coin, timestamp):
 # Used to measure how much an asset moves on average over a time period
 # ATR_1h = mean of price differences over 1 hour
 
-# this wont work, delete it 
+# this wont work, delete it
 def calculate_atr_1h(coin, timestamp):
 
     try:

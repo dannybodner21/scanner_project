@@ -207,17 +207,13 @@ class RickisMetrics(models.Model):
     fib_distance_0_786 = models.FloatField(null=True)
     price_slope_1h = models.FloatField(null=True)
 
+    market_sentiment_score = models.IntegerField(null=True)
+    market_sentiment_label = models.CharField(max_length=32, null=True)
+
     adx = models.FloatField(null=True)
     bollinger_upper = models.FloatField(null=True)
     bollinger_middle = models.FloatField(null=True)
     bollinger_lower = models.FloatField(null=True)
-
-
-
-    market_sentiment_score = models.IntegerField(null=True)
-    market_sentiment_label = models.CharField(max_length=32, null=True)
-
-
     ema_12 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     ema_26 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     volume_mc_ratio = models.FloatField(null=True)
