@@ -195,9 +195,6 @@ class RickisMetrics(models.Model):
     stddev_1h = models.FloatField(null=True)
     atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     obv = models.FloatField(null=True)
-    long_result = models.BooleanField(null=True)
-    short_result = models.BooleanField(null=True)
-
     change_since_high = models.FloatField(null=True)
     change_since_low = models.FloatField(null=True)
     fib_distance_0_236 = models.FloatField(null=True)
@@ -205,6 +202,10 @@ class RickisMetrics(models.Model):
     fib_distance_0_5   = models.FloatField(null=True)
     fib_distance_0_618 = models.FloatField(null=True)
     fib_distance_0_786 = models.FloatField(null=True)
+
+    long_result = models.BooleanField(null=True)
+    short_result = models.BooleanField(null=True)
+
     price_slope_1h = models.FloatField(null=True)
 
     market_sentiment_score = models.IntegerField(null=True)
