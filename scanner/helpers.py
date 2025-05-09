@@ -606,8 +606,3 @@ def calculate_fib_distances(high, low, current_price):
     except Exception as e:
         print(f"error in calculate_fib_distances: {e}")
         return {}
-
-
-
-
-        

@@ -1,36 +1,56 @@
 from django.core.management.base import BaseCommand
+from django.utils.timezone import make_aware
+from datetime import datetime, timedelta
 from scanner.models import RickisMetrics
 import pandas as pd
 
 class Command(BaseCommand):
-    help = 'Export RickisMetrics to Parquet with full real features + label, excluding incomplete rows'
+    help = 'Export RickisMetrics to Parquet for short model training (full features + label)'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write("🚀 Exporting RickisMetrics...")
+        self.stdout.write("🚀 Exporting RickisMetrics for short model...")
 
+        # 1️⃣ Date window
+        start = make_aware(datetime(2025, 3, 22))
+        end   = make_aware(datetime(2025, 4, 29)) + timedelta(days=1)
+
+        # 2️⃣ Fields including coin symbol and timestamp
         fields = [
-            'price', 'volume', 'change_1h', 'change_24h',
-            'high_24h', 'low_24h', 'avg_volume_1h', 'relative_volume',
-            'sma_5', 'sma_20', 'ema_12', 'ema_26', 'macd', 'macd_signal',
-            'rsi', 'stochastic_k', 'stochastic_d', 'support_level',
-            'resistance_level', 'stddev_1h', 'price_slope_1h', 'atr_1h',
+            'coin__symbol', 'timestamp', 'price', 'volume',
+            'change_5m', 'change_1h', 'change_24h',
+            'high_24h', 'low_24h', 'open', 'close',
+            'avg_volume_1h', 'relative_volume',
+            'sma_5', 'sma_20', 'macd', 'macd_signal',
+            'rsi', 'stochastic_k', 'stochastic_d',
+            'support_level', 'resistance_level',
+            'stddev_1h', 'atr_1h', 'obv',
+            'change_since_high', 'change_since_low',
+            'fib_distance_0_236', 'fib_distance_0_382',
+            'fib_distance_0_5', 'fib_distance_0_618', 'fib_distance_0_786',
             'short_result'
         ]
 
-        qs = RickisMetrics.objects.filter(short_result__isnull=False).values(*fields)
-        df = pd.DataFrame(list(qs))
+        # 3️⃣ Filter to only completed labels in range
+        qs = (
+            RickisMetrics.objects
+            .filter(timestamp__gte=start, timestamp__lt=end, short_result__isnull=False)
+            .select_related('coin')
+            .values(*fields)
+        )
 
+        df = pd.DataFrame.from_records(qs)
         if df.empty:
-            self.stdout.write(self.style.ERROR("❌ No data found."))
+            self.stdout.write(self.style.ERROR("❌ No labeled short-result metrics found in the given date range."))
             return
 
-        # Clean the data
-        df = df.apply(pd.to_numeric, errors='coerce')
-        df.dropna(inplace=True)
+        # 4️⃣ Clean numeric columns only
+        numeric_cols = [c for c in df.columns if c not in ('coin__symbol', 'timestamp')]
+        df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
 
-        # Drop problematic double-underscore columns (e.g. __index_level_0__)
-        df.columns = [col for col in df.columns if not col.startswith('__')]
+        # 5️⃣ Drop any rows with NaNs in numeric features or the label
+        df.dropna(subset=numeric_cols + ['short_result'], inplace=True)
 
-        df.to_parquet('/workspace/scanner/metrics_export_short_cleaned.parquet', index=False)
+        output_path = '/workspace/scanner/metrics_export_short_cleaned.parquet'
+        df.to_parquet(output_path, index=False)
 
-        self.stdout.write(self.style.SUCCESS(f"✅ Done. {len(df)} clean rows exported."))
+        self.stdout.write(self.style.SUCCESS(f"✅ Exported {len(df)} rows to {output_path}"))

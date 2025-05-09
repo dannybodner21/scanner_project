@@ -20,7 +20,7 @@ from scanner.helpers import (
     calculate_bollinger_bands,
 )
 
-    # nohup python manage.py recompute_metrics > backfill.log 2>&1 &
+    # nohup python manage.py m2_trade_outcomes > backfill.log 2>&1 &
     # tail -f backfill.log
 
 

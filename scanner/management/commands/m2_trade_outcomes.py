@@ -7,15 +7,13 @@ class Command(BaseCommand):
     help = "Label Metrics with long_result and short_result."
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 4, 24))
+        start = make_aware(datetime(2025, 3, 22))
         end = make_aware(datetime(2025, 5, 3))
 
-        entries = RickisMetrics.objects.filter(
+        entries = Metrics.objects.filter(
             timestamp__gte=start, timestamp__lt=end
         ).select_related("coin").order_by("timestamp")
         total = entries.count()
-        print(f"📊 Checking {total} RickisMetrics entries...")
-
         batch = []
 
         # get entry price / SL = 2% / TP = 6%
@@ -27,7 +25,7 @@ class Command(BaseCommand):
             sl_short = entry_price * 1.02
 
             # look at future prices for 24 hours
-            future_metrics = RickisMetrics.objects.filter(
+            future_metrics = Metrics.objects.filter(
                 coin=entry.coin,
                 timestamp__gt=entry.timestamp,
                 timestamp__lte=entry.timestamp + timedelta(hours=24)
@@ -71,12 +69,10 @@ class Command(BaseCommand):
             batch.append(entry)
 
             if len(batch) >= 100:
-                RickisMetrics.objects.bulk_update(batch, ["long_result", "short_result"])
-                print(f"✅ {index}/{total} updated")
+                Metrics.objects.bulk_update(batch, ["long_result", "short_result"])
                 batch.clear()
 
         if batch:
-            RickisMetrics.objects.bulk_update(batch, ["long_result", "short_result"])
-            print("✅ Final batch saved.")
+            Metrics.objects.bulk_update(batch, ["long_result", "short_result"])
 
-        print("🏁 Trade result labeling complete.")
+        print("done.")
