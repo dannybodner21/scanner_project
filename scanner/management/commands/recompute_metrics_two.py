@@ -1,4 +1,4 @@
-# File: recompute_metrics_mar29_apr14.py
+# File: recompute_metrics_apr14_may02.py
 import warnings
 warnings.filterwarnings(
     "ignore",
@@ -23,14 +23,14 @@ class Command(BaseCommand):
     help = (
         "Recompute OHLCV-derived metrics (fib distances, Bollinger bands, ADX, "
         "change since low/high, 1h price slope) for RickisMetrics between "
-        "March 29 and April 14, 2025 inclusive."
+        "April 14 and May 2, 2025 inclusive."
     )
 
     BATCH_SIZE = 2000
 
     def handle(self, *args, **options):
-        start = make_aware(datetime(2025, 3, 29))
-        end = make_aware(datetime(2025, 4, 14)) + timedelta(days=1)
+        start = make_aware(datetime(2025, 4, 14))
+        end = make_aware(datetime(2025, 5, 2)) + timedelta(days=1)
 
         qs = (
             RickisMetrics.objects
@@ -40,7 +40,7 @@ class Command(BaseCommand):
         )
 
         total = qs.count()
-        self.stdout.write(f"🔄 Recomputing {total} records (Mar 29–Apr 14) in batches of {self.BATCH_SIZE}…")
+        self.stdout.write(f"🔄 Recomputing {total} records (Apr 14–May 2) in batches of {self.BATCH_SIZE}…")
 
         to_update = []
         fields = [
@@ -82,4 +82,4 @@ class Command(BaseCommand):
         if to_update:
             RickisMetrics.objects.bulk_update(to_update, fields)
 
-        self.stdout.write("🎉 Completed Mar 29–Apr 14.")
+        self.stdout.write("🎉 Completed Apr 14–May 2.")
