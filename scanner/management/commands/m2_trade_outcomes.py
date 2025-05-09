@@ -72,7 +72,7 @@ class Command(BaseCommand):
 
             if len(batch) >= 100:
                 RickisMetrics.objects.bulk_update(batch, ["long_result", "short_result"])
-                print(f"✅ {i}/{total} updated")
+                print(f"✅ {index}/{total} updated")
                 batch.clear()
 
         if batch:
