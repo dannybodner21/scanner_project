@@ -1,4 +1,4 @@
-def predict_short_vertex(request):
+def predict_short_vertex_new(request):
     try:
         access_token = get_vertex_access_token()
     except Exception as e:
@@ -6,7 +6,7 @@ def predict_short_vertex(request):
 
     # get recent Metrics
     cutoff = now() - timedelta(minutes=5)
-    metrics = Metrics.objects.filter(timestamp__gte=cutoff)
+    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
 
     instances = []
     symbols = []

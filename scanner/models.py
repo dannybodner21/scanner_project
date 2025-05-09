@@ -202,15 +202,15 @@ class RickisMetrics(models.Model):
     fib_distance_0_5   = models.FloatField(null=True)
     fib_distance_0_618 = models.FloatField(null=True)
     fib_distance_0_786 = models.FloatField(null=True)
-
     long_result = models.BooleanField(null=True)
     short_result = models.BooleanField(null=True)
 
-    price_slope_1h = models.FloatField(null=True)
 
+
+
+    price_slope_1h = models.FloatField(null=True)
     market_sentiment_score = models.IntegerField(null=True)
     market_sentiment_label = models.CharField(max_length=32, null=True)
-
     adx = models.FloatField(null=True)
     bollinger_upper = models.FloatField(null=True)
     bollinger_middle = models.FloatField(null=True)

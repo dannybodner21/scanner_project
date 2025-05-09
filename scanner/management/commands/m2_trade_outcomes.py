@@ -7,8 +7,8 @@ class Command(BaseCommand):
     help = "Label Metrics with long_result and short_result."
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 24))
+        start = make_aware(datetime(2025, 4, 24))
+        end = make_aware(datetime(2025, 5, 3))
 
         entries = RickisMetrics.objects.filter(
             timestamp__gte=start, timestamp__lt=end
