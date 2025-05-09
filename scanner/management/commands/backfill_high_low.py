@@ -8,40 +8,45 @@ from decimal import Decimal
 import time
 
 API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
-CMC_OHLCV_URL = 'https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical'
-HEADERS = {"X-CMC_PRO_API_KEY": API_KEY}
+
+
+url = 'https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical'
+headers = {"X-CMC_PRO_API_KEY": API_KEY}
 
 class Command(BaseCommand):
-    help = 'Backfill high_24h and low_24h for RickisMetrics using daily OHLCV data'
+
+    help = 'Backfill high, low, open, close'
 
     def handle(self, *args, **kwargs):
-        metrics = RickisMetrics.objects.filter(
+
+        # get metrics from given dates
+        metrics = Metrics.objects.filter(
             timestamp__gte=make_aware(datetime(2025, 3, 22)),
-            timestamp__lt=make_aware(datetime(2025, 4, 13)),
+            timestamp__lt=make_aware(datetime(2025, 5, 3)),
         ).order_by("timestamp")
 
-        total = metrics.count()
-        print(f"📊 Processing {total} entries...")
+        # loop through metrics
+        for entry in enumerate(metrics, start=1):
 
-        for idx, entry in enumerate(metrics, start=1):
             date_str = entry.timestamp.date().isoformat()
             symbol = entry.coin.symbol
 
+            # fetch ohlcv data and save
             try:
                 data = self.fetch_ohlcv(symbol, date_str)
-                if not data:
-                    raise ValueError("No OHLCV data returned")
-
                 quote = data["quote"]["USD"]
+                entry.open = Decimal(str(quote["open"]))
                 entry.high_24h = Decimal(str(quote["high"]))
                 entry.low_24h = Decimal(str(quote["low"]))
+                entry.close = Decimal(str(quote["close"]))
                 entry.save()
-                print(f"✅ [{idx}/{total}] {symbol} @ {date_str}")
+
             except Exception as e:
-                print(f"❌ [{idx}/{total}] Error for {symbol} @ {date_str}: {e}")
+                print(f"error: {e}")
 
-            time.sleep(1.1)  # Respect rate limits
+            time.sleep(2)
 
+    # functin to get ohlcv data from Coinmarketcap
     def fetch_ohlcv(self, symbol, date_str):
         params = {
             "symbol": symbol,
@@ -49,7 +54,7 @@ class Command(BaseCommand):
             "time_start": date_str,
             "time_end": date_str,
         }
-        response = requests.get(CMC_OHLCV_URL, headers=HEADERS, params=params)
+        response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         quotes = response.json().get("data", {}).get("quotes")
         return quotes[0] if quotes else None

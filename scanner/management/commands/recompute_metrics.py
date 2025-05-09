@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         start = make_aware(datetime(2025, 4, 4))
-        end = make_aware(datetime(2025, 5, 2)) + timedelta(days=1)
+        end = make_aware(datetime(2025, 4, 9)) + timedelta(days=1)
 
         qs = (
             RickisMetrics.objects
