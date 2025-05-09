@@ -8,16 +8,18 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 18))
+        end = make_aware(datetime(2025, 4, 24))
 
-        entries = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related("coin").order_by("timestamp")
+        entries = RickisMetrics.objects.filter(
+            timestamp__gte=start, timestamp__lt=end
+        ).select_related("coin").order_by("timestamp")
         total = entries.count()
         print(f"📊 Checking {total} RickisMetrics entries...")
 
         batch = []
 
         # get entry price / SL = 2% / TP = 6%
-        for entry in enumerate(entries, 1):
+        for index, entry in enumerate(entries, 1):
             entry_price = float(entry.price)
             tp_long = entry_price * 1.06
             sl_long = entry_price * 0.98
@@ -29,7 +31,7 @@ class Command(BaseCommand):
                 coin=entry.coin,
                 timestamp__gt=entry.timestamp,
                 timestamp__lte=entry.timestamp + timedelta(hours=24)
-            ).order_by("timestamp")
+            ).only("timestamp", "price").order_by("timestamp")
 
             long_result = None
             short_result = None

@@ -4,15 +4,16 @@ def predict_short_vertex(request):
     except Exception as e:
         return JsonResponse({"status": "error", "message": f"Auth failed: {e}"}, status=500)
 
-    # Query latest metrics
+    # get recent Metrics
     cutoff = now() - timedelta(minutes=5)
-    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
+    metrics = Metrics.objects.filter(timestamp__gte=cutoff)
 
     instances = []
     symbols = []
 
     for metric in metrics:
         try:
+            # gather necessary data
             instance = {
                 "price": float(metric.price),
                 "volume": float(metric.volume),
@@ -60,13 +61,13 @@ def predict_short_vertex(request):
         f"https://{SHORT_REGION}-aiplatform.googleapis.com/v1/"
         f"projects/{SHORT_PROJECT_ID}/locations/{SHORT_REGION}/endpoints/{SHORT_ENDPOINT_ID}:predict"
     )
-
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
     }
 
     try:
+        # send to GCP
         response = requests.post(url, headers=headers, json={"instances": instances})
         response.raise_for_status()
         predictions = response.json()

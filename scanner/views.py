@@ -460,7 +460,12 @@ def predict_live_short(request):
 from scanner.models import ModelTrade
 
 def get_open_trades(request):
-    open_trades = ModelTrade.objects.filter(exit_timestamp__isnull=True).select_related("coin").order_by("-entry_timestamp")[:20]
+    open_trades = (
+        ModelTrade.objects
+        .filter(exit_timestamp__isnull=True)
+        .select_related("coin")
+        .order_by("-entry_timestamp")[:10]
+    )
 
     data = []
     for trade in open_trades:
@@ -469,10 +474,34 @@ def get_open_trades(request):
             "trade_type": trade.trade_type,
             "model_confidence": trade.model_confidence,
             "entry_timestamp": trade.entry_timestamp.isoformat(),
-            "entry_price": float(trade.entry_price),
+            "entry_price": float(trade.entry_price or 0),
             "take_profit_percent": trade.take_profit_percent,
             "stop_loss_percent": trade.stop_loss_percent,
             "duration_minutes": trade.duration_minutes,
+        })
+
+    return JsonResponse(data, safe=False)
+
+def get_closed_trades(request):
+    closed_trades = (
+        ModelTrade.objects
+        .filter(exit_timestamp__isnull=False)
+        .select_related("coin")
+        .order_by("-exit_timestamp")[:10]
+    )
+
+    data = []
+    for trade in closed_trades:
+        data.append({
+            "coin": trade.coin.symbol,
+            "trade_type": trade.trade_type,
+            "model_confidence": trade.model_confidence,
+            "entry_timestamp": trade.entry_timestamp.isoformat(),
+            "entry_price": float(trade.entry_price or 0),
+            "exit_timestamp": trade.exit_timestamp.isoformat(),
+            "exit_price": float(trade.exit_price or 0),
+            "duration_minutes": trade.duration_minutes,
+            "result": trade.result,
         })
 
     return JsonResponse(data, safe=False)
