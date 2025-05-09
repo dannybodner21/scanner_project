@@ -466,7 +466,7 @@ def get_open_trades(request):
     for trade in open_trades:
         data.append({
             "coin": trade.coin.symbol,
-            "trade_type": trade.trade_type,  # "long" or "short"
+            "trade_type": trade.trade_type,
             "model_confidence": trade.model_confidence,
             "entry_timestamp": trade.entry_timestamp.isoformat(),
             "entry_price": float(trade.entry_price),

@@ -20,12 +20,15 @@ urlpatterns = [
     path("api/ricki/latest/", views.get_hod_movers, name="get-hod-movers"),
     path("short-intervals/", views.short_interval_summary, name="short-intervals"),
 
+
     path('five-min-update/', views.five_min_update, name='five-min-update'),
     path('predict-live-vertex/', views.predict_live_vertex, name='predict-live-vertex'),
     path("predict-short-vertex/", views.predict_short_vertex, name="predict-short-vertex"),
+    path("api/open-trades/", views.get_open_trades, name="open-trades"),
+    path("api/closed-trades/", views.get_closed_trades, name="closed-trades"),
 
     path("api/metrics-health-daily/", views.daily_metrics_health, name="daily-metrics-health"),
-    path("api/open-trades/", views.get_open_trades, name="open-trades"),
+
 
 
     path("predict-long/", views.predict_live, name="predict-long"),
