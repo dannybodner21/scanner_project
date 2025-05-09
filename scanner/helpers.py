@@ -167,8 +167,8 @@ def calculate_support_resistance(coin, timestamp, period=20):
     except Exception as e:
         print(f"error in calculate_support_resistance: {e}")
 
-# Average volume over 1 hour
-# Average_volme = mean of volumes over 12 time periods
+# average volume over 1 hour
+# average_volme = mean of volumes over 12 time periods
 def calculate_avg_volume_1h(coin, timestamp):
 
     try:
@@ -178,24 +178,26 @@ def calculate_avg_volume_1h(coin, timestamp):
         if not volumes:
             return None
 
-        # calculate the mean
+        # calculate the mean using numpy
         return np.mean(volumes)
 
     except Exception as e:
         print(f"error in calculate_avg_volume_1h: {e}")
 
-# Relative volume = recent volume / average volume
+# relative volume = recent volume / average volume
 def calculate_relative_volume(coin, timestamp):
 
     try:
-
+        # get recent volume
         last_volume = RickisMetrics.objects.filter(
             coin=coin,
             timestamp=timestamp
         ).values_list('volume', flat=True).first()
 
+        # get average volume
         avg_volume = calculate_avg_volume_1h(coin, timestamp)
 
+        # calculate relative volume
         if avg_volume and avg_volume != 0:
             return float(last_volume) / float(avg_volume)
 
@@ -204,16 +206,17 @@ def calculate_relative_volume(coin, timestamp):
     except Exception as e:
         print(f"error in calculate_relative_volume: {e}")
 
-
+# simple moving average -> average of prices over a time window
 def calculate_sma(coin, timestamp, window):
 
     try:
-
+        # get recent prices
         prices = get_recent_prices(coin, timestamp, window)
 
         if not prices:
             return None
 
+        # calculate mean using numpy
         return np.mean(prices)
 
     except Exception as e:
@@ -241,21 +244,6 @@ def calculate_ema(coin, timestamp, window):
 
         print(f"error in calculate_ema: {e}")
         return None
-
-
-def calculate_stddev_1h(coin, timestamp):
-
-    try:
-
-        prices = get_recent_prices(coin, timestamp, 12)
-
-        if not prices:
-            return None
-
-        return np.std(prices)
-
-    except Exception as e:
-        print(f"error in calculate_stddev_1h: {e}")
 
 # NEED TO RECALCULATE ALL OF THESE WITH THIS NEW FUNCTION
 def calculate_price_slope_1h(coin, timestamp):
@@ -291,16 +279,31 @@ def calculate_price_slope_1h(coin, timestamp):
         return None
 
 
-# NEED TO RECALCULATE ALL OF THESE WITH THIS NEW FUNCTION
+# standard deviation -> how much price fluctuates from the average
+def calculate_stddev_1h(coin, timestamp):
+
+    try:
+        # get recent prices
+        prices = get_recent_prices(coin, timestamp, 12)
+
+        if not prices:
+            return None
+
+        # return numpy standard deviation
+        return np.std(prices)
+
+    except Exception as e:
+        print(f"error in calculate_stddev_1h: {e}")
+
+
 # Average True Rating over 1 hour
 # Used to measure how much an asset moves on average over a time period
 # ATR_1h = mean of price differences over 1 hour
-
-# this wont work, delete it
 def calculate_atr_1h(coin, timestamp):
 
     try:
-        candles = RickisMetrics.objects.filter(
+        # get an hour of metrics
+        candles = Metrics.objects.filter(
             coin=coin,
             timestamp__lte=timestamp
         ).order_by('-timestamp')[:12]
@@ -308,9 +311,11 @@ def calculate_atr_1h(coin, timestamp):
         if len(candles) < 2:
             return None
 
+        # oldest to newest
         candles = list(candles)[::-1]
         true_ranges = []
 
+        # get price differences
         for i in range(1, len(candles)):
             high_val = candles[i].high_24h
             low_val = candles[i].low_24h
@@ -323,16 +328,16 @@ def calculate_atr_1h(coin, timestamp):
             low = float(low_val)
             prev_close = float(prev_close_val)
 
-            tr = max(
+            true_range = max(
                 high - low,
                 abs(high - prev_close),
                 abs(low - prev_close)
             )
-            true_ranges.append(tr)
+            true_ranges.append(true_range)
 
         if not true_ranges:
             return None
-
+        # return the numpy mean
         return np.mean(true_ranges)
 
     except Exception as e:
