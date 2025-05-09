@@ -1,3 +1,10 @@
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    category=RuntimeWarning,
+    module="ta.trend"
+)
+
 from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
 from datetime import datetime, timedelta
@@ -15,12 +22,14 @@ from scanner.helpers import (
 class Command(BaseCommand):
     help = (
         "Recompute OHLCV-derived metrics in bulk for RickisMetrics between "
-        "March 22 and May 2, 2025."
+        "March 22 and May 2, 2025, including EMA 12 and EMA 26, "
+        "silencing ta/trend warnings."
     )
 
     BATCH_SIZE = 500
 
     def handle(self, *args, **options):
+        # Define your date window
         start = make_aware(datetime(2025, 3, 29))
         end   = make_aware(datetime(2025, 5, 2)) + timedelta(days=1)
 
@@ -40,11 +49,11 @@ class Command(BaseCommand):
             'fib_distance_0_618','fib_distance_0_786',
             'bollinger_upper','bollinger_middle','bollinger_lower',
             'adx','change_since_low','change_since_high',
-            'price_slope_1h','ema',
+            'price_slope_1h','ema_12','ema_26',
         ]
 
         for i, rm in enumerate(qs.iterator(), start=1):
-            # 1) Fib distances
+            # 1) Fibonacci distances
             fibs = calculate_fib_distances(rm.high_24h, rm.low_24h, rm.price)
             rm.fib_distance_0_236 = fibs.get('fib_distance_0_236')
             rm.fib_distance_0_382 = fibs.get('fib_distance_0_382')
@@ -71,18 +80,19 @@ class Command(BaseCommand):
             # 5) 1h price slope
             rm.price_slope_1h = calculate_price_slope_1h(rm.coin, rm.timestamp)
 
-            # 6) EMA
-            rm.ema = calculate_ema(rm.coin, rm.timestamp, window=12)
+            # 6) EMA 12 and EMA 26
+            rm.ema_12 = calculate_ema(rm.coin, rm.timestamp, window=12)
+            rm.ema_26 = calculate_ema(rm.coin, rm.timestamp, window=26)
 
             to_update.append(rm)
 
-            # Flush in batches
+            # Flush a batch
             if len(to_update) >= self.BATCH_SIZE:
                 RickisMetrics.objects.bulk_update(to_update, fields)
                 self.stdout.write(f"  ✅ Updated batch up to record {i}/{total}")
                 to_update.clear()
 
-        # Flush any remaining
+        # Final flush
         if to_update:
             RickisMetrics.objects.bulk_update(to_update, fields)
             self.stdout.write(f"  ✅ Updated final batch ({len(to_update)} records)")
