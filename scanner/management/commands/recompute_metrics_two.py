@@ -78,6 +78,7 @@ class Command(BaseCommand):
             if len(to_update) >= self.BATCH_SIZE:
                 RickisMetrics.objects.bulk_update(to_update, fields)
                 to_update.clear()
+                self.stdout.write("next batch two")
 
         if to_update:
             RickisMetrics.objects.bulk_update(to_update, fields)
