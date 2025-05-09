@@ -1,4 +1,5 @@
 # File: recompute_metrics_mar29_apr14.py
+
 import warnings
 warnings.filterwarnings(
     "ignore",
@@ -26,11 +27,11 @@ class Command(BaseCommand):
         "March 29 and April 14, 2025 inclusive."
     )
 
-    BATCH_SIZE = 2000
+    BATCH_SIZE = 500  # Safer batch size
 
     def handle(self, *args, **options):
         start = make_aware(datetime(2025, 3, 29))
-        end = make_aware(datetime(2025, 4, 14)) + timedelta(days=1)
+        end = make_aware(datetime(2025, 4, 1)) + timedelta(days=1)
 
         qs = (
             RickisMetrics.objects
@@ -40,47 +41,63 @@ class Command(BaseCommand):
         )
 
         total = qs.count()
-        self.stdout.write(f"🔄 Recomputing {total} records (Mar 29–Apr 14) in batches of {self.BATCH_SIZE}…")
+        processed = 0
+        self.stdout.write(f"🔄 Recomputing {total} records (Mar 29–Apr 14) in batches of {self.BATCH_SIZE}...")
 
         to_update = []
         fields = [
-            'fib_distance_0_236','fib_distance_0_382','fib_distance_0_5',
-            'fib_distance_0_618','fib_distance_0_786',
-            'bollinger_upper','bollinger_middle','bollinger_lower',
-            'adx','change_since_low','change_since_high',
+            'fib_distance_0_236', 'fib_distance_0_382', 'fib_distance_0_5',
+            'fib_distance_0_618', 'fib_distance_0_786',
+            'bollinger_upper', 'bollinger_middle', 'bollinger_lower',
+            'adx', 'change_since_low', 'change_since_high',
             'price_slope_1h'
         ]
 
         for rm in qs.iterator():
-            fibs = calculate_fib_distances(rm.high_24h, rm.low_24h, rm.price)
+            # Fibonacci Distances
+            fibs = calculate_fib_distances(rm.high_24h, rm.low_24h, rm.price) or {}
             rm.fib_distance_0_236 = fibs.get('fib_distance_0_236')
             rm.fib_distance_0_382 = fibs.get('fib_distance_0_382')
             rm.fib_distance_0_5   = fibs.get('fib_distance_0_5')
             rm.fib_distance_0_618 = fibs.get('fib_distance_0_618')
             rm.fib_distance_0_786 = fibs.get('fib_distance_0_786')
 
-            upper, middle, lower = calculate_bollinger_bands(rm.coin, rm.timestamp)
-            rm.bollinger_upper  = upper
-            rm.bollinger_middle = middle
-            rm.bollinger_lower  = lower
+            # Bollinger Bands
+            bb_result = calculate_bollinger_bands(rm.coin, rm.timestamp)
+            if bb_result:
+                upper, middle, lower = bb_result
+                rm.bollinger_upper = upper
+                rm.bollinger_middle = middle
+                rm.bollinger_lower = lower
+            else:
+                rm.bollinger_upper = None
+                rm.bollinger_middle = None
+                rm.bollinger_lower = None
 
-            try:
-                rm.adx = calculate_adx(rm.coin, rm.timestamp)
-            except:
-                rm.adx = None
+            # ADX
+            adx = calculate_adx(rm.coin, rm.timestamp)
+            rm.adx = adx if adx is not None else None
 
-            rm.change_since_low  = calculate_change_since_low(rm.price, rm.low_24h)
+            # Change Since Low/High
+            rm.change_since_low = calculate_change_since_low(rm.price, rm.low_24h)
             rm.change_since_high = calculate_change_since_high(rm.price, rm.high_24h)
 
-            rm.price_slope_1h = calculate_price_slope_1h(rm.coin, rm.timestamp)
+            # Price Slope 1h
+            slope = calculate_price_slope_1h(rm.coin, rm.timestamp)
+            rm.price_slope_1h = slope if slope is not None else None
 
+            # Add to batch
             to_update.append(rm)
+            processed += 1
+
             if len(to_update) >= self.BATCH_SIZE:
                 RickisMetrics.objects.bulk_update(to_update, fields)
+                self.stdout.write(f"✅ {processed}/{total} records processed...")
                 to_update.clear()
-                self.stdout.write("next batch one")
 
+        # Final batch
         if to_update:
             RickisMetrics.objects.bulk_update(to_update, fields)
+            self.stdout.write(f"✅ {processed}/{total} records processed (final batch).")
 
-        self.stdout.write("🎉 Completed Mar 29–Apr 14.")
+        self.stdout.write("🎉 Completed Mar 29–Apr 14 recomputation.")
