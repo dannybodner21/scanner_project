@@ -22,8 +22,8 @@ urlpatterns = [
 
 
     path('five-min-update/', views.five_min_update, name='five-min-update'),
-    path('predict-live-vertex/', views.predict_live_vertex, name='predict-live-vertex'),
-    path("predict-short-vertex/", views.predict_short_vertex, name="predict-short-vertex"),
+    path('predict-live-vertex/', views.predict_live_vertex_new, name='predict-live-vertex'),
+    path("predict-short-vertex/", views.predict_short_vertex_new, name="predict-short-vertex"),
     path("api/open-trades/", views.get_open_trades, name="open-trades"),
     path("api/closed-trades/", views.get_closed_trades, name="closed-trades"),
 
