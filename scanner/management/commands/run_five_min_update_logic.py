@@ -4,7 +4,9 @@ from scanner.helpers import (
     round_to_five_minutes, calculate_rsi, calculate_macd, calculate_stochastic,
     calculate_support_resistance, calculate_avg_volume_1h, calculate_relative_volume,
     calculate_sma, calculate_ema, calculate_stddev_1h, calculate_price_slope_1h,
-    calculate_atr_1h, calculate_price_change_five_min, calculate_ema_from_prices
+    calculate_atr_1h, calculate_price_change_five_min, calculate_ema_from_prices,
+    calculate_obv, calculate_change_since_high, calculate_change_since_low,
+    calculate_fib_distances
 )
 from django.utils.timezone import make_aware, is_naive
 from datetime import datetime
@@ -85,34 +87,46 @@ def run_five_min_update_logic():
                             macd, macd_signal = calculate_macd(coin, timestamp)
                             stochastic_k, stochastic_d = calculate_stochastic(coin, timestamp)
                             support, resistance = calculate_support_resistance(coin, timestamp)
+                            fib_distances = calculate_fib_distances(
+                                high=ohlcv_data["quote"]["USD"].get("high", 0),
+                                low=ohlcv_data["quote"]["USD"].get("low", 0),
+                                current_price=current_price,
+                            )
 
                             RickisMetrics.objects.update_or_create(
                                 coin=coin,
                                 timestamp=timestamp,
                                 defaults={
                                     'price': current_price,
-                                    'volume': crypto_data["quote"]["USD"].get("volume_24h", 0),
+                                    'high_24h': ohlcv_data["quote"]["USD"].get("high", 0),
+                                    'low_24h': ohlcv_data["quote"]["USD"].get("low", 0),
+                                    'open': ohlcv_data["quote"]["USD"].get("open", 0),
+                                    'close': ohlcv_data["quote"]["USD"].get("close", 0),
                                     'change_5m': calculate_price_change_five_min(coin, timestamp) or 0,
                                     'change_1h': crypto_data["quote"]["USD"].get("percent_change_1h", 0),
                                     'change_24h': crypto_data["quote"]["USD"].get("percent_change_24h", 0),
-                                    'high_24h': ohlcv_data["quote"]["USD"].get("high", 0),
-                                    'low_24h': ohlcv_data["quote"]["USD"].get("low", 0),
+                                    'volume': crypto_data["quote"]["USD"].get("volume_24h", 0),
                                     'avg_volume_1h': calculate_avg_volume_1h(coin, timestamp) or 0,
-                                    'relative_volume': calculate_relative_volume(coin, timestamp) or 0,
-                                    'sma_5': calculate_sma(coin, timestamp, window=5) or 0,
-                                    'sma_20': calculate_sma(coin, timestamp, window=20) or 0,
-                                    'ema_12': calculate_ema(coin, timestamp, window=12) or 0,
-                                    'ema_26': calculate_ema(coin, timestamp, window=26) or 0,
+                                    'rsi': calculate_rsi(coin, timestamp) or 0,
                                     'macd': macd or 0,
                                     'macd_signal': macd_signal or 0,
-                                    'rsi': calculate_rsi(coin, timestamp) or 0,
                                     'stochastic_k': stochastic_k or 0,
                                     'stochastic_d': stochastic_d or 0,
                                     'support_level': support or 0,
                                     'resistance_level': resistance or 0,
+                                    'relative_volume': calculate_relative_volume(coin, timestamp) or 0,
+                                    'sma_5': calculate_sma(coin, timestamp, window=5) or 0,
+                                    'sma_20': calculate_sma(coin, timestamp, window=20) or 0,
                                     'stddev_1h': calculate_stddev_1h(coin, timestamp) or 0,
-                                    'price_slope_1h': calculate_price_slope_1h(coin, timestamp) or 0,
                                     'atr_1h': calculate_atr_1h(coin, timestamp) or 0,
+                                    'obv': calculate_obv(coin, timestamp) or 0,
+                                    'change_since_high': calculate_change_since_high(current_price, ohlcv_data["quote"]["USD"].get("high", 0)) or 0,
+                                    'change_since_low': calculate_change_since_low(current_price, ohlcv_data["quote"]["USD"].get("low", 0)) or 0,
+                                    'fib_distance_0_236': fib_distances.get("fib_distance_0_236", 0),
+                                    'fib_distance_0_382': fib_distances.get("fib_distance_0_382", 0),
+                                    'fib_distance_0_5': fib_distances.get("fib_distance_0_5", 0),
+                                    'fib_distance_0_618': fib_distances.get("fib_distance_0_618", 0),
+                                    'fib_distance_0_786': fib_distances.get("fib_distance_0_786", 0),
                                 }
                             )
                             print(f"✅ Created/updated RickisMetrics for {coin.symbol}")
