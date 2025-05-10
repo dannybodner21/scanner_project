@@ -31,7 +31,8 @@ class Command(BaseCommand):
         pred_df = pd.DataFrame(predictions)
 
         # Ensure timestamp is aware and parsed
-        pred_df["timestamp"] = pd.to_datetime(pred_df["timestamp"])
+        pred_df["timestamp"] = pd.to_datetime(pred_df["timestamp"], errors="coerce")
+        pred_df = pred_df.dropna(subset=["timestamp"])
         pred_df["timestamp"] = pred_df["timestamp"].apply(make_aware)
 
         self.stdout.write(f"✅ Loaded {len(pred_df)} predictions")
