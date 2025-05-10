@@ -74,7 +74,7 @@ def predict_live(request):
 
 
 PROJECT_ID = 'bodner-main-project'
-ENDPOINT_ID = '298034721336590336'
+ENDPOINT_ID = '7336562804591165440'
 REGION = 'us-central1'
 
 def get_google_jwt_token():
