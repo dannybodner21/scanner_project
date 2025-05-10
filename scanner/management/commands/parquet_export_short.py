@@ -57,7 +57,7 @@ class Command(BaseCommand):
         df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
 
         # 6️⃣ Drop any rows with NaNs in numeric features or the label
-        df.dropna(subset=numeric_cols + ['short_result'], inplace=True)
+        #df.dropna(subset=numeric_cols + ['short_result'], inplace=True)
 
         output_path = '/workspace/scanner/short_test.parquet'
         df.to_parquet(output_path, index=False)

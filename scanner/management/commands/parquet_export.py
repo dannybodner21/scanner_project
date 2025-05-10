@@ -60,7 +60,7 @@ class Command(BaseCommand):
         df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
 
         # Drop rows with any NaNs in features or label
-        df.dropna(subset=numeric_cols + ['long_result'], inplace=True)
+        #df.dropna(subset=numeric_cols + ['long_result'], inplace=True)
 
         output_path = '/workspace/scanner/long_test.parquet'
         df.to_parquet(output_path, index=False)
