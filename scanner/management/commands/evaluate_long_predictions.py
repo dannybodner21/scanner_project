@@ -1,40 +1,63 @@
-from django.core.management.base import BaseCommand
+from google.cloud import aiplatform
 import pandas as pd
-import json
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-class Command(BaseCommand):
-    help = 'Evaluate the long model predictions against long_result in full_holdout.csv'
+# === CONFIG ===
 
-    def handle(self, *args, **kwargs):
-        self.stdout.write("📊 Evaluating Long Model...")
 
-        full_df = pd.read_csv("full_holdout.csv")
-        if "long_result" not in full_df.columns:
-            raise ValueError("❌ 'long_result' column is missing in full_holdout.csv")
+PROJECT_ID = 'bodner-main-project'
+ENDPOINT_ID = '8508061657660915712'
+REGION = 'us-central1'
 
-        with open("results_long.jsonl", "r") as f:
-            results = [
-                {
-                    "predicted_label": json.loads(line)["prediction"].get("predicted_label"),
-                    "probability": json.loads(line)["prediction"].get("probability")
-                }
-                for line in f
-            ]
+# === MODEL INPUT FEATURES ===
+features = [
+    "price", "volume", "change_5m", "change_1h", "change_24h",
+    "high_24h", "low_24h", "avg_volume_1h", "relative_volume",
+    "rsi", "macd", "macd_signal", "stochastic_k", "stochastic_d",
+    "support_level", "resistance_level", "sma_5", "sma_20",
+    "stddev_1h", "atr_1h", "obv", "change_since_high", "change_since_low",
+    "fib_distance_0_236", "fib_distance_0_382", "fib_distance_0_5",
+    "fib_distance_0_618", "fib_distance_0_786", "open", "close"
+]
 
-        pred_df = pd.DataFrame(results)
-        if len(full_df) != len(pred_df):
-            raise ValueError("❌ Row count mismatch between full_holdout.csv and results_long.jsonl")
+# === Init Vertex AI ===
+aiplatform.init(project=PROJECT_ID, location=REGION)
+endpoint = aiplatform.Endpoint(ENDPOINT_ID)
 
-        merged_df = pd.concat([full_df.reset_index(drop=True), pred_df], axis=1)
+# === Load input ===
+df = pd.read_csv("full_holdout.csv")
+X = df[features]
+y_true = df["long_result"]
 
-        y_true = merged_df["long_result"]
-        y_pred = merged_df["predicted_label"]
+# === Predict ===
+predicted_labels = []
+probabilities = []
 
-        self.stdout.write(f"✅ Accuracy:  {accuracy_score(y_true, y_pred):.4f}")
-        self.stdout.write(f"✅ Precision: {precision_score(y_true, y_pred):.4f}")
-        self.stdout.write(f"✅ Recall:    {recall_score(y_true, y_pred):.4f}")
-        self.stdout.write(f"✅ F1 Score:  {f1_score(y_true, y_pred):.4f}")
+for i, row in X.iterrows():
+    instance = {k: float(row[k]) for k in features}
+    try:
+        response = endpoint.predict([instance])
+        prediction = response.predictions[0]
+        predicted_labels.append(prediction["predicted_label"])
+        probabilities.append(prediction["probability"])
+    except Exception as e:
+        print(f"❌ Error on row {i}: {e}")
+        predicted_labels.append(None)
+        probabilities.append(None)
 
-        merged_df.to_csv("scored_long_results.csv", index=False)
-        self.stdout.write("📁 Saved: scored_long_results.csv")
+# === Score ===
+df["predicted_label"] = predicted_labels
+df["probability"] = probabilities
+
+valid_rows = df["predicted_label"].notnull()
+y_pred = df.loc[valid_rows, "predicted_label"]
+y_true_valid = df.loc[valid_rows, "long_result"]
+
+print("📊 Long Model Evaluation:")
+print("✅ Accuracy:  ", accuracy_score(y_true_valid, y_pred))
+print("✅ Precision: ", precision_score(y_true_valid, y_pred))
+print("✅ Recall:    ", recall_score(y_true_valid, y_pred))
+print("✅ F1 Score:  ", f1_score(y_true_valid, y_pred))
+
+df.to_csv("scored_long_results.csv", index=False)
+print("📁 Saved: scored_long_results.csv")
