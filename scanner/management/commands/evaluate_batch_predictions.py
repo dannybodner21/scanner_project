@@ -1,44 +1,60 @@
+from google.cloud import aiplatform
 import pandas as pd
-import json
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-# === Step 1: Load the full holdout dataset (with features + long_result) ===
-full_df = pd.read_csv("full_holdout.csv")
+# === CONFIG ===
+PROJECT_ID = 'bodner-main-project'
+ENDPOINT_ID = '8508061657660915712'  # long model endpoint
+REGION = 'us-central1'
 
-# Select a few identifying features to compare (must match model inputs)
-sample_features = ["price", "rsi", "macd", "volume", "change_5m"]
-sample_features = [f for f in sample_features if f in full_df.columns]
+# === MODEL INPUT FEATURES ===
+features = [
+    "price", "volume", "change_5m", "change_1h", "change_24h",
+    "high_24h", "low_24h", "avg_volume_1h", "relative_volume",
+    "rsi", "macd", "macd_signal", "stochastic_k", "stochastic_d",
+    "support_level", "resistance_level", "sma_5", "sma_20",
+    "stddev_1h", "atr_1h", "obv", "change_since_high", "change_since_low",
+    "fib_distance_0_236", "fib_distance_0_382", "fib_distance_0_5",
+    "fib_distance_0_618", "fib_distance_0_786", "open", "close"
+]
 
-# === Step 2: Load predictions from results.jsonl ===
-pred_input_rows = []
-with open("results.jsonl", "r") as f:
-    for line in f:
-        data = json.loads(line)
-        instance = data.get("instance", {})
-        pred_input_rows.append(instance)
+# === Init Vertex AI ===
+aiplatform.init(project=PROJECT_ID, location=REGION)
+endpoint = aiplatform.Endpoint(ENDPOINT_ID)
 
-pred_input_df = pd.DataFrame(pred_input_rows)
+# === Load input ===
+df = pd.read_csv("full_holdout.csv")
+X = df[features]
+y_true = df["long_result"]
 
-# === Step 3: Compare row-by-row ===
-n = min(len(full_df), len(pred_input_df))
+# === Predict ===
+probabilities = []
 
-mismatches = 0
-for i in range(n):
-    for feature in sample_features:
-        full_val = full_df.iloc[i][feature]
-        pred_val = pred_input_df.iloc[i].get(feature)
-        if pd.isna(full_val) or pd.isna(pred_val):
-            continue
-        if abs(float(full_val) - float(pred_val)) > 1e-6:
-            mismatches += 1
-            print(f"❌ Mismatch at row {i}, feature '{feature}': full={full_val}, pred={pred_val}")
-            if mismatches > 10:
-                print("❗Too many mismatches — stopping check.")
-                break
-    if mismatches > 10:
-        break
+for i, row in X.iterrows():
+    instance = {k: float(row[k]) for k in features}
+    try:
+        response = endpoint.predict([instance])
+        prediction = response.predictions[0]
+        probabilities.append(prediction["probability"])
+    except Exception as e:
+        print(f"❌ Error on row {i}: {e}")
+        probabilities.append(None)
 
-# === Final summary ===
-if mismatches == 0:
-    print("✅ Input alignment confirmed. You can safely evaluate the predictions.")
-else:
-    print(f"⚠️ Detected {mismatches} mismatches — batch prediction may not align with full_holdout.csv")
+# === Keep only confident live trades (prob > 0.5) ===
+df["probability"] = probabilities
+df_live_trades = df[df["probability"] > 0.7].copy()
+
+# These are the trades we would take
+y_true_live = df_live_trades["long_result"]
+y_pred_live = [1] * len(df_live_trades)  # every confident prediction is treated as "go long"
+
+# === Evaluate only trades taken
+print("📊 Long Model (Live Trades Only, prob > 0.5):")
+print(f"✅ Trades taken: {len(df_live_trades)}")
+print(f"✅ Accuracy:  {accuracy_score(y_true_live, y_pred_live):.4f}")
+print(f"✅ Precision: {precision_score(y_true_live, y_pred_live):.4f}")
+print(f"✅ Recall:    {recall_score(y_true_live, y_pred_live):.4f}")
+print(f"✅ F1 Score:  {f1_score(y_true_live, y_pred_live):.4f}")
+
+df_live_trades.to_csv("scored_long_results_live.csv", index=False)
+print("📁 Saved: scored_long_results_live.csv")

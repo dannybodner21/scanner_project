@@ -3,11 +3,9 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # === CONFIG ===
-
-
 PROJECT_ID = 'bodner-main-project'
 REGION = 'us-central1'
-ENDPOINT_ID = '5322327871249711104'
+ENDPOINT_ID = '5322327871249711104'  # short model endpoint
 
 # === MODEL INPUT FEATURES ===
 features = [
@@ -17,7 +15,7 @@ features = [
     "support_level", "resistance_level", "sma_5", "sma_20",
     "stddev_1h", "atr_1h", "obv", "change_since_high", "change_since_low",
     "fib_distance_0_236", "fib_distance_0_382", "fib_distance_0_5",
-    "fib_distance_0_618", "fib_distance_0_786","open","close"
+    "fib_distance_0_618", "fib_distance_0_786", "open", "close"
 ]
 
 # === Init Vertex AI ===
@@ -30,7 +28,6 @@ X = df[features]
 y_true = df["short_result"]
 
 # === Predict ===
-predicted_labels = []
 probabilities = []
 
 for i, row in X.iterrows():
@@ -38,26 +35,27 @@ for i, row in X.iterrows():
     try:
         response = endpoint.predict([instance])
         prediction = response.predictions[0]
-        predicted_labels.append(prediction["predicted_label"])
         probabilities.append(prediction["probability"])
     except Exception as e:
         print(f"❌ Error on row {i}: {e}")
-        predicted_labels.append(None)
         probabilities.append(None)
 
-# === Score ===
-df["predicted_label"] = predicted_labels
+# === Filter trades we would take (probability > 0.5) ===
 df["probability"] = probabilities
+df_live_trades = df[df["probability"] > 0.7].copy()
 
-valid_rows = df["predicted_label"].notnull()
-y_pred = df.loc[valid_rows, "predicted_label"]
-y_true_valid = df.loc[valid_rows, "short_result"]
+# These are the trades we’d actually place
+y_true_live = df_live_trades["short_result"]
+y_pred_live = [1] * len(df_live_trades)  # all are "yes, take trade"
 
-print("📊 Short Model Evaluation:")
-print("✅ Accuracy:  ", accuracy_score(y_true_valid, y_pred))
-print("✅ Precision: ", precision_score(y_true_valid, y_pred))
-print("✅ Recall:    ", recall_score(y_true_valid, y_pred))
-print("✅ F1 Score:  ", f1_score(y_true_valid, y_pred))
+# === Evaluate only taken trades ===
+print("📊 Short Model (Live Trades Only, prob > 0.5):")
+print(f"✅ Trades taken: {len(df_live_trades)}")
+print(f"✅ Accuracy:  {accuracy_score(y_true_live, y_pred_live):.4f}")
+print(f"✅ Precision: {precision_score(y_true_live, y_pred_live):.4f}")
+print(f"✅ Recall:    {recall_score(y_true_live, y_pred_live):.4f}")
+print(f"✅ F1 Score:  {f1_score(y_true_live, y_pred_live):.4f}")
 
-df.to_csv("scored_short_results.csv", index=False)
-print("📁 Saved: scored_short_results.csv")
+# === Save results
+df_live_trades.to_csv("scored_short_results_live.csv", index=False)
+print("📁 Saved: scored_short_results_live.csv")

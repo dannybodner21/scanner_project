@@ -3,10 +3,8 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # === CONFIG ===
-
-
 PROJECT_ID = 'bodner-main-project'
-ENDPOINT_ID = '8508061657660915712'
+ENDPOINT_ID = '8508061657660915712'  # long model endpoint
 REGION = 'us-central1'
 
 # === MODEL INPUT FEATURES ===
@@ -30,7 +28,6 @@ X = df[features]
 y_true = df["long_result"]
 
 # === Predict ===
-predicted_labels = []
 probabilities = []
 
 for i, row in X.iterrows():
@@ -38,26 +35,26 @@ for i, row in X.iterrows():
     try:
         response = endpoint.predict([instance])
         prediction = response.predictions[0]
-        predicted_labels.append(prediction["predicted_label"])
         probabilities.append(prediction["probability"])
     except Exception as e:
         print(f"❌ Error on row {i}: {e}")
-        predicted_labels.append(None)
         probabilities.append(None)
 
-# === Score ===
-df["predicted_label"] = predicted_labels
+# === Keep only confident live trades (prob > 0.5) ===
 df["probability"] = probabilities
+df_live_trades = df[df["probability"] > 0.7].copy()
 
-valid_rows = df["predicted_label"].notnull()
-y_pred = df.loc[valid_rows, "predicted_label"]
-y_true_valid = df.loc[valid_rows, "long_result"]
+# These are the trades we would take
+y_true_live = df_live_trades["long_result"]
+y_pred_live = [1] * len(df_live_trades)  # every confident prediction is treated as "go long"
 
-print("📊 Long Model Evaluation:")
-print("✅ Accuracy:  ", accuracy_score(y_true_valid, y_pred))
-print("✅ Precision: ", precision_score(y_true_valid, y_pred))
-print("✅ Recall:    ", recall_score(y_true_valid, y_pred))
-print("✅ F1 Score:  ", f1_score(y_true_valid, y_pred))
+# === Evaluate only trades taken
+print("📊 Long Model (Live Trades Only, prob > 0.5):")
+print(f"✅ Trades taken: {len(df_live_trades)}")
+print(f"✅ Accuracy:  {accuracy_score(y_true_live, y_pred_live):.4f}")
+print(f"✅ Precision: {precision_score(y_true_live, y_pred_live):.4f}")
+print(f"✅ Recall:    {recall_score(y_true_live, y_pred_live):.4f}")
+print(f"✅ F1 Score:  {f1_score(y_true_live, y_pred_live):.4f}")
 
-df.to_csv("scored_long_results.csv", index=False)
-print("📁 Saved: scored_long_results.csv")
+df_live_trades.to_csv("scored_long_results_live.csv", index=False)
+print("📁 Saved: scored_long_results_live.csv")
