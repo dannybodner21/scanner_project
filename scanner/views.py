@@ -74,7 +74,7 @@ def predict_live(request):
 
 
 PROJECT_ID = 'bodner-main-project'
-ENDPOINT_ID = '7336562804591165440'
+ENDPOINT_ID = '8508061657660915712'
 REGION = 'us-central1'
 
 def get_google_jwt_token():
@@ -265,7 +265,7 @@ def predict_live_vertex_V1(request):
 
 SHORT_PROJECT_ID = 'bodner-main-project'
 SHORT_REGION = 'us-central1'
-SHORT_ENDPOINT_ID = '4998948307381256192'
+SHORT_ENDPOINT_ID = '5322327871249711104'
 
 def get_vertex_access_token():
     creds = service_account.Credentials.from_service_account_info(
@@ -551,7 +551,6 @@ def predict_live_vertex_new(request):
                 "support_level": float(metric.support_level),
                 "resistance_level": float(metric.resistance_level),
                 "stddev_1h": float(metric.stddev_1h),
-                "price_slope_1h": float(metric.price_slope_1h),
                 "atr_1h": float(metric.atr_1h),
                 "obv": float(metric.obv),
                 "change_since_high": float(metric.change_since_high),
@@ -666,7 +665,6 @@ def predict_short_vertex_new(request):
                 "support_level": float(metric.support_level),
                 "resistance_level": float(metric.resistance_level),
                 "stddev_1h": float(metric.stddev_1h),
-                "price_slope_1h": float(metric.price_slope_1h),
                 "atr_1h": float(metric.atr_1h),
                 "obv": float(metric.obv),
                 "change_since_high": float(metric.change_since_high),
