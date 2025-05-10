@@ -9,8 +9,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         # Define inclusive date window
-        start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 29)) + timedelta(days=1)
+        start = make_aware(datetime(2025, 4, 30))
+        end = make_aware(datetime(2025, 5, 2)) + timedelta(days=1)
 
         # Filter metrics that have been labeled (wins or losses) in the date range
         qs = (
@@ -36,7 +36,6 @@ class Command(BaseCommand):
             'change_since_high', 'change_since_low',
             'fib_distance_0_236', 'fib_distance_0_382',
             'fib_distance_0_5', 'fib_distance_0_618', 'fib_distance_0_786',
-            'long_result'
         ]
 
         metrics = qs.values(*fields)
@@ -63,6 +62,6 @@ class Command(BaseCommand):
         # Drop rows with any NaNs in features or label
         df.dropna(subset=numeric_cols + ['long_result'], inplace=True)
 
-        output_path = '/workspace/scanner/long.parquet'
+        output_path = '/workspace/scanner/long_test.parquet'
         df.to_parquet(output_path, index=False)
         self.stdout.write(self.style.SUCCESS(f"✅ Exported {len(df)} rows to {output_path}"))
