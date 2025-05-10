@@ -16,7 +16,7 @@ class Command(BaseCommand):
 
         # 2️⃣ Fields including coin symbol and timestamp
         fields = [
-            'coin__symbol', 'timestamp', 'price', 'volume',
+            'price', 'volume',
             'change_5m', 'change_1h', 'change_24h',
             'high_24h', 'low_24h', 'open', 'close',
             'avg_volume_1h', 'relative_volume',
