@@ -1,11 +1,16 @@
-from google.cloud import aiplatform
+from django.core.management.base import BaseCommand
+import os
+import json
 import pandas as pd
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from google.cloud import aiplatform
 
 # === CONFIG ===
 PROJECT_ID = 'bodner-main-project'
 REGION = 'us-central1'
 ENDPOINT_ID = '5322327871249711104'  # short model endpoint
+INPUT_FILE = 'full_holdout.csv'
+CONFIDENCE_THRESHOLD = 0.5
+BATCH_SIZE = 100
 
 # === MODEL INPUT FEATURES ===
 features = [
@@ -18,44 +23,64 @@ features = [
     "fib_distance_0_618", "fib_distance_0_786", "open", "close"
 ]
 
-# === Init Vertex AI ===
-aiplatform.init(project=PROJECT_ID, location=REGION)
-endpoint = aiplatform.Endpoint(ENDPOINT_ID)
+def run_short_prediction_evaluation():
+    # === Handle JSON credentials ===
+    raw_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if raw_creds:
+        with open("/tmp/adc.json", "w") as f:
+            f.write(raw_creds)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/adc.json"
 
-# === Load input ===
-df = pd.read_csv("full_holdout.csv")
-X = df[features]
-y_true = df["short_result"]
+    # === Init Vertex ===
+    aiplatform.init(project=PROJECT_ID, location=REGION)
+    endpoint = aiplatform.Endpoint(ENDPOINT_ID)
 
-# === Predict ===
-probabilities = []
+    # === Load and clean data ===
+    df = pd.read_csv(INPUT_FILE)
+    df = df.dropna(subset=features + ["short_result"])
 
-for i, row in X.iterrows():
-    instance = {k: float(row[k]) for k in features}
-    try:
-        response = endpoint.predict([instance])
-        prediction = response.predictions[0]
-        probabilities.append(prediction["probability"])
-    except Exception as e:
-        print(f"❌ Error on row {i}: {e}")
-        probabilities.append(None)
+    # === Batch predict ===
+    predictions = []
+    for i in range(0, len(df), BATCH_SIZE):
+        batch = df.iloc[i:i+BATCH_SIZE]
+        instances = [{k: float(row[k]) for k in features} for _, row in batch.iterrows()]
+        try:
+            response = endpoint.predict(instances)
+            preds = response.predictions
+            for pred in preds:
+                prob = float(pred[1]) if isinstance(pred, list) and len(pred) == 2 else (1.0 if pred == 1 else 0.0)
+                predictions.append(prob)
+        except Exception as e:
+            print(f"❌ Error on batch {i}-{i+BATCH_SIZE}: {e}")
+            predictions.extend([None] * len(instances))
 
-# === Filter trades we would take (probability > 0.5) ===
-df["probability"] = probabilities
-df_live_trades = df[df["probability"] > 0.7].copy()
+    # === Store results and filter trades
+    df["probability"] = predictions
+    df_live = df[df["probability"] > CONFIDENCE_THRESHOLD].copy()
 
-# These are the trades we’d actually place
-y_true_live = df_live_trades["short_result"]
-y_pred_live = [1] * len(df_live_trades)  # all are "yes, take trade"
+    trades_taken = len(df_live)
+    wins = df_live["short_result"].sum()
+    losses = trades_taken - wins
 
-# === Evaluate only taken trades ===
-print("📊 Short Model (Live Trades Only, prob > 0.5):")
-print(f"✅ Trades taken: {len(df_live_trades)}")
-print(f"✅ Accuracy:  {accuracy_score(y_true_live, y_pred_live):.4f}")
-print(f"✅ Precision: {precision_score(y_true_live, y_pred_live):.4f}")
-print(f"✅ Recall:    {recall_score(y_true_live, y_pred_live):.4f}")
-print(f"✅ F1 Score:  {f1_score(y_true_live, y_pred_live):.4f}")
+    # === Report
+    print(f"\n📊 Short Model Evaluation (All entries, prob > {CONFIDENCE_THRESHOLD}):")
+    print(f"✅ Total rows evaluated: {len(df)}")
+    print(f"✅ Trades taken: {trades_taken}")
+    print(f"🏁 Wins: {wins}")
+    print(f"❌ Losses: {losses}")
+    if trades_taken > 0:
+        print(f"🎯 Win Rate: {wins / trades_taken:.2%}")
+    else:
+        print("⚠️ No trades met the confidence threshold.")
 
-# === Save results
-df_live_trades.to_csv("scored_short_results_live.csv", index=False)
-print("📁 Saved: scored_short_results_live.csv")
+    # === Save live trades only
+    df_live.to_csv("scored_short_results_live.csv", index=False)
+    print("📁 Saved: scored_short_results_live.csv")
+
+
+# === Django command wrapper ===
+class Command(BaseCommand):
+    help = 'Efficiently evaluate short model on all entries and report live-trade results'
+
+    def handle(self, *args, **kwargs):
+        run_short_prediction_evaluation()
