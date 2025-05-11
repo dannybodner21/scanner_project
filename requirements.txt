@@ -136,4 +136,4 @@ django-import-export==4.3.3
 boto3>=1.28.0
 cachetools>=4.2.0
 ta==0.10.2
-google-cloud-aiplatform>=1.38.0
+google-cloud-aiplatform==1.4.2
