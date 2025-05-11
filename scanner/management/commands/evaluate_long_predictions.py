@@ -48,6 +48,7 @@ def run_long_prediction_evaluation():
             response = endpoint.predict(instances)
             preds = response.predictions
             for pred in preds:
+                print("🔍 Raw prediction:", pred)
                 # Handle either probabilities [p0, p1] or raw class 0/1
                 if isinstance(pred, list) and len(pred) == 2:
                     predictions.append(float(pred[1]))

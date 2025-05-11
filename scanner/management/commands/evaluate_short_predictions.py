@@ -48,6 +48,7 @@ def run_short_prediction_evaluation():
             response = endpoint.predict(instances)
             preds = response.predictions
             for pred in preds:
+                print("🔍 Raw prediction:", pred)
                 # Handle both formats: [0.1, 0.9] or just 1
                 if isinstance(pred, list) and len(pred) == 2:
                     predictions.append(float(pred[1]))
