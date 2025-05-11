@@ -94,7 +94,8 @@ def run_five_min_update_logic():
                                 current_price=current_price,
                             )
 
-                            RickisMetrics.objects.update_or_create(
+                            # STEP 1: Create/update initial metrics without relative_volume
+                            metrics, _ = RickisMetrics.objects.update_or_create(
                                 coin=coin,
                                 timestamp=timestamp,
                                 defaults={
@@ -115,7 +116,6 @@ def run_five_min_update_logic():
                                     'stochastic_d': stochastic_d or 0,
                                     'support_level': support or 0,
                                     'resistance_level': resistance or 0,
-                                    'relative_volume': calculate_relative_volume(coin, timestamp) or 0,
                                     'sma_5': calculate_sma(coin, timestamp, window=5) or 0,
                                     'sma_20': calculate_sma(coin, timestamp, window=20) or 0,
                                     'stddev_1h': calculate_stddev_1h(coin, timestamp) or 0,
@@ -130,6 +130,11 @@ def run_five_min_update_logic():
                                     'fib_distance_0_786': fib_distances.get("fib_distance_0_786", 0),
                                 }
                             )
+
+                            # STEP 2: Update relative_volume separately after metrics exist
+                            metrics.relative_volume = calculate_relative_volume(coin, timestamp) or 0
+                            metrics.save()
+
                             print(f"✅ Created/updated RickisMetrics for {coin.symbol}")
 
                         except Exception as e:
