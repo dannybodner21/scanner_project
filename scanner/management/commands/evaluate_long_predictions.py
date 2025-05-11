@@ -49,11 +49,9 @@ def run_long_prediction_evaluation():
             preds = response.predictions
             for pred in preds:
                 print("🔍 Raw prediction:", pred)
-                # Handle either probabilities [p0, p1] or raw class 0/1
-                if isinstance(pred, list) and len(pred) == 2:
-                    predictions.append(float(pred[1]))
-                elif isinstance(pred, (int, float)):
-                    predictions.append(1.0 if int(pred) == 1 else 0.0)
+                if isinstance(pred, dict) and "classes" in pred and "scores" in pred:
+                    class_index = pred["classes"].index("true")
+                    predictions.append(float(pred["scores"][class_index]))
                 else:
                     predictions.append(None)
         except Exception as e:
@@ -82,7 +80,6 @@ def run_long_prediction_evaluation():
     # === Save output
     df_live.to_csv("scored_long_results_live.csv", index=False)
     print("📁 Saved: scored_long_results_live.csv")
-
 
 # === Django management command wrapper ===
 class Command(BaseCommand):
