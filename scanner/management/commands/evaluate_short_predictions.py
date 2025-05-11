@@ -48,8 +48,13 @@ def run_short_prediction_evaluation():
             response = endpoint.predict(instances)
             preds = response.predictions
             for pred in preds:
-                prob = float(pred[1]) if isinstance(pred, list) and len(pred) == 2 else (1.0 if pred == 1 else 0.0)
-                predictions.append(prob)
+                # Handle both formats: [0.1, 0.9] or just 1
+                if isinstance(pred, list) and len(pred) == 2:
+                    predictions.append(float(pred[1]))
+                elif isinstance(pred, (int, float)):
+                    predictions.append(1.0 if int(pred) == 1 else 0.0)
+                else:
+                    predictions.append(None)
         except Exception as e:
             print(f"❌ Error on batch {i}-{i+BATCH_SIZE}: {e}")
             predictions.extend([None] * len(instances))
@@ -65,11 +70,11 @@ def run_short_prediction_evaluation():
     # === Report
     print(f"\n📊 Short Model Evaluation (All entries, prob > {CONFIDENCE_THRESHOLD}):")
     print(f"✅ Total rows evaluated: {len(df)}")
-    print(f"✅ Trades taken: {trades_taken}")
-    print(f"🏁 Wins: {wins}")
-    print(f"❌ Losses: {losses}")
+    print(f"✅ Trades taken:         {trades_taken}")
+    print(f"🏁 Wins:                 {wins}")
+    print(f"❌ Losses:               {losses}")
     if trades_taken > 0:
-        print(f"🎯 Win Rate: {wins / trades_taken:.2%}")
+        print(f"🎯 Win Rate:             {wins / trades_taken:.2%}")
     else:
         print("⚠️ No trades met the confidence threshold.")
 
@@ -80,7 +85,7 @@ def run_short_prediction_evaluation():
 
 # === Django command wrapper ===
 class Command(BaseCommand):
-    help = 'Efficiently evaluate short model on all entries and report live-trade results'
+    help = 'Evaluate short model predictions on all entries and summarize confident trades'
 
     def handle(self, *args, **kwargs):
         run_short_prediction_evaluation()

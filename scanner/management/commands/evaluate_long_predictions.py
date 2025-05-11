@@ -23,7 +23,6 @@ features = [
     "fib_distance_0_618", "fib_distance_0_786", "open", "close"
 ]
 
-
 def run_long_prediction_evaluation():
     # === Set credentials ===
     raw_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
@@ -32,14 +31,15 @@ def run_long_prediction_evaluation():
             f.write(raw_creds)
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/adc.json"
 
+    # === Init Vertex ===
     aiplatform.init(project=PROJECT_ID, location=REGION)
     endpoint = aiplatform.Endpoint(ENDPOINT_ID)
 
-    # === Load entire dataset ===
+    # === Load dataset ===
     df = pd.read_csv(INPUT_FILE)
-    df = df.dropna(subset=features + ["long_result"])  # Clean rows
+    df = df.dropna(subset=features + ["long_result"])
 
-    # === Batch predict ===
+    # === Predict in batches ===
     predictions = []
     for i in range(0, len(df), BATCH_SIZE):
         batch = df.iloc[i:i+BATCH_SIZE]
@@ -48,13 +48,18 @@ def run_long_prediction_evaluation():
             response = endpoint.predict(instances)
             preds = response.predictions
             for pred in preds:
-                prob = float(pred[1]) if isinstance(pred, list) and len(pred) == 2 else (1.0 if pred == 1 else 0.0)
-                predictions.append(prob)
+                # Handle either probabilities [p0, p1] or raw class 0/1
+                if isinstance(pred, list) and len(pred) == 2:
+                    predictions.append(float(pred[1]))
+                elif isinstance(pred, (int, float)):
+                    predictions.append(1.0 if int(pred) == 1 else 0.0)
+                else:
+                    predictions.append(None)
         except Exception as e:
             print(f"❌ Error on batch {i}-{i+BATCH_SIZE}: {e}")
             predictions.extend([None] * len(instances))
 
-    # === Store predictions ===
+    # === Apply predictions ===
     df["probability"] = predictions
     df_live = df[df["probability"] > CONFIDENCE_THRESHOLD].copy()
 
@@ -62,25 +67,25 @@ def run_long_prediction_evaluation():
     wins = df_live["long_result"].sum()
     losses = trades_taken - wins
 
-    # === Results ===
-    print(f"\n📊 Long Model Evaluation (All 59k entries, prob > {CONFIDENCE_THRESHOLD}):")
+    # === Output
+    print(f"\n📊 Long Model Evaluation (All rows, prob > {CONFIDENCE_THRESHOLD}):")
     print(f"✅ Total rows evaluated: {len(df)}")
-    print(f"✅ Trades taken: {trades_taken}")
-    print(f"🏁 Wins: {wins}")
-    print(f"❌ Losses: {losses}")
+    print(f"✅ Trades taken:         {trades_taken}")
+    print(f"🏁 Wins:                 {wins}")
+    print(f"❌ Losses:               {losses}")
     if trades_taken > 0:
-        print(f"🎯 Win Rate: {wins / trades_taken:.2%}")
+        print(f"🎯 Win Rate:             {wins / trades_taken:.2%}")
     else:
         print("⚠️ No trades met the confidence threshold.")
 
-    # === Save live trades only
+    # === Save output
     df_live.to_csv("scored_long_results_live.csv", index=False)
     print("📁 Saved: scored_long_results_live.csv")
 
 
-# === Django command wrapper ===
+# === Django management command wrapper ===
 class Command(BaseCommand):
-    help = 'Efficiently evaluate long model on all entries and report live-trade results'
+    help = 'Evaluate long model predictions on all entries and summarize confident trades'
 
     def handle(self, *args, **kwargs):
         run_long_prediction_evaluation()
