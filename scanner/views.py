@@ -73,26 +73,6 @@ def predict_live(request):
 # management command file predict_live.py
 
 
-PROJECT_ID = 'bodner-main-project'
-ENDPOINT_ID = '8508061657660915712'
-REGION = 'us-central1'
-
-def get_google_jwt_token():
-
-    audience = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
-
-    try:
-        service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
-        credentials = service_account.Credentials.from_service_account_info(
-            service_account_info,
-            scopes=["https://www.googleapis.com/auth/cloud-platform"]
-        )
-        credentials.refresh(Request())
-        return credentials.token
-
-    except Exception as e:
-        raise RuntimeError(f"Failed to load service account from env: {e}")
-
 def predict_live_vertex(request):
 
     try:
@@ -263,17 +243,6 @@ def predict_live_vertex_V1(request):
     except Exception as e:
         return JsonResponse({"status": "error", "details": str(e), "response": response.text}, status=500)
 
-SHORT_PROJECT_ID = 'bodner-main-project'
-SHORT_REGION = 'us-central1'
-SHORT_ENDPOINT_ID = '5322327871249711104'
-
-def get_vertex_access_token():
-    creds = service_account.Credentials.from_service_account_info(
-        json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"]),
-        scopes=["https://www.googleapis.com/auth/cloud-platform"],
-    )
-    creds.refresh(Request())
-    return creds.token
 
 def predict_short_vertex(request):
     try:
@@ -362,9 +331,6 @@ def predict_short_vertex(request):
             "message": str(e),
             "response": getattr(response, "text", "No response")
         }, status=500)
-
-
-
 
 
 def predict_live_short(request):
@@ -510,6 +476,40 @@ def get_closed_trades(request):
 
 # new model functions ----------------------------------------------------------
 
+PROJECT_ID = 'bodner-main-project'
+ENDPOINT_ID = '8508061657660915712'
+REGION = 'us-central1'
+
+SHORT_PROJECT_ID = 'bodner-main-project'
+SHORT_REGION = 'us-central1'
+SHORT_ENDPOINT_ID = '5322327871249711104'
+
+def get_google_jwt_token():
+
+    audience = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
+
+    try:
+        service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
+        credentials = service_account.Credentials.from_service_account_info(
+            service_account_info,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
+        credentials.refresh(Request())
+        return credentials.token
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to load service account from env: {e}")
+
+
+def get_vertex_access_token():
+    creds = service_account.Credentials.from_service_account_info(
+        json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"]),
+        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+    )
+    creds.refresh(Request())
+    return creds.token
+
+
 def predict_live_vertex_new(request):
 
     try:
@@ -519,7 +519,7 @@ def predict_live_vertex_new(request):
         return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
 
     # Load RickisMetrics
-    cutoff = now() - timedelta(minutes=10)
+    cutoff = now() - timedelta(minutes=5)
     metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
 
     if not metrics.exists():
@@ -581,6 +581,7 @@ def predict_live_vertex_new(request):
         predictions = response.json().get("predictions", [])
 
         messages = []
+        count = 0
 
         for metric, pred in zip(metrics, predictions):
 
@@ -588,9 +589,12 @@ def predict_live_vertex_new(request):
                 # Find index of "true" class (sometimes it's index 0, sometimes 1)
                 class_idx = pred["classes"].index("true")
                 confidence = pred["scores"][class_idx]
-                print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
+                #print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
+                count += 1
 
-                if confidence > 0.6:
+                if confidence > 0.8:
+
+                    print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
                     messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
@@ -604,10 +608,9 @@ def predict_live_vertex_new(request):
                             entry_timestamp=metric.timestamp,
                             duration_minutes=0,
                             entry_price=metric.price,
-                            current_price=metric.price,
                             model_confidence=confidence,
                             take_profit_percent=3,
-                            stop_loss_percent=-2,
+                            stop_loss_percent=2,
                         )
 
             except Exception as e:
@@ -616,6 +619,7 @@ def predict_live_vertex_new(request):
         if len(messages) > 0:
             send_text(messages)
 
+        print(f"Total LONG metrics looked at: {count}")
         print("Predictions complete.")
         return JsonResponse({"status": "done"})
 
@@ -700,16 +704,20 @@ def predict_short_vertex_new(request):
         response.raise_for_status()
         predictions = response.json()
         messages = []
+        count = 0
 
         # print out confidence per coin
         for symbol, result in zip(symbols, predictions["predictions"]):
             true_index = result["classes"].index("true")
             confidence = result["scores"][true_index]
-            print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
+            count += 1
+            #print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
 
             # send message through Telegram if confidence is greater than 0.6
-            if confidence > 0.6:
+            if confidence > 0.8:
                 messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
+
+                print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
 
                 # only take the trade if that coin is not currently in a trade
                 if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
@@ -721,15 +729,16 @@ def predict_short_vertex_new(request):
                         entry_timestamp=metric.timestamp,
                         duration_minutes=0,
                         entry_price=metric.price,
-                        current_price=metric.price,
                         model_confidence=confidence,
-                        take_profit_percent=-3,
+                        take_profit_percent=3,
                         stop_loss_percent=2,
                     )
 
         # telegram alert
         if len(messages) > 0:
             send_text(messages)
+
+        print(f"Total SHORT metrics looked at: {count}")
 
         return JsonResponse({"status": "success", "predictions": predictions})
 
