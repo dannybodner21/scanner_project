@@ -176,7 +176,7 @@ def calculate_avg_volume_1h(coin, timestamp):
         volumes = get_recent_volumes(coin, timestamp, 12)
 
         if not volumes:
-            return None
+            return 0.0
 
         # calculate the mean using numpy
         return np.mean(volumes)
@@ -201,7 +201,7 @@ def calculate_relative_volume(coin, timestamp):
         if avg_volume and avg_volume != 0:
             return float(last_volume) / float(avg_volume)
 
-        return None
+        return 0.0
 
     except Exception as e:
         print(f"error in calculate_relative_volume: {e}")

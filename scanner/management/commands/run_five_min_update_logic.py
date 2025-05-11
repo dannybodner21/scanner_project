@@ -1,12 +1,13 @@
 from django.core.management.base import BaseCommand
 from scanner.models import Coin, ShortIntervalData, RickisMetrics
 from scanner.helpers import (
-    round_to_five_minutes, calculate_rsi, calculate_macd, calculate_stochastic,
-    calculate_support_resistance, calculate_avg_volume_1h, calculate_relative_volume,
-    calculate_sma, calculate_ema, calculate_stddev_1h, calculate_price_slope_1h,
-    calculate_atr_1h, calculate_price_change_five_min, calculate_ema_from_prices,
-    calculate_obv, calculate_change_since_high, calculate_change_since_low,
-    calculate_fib_distances
+    round_to_five_minutes, get_recent_prices, get_recent_volumes,
+    calculate_rsi, calculate_ema_from_prices, calculate_macd,
+    calculate_stochastic, calculate_support_resistance, calculate_avg_volume_1h,
+    calculate_relative_volume, calculate_sma, calculate_ema, calculate_price_slope_1h,
+    calculate_stddev_1h, calculate_atr_1h, calculate_price_change_five_min,
+    calculate_change_since_high, calculate_change_since_low, calculate_obv,
+    calculate_fib_distances,
 )
 from django.utils.timezone import make_aware, is_naive
 from datetime import datetime

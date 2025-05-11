@@ -9,7 +9,7 @@ PROJECT_ID = 'bodner-main-project'
 REGION = 'us-central1'
 ENDPOINT_ID = '8508061657660915712'  # long model endpoint
 INPUT_FILE = 'full_holdout.csv'
-CONFIDENCE_THRESHOLD = 0.6
+CONFIDENCE_THRESHOLD = 0.9
 BATCH_SIZE = 100
 
 # === MODEL INPUT FEATURES ===
