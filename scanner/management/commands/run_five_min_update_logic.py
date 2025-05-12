@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from scanner.models import Coin, ShortIntervalData, RickisMetrics
+from scanner.models import Coin, ShortIntervalData, RickisMetrics, ModelTrade
 from scanner.helpers import (
     round_to_five_minutes, get_recent_prices, get_recent_volumes,
     calculate_rsi, calculate_ema_from_prices, calculate_macd,
@@ -13,6 +13,7 @@ from django.utils.timezone import make_aware, is_naive
 from datetime import datetime
 import requests
 import time
+from django.utils.timezone import now
 
 def run_five_min_update_logic():
     start = datetime.now()
@@ -147,6 +148,47 @@ def run_five_min_update_logic():
 
     print("\n✅ Five minute update complete.")
     print(f"✅ Total runtime: {datetime.now() - start}")
+
+    # get open trades
+    open_trades = ModelTrade.objects.filter(exit_timestamp__isnull=True)
+
+    for trade in open_trades:
+
+        try:
+            # get latest metric for this coin
+            latest_metric = RickisMetrics.objects.filter(coin=trade.coin).order_by("-timestamp").first()
+            if not latest_metric:
+                continue
+
+            current_price = latest_metric.price
+            entry = trade.entry_price
+            tp = 3
+            sl = 2
+
+            if trade.trade_type == "long":
+                if current_price >= entry * (1 + tp / 100):
+                    status = "💰 TAKE PROFIT"
+                elif current_price <= entry * (1 - sl / 100):
+                    status = "🛑 STOP LOSS"
+                else:
+                    continue
+            else:  # short
+                if current_price <= entry * (1 - tp / 100):
+                    status = "💰 TAKE PROFIT"
+                elif current_price >= entry * (1 + sl / 100):
+                    status = "🛑 STOP LOSS"
+                else:
+                    continue
+
+            # close trade
+            trade.exit_price = current_price
+            trade.exit_timestamp = now()
+            trade.save()
+
+            print(f"{status} | {trade.trade_type.upper()} {trade.coin.symbol} @ {current_price:.6f}")
+
+        except Exception as e:
+            print(f"❌ Error evaluating trade for {trade.coin.symbol}: {e}")
 
 class Command(BaseCommand):
     help = 'Run the five minute update logic'
