@@ -666,8 +666,10 @@ def predict_short_vertex_new(request):
 
     instances = []
     symbols = []
+    metrics_list = []
 
     for metric in metrics:
+
         try:
             # gather necessary data
             instance = {
@@ -704,7 +706,7 @@ def predict_short_vertex_new(request):
             }
             instances.append(instance)
             symbols.append(metric.coin.symbol)
-
+            metrics_list.append(metric)
 
         except Exception:
             continue
@@ -730,7 +732,7 @@ def predict_short_vertex_new(request):
         count = 0
 
         # print out confidence per coin
-        for symbol, result in zip(symbols, predictions["predictions"]):
+        for symbol, result, metric in zip(symbols, predictions["predictions"], metrics_list):
             true_index = result["classes"].index("true")
             confidence = result["scores"][true_index]
             count += 1
