@@ -448,6 +448,7 @@ def get_open_trades(request):
 
     return JsonResponse(data, safe=False)
 
+
 def get_closed_trades(request):
     closed_trades = (
         ModelTrade.objects
@@ -601,17 +602,22 @@ def predict_live_vertex_new(request):
                     # only take the trade if that coin is not currently in a trade
                     if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
 
-                        # mimic the trade -> add to ModelTrade
-                        ModelTrade.objects.create(
-                            coin=metric.coin,
-                            trade_type="long",
-                            entry_timestamp=metric.timestamp,
-                            duration_minutes=0,
-                            entry_price=metric.price,
-                            model_confidence=confidence,
-                            take_profit_percent=3,
-                            stop_loss_percent=2,
-                        )
+                        try:
+
+                            # mimic the trade -> add to ModelTrade
+                            ModelTrade.objects.create(
+                                coin=metric.coin,
+                                trade_type="long",
+                                entry_timestamp=metric.timestamp,
+                                duration_minutes=0,
+                                entry_price=metric.price,
+                                model_confidence=confidence,
+                                take_profit_percent=3,
+                                stop_loss_percent=2,
+                            )
+
+                        except Exception as e:
+                            print(f"error creating long trade: {e}")
 
             except Exception as e:
                 print(f"Failed to parse prediction for {metric.coin.symbol}: {e}")
@@ -722,17 +728,20 @@ def predict_short_vertex_new(request):
                 # only take the trade if that coin is not currently in a trade
                 if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
 
-                    # mimic the trade -> add to ModelTrade
-                    ModelTrade.objects.create(
-                        coin=metric.coin,
-                        trade_type="short",
-                        entry_timestamp=metric.timestamp,
-                        duration_minutes=0,
-                        entry_price=metric.price,
-                        model_confidence=confidence,
-                        take_profit_percent=3,
-                        stop_loss_percent=2,
-                    )
+                    try:
+                        # mimic the trade -> add to ModelTrade
+                        ModelTrade.objects.create(
+                            coin=metric.coin,
+                            trade_type="short",
+                            entry_timestamp=metric.timestamp,
+                            duration_minutes=0,
+                            entry_price=metric.price,
+                            model_confidence=confidence,
+                            take_profit_percent=3.0,
+                            stop_loss_percent=2.0,
+                        )
+                    except Exception as e:
+                        print(f"error creating short trade: {e}")
 
         # telegram alert
         if len(messages) > 0:
