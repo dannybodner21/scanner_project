@@ -435,15 +435,30 @@ def get_open_trades(request):
 
     data = []
     for trade in open_trades:
+
+        latest_metric = (
+            RickisMetrics.objects
+            .filter(coin=trade.coin)
+            .order_by("-timestamp")
+            .first()
+        )
+        current_price = float(latest_metric.price) if latest_metric and latest_metric.price else 0
+        entry_price = float(trade.entry_price)
+        current_percentage = 0
+        if (entry_price and entry_price != 0):
+            current_percentage = float(((current_price - entry_price) / entry_price) * 100)
+
         data.append({
             "coin": trade.coin.symbol,
             "trade_type": trade.trade_type,
             "model_confidence": trade.model_confidence,
             "entry_timestamp": trade.entry_timestamp.isoformat(),
-            "entry_price": float(trade.entry_price or 0),
+            "entry_price": entry_price,
             "take_profit_percent": trade.take_profit_percent,
             "stop_loss_percent": trade.stop_loss_percent,
             "duration_minutes": trade.duration_minutes,
+            "current_price": current_price,
+            "current_percentage": current_percentage,
         })
 
     return JsonResponse(data, safe=False)
