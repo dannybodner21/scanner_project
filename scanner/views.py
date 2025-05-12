@@ -498,15 +498,12 @@ def get_model_results(request):
     total_long_wins = ModelTrade.objects.filter(trade_type="long", result=True).count()
     total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
 
-    data = []
-    data.append({
+    return JsonResponse({
         "total_long_trades": total_long_trades,
         "total_short_trades": total_short_trades,
         "total_long_wins": total_long_wins,
         "total_short_wins": total_short_wins,
     })
-
-    return JsonResponse(data, safe=False)
 
 
 
