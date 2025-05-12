@@ -490,6 +490,26 @@ def get_closed_trades(request):
 
 
 
+def get_model_results(request):
+
+    total_long_trades = ModelTrade.objects.filter(trade_type="long", exit_timestamp__isnull=False).count()
+    total_short_trades = ModelTrade.objects.filter(trade_type="short", exit_timestamp__isnull=False).count()
+
+    total_long_wins = ModelTrade.objects.filter(trade_type="long", result=True).count()
+    total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
+
+    data = []
+    data.append({
+        "total_long_trades": total_long_trades,
+        "total_short_trades": total_short_trades,
+        "total_long_wins": total_long_wins,
+        "total_short_wins": total_short_wins,
+    })
+
+    return JsonResponse(data, safe=False)
+
+
+
 # new model functions ----------------------------------------------------------
 
 PROJECT_ID = 'bodner-main-project'
