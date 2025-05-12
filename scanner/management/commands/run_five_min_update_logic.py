@@ -109,7 +109,6 @@ def run_five_min_update_logic():
                                     'low_24h': ohlcv_data["quote"]["USD"].get("low", 0),
                                     'open': ohlcv_data["quote"]["USD"].get("open", 0),
                                     'close': ohlcv_data["quote"]["USD"].get("close", 0),
-
                                     'change_1h': crypto_data["quote"]["USD"].get("percent_change_1h", 0),
                                     'change_24h': crypto_data["quote"]["USD"].get("percent_change_24h", 0),
                                     'volume': crypto_data["quote"]["USD"].get("volume_24h", 0),
@@ -125,7 +124,6 @@ def run_five_min_update_logic():
                                     'sma_20': calculate_sma(coin, timestamp, window=20),
                                     'stddev_1h': calculate_stddev_1h(coin, timestamp),
                                     'atr_1h': calculate_atr_1h(coin, timestamp),
-                                    'obv': calculate_obv(coin, timestamp),
                                     'change_since_high': calculate_change_since_high(current_price, ohlcv_data["quote"]["USD"].get("high", 0)),
                                     'change_since_low': calculate_change_since_low(current_price, ohlcv_data["quote"]["USD"].get("low", 0)),
                                     'fib_distance_0_236': fib_distances.get("fib_distance_0_236", 0),
