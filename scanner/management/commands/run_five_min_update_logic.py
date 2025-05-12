@@ -142,7 +142,7 @@ def run_five_min_update_logic():
                             if rel_vol is None:
                                 raise ValueError("Missing relative_volume")
 
-                            obv = calculate_obv(coin, timestamp)
+                            obv = calculate_obv(coin)
                             if obv is None:
                                 raise ValueError("Missing obv")
 

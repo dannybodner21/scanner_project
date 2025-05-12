@@ -442,20 +442,23 @@ def calculate_change_since_low(price, low_24h):
 # Shows if volume is flowing in or out of an asset
 # current price > previous = previous obv + volume
 # current price < previous = previous obv - volume
-def calculate_obv(coin, timestamp):
+def calculate_obv(coin):
     try:
-        # get current and previous Metrics
-        current = RickisMetrics.objects.filter(coin=coin, timestamp=timestamp).first()
-        prev_time = timestamp - timedelta(minutes=5)
-        previous = RickisMetrics.objects.filter(coin=coin, timestamp=prev_time).first()
+        metrics = (
+            RickisMetrics.objects
+            .filter(coin=coin)
+            .order_by('-timestamp')[:2]
+        )
 
-        if not current or not previous:
-            return None
+        if len(metrics) < 2:
+            return 0.0
+
+        current = metrics[0]
+        previous = metrics[1]
 
         current_price = float(current.price)
         previous_price = float(previous.price)
         current_volume = float(current.volume)
-
         previous_obv = previous.obv or 0.0
 
         if current_price > previous_price:
@@ -466,8 +469,9 @@ def calculate_obv(coin, timestamp):
             return previous_obv
 
     except Exception as e:
-        print(f"error in calculate_obv: {e}")
-        return None
+        print(f"❌ Error in calculate_obv for {coin.symbol}: {e}")
+        return 0.0
+
 
 
 # GOING TO DELETE THIS FUNCTION - NOT WORKING RIGHT
