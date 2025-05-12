@@ -160,10 +160,10 @@ def run_five_min_update_logic():
             if not latest_metric:
                 continue
 
-            current_price = latest_metric.price
-            entry = trade.entry_price
-            tp = 3
-            sl = 2
+            current_price = float(latest_metric.price)
+            entry = float(trade.entry_price)
+            tp = 3.0
+            sl = 2.0
 
             if trade.trade_type == "long":
                 if current_price >= entry * (1 + tp / 100):
