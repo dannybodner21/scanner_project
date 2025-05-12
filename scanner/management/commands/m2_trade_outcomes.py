@@ -10,7 +10,7 @@ class Command(BaseCommand):
         start = make_aware(datetime(2025, 3, 22))
         end = make_aware(datetime(2025, 5, 3))
 
-        entries = Metrics.objects.filter(
+        entries = RickisMetrics.objects.filter(
             timestamp__gte=start, timestamp__lt=end
         ).select_related("coin").order_by("timestamp")
         total = entries.count()
@@ -25,7 +25,7 @@ class Command(BaseCommand):
             sl_short = entry_price * 1.02
 
             # look at future prices for 24 hours
-            future_metrics = Metrics.objects.filter(
+            future_metrics = RickisMetrics.objects.filter(
                 coin=entry.coin,
                 timestamp__gt=entry.timestamp,
                 timestamp__lte=entry.timestamp + timedelta(hours=24)
@@ -69,10 +69,10 @@ class Command(BaseCommand):
             batch.append(entry)
 
             if len(batch) >= 100:
-                Metrics.objects.bulk_update(batch, ["long_result", "short_result"])
+                RickisMetrics.objects.bulk_update(batch, ["long_result", "short_result"])
                 batch.clear()
 
         if batch:
-            Metrics.objects.bulk_update(batch, ["long_result", "short_result"])
+            RickisMetrics.objects.bulk_update(batch, ["long_result", "short_result"])
 
         print("done.")

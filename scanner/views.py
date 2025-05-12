@@ -552,7 +552,7 @@ def predict_live_vertex_new(request):
         return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
 
     # Load RickisMetrics
-    cutoff = now() - timedelta(minutes=5)
+    cutoff = now() - timedelta(minutes=7)
     metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
 
     if not metrics.exists():
@@ -625,7 +625,7 @@ def predict_live_vertex_new(request):
                 print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
                 count += 1
 
-                if confidence > 0.75:
+                if confidence > 0.85:
 
                     messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 

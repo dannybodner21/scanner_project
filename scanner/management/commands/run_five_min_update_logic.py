@@ -88,6 +88,10 @@ def run_five_min_update_logic():
                         try:
                             macd, macd_signal = calculate_macd(coin, timestamp)
                             stochastic_k, stochastic_d = calculate_stochastic(coin, timestamp)
+
+                            if stochastic_k is None or stochastic_d is None:
+                                raise ValueError("Missing stochastic values")
+
                             support, resistance = calculate_support_resistance(coin, timestamp)
                             fib_distances = calculate_fib_distances(
                                 high=ohlcv_data["quote"]["USD"].get("high", 0),
@@ -105,25 +109,25 @@ def run_five_min_update_logic():
                                     'low_24h': ohlcv_data["quote"]["USD"].get("low", 0),
                                     'open': ohlcv_data["quote"]["USD"].get("open", 0),
                                     'close': ohlcv_data["quote"]["USD"].get("close", 0),
-                                    'change_5m': calculate_price_change_five_min(coin, timestamp) or 0,
+                                    'change_5m': calculate_price_change_five_min(coin, timestamp),
                                     'change_1h': crypto_data["quote"]["USD"].get("percent_change_1h", 0),
                                     'change_24h': crypto_data["quote"]["USD"].get("percent_change_24h", 0),
                                     'volume': crypto_data["quote"]["USD"].get("volume_24h", 0),
-                                    'avg_volume_1h': calculate_avg_volume_1h(coin, timestamp) or 0,
-                                    'rsi': calculate_rsi(coin, timestamp) or 0,
-                                    'macd': macd or 0,
-                                    'macd_signal': macd_signal or 0,
-                                    'stochastic_k': stochastic_k or 0,
-                                    'stochastic_d': stochastic_d or 0,
-                                    'support_level': support or 0,
-                                    'resistance_level': resistance or 0,
-                                    'sma_5': calculate_sma(coin, timestamp, window=5) or 0,
-                                    'sma_20': calculate_sma(coin, timestamp, window=20) or 0,
-                                    'stddev_1h': calculate_stddev_1h(coin, timestamp) or 0,
-                                    'atr_1h': calculate_atr_1h(coin, timestamp) or 0,
-                                    'obv': calculate_obv(coin, timestamp) or 0,
-                                    'change_since_high': calculate_change_since_high(current_price, ohlcv_data["quote"]["USD"].get("high", 0)) or 0,
-                                    'change_since_low': calculate_change_since_low(current_price, ohlcv_data["quote"]["USD"].get("low", 0)) or 0,
+                                    'avg_volume_1h': calculate_avg_volume_1h(coin, timestamp),
+                                    'rsi': calculate_rsi(coin, timestamp),
+                                    'macd': macd,
+                                    'macd_signal': macd_signal,
+                                    'stochastic_k': stochastic_k,
+                                    'stochastic_d': stochastic_d,
+                                    'support_level': support,
+                                    'resistance_level': resistance,
+                                    'sma_5': calculate_sma(coin, timestamp, window=5),
+                                    'sma_20': calculate_sma(coin, timestamp, window=20),
+                                    'stddev_1h': calculate_stddev_1h(coin, timestamp),
+                                    'atr_1h': calculate_atr_1h(coin, timestamp),
+                                    'obv': calculate_obv(coin, timestamp),
+                                    'change_since_high': calculate_change_since_high(current_price, ohlcv_data["quote"]["USD"].get("high", 0)),
+                                    'change_since_low': calculate_change_since_low(current_price, ohlcv_data["quote"]["USD"].get("low", 0)),
                                     'fib_distance_0_236': fib_distances.get("fib_distance_0_236", 0),
                                     'fib_distance_0_382': fib_distances.get("fib_distance_0_382", 0),
                                     'fib_distance_0_5': fib_distances.get("fib_distance_0_5", 0),
@@ -132,8 +136,11 @@ def run_five_min_update_logic():
                                 }
                             )
 
-                            # STEP 2: Update relative_volume separately after metrics exist
-                            metrics.relative_volume = calculate_relative_volume(coin, timestamp) or 0
+                            rel_vol = calculate_relative_volume(coin, timestamp)
+                            if rel_vol is None:
+                                raise ValueError("Missing relative_volume")
+
+                            metrics.relative_volume = rel_vol
                             metrics.save()
 
                             print(f"✅ Created/updated RickisMetrics for {coin.symbol}")
