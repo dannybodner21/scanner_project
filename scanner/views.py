@@ -430,7 +430,7 @@ def get_open_trades(request):
         ModelTrade.objects
         .filter(exit_timestamp__isnull=True)
         .select_related("coin")
-        .order_by("-entry_timestamp")[:10]
+        .order_by("-entry_timestamp")[:20]
     )
 
     data = []
@@ -469,7 +469,7 @@ def get_closed_trades(request):
         ModelTrade.objects
         .filter(exit_timestamp__isnull=False)
         .select_related("coin")
-        .order_by("-exit_timestamp")[:10]
+        .order_by("-exit_timestamp")[:20]
     )
 
     data = []
@@ -605,17 +605,17 @@ def predict_live_vertex_new(request):
                 # Find index of "true" class (sometimes it's index 0, sometimes 1)
                 class_idx = pred["classes"].index("true")
                 confidence = pred["scores"][class_idx]
-                #print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
+                print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
                 count += 1
 
-                if confidence > 0.8:
+                if confidence > 0.9:
 
                     messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
                     # only take the trade if that coin is not currently in a trade
                     if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
 
-                        print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
+                        #print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
                         try:
 
@@ -736,10 +736,10 @@ def predict_short_vertex_new(request):
             true_index = result["classes"].index("true")
             confidence = result["scores"][true_index]
             count += 1
-            #print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
+            print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
 
-            # send message through Telegram if confidence is greater than 0.6
-            if confidence > 0.8:
+            # send message through Telegram if confidence is greater than 0.9
+            if confidence > 0.9:
                 messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
 
 
@@ -747,7 +747,7 @@ def predict_short_vertex_new(request):
                 # only take the trade if that coin is not currently in a trade
                 if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
 
-                    print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
+                    #print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
 
                     try:
                         # mimic the trade -> add to ModelTrade
