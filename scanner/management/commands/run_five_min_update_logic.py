@@ -109,7 +109,7 @@ def run_five_min_update_logic():
                                     'low_24h': ohlcv_data["quote"]["USD"].get("low", 0),
                                     'open': ohlcv_data["quote"]["USD"].get("open", 0),
                                     'close': ohlcv_data["quote"]["USD"].get("close", 0),
-                                    'change_5m': calculate_price_change_five_min(coin, timestamp),
+
                                     'change_1h': crypto_data["quote"]["USD"].get("percent_change_1h", 0),
                                     'change_24h': crypto_data["quote"]["USD"].get("percent_change_24h", 0),
                                     'volume': crypto_data["quote"]["USD"].get("volume_24h", 0),
@@ -136,11 +136,21 @@ def run_five_min_update_logic():
                                 }
                             )
 
+                            five_min_price_change = calculate_price_change_five_min(coin, timestamp)
+                            if five_min_price_change is None:
+                                raise ValueError("Missing price change five min")
+
                             rel_vol = calculate_relative_volume(coin, timestamp)
                             if rel_vol is None:
                                 raise ValueError("Missing relative_volume")
 
+                            obv = calculate_obv(coin, timestamp)
+                            if obv is None:
+                                raise ValueError("Missing obv")
+
                             metrics.relative_volume = rel_vol
+                            metrics.change_5m = five_min_price_change
+                            metrics.obv = obv
                             metrics.save()
 
                             print(f"✅ Created/updated RickisMetrics for {coin.symbol}")
