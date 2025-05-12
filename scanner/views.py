@@ -610,12 +610,12 @@ def predict_live_vertex_new(request):
 
                 if confidence > 0.8:
 
-                    print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-
                     messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
                     # only take the trade if that coin is not currently in a trade
                     if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
+
+                        print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
                         try:
 
@@ -630,6 +630,8 @@ def predict_live_vertex_new(request):
                                 take_profit_percent=3,
                                 stop_loss_percent=2,
                             )
+
+                            print("LONG trade created")
 
                         except Exception as e:
                             print(f"error creating long trade: {e}")
@@ -738,10 +740,12 @@ def predict_short_vertex_new(request):
             if confidence > 0.8:
                 messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
 
-                print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
+
 
                 # only take the trade if that coin is not currently in a trade
                 if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
+
+                    print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
 
                     try:
                         # mimic the trade -> add to ModelTrade
@@ -755,6 +759,9 @@ def predict_short_vertex_new(request):
                             take_profit_percent=3.0,
                             stop_loss_percent=2.0,
                         )
+
+                        print("SHORT trade created")
+
                     except Exception as e:
                         print(f"error creating short trade: {e}")
 
