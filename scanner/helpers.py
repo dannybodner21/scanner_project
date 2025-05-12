@@ -366,44 +366,31 @@ def calculate_atr_1h(coin, timestamp):
 
 # function to calculate the price change over a 5 min period
 # % change = ((current price - price 5 min ago) / price 5 min ago) x 100
-def calculate_price_change_five_min(coin, timestamp):
+def calculate_price_change_five_min(coin):
+    metrics = (
+        RickisMetrics.objects
+        .filter(coin=coin)
+        .order_by('-timestamp')[:2]
+    )
+
+    if len(metrics) < 2:
+        print(f"⚠️ Not enough data to calculate 5-min change for {coin.symbol}")
+        return 0
+
+    latest = metrics[0]
+    previous = metrics[1]
 
     try:
-        # current price from Metrics
-        current = RickisMetrics.objects.filter(
-            coin=coin,
-            timestamp=timestamp
-        ).values_list('price', flat=True).first()
+        prev_price = float(previous.price)
+        latest_price = float(latest.price)
 
-        if current is None:
-            return None
+        if prev_price == 0:
+            return 0
 
-        current = float(current)
-
-        # look back 5 min (4-6 min)
-        target_time = timestamp - timedelta(minutes=5)
-        window_start = target_time - timedelta(minutes=1)
-        window_end = target_time + timedelta(minutes=1)
-        previous = (
-            RickisMetrics.objects.filter(
-                coin=coin,
-                timestamp__gte=window_start,
-                timestamp__lte=window_end
-            )
-            .order_by('timestamp')
-            .values_list('price', flat=True)
-            .first()
-        )
-
-        if previous is None or previous == 0:
-            return None
-
-        previous = float(previous)
-        return ((current - previous) / previous) * 100
-
+        return ((latest_price - prev_price) / prev_price) * 100
     except Exception as e:
-        print(f"error in calculate_price_change_five_min: {e}")
-        return None
+        print(f"❌ Error calculating 5-min change for {coin.symbol}: {e}")
+        return 0
 
 
 # function to calculate the current price change from recent high

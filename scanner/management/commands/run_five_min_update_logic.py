@@ -134,7 +134,7 @@ def run_five_min_update_logic():
                                 }
                             )
 
-                            five_min_price_change = calculate_price_change_five_min(coin, timestamp)
+                            five_min_price_change = calculate_price_change_five_min(coin)
                             if five_min_price_change is None:
                                 raise ValueError("Missing price change five min")
 
