@@ -164,12 +164,14 @@ def run_five_min_update_logic():
             entry = float(trade.entry_price)
             tp = 3.0
             sl = 2.0
+            result = True
 
             if trade.trade_type == "long":
                 if current_price >= entry * (1 + tp / 100):
                     status = "💰 TAKE PROFIT"
                 elif current_price <= entry * (1 - sl / 100):
                     status = "🛑 STOP LOSS"
+                    result = False
                 else:
                     continue
             else:  # short
@@ -177,12 +179,14 @@ def run_five_min_update_logic():
                     status = "💰 TAKE PROFIT"
                 elif current_price >= entry * (1 + sl / 100):
                     status = "🛑 STOP LOSS"
+                    result = False
                 else:
                     continue
 
             # close trade
             trade.exit_price = current_price
             trade.exit_timestamp = now()
+            trade.result = result
             trade.save()
 
             print(f"{status} | {trade.trade_type.upper()} {trade.coin.symbol} @ {current_price:.6f}")
