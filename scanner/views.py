@@ -552,7 +552,7 @@ def predict_live_vertex_new(request):
         return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
 
     # Load RickisMetrics
-    cutoff = now() - timedelta(minutes=7)
+    cutoff = now() - timedelta(minutes=5)
     metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
 
     if not metrics.exists():
@@ -645,7 +645,7 @@ def predict_live_vertex_new(request):
                                 entry_price=metric.price,
                                 model_confidence=confidence,
                                 take_profit_percent=3,
-                                stop_loss_percent=2,
+                                stop_loss_percent=3,
                             )
 
                             print("LONG trade created")
@@ -776,7 +776,7 @@ def predict_short_vertex_new(request):
                             entry_price=metric.price,
                             model_confidence=confidence,
                             take_profit_percent=3.0,
-                            stop_loss_percent=2.0,
+                            stop_loss_percent=3.0,
                         )
 
                         print("SHORT trade created")

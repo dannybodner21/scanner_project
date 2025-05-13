@@ -177,12 +177,12 @@ def run_five_min_update_logic():
 
             current_price = float(latest_metric.price)
             entry = float(trade.entry_price)
-            tp = 4.0
+            tp = 3.0
             sl = 3.0
             result = True
 
             if trade.trade_type == "long":
-                if current_price >= entry * 1.04:
+                if current_price >= entry * 1.03:
                     status = "💰 TAKE PROFIT"
                 elif current_price <= entry * 0.97:
                     status = "🛑 STOP LOSS"
@@ -190,7 +190,7 @@ def run_five_min_update_logic():
                 else:
                     continue
             else:  # short
-                if current_price <= entry * 0.96:
+                if current_price <= entry * 0.97:
                     status = "💰 TAKE PROFIT"
                 elif current_price >= entry * 1.03:
                     status = "🛑 STOP LOSS"
