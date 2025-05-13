@@ -41,7 +41,7 @@ def run_five_min_update_logic():
         "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
         "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
         "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
-    ]
+    ]    
 
     batch_size = 100
     for i in range(0, len(cmc_ids), batch_size):

@@ -12,6 +12,9 @@ import finnhub
 import numpy as np
 import matplotlib.pyplot as plt
 import mplfinance as mpf
+import traceback
+import threading
+import google.auth
 
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
@@ -26,25 +29,21 @@ from django.db.models import Prefetch, OuterRef, Subquery
 from django.db.models import Max, Min
 from django.core.management import call_command
 from django.views.decorators.csrf import csrf_exempt
-
 from scanner.utils import score_metrics
 from scanner.utils import send_telegram_alert
 from scanner.utils import score_metrics, score_metrics_short
-
 from sklearn.linear_model import LinearRegression
 from collections import defaultdict
-import threading
 from django.utils.timezone import make_aware, is_naive
 from django.db.models import Sum
 from django.utils.timezone import timedelta
 from django.core.management.base import BaseCommand
 from threading import Thread
 from scanner.management.commands.run_five_min_update_logic import run_five_min_update_logic
-import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from django.db.models import Q
-import traceback
+
 
 
 # FLOW OF THE ML MODEL:
