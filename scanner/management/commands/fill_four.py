@@ -104,7 +104,7 @@ class Command(BaseCommand):
                     count += 1
                     metric.save()
                     #print(f"✅ Updated {coin.symbol} at {timestamp}")
-                    print(f"updated: {count}")
+                    #print(f"updated: {count}")
 
             except Exception as e:
                 print(f"❌ Error at {coin.symbol} {timestamp}: {e}")
