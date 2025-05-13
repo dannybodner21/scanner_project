@@ -40,37 +40,46 @@ class Command(BaseCommand):
                 print(f"❌ Coin {symbol} not found.")
                 continue
 
-            print(f"🔍 Checking {coin.symbol}")
-            timestamp = start
+            print(f"🔍 Checking {symbol}")
+            current = start
+            timestamps_to_fill = []
 
-            while timestamp <= end:
-                if not RickisMetrics.objects.filter(coin=coin, timestamp=timestamp).exists():
-                    unix_ts = int(timestamp.timestamp())
-                    params = {
-                        "symbol": coin.symbol,
-                        "time_start": unix_ts - 300,
-                        "time_end": unix_ts + 300,
-                        "interval": "5m",
-                        "convert": "USD"
-                    }
+            while current <= end:
+                if not RickisMetrics.objects.filter(coin=coin, timestamp=current).exists():
+                    timestamps_to_fill.append(current)
+                current += interval
 
-                    try:
-                        response = requests.get(CMC_URL, headers=HEADERS, params=params)
-                        data = response.json()
-                        quotes = data.get("data", {}).get("quotes", [])
+            # Group timestamps by day for efficiency
+            grouped_by_day = {}
+            for ts in timestamps_to_fill:
+                day = ts.date()
+                grouped_by_day.setdefault(day, []).append(ts)
 
-                        if not quotes:
-                            raise Exception("No quotes returned")
+            for day, timestamps in grouped_by_day.items():
+                unix_start = int(make_aware(datetime.combine(day, datetime.min.time())).timestamp())
+                unix_end = int((make_aware(datetime.combine(day, datetime.max.time()))).timestamp())
+                params = {
+                    "symbol": symbol,
+                    "time_start": unix_start,
+                    "time_end": unix_end,
+                    "interval": "5m",
+                    "convert": "USD"
+                }
 
-                        closest_quote = min(
+                try:
+                    response = requests.get(CMC_URL, headers=HEADERS, params=params)
+                    data = response.json()
+                    quotes = data.get("data", {}).get("quotes", [])
+
+                    for ts in timestamps:
+                        closest = min(
                             quotes,
-                            key=lambda q: abs(datetime.strptime(q["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ") - timestamp)
+                            key=lambda q: abs(make_aware(datetime.strptime(q["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ")) - ts)
                         )
-
-                        quote = closest_quote["quote"]["USD"]
+                        quote = closest["quote"]["USD"]
                         RickisMetrics.objects.create(
                             coin=coin,
-                            timestamp=timestamp,
+                            timestamp=ts,
                             price=quote["price"],
                             volume=quote.get("volume_24h", 0),
                             high_24h=quote.get("high", 0),
@@ -78,15 +87,12 @@ class Command(BaseCommand):
                             open=quote.get("open", 0),
                             close=quote.get("close", 0),
                         )
-
                         total_filled += 1
-                        print(f"✅ Filled {coin.symbol} at {timestamp}")
+                        print(f"✅ Filled {symbol} at {ts}")
 
-                    except Exception as e:
-                        print(f"❌ Failed {coin.symbol} at {timestamp}: {e}")
+                except Exception as e:
+                    print(f"❌ Error retrieving quotes for {symbol} on {day}: {e}")
 
-                    time.sleep(SECONDS_BETWEEN_CALLS)
-
-                timestamp += interval
+                time.sleep(SECONDS_BETWEEN_CALLS)
 
         print(f"🎉 Completed. {total_filled} entries filled.")
