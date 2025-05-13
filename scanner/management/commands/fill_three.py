@@ -54,37 +54,37 @@ class Command(BaseCommand):
 
 
         '''
-        from datetime import datetime
-        from django.utils.timezone import make_aware
-        from scanner.models import Coin, RickisMetrics
+from datetime import datetime
+from django.utils.timezone import make_aware
+from scanner.models import Coin, RickisMetrics
 
-        # Define date range
-        start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 5, 2))
+# Define date range
+start = make_aware(datetime(2025, 3, 22))
+end = make_aware(datetime(2025, 5, 2))
 
-        # Define the coin symbols to check
-        symbols = ["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
-        "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
-        "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
-        "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
-        "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
-        "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
-        "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
-        "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"]
+# Define the coin symbols to check
+symbols = ["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
+"AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+"XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
+"RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
+"ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+"EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
+"PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
+"THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"]
 
-        # Go through each coin
-        for symbol in symbols:
-            try:
-                coin = Coin.objects.get(symbol=symbol)
-                metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
+# Go through each coin
+for symbol in symbols:
+    try:
+        coin = Coin.objects.get(symbol=symbol)
+        metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
-                total = metrics.count()
-                missing = metrics.filter(price__isnull=True).count()
-                zero = metrics.filter(price=0).count()
+        total = metrics.count()
+        missing = metrics.filter(stochastic_k__isnull=True).count()
+        zero = metrics.filter(stochastic_k=0).count()
 
-                print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
+        print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
-            except Coin.DoesNotExist:
-                print(f"❌ Coin not found: {symbol}")
+    except Coin.DoesNotExist:
+        print(f"❌ Coin not found: {symbol}")
 
         '''
