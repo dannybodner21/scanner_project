@@ -9,6 +9,9 @@ import statistics
 import csv
 import pandas as pd
 import finnhub
+import numpy as np
+import matplotlib.pyplot as plt
+import mplfinance as mpf
 
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
@@ -24,27 +27,19 @@ from django.db.models import Max, Min
 from django.core.management import call_command
 from django.views.decorators.csrf import csrf_exempt
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import mplfinance as mpf
-
 from scanner.utils import score_metrics
 from scanner.utils import send_telegram_alert
 from scanner.utils import score_metrics, score_metrics_short
-from scanner.models import Coin, FiredSignal
+
 from sklearn.linear_model import LinearRegression
 from collections import defaultdict
 import threading
 from django.utils.timezone import make_aware, is_naive
-from sklearn.linear_model import LinearRegression
-import numpy as np
 from django.db.models import Sum
 from django.utils.timezone import timedelta
 from django.core.management.base import BaseCommand
 from threading import Thread
 from scanner.management.commands.run_five_min_update_logic import run_five_min_update_logic
-from scanner.management.commands.predict_live import predict_live_logic
 import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
@@ -62,11 +57,6 @@ import traceback
 @csrf_exempt
 def five_min_update(request):
     Thread(target=run_five_min_update_logic).start()
-    return JsonResponse({"status": "started"})
-
-@csrf_exempt
-def predict_live(request):
-    Thread(target=predict_live_logic).start()
     return JsonResponse({"status": "started"})
 
 # predict live

@@ -31,7 +31,4 @@ urlpatterns = [
     path("api/metrics-health-daily/", views.daily_metrics_health, name="daily-metrics-health"),
 
 
-
-    path("predict-long/", views.predict_live, name="predict-long"),
-
 ]
