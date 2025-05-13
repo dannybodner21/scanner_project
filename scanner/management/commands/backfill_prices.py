@@ -28,7 +28,7 @@ class Command(BaseCommand):
         ]
 
         for symbol in symbols:
-            coin = Coin.objects.filter(symbol=symbol)
+            coin = Coin.objects.get(symbol=symbol)
             print(f"🔍 Checking: {coin.symbol}")
             metrics = RickisMetrics.objects.filter(
                 coin=coin,

@@ -74,24 +74,6 @@ def calculate_rsi(coin, timestamp, period=14):
     except Exception as e:
         print(f"error in calculate_rsi: {e}")
 
-# exponential moving average
-# EMA = (current_price x multiplier_k) + (previous_EMA x (1 - multiplier_k))
-def calculate_ema_from_prices(prices, window):
-
-    try:
-        if prices is None or len(prices) < window:
-            return None
-
-        prices = [float(price) for price in prices]
-        k = 2 / (window + 1)
-        ema = prices[0]
-
-        for priceTwo in prices[1:]:
-            ema = (priceTwo * k) + (ema * (1 - k))
-        return ema
-
-    except Exception as e:
-        print(f"error in calculate_ema_from_prices: {e}")
 
 # Moving Average Convergence Divergence
 # MACD and Signal Line
@@ -131,6 +113,7 @@ def calculate_macd(coin, timestamp):
 
     except Exception as e:
         print(f"error in calculate_macd: {e}")
+
 
 # Stochastic K and Stochastic D
 # K shows current position of the price relative to recent high/low range
@@ -239,62 +222,6 @@ def calculate_sma(coin, timestamp, window):
     except Exception as e:
         print(f"error in calculate_sma: {e}")
 
-# NEED TO RECALCULATE ALL OF THESE WITH THIS NEW FUNCTION
-def calculate_ema(coin, timestamp, window):
-
-    try:
-        prices = RickisMetrics.objects.filter(
-            coin=coin,
-            timestamp__lte=timestamp
-        ).order_by('-timestamp').values_list('price', flat=True)[:window]
-
-        prices = list(prices)
-
-        if len(prices) < window:
-            return None
-
-        prices = [float(p) for p in prices]
-
-        return calculate_ema_from_prices(prices[::-1], window)
-
-    except Exception as e:
-
-        print(f"error in calculate_ema: {e}")
-        return None
-
-# NEED TO RECALCULATE ALL OF THESE WITH THIS NEW FUNCTION
-def calculate_price_slope_1h(coin, timestamp):
-
-    try:
-        prices = RickisMetrics.objects.filter(
-            coin=coin,
-            timestamp__lte=timestamp
-        ).order_by('timestamp')
-        prices = list(prices.values_list('price', flat=True))[-12:]
-
-        if len(prices) < 2:
-            return None
-
-        prices = [float(p) for p in prices]
-        x = list(range(len(prices)))
-        y = prices
-
-        n = len(x)
-        sum_x = sum(x)
-        sum_y = sum(y)
-        sum_xx = sum(xi * xi for xi in x)
-        sum_xy = sum(xi * yi for xi, yi in zip(x, y))
-        denominator = n * sum_xx - sum_x ** 2
-        if denominator == 0:
-            return None
-
-        slope = (n * sum_xy - sum_x * sum_y) / denominator
-        return slope
-
-    except Exception as e:
-        print(f"error in calculate_price_slope_1h: {e}")
-        return None
-
 
 # standard deviation -> how much price fluctuates from the average
 def calculate_stddev_1h(coin, timestamp):
@@ -360,8 +287,6 @@ def calculate_atr_1h(coin, timestamp):
     except Exception as e:
         print(f"error in calculate_atr_1h: {e}")
         return None
-
-
 
 
 # function to calculate the price change over a 5 min period
@@ -473,68 +398,68 @@ def calculate_obv(coin):
         return 0.0
 
 
-
-# GOING TO DELETE THIS FUNCTION - NOT WORKING RIGHT
-def calculate_volume_to_market_cap(volume, market_cap):
-    try:
-        return float(volume) / float(market_cap) if market_cap > 0 else None
-    except:
-        return None
-
-# function to get market sentiment from alternative API
-def fetch_fear_and_greed_index():
+# Fibonacci retracement levels based on recent highs / lows
+# technical indicators used to determine support and resistance levels
+def calculate_fib_distances(high, low, current_price):
 
     try:
-        res = requests.get("https://api.alternative.me/fng/?limit=1").json()
-        data = res["data"][0]
-        score = int(data["value"])
-        label = data["value_classification"]
-        return score, label
+        if high is None or low is None or current_price is None:
+            return {}
+
+        # get recent high / low
+        high = float(high)
+        low = float(low)
+        current_price = float(current_price)
+        diff = high - low
+
+        if diff == 0:
+            return {}
+
+        # calculate the Fibonacci retracement levels
+        levels = {
+            "fib_distance_0_236": low + 0.236 * diff,
+            "fib_distance_0_382": low + 0.382 * diff,
+            "fib_distance_0_5":   low + 0.5 * diff,
+            "fib_distance_0_618": low + 0.618 * diff,
+            "fib_distance_0_786": low + 0.786 * diff,
+        }
+
+        # return the percentage distance between current price and each level
+        return {
+            key: ((current_price - val) / val) * 100 if val != 0 else None
+            for key, val in levels.items()
+        }
+    except Exception as e:
+        print(f"error in calculate_fib_distances: {e}")
+        return {}
+
+
+
+
+
+
+
+# NOT USING AT THIS MOMENT -----------------------------------------------------
+
+# exponential moving average
+# EMA = (current_price x multiplier_k) + (previous_EMA x (1 - multiplier_k))
+def calculate_ema_from_prices(prices, window):
+
+    try:
+        if prices is None or len(prices) < window:
+            return None
+
+        prices = [float(price) for price in prices]
+        k = 2 / (window + 1)
+        ema = prices[0]
+
+        for priceTwo in prices[1:]:
+            ema = (priceTwo * k) + (ema * (1 - k))
+        return ema
 
     except Exception as e:
-        print(f"Error fetching Fear & Greed Index: {e}")
-        return None, None
+        print(f"error in calculate_ema_from_prices: {e}")
 
-
-
-
-
-
-def calculate_adx(coin, timestamp):
-
-    candles = RickisMetrics.objects.filter(
-        coin=coin,
-        timestamp__lte=timestamp
-    ).order_by('-timestamp')[:30]
-
-    if len(candles) < 14:
-        return None
-
-    data = list(candles)[::-1]
-    rows = []
-    for c in data:
-        try:
-            if c.high_24h is None or c.low_24h is None or c.close is None:
-                continue
-            rows.append({
-                "high": float(c.high_24h),
-                "low": float(c.low_24h),
-                "close": float(c.close)
-            })
-        except:
-            continue
-
-    if len(rows) < 14:
-        return None
-
-    df = pd.DataFrame(rows)
-    indicator = ADXIndicator(df['high'], df['low'], df['close'], window=14)
-    adx_series = indicator.adx()
-
-    if adx_series.empty or len(adx_series) < 14:
-        return None
-
-    return adx_series.iloc[-1]
 
 # Bollinger bands
 # used to measure volatility and identify overbought / oversold assets
@@ -574,43 +499,119 @@ def calculate_bollinger_bands(coin, timestamp):
         bb.bollinger_lband().iloc[-1],
     )
 
+def calculate_adx(coin, timestamp):
+
+    candles = RickisMetrics.objects.filter(
+        coin=coin,
+        timestamp__lte=timestamp
+    ).order_by('-timestamp')[:30]
+
+    if len(candles) < 14:
+        return None
+
+    data = list(candles)[::-1]
+    rows = []
+    for c in data:
+        try:
+            if c.high_24h is None or c.low_24h is None or c.close is None:
+                continue
+            rows.append({
+                "high": float(c.high_24h),
+                "low": float(c.low_24h),
+                "close": float(c.close)
+            })
+        except:
+            continue
+
+    if len(rows) < 14:
+        return None
+
+    df = pd.DataFrame(rows)
+    indicator = ADXIndicator(df['high'], df['low'], df['close'], window=14)
+    adx_series = indicator.adx()
+
+    if adx_series.empty or len(adx_series) < 14:
+        return None
+
+    return adx_series.iloc[-1]
 
 
+# GOING TO DELETE THIS FUNCTION - NOT WORKING RIGHT
+def calculate_volume_to_market_cap(volume, market_cap):
+    try:
+        return float(volume) / float(market_cap) if market_cap > 0 else None
+    except:
+        return None
 
 
-
-
-# Fibonacci retracement levels based on recent highs / lows
-# technical indicators used to determine support and resistance levels
-def calculate_fib_distances(high, low, current_price):
+# function to get market sentiment from alternative API
+def fetch_fear_and_greed_index():
 
     try:
-        if high is None or low is None or current_price is None:
-            return {}
+        res = requests.get("https://api.alternative.me/fng/?limit=1").json()
+        data = res["data"][0]
+        score = int(data["value"])
+        label = data["value_classification"]
+        return score, label
 
-        # get recent high / low
-        high = float(high)
-        low = float(low)
-        current_price = float(current_price)
-        diff = high - low
-
-        if diff == 0:
-            return {}
-
-        # calculate the Fibonacci retracement levels
-        levels = {
-            "fib_distance_0_236": low + 0.236 * diff,
-            "fib_distance_0_382": low + 0.382 * diff,
-            "fib_distance_0_5":   low + 0.5 * diff,
-            "fib_distance_0_618": low + 0.618 * diff,
-            "fib_distance_0_786": low + 0.786 * diff,
-        }
-
-        # return the percentage distance between current price and each level
-        return {
-            key: ((current_price - val) / val) * 100 if val != 0 else None
-            for key, val in levels.items()
-        }
     except Exception as e:
-        print(f"error in calculate_fib_distances: {e}")
-        return {}
+        print(f"Error fetching Fear & Greed Index: {e}")
+        return None, None
+
+
+# NEED TO RECALCULATE ALL OF THESE WITH THIS NEW FUNCTION
+def calculate_price_slope_1h(coin, timestamp):
+
+    try:
+        prices = RickisMetrics.objects.filter(
+            coin=coin,
+            timestamp__lte=timestamp
+        ).order_by('timestamp')
+        prices = list(prices.values_list('price', flat=True))[-12:]
+
+        if len(prices) < 2:
+            return None
+
+        prices = [float(p) for p in prices]
+        x = list(range(len(prices)))
+        y = prices
+
+        n = len(x)
+        sum_x = sum(x)
+        sum_y = sum(y)
+        sum_xx = sum(xi * xi for xi in x)
+        sum_xy = sum(xi * yi for xi, yi in zip(x, y))
+        denominator = n * sum_xx - sum_x ** 2
+        if denominator == 0:
+            return None
+
+        slope = (n * sum_xy - sum_x * sum_y) / denominator
+        return slope
+
+    except Exception as e:
+        print(f"error in calculate_price_slope_1h: {e}")
+        return None
+
+
+# NEED TO RECALCULATE ALL OF THESE WITH THIS NEW FUNCTION
+def calculate_ema(coin, timestamp, window):
+
+    try:
+        prices = RickisMetrics.objects.filter(
+            coin=coin,
+            timestamp__lte=timestamp
+        ).order_by('-timestamp').values_list('price', flat=True)[:window]
+
+        prices = list(prices)
+
+        if len(prices) < window:
+            return None
+
+        prices = [float(p) for p in prices]
+
+        return calculate_ema_from_prices(prices[::-1], window)
+
+    except Exception as e:
+
+        print(f"error in calculate_ema: {e}")
+        return None
