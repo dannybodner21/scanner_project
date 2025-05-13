@@ -3,22 +3,19 @@ from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
 from scanner.models import RickisMetrics, Coin
 import requests
-import time
+from collections import defaultdict
 
 CMC_API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 HEADERS = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": CMC_API_KEY}
 CMC_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
 
 class Command(BaseCommand):
-    help = 'Ensure complete RickisMetrics entries every 5 minutes from March 22 to May 12'
+    help = 'Efficiently fill missing RickisMetrics entries from March 22 to April 20'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 20))
-        interval = timedelta(minutes=5)
-
-        coins = Coin.objects.all()
-        total_filled = 0
+        start = make_aware(datetime(2025, 4, 20))
+        end = make_aware(datetime(2025, 5, 12))
+        interval = timedelta(days=1)
 
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -29,51 +26,66 @@ class Command(BaseCommand):
             "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
             "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
             "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
-        ] 
+        ]
+
+        coins = Coin.objects.filter(symbol__in=symbols)
+        symbol_map = {coin.symbol: coin for coin in coins}
+        total_created = 0
 
         for symbol in symbols:
-            coin = Coin.objects.get(sybmol=symbol)
-            print(f"🔍 Checking {coin.symbol}")
-            timestamp = start
+            coin = symbol_map.get(symbol)
+            if not coin:
+                print(f"⚠️ Missing Coin entry for symbol: {symbol}")
+                continue
 
-            while timestamp <= end:
-                exists = RickisMetrics.objects.filter(coin=coin, timestamp=timestamp).exists()
+            print(f"🔍 {symbol}: Checking days for missing metrics...")
+            day = start
 
-                if not exists:
-                    unix_ts = int(timestamp.timestamp())
-                    params = {
-                        "id": coin.cmc_id,
-                        "time_start": unix_ts - 300,
-                        "time_end": unix_ts + 300,
-                        "interval": "5m",
-                        "convert": "USD"
-                    }
+            while day <= end:
+                day_start = int(day.timestamp())
+                day_end = int((day + timedelta(days=1)).timestamp())
+                params = {
+                    "symbol": symbol,
+                    "time_start": day_start,
+                    "time_end": day_end,
+                    "interval": "5m",
+                    "convert": "USD"
+                }
 
-                    try:
-                        response = requests.get(CMC_URL, headers=HEADERS, params=params)
-                        data = response.json()
+                try:
+                    response = requests.get(CMC_URL, headers=HEADERS, params=params)
+                    response.raise_for_status()
+                    quotes = response.json()["data"]["quotes"]
 
-                        quote = data["data"]["quotes"][0]["quote"]["USD"]
-                        price = quote["price"]
+                    new_metrics = []
+                    for quote in quotes:
+                        timestamp = make_aware(datetime.strptime(quote["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"))
+                        exists = RickisMetrics.objects.filter(coin=coin, timestamp=timestamp).exists()
 
-                        RickisMetrics.objects.create(
-                            coin=coin,
-                            timestamp=timestamp,
-                            price=price,
-                            volume=quote.get("volume_24h", 0),
-                            high_24h=quote.get("high", 0),
-                            low_24h=quote.get("low", 0),
-                            open=quote.get("open", 0),
-                            close=quote.get("close", 0),
-                        )
-                        total_filled += 1
-                        print(f"✅ Filled {coin.symbol} at {timestamp}")
+                        if not exists:
+                            price = quote["quote"]["USD"].get("price")
+                            if price:
+                                new_metrics.append(RickisMetrics(
+                                    coin=coin,
+                                    timestamp=timestamp,
+                                    price=price,
+                                    volume=quote["quote"]["USD"].get("volume_24h", 0),
+                                    high_24h=quote["quote"]["USD"].get("high", 0),
+                                    low_24h=quote["quote"]["USD"].get("low", 0),
+                                    open=quote["quote"]["USD"].get("open", 0),
+                                    close=quote["quote"]["USD"].get("close", 0),
+                                ))
 
-                    except Exception as e:
-                        print(f"❌ Failed {coin.symbol} at {timestamp}: {e}")
+                    if new_metrics:
+                        RickisMetrics.objects.bulk_create(new_metrics)
+                        total_created += len(new_metrics)
+                        print(f"✅ {symbol} on {day.date()}: {len(new_metrics)} entries added")
+                    else:
+                        print(f"✅ {symbol} on {day.date()}: all entries exist")
 
-                    time.sleep(1.1)
+                except Exception as e:
+                    print(f"❌ Failed {symbol} on {day.date()}: {e}")
 
-                timestamp += interval
+                day += interval
 
-        print(f"🎉 Completed. {total_filled} entries filled.")
+        print(f"🎉 Done. Total new RickisMetrics entries created: {total_created}")
