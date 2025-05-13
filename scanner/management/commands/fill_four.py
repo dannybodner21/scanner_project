@@ -11,60 +11,100 @@ from scanner.helpers import (
 )
 
 class Command(BaseCommand):
-    help = 'Recalculate key metrics for RickisMetrics entries between April 20 and May 12'
+    help = 'Recalculate missing (zero) metrics for RickisMetrics between April 20 and May 12'
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 22))
         end = make_aware(datetime(2025, 4, 20))
 
-        queryset = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related("coin")
-        batch = []
+        metrics = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related("coin")
 
-        for metric in queryset:
+        for metric in metrics:
+            coin = metric.coin
+            timestamp = metric.timestamp
+            updated = False
+
             try:
-                coin = metric.coin
-                timestamp = metric.timestamp
+                if metric.rsi == 0:
+                    rsi = calculate_rsi(coin, timestamp)
+                    if rsi is not None:
+                        metric.rsi = rsi
+                        updated = True
 
-                macd, macd_signal = calculate_macd(coin, timestamp)
-                stochastic_k, stochastic_d = calculate_stochastic(coin, timestamp)
-                support, resistance = calculate_support_resistance(coin, timestamp)
+                if metric.macd == 0 or metric.macd_signal == 0:
+                    macd, signal = calculate_macd(coin, timestamp)
+                    if macd is not None and signal is not None:
+                        metric.macd = macd
+                        metric.macd_signal = signal
+                        updated = True
 
-                metric.rsi = calculate_rsi(coin, timestamp)
-                metric.macd = macd
-                metric.macd_signal = macd_signal
-                metric.stochastic_k = stochastic_k
-                metric.stochastic_d = stochastic_d
-                metric.support_level = support
-                metric.resistance_level = resistance
-                metric.sma_5 = calculate_sma(coin, timestamp, window=5)
-                metric.sma_20 = calculate_sma(coin, timestamp, window=20)
-                metric.stddev_1h = calculate_stddev_1h(coin, timestamp)
-                metric.atr_1h = calculate_atr_1h(coin, timestamp)
-                metric.change_5m = calculate_price_change_five_min(coin)
-                metric.change_since_high = calculate_change_since_high(float(metric.price), float(metric.high_24h))
-                metric.change_since_low = calculate_change_since_low(float(metric.price), float(metric.low_24h))
-                metric.obv = calculate_obv(coin)
+                if metric.stochastic_k == 0 or metric.stochastic_d == 0:
+                    k, d = calculate_stochastic(coin, timestamp)
+                    if k is not None and d is not None:
+                        metric.stochastic_k = k
+                        metric.stochastic_d = d
+                        updated = True
 
-                batch.append(metric)
+                if metric.support_level == 0 or metric.resistance_level == 0:
+                    support, resistance = calculate_support_resistance(coin, timestamp)
+                    if support is not None and resistance is not None:
+                        metric.support_level = support
+                        metric.resistance_level = resistance
+                        updated = True
 
-                if len(batch) >= 100:
-                    RickisMetrics.objects.bulk_update(batch, [
-                        "rsi", "macd", "macd_signal", "stochastic_k", "stochastic_d",
-                        "support_level", "resistance_level", "sma_5", "sma_20",
-                        "stddev_1h", "atr_1h", "change_5m", "change_since_high",
-                        "change_since_low", "obv"
-                    ])
-                    batch.clear()
+                if metric.sma_5 == 0:
+                    sma5 = calculate_sma(coin, timestamp, 5)
+                    if sma5 is not None:
+                        metric.sma_5 = sma5
+                        updated = True
+
+                if metric.sma_20 == 0:
+                    sma20 = calculate_sma(coin, timestamp, 20)
+                    if sma20 is not None:
+                        metric.sma_20 = sma20
+                        updated = True
+
+                if metric.stddev_1h == 0:
+                    stddev = calculate_stddev_1h(coin, timestamp)
+                    if stddev is not None:
+                        metric.stddev_1h = stddev
+                        updated = True
+
+                if metric.atr_1h == 0:
+                    atr = calculate_atr_1h(coin, timestamp)
+                    if atr is not None:
+                        metric.atr_1h = atr
+                        updated = True
+
+                if metric.change_5m == 0:
+                    change5m = calculate_price_change_five_min(coin, timestamp)
+                    if change5m is not None:
+                        metric.change_5m = change5m
+                        updated = True
+
+                if metric.change_since_high == 0:
+                    high_diff = calculate_change_since_high(float(metric.price), float(metric.high_24h))
+                    if high_diff is not None:
+                        metric.change_since_high = high_diff
+                        updated = True
+
+                if metric.change_since_low == 0:
+                    low_diff = calculate_change_since_low(float(metric.price), float(metric.low_24h))
+                    if low_diff is not None:
+                        metric.change_since_low = low_diff
+                        updated = True
+
+                if metric.obv == 0:
+                    obv = calculate_obv(coin, timestamp)
+                    if obv is not None:
+                        metric.obv = obv
+                        updated = True
+
+                if updated:
+                    metric.save()
+                    print(f"✅ Updated {coin.symbol} at {timestamp}")
 
             except Exception as e:
-                print(f"❌ Error on {metric.coin.symbol} at {metric.timestamp}: {e}")
+                print(f"❌ Error at {coin.symbol} {timestamp}: {e}")
 
-        if batch:
-            RickisMetrics.objects.bulk_update(batch, [
-                "rsi", "macd", "macd_signal", "stochastic_k", "stochastic_d",
-                "support_level", "resistance_level", "sma_5", "sma_20",
-                "stddev_1h", "atr_1h", "change_5m", "change_since_high",
-                "change_since_low", "obv"
-            ])
-
-        print("✅ Recalculation complete for April 20 to May 12.")
+        print("✅ Selective metric recalculation complete.")
