@@ -13,8 +13,8 @@ class Command(BaseCommand):
     help = 'Fix RickisMetrics price == 0 by fetching from CMC historical quotes API'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 21))
-        end = make_aware(datetime(2025, 4, 20))
+        start = make_aware(datetime(2025, 4, 20))
+        end = make_aware(datetime(2025, 5, 12))
 
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -26,7 +26,7 @@ class Command(BaseCommand):
             "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
             "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
         ]
-          
+
         for symbol in symbols:
             coin = Coin.objects.filter(symbol=symbol)
             print(f"🔍 Checking: {coin.symbol}")
@@ -38,11 +38,12 @@ class Command(BaseCommand):
             ).order_by('timestamp')
 
             for metric in metrics:
-                timestamp = int(metric.timestamp.timestamp())
+                timestamp_start = int(metric.timestamp.timestamp())
+                timestamp_end = timestamp_start + 300
                 params = {
-                    "id": coin.cmc_id,
-                    "time_start": timestamp,
-                    "time_end": timestamp,
+                    "symbol": coin.symbol,
+                    "time_start": timestamp_start,
+                    "time_end": timestamp_end,
                     "interval": "5m",
                     "convert": "USD"
                 }
