@@ -14,8 +14,8 @@ class Command(BaseCommand):
     help = 'Recalculate missing (zero) metrics for RickisMetrics between April 20 and May 12'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 23))
-        end = make_aware(datetime(2025, 4, 22))
+        start = make_aware(datetime(2025, 4, 22))
+        end = make_aware(datetime(2025, 5, 12))
 
         metrics = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related("coin")
         count = 0
@@ -25,7 +25,7 @@ class Command(BaseCommand):
             updated = False
 
             try:
-                if metric.rsi == 0 or metric.rsi == None:
+                if metric.rsi == 0 or metric.rsi is None:
                     rsi = calculate_rsi(coin, timestamp)
                     if rsi is not None:
                         metric.rsi = rsi
@@ -33,7 +33,7 @@ class Command(BaseCommand):
                     else:
                         print(f"rsi returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.macd == 0 or metric.macd_signal == 0 or metric.macd == None or metric.macd_signal == None:
+                if metric.macd == 0 or metric.macd_signal == 0 or metric.macd is None or metric.macd_signal is None:
                     macd, signal = calculate_macd(coin, timestamp)
                     if macd is not None and signal is not None:
                         metric.macd = macd
@@ -42,7 +42,7 @@ class Command(BaseCommand):
                     else:
                         print(f"macd returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.stochastic_k == 0 or metric.stochastic_d == 0 or metric.stochastic_k == None or metric.stochastic_d == None:
+                if metric.stochastic_k == 0 or metric.stochastic_d == 0 or metric.stochastic_k is None or metric.stochastic_d is None:
                     k, d = calculate_stochastic(coin, timestamp)
                     if k is not None and d is not None:
                         metric.stochastic_k = k
@@ -51,7 +51,7 @@ class Command(BaseCommand):
                     else:
                         print(f"stochastic returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.support_level == 0 or metric.resistance_level == 0 or metric.support_level == None or metric.resistance_level == None:
+                if metric.support_level == 0 or metric.resistance_level == 0 or metric.support_level is None or metric.resistance_level is None:
                     support, resistance = calculate_support_resistance(coin, timestamp)
                     if support is not None and resistance is not None:
                         metric.support_level = support
@@ -60,7 +60,7 @@ class Command(BaseCommand):
                     else:
                         print(f"support returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.sma_5 == 0 or metric.sma_5 == None:
+                if metric.sma_5 == 0 or metric.sma_5 is None:
                     sma5 = calculate_sma(coin, timestamp, 5)
                     if sma5 is not None:
                         metric.sma_5 = sma5
@@ -68,7 +68,7 @@ class Command(BaseCommand):
                     else:
                         print(f"sma5 returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.sma_20 == 0 or metric.sma_20 == None:
+                if metric.sma_20 == 0 or metric.sma_20 is None:
                     sma20 = calculate_sma(coin, timestamp, 20)
                     if sma20 is not None:
                         metric.sma_20 = sma20
@@ -76,7 +76,7 @@ class Command(BaseCommand):
                     else:
                         print(f"sma20 returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.stddev_1h == 0 or metric.stddev_1h == None:
+                if metric.stddev_1h == 0 or metric.stddev_1h is None:
                     stddev = calculate_stddev_1h(coin, timestamp)
                     if stddev is not None:
                         metric.stddev_1h = stddev
@@ -84,7 +84,7 @@ class Command(BaseCommand):
                     else:
                         print(f"stddev returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.atr_1h == 0 or metric.atr_1h == None:
+                if metric.atr_1h == 0 or metric.atr_1h is None:
                     atr = calculate_atr_1h(coin, timestamp)
                     if atr is not None:
                         metric.atr_1h = atr
@@ -92,7 +92,7 @@ class Command(BaseCommand):
                     else:
                         print(f"atr1h returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.change_5m == 0 or metric.change_5m == None:
+                if metric.change_5m == 0 or metric.change_5m is None:
                     change5m = calculate_price_change_five_min(coin)
                     if change5m is not None:
                         metric.change_5m = change5m
@@ -100,7 +100,7 @@ class Command(BaseCommand):
                     else:
                         print(f"change5 returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.change_since_high == 0 or metric.change_since_high == None:
+                if metric.change_since_high == 0 or metric.change_since_high is None:
                     high_diff = calculate_change_since_high(float(metric.price), float(metric.high_24h))
                     if high_diff is not None:
                         metric.change_since_high = high_diff
@@ -108,7 +108,7 @@ class Command(BaseCommand):
                     else:
                         print(f"change high returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.change_since_low == 0 or metric.change_since_low == None:
+                if metric.change_since_low == 0 or metric.change_since_low is None:
                     low_diff = calculate_change_since_low(float(metric.price), float(metric.low_24h))
                     if low_diff is not None:
                         metric.change_since_low = low_diff
@@ -116,7 +116,7 @@ class Command(BaseCommand):
                     else:
                         print(f"change low returned NONE: {coin.symbol} at {timestamp}")
 
-                if metric.obv == 0 or metric.obv == None:
+                if metric.obv == 0 or metric.obv is None:
                     obv = calculate_obv(coin)
                     if obv is not None:
                         metric.obv = obv
