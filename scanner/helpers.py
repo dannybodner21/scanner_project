@@ -315,16 +315,16 @@ def calculate_atr_1h(coin, timestamp):
 
 # function to calculate the price change over a 5 min period
 # % change = ((current price - price 5 min ago) / price 5 min ago) x 100
-def calculate_price_change_five_min(coin):
+def calculate_price_change_five_min(coin, timestamp):
     metrics = (
         RickisMetrics.objects
-        .filter(coin=coin)
+        .filter(coin=coin, timestamp__lte=timestamp)
         .order_by('-timestamp')[:2]
     )
 
     if len(metrics) < 2:
-        print(f"⚠️ Not enough data to calculate 5-min change for {coin.symbol}")
-        return 0
+        print(f"⚠️ Not enough data to calculate 5-min change for {coin.symbol} at {timestamp}")
+        return None
 
     latest = metrics[0]
     previous = metrics[1]
@@ -334,12 +334,12 @@ def calculate_price_change_five_min(coin):
         latest_price = float(latest.price)
 
         if prev_price == 0:
-            return 0
+            return None
 
         return ((latest_price - prev_price) / prev_price) * 100
     except Exception as e:
-        print(f"❌ Error calculating 5-min change for {coin.symbol}: {e}")
-        return 0
+        print(f"❌ Error calculating 5-min change for {coin.symbol} at {timestamp}: {e}")
+        return None
 
 
 # function to calculate the current price change from recent high
@@ -391,20 +391,20 @@ def calculate_change_since_low(price, low_24h):
 # Shows if volume is flowing in or out of an asset
 # current price > previous = previous obv + volume
 # current price < previous = previous obv - volume
-def calculate_obv(coin):
+def calculate_obv(coin, timestamp):
+    metrics = (
+        RickisMetrics.objects
+        .filter(coin=coin, timestamp__lte=timestamp)
+        .order_by('-timestamp')[:2]
+    )
+
+    if len(metrics) < 2:
+        return None
+
+    current = metrics[0]
+    previous = metrics[1]
+
     try:
-        metrics = (
-            RickisMetrics.objects
-            .filter(coin=coin)
-            .order_by('-timestamp')[:2]
-        )
-
-        if len(metrics) < 2:
-            return 0.0
-
-        current = metrics[0]
-        previous = metrics[1]
-
         current_price = float(current.price)
         previous_price = float(previous.price)
         current_volume = float(current.volume)
@@ -418,8 +418,8 @@ def calculate_obv(coin):
             return previous_obv
 
     except Exception as e:
-        print(f"❌ Error in calculate_obv for {coin.symbol}: {e}")
-        return 0.0
+        print(f"❌ Error in calculate_obv for {coin.symbol} at {timestamp}: {e}")
+        return None
 
 
 # Fibonacci retracement levels based on recent highs / lows
