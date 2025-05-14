@@ -34,9 +34,9 @@ def get_recent_prices_old(coin, timestamp, window):
         print("Available timestamps:")
         for q in queryset:
             print(q.timestamp)
-'''
 
         return []
+'''
 
     return prices[:window][::-1]
 
