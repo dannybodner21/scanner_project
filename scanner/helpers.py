@@ -28,15 +28,6 @@ def get_recent_prices_old(coin, timestamp, window):
             prices.append(float(q.price))
         else:
             print(f"❌ Invalid price at {q.timestamp} for {coin.symbol}: {q.price}")
-'''
-    if len(prices) < window:
-        print(f"⚠️ {coin.symbol} only has {len(prices)} valid prices (needed {window})")
-        print("Available timestamps:")
-        for q in queryset:
-            print(q.timestamp)
-
-        return []
-'''
 
     return prices[:window][::-1]
 
