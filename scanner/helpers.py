@@ -15,20 +15,26 @@ def round_to_five_minutes(dt):
 
 # get recent prices for a coin in a given window - oldest to newest
 def get_recent_prices(coin, timestamp, window):
-    queryset = RickisMetrics.objects.filter(
-        coin=coin,
-        timestamp__lte=timestamp,
-        price__isnull=False  # filter out missing
-    ).order_by('-timestamp')[:window]
+    # Get full queryset first and slice AFTER evaluating values
+    queryset = (
+        RickisMetrics.objects
+        .filter(
+            coin=coin,
+            timestamp__lte=timestamp,
+            price__isnull=False
+        )
+        .order_by('-timestamp')
+    )
 
-    prices = list(queryset.values_list('price', flat=True))
+    prices = list(queryset.values_list('price', flat=True)[:window])
     prices = [float(p) for p in prices if p is not None]
 
     if len(prices) < window:
         print(f"⚠️ {coin.symbol} only has {len(prices)} prices (needed {window})")
-        return []  # or return None if you want to handle this differently
+        return []
 
     return prices[::-1]
+
 
 # get recent volumes for a coin in a given window - oldest to newest
 def get_recent_volumes(coin, timestamp, window):
