@@ -177,6 +177,7 @@ class RickisMetrics(models.Model):
     low_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     open = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     close = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+
     change_5m = models.FloatField(null=True)
     change_1h = models.FloatField(null=True)
     change_24h = models.FloatField(null=True)

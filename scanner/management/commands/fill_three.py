@@ -59,7 +59,7 @@ from django.utils.timezone import make_aware
 from scanner.models import Coin, RickisMetrics
 
 # Define date range
-start = make_aware(datetime(2025, 3, 22))
+start = make_aware(datetime(2025, 3, 23))
 end = make_aware(datetime(2025, 5, 12))
 
 # Define the coin symbols to check
@@ -79,8 +79,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(stochastic_k__isnull=True).count()
-        zero = metrics.filter(stochastic_k=0).count()
+        missing = metrics.filter(change_5m__isnull=True).count()
+        zero = metrics.filter(change_5m=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
