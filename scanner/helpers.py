@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from django.utils.timezone import make_aware
+from django.utils.timezone import is_naive, make_aware
 from scanner.models import RickisMetrics
 import numpy as np
 import requests
@@ -15,25 +15,23 @@ def round_to_five_minutes(dt):
 
 # get recent prices for a coin in a given window - oldest to newest
 def get_recent_prices(coin, timestamp, window):
-    # Get full queryset first and slice AFTER evaluating values
-    queryset = (
-        RickisMetrics.objects
-        .filter(
-            coin=coin,
-            timestamp__lte=timestamp,
-            price__isnull=False
-        )
-        .order_by('-timestamp')
-    )
+    if is_naive(timestamp):
+        timestamp = make_aware(timestamp)
 
-    prices = list(queryset.values_list('price', flat=True)[:window])
-    prices = [float(p) for p in prices if p is not None]
+    # Fetch more than needed, just in case
+    queryset = RickisMetrics.objects.filter(
+        coin=coin,
+        timestamp__lte=timestamp,
+        price__isnull=False
+    ).order_by('-timestamp')[:window * 3]  # over-fetch
+
+    prices = [float(p) for p in queryset.values_list('price', flat=True) if p and p != 0]
 
     if len(prices) < window:
-        print(f"⚠️ {coin.symbol} only has {len(prices)} prices (needed {window})")
+        print(f"⚠️ {coin.symbol} only has {len(prices)} valid prices (needed {window})")
         return []
 
-    return prices[::-1]
+    return prices[:window][::-1]
 
 
 # get recent volumes for a coin in a given window - oldest to newest
