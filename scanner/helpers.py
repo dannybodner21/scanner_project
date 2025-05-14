@@ -15,23 +15,29 @@ def round_to_five_minutes(dt):
 
 # get recent prices for a coin in a given window - oldest to newest
 def get_recent_prices(coin, timestamp, window):
-    if is_naive(timestamp):
-        timestamp = make_aware(timestamp)
-
-    # Fetch more than needed, just in case
     queryset = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp,
         price__isnull=False
-    ).order_by('-timestamp')[:window * 3]  # over-fetch
+    ).order_by('-timestamp')[:window * 5]
 
-    prices = [float(p) for p in queryset.values_list('price', flat=True) if p and p != 0]
+    prices = []
+    for q in queryset:
+        if q.price and q.price != 0:
+            prices.append(float(q.price))
+        else:
+            print(f"❌ Invalid price at {q.timestamp} for {coin.symbol}: {q.price}")
 
     if len(prices) < window:
         print(f"⚠️ {coin.symbol} only has {len(prices)} valid prices (needed {window})")
+        print("Available timestamps:")
+        for q in queryset:
+            print(q.timestamp)
+
         return []
 
     return prices[:window][::-1]
+
 
 
 # get recent volumes for a coin in a given window - oldest to newest
