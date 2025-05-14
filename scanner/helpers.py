@@ -151,8 +151,6 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
     try:
         # get recent prices -> can't be lower than 16 time periods
 
-        print(f"👉 Getting prices for {coin.symbol} at {timestamp}")
-
         prices = get_recent_prices(coin, timestamp, period + smoothing - 1)
         if len(prices) < period + smoothing - 1:
             return None, None
