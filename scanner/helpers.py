@@ -28,12 +28,13 @@ def get_recent_prices_old(coin, timestamp, window):
             prices.append(float(q.price))
         else:
             print(f"❌ Invalid price at {q.timestamp} for {coin.symbol}: {q.price}")
-
+'''
     if len(prices) < window:
         print(f"⚠️ {coin.symbol} only has {len(prices)} valid prices (needed {window})")
         print("Available timestamps:")
         for q in queryset:
             print(q.timestamp)
+'''
 
         return []
 
@@ -158,7 +159,7 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
 
     try:
         # get recent prices -> can't be lower than 16 time periods
-        
+
         print(f"👉 Getting prices for {coin.symbol} at {timestamp}")
 
         prices = get_recent_prices(coin, timestamp, period + smoothing - 1)
