@@ -14,7 +14,7 @@ class Command(BaseCommand):
     help = 'Recalculate missing (zero) metrics for RickisMetrics between April 20 and May 12'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 13))
+        start = make_aware(datetime(2025, 3, 23))
         end = make_aware(datetime(2025, 4, 22))
 
         metrics = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related("coin")
