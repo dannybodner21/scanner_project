@@ -147,33 +147,53 @@ def calculate_macd(coin, timestamp):
 # Ln = lowest low over last n periods (I am using 14)
 # Hn = highest high over the last n periods (14)
 def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
-
     try:
-        # get recent prices -> can't be lower than 16 time periods
+        # Pull enough candles to calculate smoothed K
+        candles = (
+            RickisMetrics.objects
+            .filter(coin=coin, timestamp__lte=timestamp)
+            .order_by('-timestamp')[:period + smoothing - 1]
+        )
 
-        prices = get_recent_prices(coin, timestamp, period + smoothing - 1)
-        if len(prices) < period + smoothing - 1:
+        if len(candles) < period + smoothing - 1:
+            print(f"❌ Not enough data for stochastic: {coin.symbol} at {timestamp}")
             return None, None
 
+        candles = list(candles)[::-1]  # oldest to newest
         k_values = []
+
         for i in range(smoothing):
-            window_prices = prices[i:i+period]
-            highest_high = max(window_prices)
-            lowest_low = min(window_prices)
-            current_close = window_prices[-1]
+            window = candles[i:i+period]
+            highs = [c.high_24h for c in window if c.high_24h]
+            lows = [c.low_24h for c in window if c.low_24h]
+            closes = [c.close for c in window if c.close]
+
+            if len(highs) < period or len(lows) < period or not closes:
+                continue
+
+            highest_high = max(highs)
+            lowest_low = min(lows)
+            current_close = closes[-1]
+
             if highest_high == lowest_low:
                 k = 0
             else:
                 k = (current_close - lowest_low) / (highest_high - lowest_low) * 100
+
             k_values.append(k)
 
+        if not k_values:
+            return None, None
+
         k = k_values[-1]
-        d = np.mean(k_values)
+        d = sum(k_values) / len(k_values)
 
         return k, d
 
     except Exception as e:
         print(f"error in calculate_stochastic: {e}")
+        return None, None
+
 
 # get recent support / resistance levels on a 20 time period window
 def calculate_support_resistance(coin, timestamp, period=20):
