@@ -79,8 +79,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(volume__isnull=True).count()
-        zero = metrics.filter(volume=0).count()
+        missing = metrics.filter(stochastic_k__isnull=True).count()
+        zero = metrics.filter(stochastic_k=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 

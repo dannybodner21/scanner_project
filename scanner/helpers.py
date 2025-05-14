@@ -13,8 +13,9 @@ from ta.volatility import BollingerBands
 def round_to_five_minutes(dt):
     return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
 
+
 # get recent prices for a coin in a given window - oldest to newest
-def get_recent_prices(coin, timestamp, window):
+def get_recent_prices_old(coin, timestamp, window):
     queryset = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp,
@@ -38,6 +39,26 @@ def get_recent_prices(coin, timestamp, window):
 
     return prices[:window][::-1]
 
+
+def get_recent_prices(coin, timestamp, window):
+    # Fetch more than needed to ensure we can filter out garbage
+    queryset = RickisMetrics.objects.filter(
+        coin=coin,
+        timestamp__lte=timestamp,
+        price__gt=0  # filter out missing/zero prices
+    ).order_by('-timestamp')[:window + 10]
+
+    prices = list(queryset.values_list('price', flat=True))
+
+    # Defensive: convert and reverse
+    prices = [float(p) for p in prices if p is not None][:window]
+    prices = prices[::-1]
+
+    if len(prices) < window:
+        print(f"⚠️ {coin.symbol} only has {len(prices)} valid prices (needed {window}) at {timestamp}")
+        return []
+
+    return prices
 
 
 # get recent volumes for a coin in a given window - oldest to newest
@@ -137,6 +158,9 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
 
     try:
         # get recent prices -> can't be lower than 16 time periods
+        
+        print(f"👉 Getting prices for {coin.symbol} at {timestamp}")
+
         prices = get_recent_prices(coin, timestamp, period + smoothing - 1)
         if len(prices) < period + smoothing - 1:
             return None, None
