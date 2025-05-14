@@ -13,12 +13,11 @@ RATE_LIMIT_CALLS_PER_MIN = 25
 SECONDS_BETWEEN_CALLS = 60.0 / RATE_LIMIT_CALLS_PER_MIN
 
 class Command(BaseCommand):
-    help = 'Fill missing volume, high, low, open, and close in RickisMetrics between March 22 and May 12'
+    help = 'Fill missing OHLCV values in RickisMetrics using daily data from March 22 to May 12'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 20))
-        interval = timedelta(minutes=5)
+        start = datetime(2025, 4, 20)
+        end = datetime(2025, 5, 12)
 
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -37,62 +36,76 @@ class Command(BaseCommand):
             try:
                 coin = Coin.objects.get(symbol=symbol)
             except Coin.DoesNotExist:
-                print(f"❌ Coin {symbol} not found.")
+                print(f"❌ Coin not found: {symbol}")
                 continue
 
-            print(f"🔍 Checking {symbol}")
-            metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lte=end)
+            print(f"\n🔍 Checking {symbol}")
+            day = start
+            while day <= end:
+                day_start = day.strftime("%Y-%m-%d")
+                day_end = (day + timedelta(days=1)).strftime("%Y-%m-%d")
 
-            for metric in metrics:
-                needs_update = any([
-                    not metric.volume or metric.volume == 0,
-                    not metric.high_24h or metric.high_24h == 0,
-                    not metric.low_24h or metric.low_24h == 0,
-                    not metric.open or metric.open == 0,
-                    not metric.close or metric.close == 0,
-                ])
-
-                if not needs_update:
-                    continue
-
-                ts = int(metric.timestamp.timestamp())
                 params = {
-                    "symbol": coin.symbol,
-                    "time_start": ts - 300,
-                    "time_end": ts + 300,
-                    "interval": "5m",
+                    "symbol": symbol,
+                    "time_start": day_start,
+                    "time_end": day_end,
                     "convert": "USD"
                 }
 
                 try:
                     response = requests.get(CMC_URL, headers=HEADERS, params=params)
+                    response.raise_for_status()
                     data = response.json()
-                    quotes = data.get("data", {}).get("quotes", [])
 
-                    if not quotes:
-                        print(f"⚠️ No data for {symbol} at {metric.timestamp}")
+                    if not data.get("data") or not data["data"].get("quotes"):
+                        print(f"⚠️ No data for {symbol} on {day_start}")
+                        day += timedelta(days=1)
                         continue
 
-                    # Use closest quote
-                    closest = min(
-                        quotes,
-                        key=lambda q: abs(datetime.strptime(q["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ") - metric.timestamp.replace(tzinfo=None))
+                    daily_quote = data["data"]["quotes"][0]["quote"]["USD"]
+                    high = daily_quote.get("high")
+                    low = daily_quote.get("low")
+                    open_ = daily_quote.get("open")
+                    close = daily_quote.get("close")
+                    volume = daily_quote.get("volume")
+
+                    # Update all 5-min intervals for that day
+                    start_ts = make_aware(datetime.combine(day, datetime.min.time()))
+                    end_ts = start_ts + timedelta(days=1)
+
+                    metrics = RickisMetrics.objects.filter(
+                        coin=coin,
+                        timestamp__gte=start_ts,
+                        timestamp__lt=end_ts
                     )
-                    quote = closest["quote"]["USD"]
 
-                    metric.volume = metric.volume or quote.get("volume", 0)
-                    metric.high_24h = metric.high_24h or quote.get("high", 0)
-                    metric.low_24h = metric.low_24h or quote.get("low", 0)
-                    metric.open = metric.open or quote.get("open", 0)
-                    metric.close = metric.close or quote.get("close", 0)
+                    for metric in metrics:
+                        updated = False
+                        if not metric.high_24h or metric.high_24h == 0:
+                            metric.high_24h = high
+                            updated = True
+                        if not metric.low_24h or metric.low_24h == 0:
+                            metric.low_24h = low
+                            updated = True
+                        if not metric.open or metric.open == 0:
+                            metric.open = open_
+                            updated = True
+                        if not metric.close or metric.close == 0:
+                            metric.close = close
+                            updated = True
+                        if not metric.volume or metric.volume == 0:
+                            metric.volume = volume
+                            updated = True
 
-                    metric.save()
-                    total_updates += 1
-                    print(f"✅ Updated {symbol} at {metric.timestamp}")
+                        if updated:
+                            metric.save()
+                            total_updates += 1
+                            print(f"✅ Updated {symbol} — {metric.timestamp}")
 
                 except Exception as e:
-                    print(f"❌ Failed {symbol} at {metric.timestamp}: {e}")
+                    print(f"❌ Failed {symbol} on {day_start}: {e}")
 
                 time.sleep(SECONDS_BETWEEN_CALLS)
+                day += timedelta(days=1)
 
-        print(f"🎉 Done. {total_updates} metrics updated.")
+        print(f"\n🎉 Done. Total RickisMetrics updated: {total_updates}")
