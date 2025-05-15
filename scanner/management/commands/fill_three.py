@@ -60,7 +60,7 @@ from scanner.models import Coin, RickisMetrics
 
 # Define date range
 start = make_aware(datetime(2025, 3, 23))
-end = make_aware(datetime(2025, 5, 12))
+end = make_aware(datetime(2025, 5, 13))
 
 # Define the coin symbols to check
 symbols = ["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -79,12 +79,47 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(macd__isnull=True).count()
-        zero = metrics.filter(macd=0).count()
+        missing = metrics.filter(stochastic_d__isnull=True).count()
+        zero = metrics.filter(stochastic_d=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
     except Coin.DoesNotExist:
         print(f"❌ Coin not found: {symbol}")
+
+
+change_5m = models.FloatField(null=True)
+change_1h = models.FloatField(null=True)
+change_24h = models.FloatField(null=True)
+volume = models.DecimalField(max_digits=30, decimal_places=2)
+avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True)
+rsi = models.FloatField(null=True)
+macd = models.FloatField(null=True)
+macd_signal = models.FloatField(null=True)
+stochastic_k = models.FloatField(null=True)
+stochastic_d = models.FloatField(null=True)
+support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+relative_volume = models.FloatField(null=True)
+sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+stddev_1h = models.FloatField(null=True)
+atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+obv = models.FloatField(null=True)
+change_since_high = models.FloatField(null=True)
+change_since_low = models.FloatField(null=True)
+fib_distance_0_236 = models.FloatField(null=True)
+fib_distance_0_382 = models.FloatField(null=True)
+fib_distance_0_5   = models.FloatField(null=True)
+fib_distance_0_618 = models.FloatField(null=True)
+fib_distance_0_786 = models.FloatField(null=True)
+long_result = models.BooleanField(null=True)
+short_result = models.BooleanField(null=True)
+
+
+
+
+
+
 
         '''
