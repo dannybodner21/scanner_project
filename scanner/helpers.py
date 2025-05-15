@@ -78,24 +78,38 @@ def calculate_rsi(coin, timestamp, period=14):
         prices = get_recent_prices(coin, timestamp, period + 1)
         if len(prices) < period + 1:
             return None
+
         gains = []
         losses = []
+
         for i in range(1, len(prices)):
             delta = prices[i] - prices[i - 1]
-            if delta >= 0:
+            if delta > 0:
                 gains.append(delta)
-            else:
+            elif delta < 0:
                 losses.append(abs(delta))
-        # numpy for mean
+            else:
+                # No change
+                continue
+
+        if not gains and not losses:
+            return None  # Flat price
+
         avg_gain = np.mean(gains) if gains else 0
         avg_loss = np.mean(losses) if losses else 0
+
         if avg_loss == 0:
-            return 100
-        temp = avg_gain / avg_loss
-        return 100 - (100 / (1 + temp))
+            return 100  # Strong uptrend (no losses)
+        if avg_gain == 0:
+            return 0  # Strong downtrend (no gains)
+
+        rs = avg_gain / avg_loss
+        return 100 - (100 / (1 + rs))
 
     except Exception as e:
-        print(f"error in calculate_rsi: {e}")
+        print(f"❌ Error in calculate_rsi for {coin.symbol} at {timestamp}: {e}")
+        return None
+
 
 
 # Moving Average Convergence Divergence
