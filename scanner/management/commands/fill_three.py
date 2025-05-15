@@ -60,7 +60,7 @@ from scanner.models import Coin, RickisMetrics
 
 # Define date range
 start = make_aware(datetime(2025, 3, 23))
-end = make_aware(datetime(2025, 5, 13))
+end = make_aware(datetime(2025, 5, 12))
 
 # Define the coin symbols to check
 symbols = ["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -79,8 +79,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(stochastic_d__isnull=True).count()
-        zero = metrics.filter(stochastic_d=0).count()
+        missing = metrics.filter(avg_volume_1h__isnull=True).count()
+        zero = metrics.filter(avg_volume_1h=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
@@ -88,11 +88,16 @@ for symbol in symbols:
         print(f"❌ Coin not found: {symbol}")
 
 
-change_5m = models.FloatField(null=True)
-change_1h = models.FloatField(null=True)
-change_24h = models.FloatField(null=True)
-volume = models.DecimalField(max_digits=30, decimal_places=2)
+change_5m = models.FloatField(null=True) - good
+
+change_1h = models.FloatField(null=True) - missing
+
+change_24h = models.FloatField(null=True) - missing
+
+volume = models.DecimalField(max_digits=30, decimal_places=2) - good
+
 avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True)
+
 rsi = models.FloatField(null=True)
 macd = models.FloatField(null=True)
 macd_signal = models.FloatField(null=True)
