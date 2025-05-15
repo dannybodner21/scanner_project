@@ -7,7 +7,9 @@ from scanner.helpers import (
     calculate_support_resistance, calculate_sma, calculate_stddev_1h,
     calculate_atr_1h, calculate_price_change_five_min,
     calculate_change_since_high, calculate_change_since_low,
-    calculate_obv
+    calculate_obv, get_recent_volumes, get_recent_prices,
+    round_to_five_minutes, calculate_avg_volume_1h, calculate_relative_volume,
+    calculate_stddev_1h, calculate_fib_distances,
 )
 
 class Command(BaseCommand):
@@ -26,23 +28,32 @@ class Command(BaseCommand):
 
             try:
 
-                if metric.atr_1h == 0 or metric.atr_1h is None:
-                    atr = calculate_atr_1h(coin, timestamp)
-                    print(f"in atr: {atr} - {coin.symbol} - {timestamp}")
-                    if atr is not None:
-                        metric.atr_1h = atr
+                if metric.avg_volume_1h == 0 or metric.avg_volume_1h is None:
+                    average_volume = calculate_avg_volume_1h(coin, timestamp)
+                    print(f"in average_volume: {average_volume} - {coin.symbol} - {timestamp}")
+                    if average_volume is not None and average_volume != 0:
+                        metric.avg_volume_1h = average_volume
                         updated = True
                     else:
-                        print(f"atr1h returned NONE: {coin.symbol} at {timestamp}")
+                        print(f"average_volume returned NONE or zero: {coin.symbol} at {timestamp}")
 
-                if metric.change_5m == 0 or metric.change_5m is None:
-                    change5m = calculate_price_change_five_min(coin, timestamp)
-                    print(f"in change5m: {change5m} - {coin.symbol} - {timestamp}")
-                    if change5m is not None:
-                        metric.change_5m = change5m
+                if metric.relative_volume == 0 or metric.relative_volume is None:
+                    rvol = calculate_relative_volume(coin, timestamp)
+                    print(f"in rvol: {rvol} - {coin.symbol} - {timestamp}")
+                    if rvol is not None and rvol != 0:
+                        metric.relative_volume = rvol
                         updated = True
                     else:
-                        print(f"change5 returned NONE: {coin.symbol} at {timestamp}")
+                        print(f"rvol returned NONE or zero: {coin.symbol} at {timestamp}")
+
+                if metric.stddev_1h == 0 or metric.stddev_1h is None:
+                    stddev = calculate_stddev_1h(coin, timestamp)
+                    print(f"in stddev: {stddev} - {coin.symbol} - {timestamp}")
+                    if stddev is not None and stddev != 0:
+                        metric.stddev_1h = stddev
+                        updated = True
+                    else:
+                        print(f"stddev returned NONE or zero: {coin.symbol} at {timestamp}")
 
                 if updated:
                     count += 1

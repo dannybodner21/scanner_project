@@ -14,24 +14,6 @@ def round_to_five_minutes(dt):
     return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
 
 
-# get recent prices for a coin in a given window - oldest to newest
-def get_recent_prices_old(coin, timestamp, window):
-    queryset = RickisMetrics.objects.filter(
-        coin=coin,
-        timestamp__lte=timestamp,
-        price__isnull=False
-    ).order_by('-timestamp')[:window * 5]
-
-    prices = []
-    for q in queryset:
-        if q.price and q.price != 0:
-            prices.append(float(q.price))
-        else:
-            print(f"❌ Invalid price at {q.timestamp} for {coin.symbol}: {q.price}")
-
-    return prices[:window][::-1]
-
-
 def get_recent_prices(coin, timestamp, window):
     # Fetch more than needed to ensure we can filter out garbage
     queryset = RickisMetrics.objects.filter(
@@ -55,20 +37,27 @@ def get_recent_prices(coin, timestamp, window):
 
 # get recent volumes for a coin in a given window - oldest to newest
 def get_recent_volumes(coin, timestamp, window):
+    # Fetch more than needed to ensure enough clean data
     queryset = RickisMetrics.objects.filter(
         coin=coin,
         timestamp__lte=timestamp,
-        volume__isnull=False  # Ignore missing values
-    ).order_by('-timestamp')[:window]
+        volume__isnull=False
+    ).order_by('-timestamp')[:window + 20]
 
-    volumes = list(queryset.values_list('volume', flat=True))
-    volumes = [float(v) for v in volumes if v is not None]
+    volumes = []
+    for v in queryset:
+        try:
+            vol = float(v.volume)
+            if vol > 0:
+                volumes.append(vol)
+        except:
+            continue
 
     if len(volumes) < window:
-        print(f"⚠️ {coin.symbol} only has {len(volumes)} volumes (needed {window}) at {timestamp}")
+        print(f"⚠️ {coin.symbol} only has {len(volumes)} valid volumes (needed {window}) at {timestamp}")
         return []
 
-    return volumes[::-1]  # oldest to newest
+    return volumes[:window][::-1]  # oldest to newest
 
 
 # take a coin and calculate RSI based on 14 time periods
@@ -88,20 +77,17 @@ def calculate_rsi(coin, timestamp, period=14):
                 gains.append(delta)
             elif delta < 0:
                 losses.append(abs(delta))
-            else:
-                # No change
-                continue
 
         if not gains and not losses:
-            return None  # Flat price
+            return None  # Flat price, no movement
 
         avg_gain = np.mean(gains) if gains else 0
         avg_loss = np.mean(losses) if losses else 0
 
         if avg_loss == 0:
-            return 100  # Strong uptrend (no losses)
+            return 100
         if avg_gain == 0:
-            return 0  # Strong downtrend (no gains)
+            return 0
 
         rs = avg_gain / avg_loss
         return 100 - (100 / (1 + rs))
@@ -225,6 +211,7 @@ def calculate_support_resistance(coin, timestamp, period=20):
     except Exception as e:
         print(f"error in calculate_support_resistance: {e}")
 
+
 # average volume over 1 hour
 # average_volme = mean of volumes over 12 time periods
 def calculate_avg_volume_1h(coin, timestamp):
@@ -241,6 +228,7 @@ def calculate_avg_volume_1h(coin, timestamp):
 
     except Exception as e:
         print(f"error in calculate_avg_volume_1h: {e}")
+
 
 # relative volume = recent volume / average volume
 def calculate_relative_volume(coin, timestamp):
@@ -263,6 +251,7 @@ def calculate_relative_volume(coin, timestamp):
 
     except Exception as e:
         print(f"error in calculate_relative_volume: {e}")
+
 
 # simple moving average -> average of prices over a time window
 def calculate_sma(coin, timestamp, window):
@@ -462,6 +451,7 @@ def calculate_fib_distances(high, low, current_price):
 
     try:
         if high is None or low is None or current_price is None:
+            print(f"high, low, or current price is NONE")
             return {}
 
         # get recent high / low

@@ -54,13 +54,19 @@ class Command(BaseCommand):
 
 
         '''
+
+
+march 23, 2025 (inclusive) - may 12, 2025 (not inclusive)
+14,400 entries per coin - 50 days
+
+
 from datetime import datetime
 from django.utils.timezone import make_aware
 from scanner.models import Coin, RickisMetrics
 
 # Define date range
 start = make_aware(datetime(2025, 3, 23))
-end = make_aware(datetime(2025, 5, 10))
+end = make_aware(datetime(2025, 5, 12))
 
 # Define the coin symbols to check
 symbols = ["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -79,8 +85,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(rsi__isnull=True).count()
-        zero = metrics.filter(rsi=0).count()
+        missing = metrics.filter(fib_distance_0_236__isnull=True).count()
+        zero = metrics.filter(fib_distance_0_236=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
@@ -90,35 +96,50 @@ for symbol in symbols:
 
 change_5m = models.FloatField(null=True) - good
 
+NEED TO CALL HISTORICAL API FOR THESE:
 change_1h = models.FloatField(null=True) - missing
-
 change_24h = models.FloatField(null=True) - missing
 
 volume = models.DecimalField(max_digits=30, decimal_places=2) - good
 
-avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True)
+avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True) - missing and zeros
 
-rsi = models.FloatField(null=True)
-macd = models.FloatField(null=True)
-macd_signal = models.FloatField(null=True)
-stochastic_k = models.FloatField(null=True)
-stochastic_d = models.FloatField(null=True)
-support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-relative_volume = models.FloatField(null=True)
-sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-stddev_1h = models.FloatField(null=True)
-atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-obv = models.FloatField(null=True)
-change_since_high = models.FloatField(null=True)
-change_since_low = models.FloatField(null=True)
-fib_distance_0_236 = models.FloatField(null=True)
-fib_distance_0_382 = models.FloatField(null=True)
-fib_distance_0_5   = models.FloatField(null=True)
-fib_distance_0_618 = models.FloatField(null=True)
-fib_distance_0_786 = models.FloatField(null=True)
+rsi = models.FloatField(null=True) - missing
+
+macd = models.FloatField(null=True) - SHIB has zeros, rest is good
+macd_signal = models.FloatField(null=True) - SHIB has zeros, rest is good
+stochastic_k = models.FloatField(null=True) - JASMY 288 zeros, rest is good
+stochastic_d = models.FloatField(null=True) - JASMY 286 zeros, rest is good
+
+support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) - good
+resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) - good
+
+relative_volume = models.FloatField(null=True) - bad
+
+sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True) - good
+sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) - good
+
+stddev_1h = models.FloatField(null=True) - zeros
+
+atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) - good
+obv = models.FloatField(null=True) - good
+change_since_high = models.FloatField(null=True) - good
+change_since_low = models.FloatField(null=True) - good
+
+fib_distance_0_236 = models.FloatField(null=True) - missing
+
+fib_distance_0_382 = models.FloatField(null=True) - missing
+
+fib_distance_0_5   = models.FloatField(null=True) - missing
+
+fib_distance_0_618 = models.FloatField(null=True) - missing
+
+fib_distance_0_786 = models.FloatField(null=True) - missing
+
+
+
 long_result = models.BooleanField(null=True)
+
 short_result = models.BooleanField(null=True)
 
 
