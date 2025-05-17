@@ -85,8 +85,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(fib_distance_0_382__isnull=True).count()
-        zero = metrics.filter(fib_distance_0_382=0).count()
+        missing = metrics.filter(stddev_1h__isnull=True).count()
+        zero = metrics.filter(stddev_1h=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
@@ -131,13 +131,9 @@ change_since_high = models.FloatField(null=True) - good
 change_since_low = models.FloatField(null=True) - good
 
 fib_distance_0_236 = models.FloatField(null=True) - missing
-
 fib_distance_0_382 = models.FloatField(null=True) - missing
-
 fib_distance_0_5   = models.FloatField(null=True) - missing
-
 fib_distance_0_618 = models.FloatField(null=True) - missing
-
 fib_distance_0_786 = models.FloatField(null=True) - missing
 
 
