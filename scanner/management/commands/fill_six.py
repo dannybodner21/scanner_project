@@ -16,8 +16,8 @@ class Command(BaseCommand):
     help = 'Recalculate missing (zero) metrics for RickisMetrics between April 20 and May 12'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 23))
-        end = make_aware(datetime(2025, 4, 23))
+        start = make_aware(datetime(2025, 4, 23))
+        end = make_aware(datetime(2025, 5, 13))
 
         metrics = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related("coin")
         count = 0
@@ -28,24 +28,6 @@ class Command(BaseCommand):
 
             try:
 
-                if metric.avg_volume_1h == 0 or metric.avg_volume_1h is None:
-                    average_volume = calculate_avg_volume_1h(coin, timestamp)
-                    print(f"in average_volume: {average_volume} - {coin.symbol} - {timestamp}")
-                    if average_volume is not None and average_volume != 0:
-                        metric.avg_volume_1h = average_volume
-                        updated = True
-                    else:
-                        print(f"average_volume returned NONE or zero: {coin.symbol} at {timestamp}")
-
-                if metric.relative_volume == 0 or metric.relative_volume is None:
-                    rvol = calculate_relative_volume(coin, timestamp)
-                    print(f"in rvol: {rvol} - {coin.symbol} - {timestamp}")
-                    if rvol is not None and rvol != 0:
-                        metric.relative_volume = rvol
-                        updated = True
-                    else:
-                        print(f"rvol returned NONE or zero: {coin.symbol} at {timestamp}")
-
                 if metric.stddev_1h == 0 or metric.stddev_1h is None:
                     stddev = calculate_stddev_1h(coin, timestamp)
                     print(f"in stddev: {stddev} - {coin.symbol} - {timestamp}")
@@ -53,7 +35,16 @@ class Command(BaseCommand):
                         metric.stddev_1h = stddev
                         updated = True
                     else:
-                        print(f"stddev returned NONE or zero: {coin.symbol} at {timestamp}")
+                        print(f"stddev returned NONE or zero: {stddev} : {coin.symbol} at {timestamp}")
+
+                if metric.rsi == 0 or metric.rsi is None:
+                    rsi = calculate_rsi(coin, timestamp)
+                    print(f"in rsi: {rsi} - {coin.symbol} - {timestamp}")
+                    if rsi is not None:
+                        metric.rsi = rsi
+                        updated = True
+                    else:
+                        print(f"rsi returned NONE: {rsi} : {coin.symbol} at {timestamp}")
 
                 if updated:
                     count += 1

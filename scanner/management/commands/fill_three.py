@@ -85,13 +85,18 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(fib_distance_0_236__isnull=True).count()
-        zero = metrics.filter(fib_distance_0_236=0).count()
+        missing = metrics.filter(stddev_1h__isnull=True).count()
+        zero = metrics.filter(stddev_1h=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
     except Coin.DoesNotExist:
         print(f"❌ Coin not found: {symbol}")
+
+
+
+
+
 
 
 change_5m = models.FloatField(null=True) - good
@@ -101,10 +106,9 @@ change_1h = models.FloatField(null=True) - missing
 change_24h = models.FloatField(null=True) - missing
 
 volume = models.DecimalField(max_digits=30, decimal_places=2) - good
+avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True) - good
 
-avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True) - missing and zeros
-
-rsi = models.FloatField(null=True) - missing
+rsi = models.FloatField(null=True) - zeros
 
 macd = models.FloatField(null=True) - SHIB has zeros, rest is good
 macd_signal = models.FloatField(null=True) - SHIB has zeros, rest is good
