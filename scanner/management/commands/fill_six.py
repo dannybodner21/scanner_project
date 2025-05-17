@@ -46,6 +46,35 @@ class Command(BaseCommand):
                     else:
                         print(f"rsi returned NONE: {rsi} : {coin.symbol} at {timestamp}")
 
+                if metric.fib_distance_0_236 == 0 or metric.fib_distance_0_236 is None:
+                    fib_distances = calculate_fib_distances(metric.high_24h, metric.low_24h, metric.price)
+
+                    fib_distance_0_236 = fib_distances.get("fib_distance_0_236")
+                    fib_distance_0_382 = fib_distances.get("fib_distance_0_382")
+                    fib_distance_0_5 = fib_distances.get("fib_distance_0_5")
+                    fib_distance_0_618 = fib_distances.get("fib_distance_0_618")
+                    fib_distance_0_786 = fib_distances.get("fib_distance_0_786")
+
+                    print(f"in fib: {fib_distance_0_236} - {coin.symbol} - {timestamp}")
+                    if fib_distance_0_236 is not None:
+                        metric.fib_distance_0_236 = fib_distance_0_236
+                        updated = True
+                    else:
+                        print(f"fib returned NONE: {fib_distance_0_236} : {coin.symbol} at {timestamp}")
+                    if fib_distance_0_382 is not None:
+                        metric.fib_distance_0_382 = fib_distance_0_382
+                        updated = True
+
+                    if fib_distance_0_5 is not None:
+                        metric.fib_distance_0_5 = fib_distance_0_5
+                        updated = True
+                    if fib_distance_0_618 is not None:
+                        metric.fib_distance_0_618 = fib_distance_0_618
+                        updated = True
+                    if fib_distance_0_786 is not None:
+                        metric.fib_distance_0_786 = fib_distance_0_786
+                        updated = True
+
                 if updated:
                     count += 1
                     metric.save()
