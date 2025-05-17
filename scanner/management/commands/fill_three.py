@@ -85,8 +85,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(stddev_1h__isnull=True).count()
-        zero = metrics.filter(stddev_1h=0).count()
+        missing = metrics.filter(stochastic_k__isnull=True).count()
+        zero = metrics.filter(stochastic_k=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
@@ -108,7 +108,7 @@ change_24h = models.FloatField(null=True) - missing
 volume = models.DecimalField(max_digits=30, decimal_places=2) - good
 avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True) - good
 
-rsi = models.FloatField(null=True) - zeros
+rsi = models.FloatField(null=True) - good
 
 macd = models.FloatField(null=True) - SHIB has zeros, rest is good
 macd_signal = models.FloatField(null=True) - SHIB has zeros, rest is good
@@ -117,9 +117,7 @@ stochastic_d = models.FloatField(null=True) - JASMY 286 zeros, rest is good
 
 support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) - good
 resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) - good
-
-relative_volume = models.FloatField(null=True) - bad
-
+relative_volume = models.FloatField(null=True) - good
 sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True) - good
 sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) - good
 
@@ -130,11 +128,11 @@ obv = models.FloatField(null=True) - good
 change_since_high = models.FloatField(null=True) - good
 change_since_low = models.FloatField(null=True) - good
 
-fib_distance_0_236 = models.FloatField(null=True) - missing
-fib_distance_0_382 = models.FloatField(null=True) - missing
-fib_distance_0_5   = models.FloatField(null=True) - missing
-fib_distance_0_618 = models.FloatField(null=True) - missing
-fib_distance_0_786 = models.FloatField(null=True) - missing
+fib_distance_0_236 = models.FloatField(null=True) - good
+fib_distance_0_382 = models.FloatField(null=True) - good
+fib_distance_0_5   = models.FloatField(null=True) - good
+fib_distance_0_618 = models.FloatField(null=True) - good
+fib_distance_0_786 = models.FloatField(null=True) - good
 
 
 

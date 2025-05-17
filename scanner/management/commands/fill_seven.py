@@ -16,8 +16,8 @@ class Command(BaseCommand):
     help = 'Fill missing change_1h and change_24h using CMC historical data'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 23))
+        start = make_aware(datetime(2025, 4, 22))
+        end = make_aware(datetime(2025, 5, 13))
         interval = timedelta(minutes=5)
 
         symbols = [
