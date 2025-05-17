@@ -13,13 +13,9 @@ RATE_LIMIT_CALLS_PER_MIN = 25
 SECONDS_BETWEEN_CALLS = 60.0 / RATE_LIMIT_CALLS_PER_MIN
 
 class Command(BaseCommand):
-    help = 'Fill missing change_1h and change_24h using CMC historical data (no local calculation)'
+    help = 'Efficiently fill missing change_1h and change_24h from CMC for RickisMetrics (April 22–May 13)'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 4, 22))
-        end = make_aware(datetime(2025, 5, 13))
-        interval = timedelta(minutes=5)
-
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
             "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
@@ -31,60 +27,82 @@ class Command(BaseCommand):
             "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
         ]
 
+        start_date = datetime(2025, 4, 22)
+        end_date = datetime(2025, 5, 13)
+
         for symbol in symbols:
             try:
                 coin = Coin.objects.get(symbol=symbol)
             except Coin.DoesNotExist:
-                print(f"❌ Coin {symbol} not found")
+                print(f"❌ Coin not found: {symbol}")
                 continue
 
-            print(f"🔍 Processing {symbol}")
-            timestamp = start
+            print(f"\n🚀 Updating {symbol}")
 
-            while timestamp <= end:
+            current_day = start_date
+            while current_day <= end_date:
+                start_ts = int(make_aware(datetime.combine(current_day, datetime.min.time())).timestamp())
+                end_ts = start_ts + 86400  # 1 day later
+
+                params = {
+                    "symbol": symbol,
+                    "time_start": start_ts,
+                    "time_end": end_ts,
+                    "interval": "5m",
+                    "convert": "USD"
+                }
+
                 try:
-                    metric = RickisMetrics.objects.get(coin=coin, timestamp=timestamp)
-
-                    if metric.change_1h not in [None, 0] or metric.change_24h not in [None, 0]:
-                        timestamp += interval
-                        continue
-
-                    unix_ts = int(timestamp.timestamp())
-                    params = {
-                        "symbol": symbol,
-                        "time_start": unix_ts - 300,
-                        "time_end": unix_ts + 300,
-                        "interval": "5m",
-                        "convert": "USD"
-                    }
-
                     response = requests.get(CMC_URL, headers=HEADERS, params=params)
                     data = response.json()
                     quotes = data.get("data", {}).get("quotes", [])
 
                     if not quotes:
-                        print(f"⚠️ No data for {symbol} at {timestamp}")
-                        timestamp += interval
+                        print(f"⚠️ No data for {symbol} on {current_day.date()}")
+                        current_day += timedelta(days=1)
+                        time.sleep(SECONDS_BETWEEN_CALLS)
                         continue
 
-                    quote = quotes[0]["quote"]["USD"]
-                    change_1h = quote.get("percent_change_1h")
-                    change_24h = quote.get("percent_change_24h")
+                    # Build lookup by rounded timestamp
+                    quote_map = {}
+                    for q in quotes:
+                        ts_str = q["timestamp"]
+                        ts = make_aware(datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S.%fZ")).replace(second=0, microsecond=0)
+                        quote_map[ts] = q["quote"]["USD"]
 
-                    if change_1h is not None:
-                        metric.change_1h = change_1h
-                    if change_24h is not None:
-                        metric.change_24h = change_24h
+                    # Query matching RickisMetrics
+                    metrics = RickisMetrics.objects.filter(
+                        coin=coin,
+                        timestamp__gte=make_aware(datetime.combine(current_day, datetime.min.time())),
+                        timestamp__lt=make_aware(datetime.combine(current_day + timedelta(days=1), datetime.min.time())),
+                    )
 
-                    metric.save()
-                    print(f"✅ {symbol} @ {timestamp} — 1h: {change_1h}, 24h: {change_24h}")
+                    updated = 0
+                    for metric in metrics:
+                        if metric.change_1h not in [None, 0] and metric.change_24h not in [None, 0]:
+                            continue
 
-                except RickisMetrics.DoesNotExist:
-                    print(f"⏩ No metric for {symbol} at {timestamp}")
+                        quote = quote_map.get(metric.timestamp)
+                        if not quote:
+                            continue
+
+                        change_1h = quote.get("percent_change_1h")
+                        change_24h = quote.get("percent_change_24h")
+
+                        if change_1h is not None:
+                            metric.change_1h = change_1h
+                        if change_24h is not None:
+                            metric.change_24h = change_24h
+
+                        metric.save()
+                        updated += 1
+
+                    print(f"✅ {symbol} on {current_day.date()} — {updated} entries updated")
+
                 except Exception as e:
-                    print(f"❌ Error for {symbol} at {timestamp}: {e}")
+                    print(f"❌ Error for {symbol} on {current_day.date()}: {e}")
 
-                timestamp += interval
+                current_day += timedelta(days=1)
                 time.sleep(SECONDS_BETWEEN_CALLS)
 
-        print("🎉 Done updating change_1h and change_24h")
+        print("\n🎉 All updates complete.")
