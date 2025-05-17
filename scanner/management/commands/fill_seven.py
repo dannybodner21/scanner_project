@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
-from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
+from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics, Coin
 import requests
 import time
@@ -9,8 +9,11 @@ CMC_API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 HEADERS = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": CMC_API_KEY}
 CMC_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
 
+RATE_LIMIT_CALLS_PER_MIN = 25
+SECONDS_BETWEEN_CALLS = 60.0 / RATE_LIMIT_CALLS_PER_MIN
+
 class Command(BaseCommand):
-    help = 'Batch-fill missing change_1h and change_24h using CMC historical data efficiently'
+    help = 'Fill missing change_1h and change_24h using CMC historical data (no local calculation)'
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 4, 22))
@@ -35,72 +38,53 @@ class Command(BaseCommand):
                 print(f"❌ Coin {symbol} not found")
                 continue
 
-            print(f"🔄 Fetching data for {symbol}")
-            current = start
+            print(f"🔍 Processing {symbol}")
+            timestamp = start
 
-            while current <= end:
-                # Pull 25 hours of data to compute change_1h and change_24h
-                ts_start = int((current - timedelta(hours=25)).timestamp())
-                ts_end = int(current.timestamp())
-
-                params = {
-                    "symbol": symbol,
-                    "time_start": ts_start,
-                    "time_end": ts_end,
-                    "interval": "5m",
-                    "convert": "USD"
-                }
-
+            while timestamp <= end:
                 try:
-                    response = requests.get(CMC_URL, headers=HEADERS, params=params)
-                    response.raise_for_status()
-                    data = response.json().get("data", {})
-                    quotes = data.get("quotes", [])
+                    metric = RickisMetrics.objects.get(coin=coin, timestamp=timestamp)
 
-                    if not quotes:
-                        print(f"⚠️ No quotes for {symbol} at {current}")
-                        time.sleep(2)
-                        current += timedelta(hours=24)
+                    if metric.change_1h not in [None, 0] or metric.change_24h not in [None, 0]:
+                        timestamp += interval
                         continue
 
-                    price_map = {
-                        datetime.strptime(q["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"): q["quote"]["USD"]["price"]
-                        for q in quotes
+                    unix_ts = int(timestamp.timestamp())
+                    params = {
+                        "symbol": symbol,
+                        "time_start": unix_ts - 300,
+                        "time_end": unix_ts + 300,
+                        "interval": "5m",
+                        "convert": "USD"
                     }
 
-                    timestamps = sorted(price_map.keys())
+                    response = requests.get(CMC_URL, headers=HEADERS, params=params)
+                    data = response.json()
+                    quotes = data.get("data", {}).get("quotes", [])
 
-                    for i in range(len(timestamps)):
-                        ts = make_aware(timestamps[i])
-                        if ts < start or ts > end:
-                            continue
+                    if not quotes:
+                        print(f"⚠️ No data for {symbol} at {timestamp}")
+                        timestamp += interval
+                        continue
 
-                        try:
-                            metric = RickisMetrics.objects.get(coin=coin, timestamp=ts)
-                        except RickisMetrics.DoesNotExist:
-                            continue
+                    quote = quotes[0]["quote"]["USD"]
+                    change_1h = quote.get("percent_change_1h")
+                    change_24h = quote.get("percent_change_24h")
 
-                        if (metric.change_1h and metric.change_1h != 0) and \
-                           (metric.change_24h and metric.change_24h != 0):
-                            continue
+                    if change_1h is not None:
+                        metric.change_1h = change_1h
+                    if change_24h is not None:
+                        metric.change_24h = change_24h
 
-                        price_now = price_map.get(ts)
-                        price_1h_ago = price_map.get(ts - timedelta(hours=1))
-                        price_24h_ago = price_map.get(ts - timedelta(hours=24))
+                    metric.save()
+                    print(f"✅ {symbol} @ {timestamp} — 1h: {change_1h}, 24h: {change_24h}")
 
-                        if price_now and price_1h_ago and price_1h_ago != 0:
-                            metric.change_1h = ((price_now - price_1h_ago) / price_1h_ago) * 100
-                        if price_now and price_24h_ago and price_24h_ago != 0:
-                            metric.change_24h = ((price_now - price_24h_ago) / price_24h_ago) * 100
-
-                        metric.save()
-
-                    print(f"✅ {symbol} — Updated data from {current} to {current + timedelta(hours=24)}")
-
+                except RickisMetrics.DoesNotExist:
+                    print(f"⏩ No metric for {symbol} at {timestamp}")
                 except Exception as e:
-                    print(f"❌ Error on {symbol} @ {current}: {e}")
+                    print(f"❌ Error for {symbol} at {timestamp}: {e}")
 
-                time.sleep(2)
-                current += timedelta(hours=24)
+                timestamp += interval
+                time.sleep(SECONDS_BETWEEN_CALLS)
 
-        print("🎉 change_1h and change_24h backfill complete.")
+        print("🎉 Done updating change_1h and change_24h")
