@@ -84,6 +84,10 @@ def calculate_rsi(coin, timestamp, period=14):
         avg_gain = np.mean(gains) if gains else 0
         avg_loss = np.mean(losses) if losses else 0
 
+        print(f"avg_gain: {avg_gain}")
+        print(f"avg_loss: {avg_loss}")
+        print(prices)
+
         if avg_loss == 0:
             return 100
         if avg_gain == 0:
@@ -452,6 +456,7 @@ def calculate_fib_distances(high, low, current_price):
     try:
         if high is None or low is None or current_price is None:
             print(f"high, low, or current price is NONE")
+
             return {}
 
         # get recent high / low
@@ -461,6 +466,10 @@ def calculate_fib_distances(high, low, current_price):
         diff = high - low
 
         if diff == 0:
+            print(f"high: {high}")
+            print(f"low: {low}")
+            print(f"price: {current_price}")
+            print(f"diff: {diff}")
             return {}
 
         # calculate the Fibonacci retracement levels

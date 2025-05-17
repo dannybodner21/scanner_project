@@ -16,8 +16,8 @@ class Command(BaseCommand):
     help = 'Recalculate missing (zero) metrics for RickisMetrics between April 20 and May 12'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 25))
+        start = make_aware(datetime(2025, 4, 22))
+        end = make_aware(datetime(2025, 5, 13))
 
         metrics = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related("coin")
         count = 0
@@ -46,11 +46,11 @@ class Command(BaseCommand):
                     else:
                         print(f"rsi returned NONE: {rsi} : {coin.symbol} at {timestamp}")
 
-                if (metric.fib_distance_0_236 == 0 or metric.fib_distance_0_236 is None) or
+                if ((metric.fib_distance_0_236 == 0 or metric.fib_distance_0_236 is None) or
                     (metric.fib_distance_0_382 == 0 or metric.fib_distance_0_382 is None) or
                     (metric.fib_distance_0_5 == 0 or metric.fib_distance_0_5 is None) or
                     (metric.fib_distance_0_618 == 0 or metric.fib_distance_0_618 is None) or
-                    (metric.fib_distance_0_786 == 0 or metric.fib_distance_0_786 is None):
+                    (metric.fib_distance_0_786 == 0 or metric.fib_distance_0_786 is None)):
 
                     fib_distances = calculate_fib_distances(metric.high_24h, metric.low_24h, metric.price)
 
@@ -80,7 +80,7 @@ class Command(BaseCommand):
                         if fib_distance_0_786 is not None:
                             metric.fib_distance_0_786 = fib_distance_0_786
                             updated = True
-                            
+
                     else:
                         print(f"FUCK UP IN FIB! -------------------------")
 
