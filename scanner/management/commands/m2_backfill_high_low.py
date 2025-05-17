@@ -7,9 +7,7 @@ import requests
 import time
 from decimal import Decimal
 
-CMC_API_KEY = "7dd5dd98-35d0-475d-9338-407631033cd9"
-
-
+CMC_API_KEY = "6520549c-03bb-41cd-86e3-30355ece87ba"
 
 CMC_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
 HEADERS = { "X-CMC_PRO_API_KEY": CMC_API_KEY }
