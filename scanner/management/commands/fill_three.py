@@ -85,8 +85,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(fib_distance_0_236__isnull=True).count()
-        zero = metrics.filter(fib_distance_0_236=0).count()
+        missing = metrics.filter(price__isnull=True).count()
+        zero = metrics.filter(price=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
