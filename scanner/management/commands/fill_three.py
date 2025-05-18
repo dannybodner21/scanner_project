@@ -69,9 +69,7 @@ start = make_aware(datetime(2025, 3, 23))
 end = make_aware(datetime(2025, 5, 12))
 
 # Define the coin symbols to check
-symbols = ["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
-"AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
-"XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
+symbols = ["ETC",
 "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
 "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
 "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
@@ -97,10 +95,48 @@ for symbol in symbols:
 
 
 
+
+
+
+from datetime import datetime
+from django.utils.timezone import make_aware
+from scanner.models import Coin, RickisMetrics
+
+# Define date range
+start = make_aware(datetime(2025, 3, 23))
+end = make_aware(datetime(2025, 5, 12))
+
+# Define the coin symbols to check
+symbols = ["ETC",
+"RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
+"ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+"EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
+"PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
+"THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"]
+
+# Go through each coin
+for symbol in symbols:
+    try:
+        coin = Coin.objects.get(symbol=symbol)
+        metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
+
+        total = metrics.count()
+        missing = metrics.filter(change_24h__isnull=True).count()
+        zero = metrics.filter(change_24h=0).count()
+
+        print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
+
+    except Coin.DoesNotExist:
+        print(f"❌ Coin not found: {symbol}")
+
+
+
+
+
 python manage.py shell -c "
 from scanner.models import RickisMetrics, Coin
-coin = Coin.objects.get(symbol='ICP')
-qs = RickisMetrics.objects.filter(coin=coin, change_1h__isnull=True).order_by('timestamp')
+coin = Coin.objects.get(symbol='FLOKI')
+qs = RickisMetrics.objects.filter(coin=coin, change_24h__isnull=True).order_by('timestamp')
 for m in qs: print(m.timestamp)
 "
 
