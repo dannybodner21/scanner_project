@@ -27,7 +27,7 @@ class Command(BaseCommand):
             "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
         ]
 
-        start_date = datetime(2025, 4, 22)
+        start_date = datetime(2025, 4, 13)
         end_date = datetime(2025, 5, 13)
 
         for symbol in symbols:
