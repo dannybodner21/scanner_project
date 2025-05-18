@@ -85,8 +85,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(stochastic_k__isnull=True).count()
-        zero = metrics.filter(stochastic_k=0).count()
+        missing = metrics.filter(change_24h__isnull=True).count()
+        zero = metrics.filter(change_24h=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
@@ -95,6 +95,14 @@ for symbol in symbols:
 
 
 
+
+
+python manage.py shell -c "
+from scanner.models import RickisMetrics, Coin
+coin = Coin.objects.get(symbol='ICP')
+qs = RickisMetrics.objects.filter(coin=coin, change_1h__isnull=True).order_by('timestamp')
+for m in qs: print(m.timestamp)
+"
 
 
 
@@ -143,7 +151,9 @@ short_result = models.BooleanField(null=True)
 
 
 
+nohup python manage.py fill_seven > output.log 2>&1 &
 
+tail -f output.log
 
 
         '''

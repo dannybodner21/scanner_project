@@ -42,7 +42,7 @@ class Command(BaseCommand):
             current_day = start_date
             while current_day <= end_date:
                 start_ts = int(make_aware(datetime.combine(current_day, datetime.min.time())).timestamp())
-                end_ts = start_ts + 86400  # 1 day later
+                end_ts = start_ts + 86400
 
                 params = {
                     "symbol": symbol,
@@ -63,41 +63,53 @@ class Command(BaseCommand):
                         time.sleep(SECONDS_BETWEEN_CALLS)
                         continue
 
-                    # Build lookup by rounded timestamp
-                    quote_map = {}
+                    # Build list of timestamp:quote
+                    quote_map = []
                     for q in quotes:
-                        ts_str = q["timestamp"]
-                        ts = make_aware(datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S.%fZ")).replace(second=0, microsecond=0)
-                        quote_map[ts] = q["quote"]["USD"]
+                        try:
+                            ts_str = q["timestamp"]
+                            ts = make_aware(datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S.%fZ"))
+                            quote_map.append((ts, q["quote"]["USD"]))
+                        except Exception:
+                            continue
 
-                    # Query matching RickisMetrics
-                    metrics = RickisMetrics.objects.filter(
+                    # Get RickisMetrics for the day
+                    metrics = list(RickisMetrics.objects.filter(
                         coin=coin,
                         timestamp__gte=make_aware(datetime.combine(current_day, datetime.min.time())),
                         timestamp__lt=make_aware(datetime.combine(current_day + timedelta(days=1), datetime.min.time())),
-                    )
+                    ))
 
                     updated = 0
                     for metric in metrics:
                         if metric.change_1h not in [None, 0] and metric.change_24h not in [None, 0]:
                             continue
 
-                        quote = quote_map.get(metric.timestamp)
-                        if not quote:
+                        # Find closest quote (within 5 min)
+                        best_quote = None
+                        min_diff = timedelta(minutes=6)
+                        for ts, quote in quote_map:
+                            diff = abs(ts - metric.timestamp)
+                            if diff < min_diff:
+                                min_diff = diff
+                                best_quote = quote
+
+                        if not best_quote:
                             continue
 
-                        change_1h = quote.get("percent_change_1h")
-                        change_24h = quote.get("percent_change_24h")
+                        change_1h = best_quote.get("percent_change_1h")
+                        change_24h = best_quote.get("percent_change_24h")
 
-                        if change_1h is not None:
+                        if change_1h is not None and metric.change_1h in [None, 0]:
                             metric.change_1h = change_1h
-                        if change_24h is not None:
+                        if change_24h is not None and metric.change_24h in [None, 0]:
                             metric.change_24h = change_24h
 
-                        metric.save()
                         updated += 1
 
-                    print(f"✅ {symbol} on {current_day.date()} — {updated} entries updated")
+                    # Save all at once
+                    RickisMetrics.objects.bulk_update(metrics, ["change_1h", "change_24h"])
+                    print(f"✅ {symbol} on {current_day.date()} — {updated} updated")
 
                 except Exception as e:
                     print(f"❌ Error for {symbol} on {current_day.date()}: {e}")
