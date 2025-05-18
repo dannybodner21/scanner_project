@@ -4,6 +4,8 @@ from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics, Coin
 import requests
 import time
+from django.db.models import Q
+
 
 CMC_API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 HEADERS = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": CMC_API_KEY}
@@ -74,8 +76,7 @@ class Command(BaseCommand):
                         timestamp__gte=make_aware(datetime.combine(current_day, datetime.min.time())),
                         timestamp__lt=make_aware(datetime.combine(current_day + timedelta(days=1), datetime.min.time())),
                     ).filter(
-                        change_1h__in=[None, 0] |
-                        change_24h__in=[None, 0]
+                        Q(change_1h__in=[None, 0]) | Q(change_24h__in=[None, 0])
                     ))
 
                     updated = 0
