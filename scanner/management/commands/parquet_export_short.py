@@ -7,17 +7,18 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 class Command(BaseCommand):
-    help = 'Streamed export of labeled RickisMetrics for short model to Parquet (March 23 – May 12, 2025)'
+    help = 'Efficient streamed export of labeled RickisMetrics for short model to Parquet (March 23 – May 12, 2025)'
 
     def handle(self, *args, **kwargs):
         self.stdout.write("🚀 Exporting RickisMetrics for short model...")
 
         # 1️⃣ Date window
         start = make_aware(datetime(2025, 3, 23))
-        end   = make_aware(datetime(2025, 5, 12))
+        end = make_aware(datetime(2025, 5, 12))
 
         # 2️⃣ Fields to include
         fields = [
+            'id',  # Required for ID pagination
             'price', 'volume',
             'change_5m', 'change_1h', 'change_24h',
             'high_24h', 'low_24h', 'open', 'close',
@@ -34,25 +35,34 @@ class Command(BaseCommand):
 
         output_path = '/workspace/scanner/short.parquet'
         batch_size = 5000
-        offset = 0
         total_written = 0
+        last_id = 0
         writer = None
 
         while True:
             batch_qs = (
                 RickisMetrics.objects
-                .filter(timestamp__gte=start, timestamp__lt=end, short_result__isnull=False)
-                .order_by('id')[offset:offset + batch_size]
-                .values(*fields)
+                .filter(
+                    id__gt=last_id,
+                    timestamp__gte=start,
+                    timestamp__lt=end,
+                    short_result__isnull=False
+                )
+                .order_by('id')
+                .values(*fields)[:batch_size]
             )
 
             rows = list(batch_qs)
             if not rows:
                 break
 
-            df = pd.DataFrame.from_records(rows)
+            # Update last ID for pagination
+            last_id = max(row['id'] for row in rows)
 
-            # Cast decimals to float
+            df = pd.DataFrame.from_records(rows)
+            df.drop(columns=['id'], inplace=True)
+
+            # Cast decimal fields to float
             decimal_cols = [
                 "price", "high_24h", "low_24h", "open", "close",
                 "avg_volume_1h", "support_level", "resistance_level", "atr_1h"
@@ -71,7 +81,6 @@ class Command(BaseCommand):
             writer.write_table(table)
 
             total_written += len(df)
-            offset += batch_size
             self.stdout.write(f"✅ Wrote {total_written} rows so far...")
 
         if writer:
