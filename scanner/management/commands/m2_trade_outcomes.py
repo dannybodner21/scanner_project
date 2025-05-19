@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 5, 12))
+        end = make_aware(datetime(2025, 4, 22))
 
         entries = RickisMetrics.objects.filter(
             timestamp__gte=start, timestamp__lt=end
@@ -24,9 +24,9 @@ class Command(BaseCommand):
 
         for index, entry in enumerate(entries, 1):
             entry_price = float(entry.price)
-            tp_long = entry_price * 1.10
+            tp_long = entry_price * 1.08
             sl_long = entry_price * 0.98
-            tp_short = entry_price * 0.90
+            tp_short = entry_price * 0.92
             sl_short = entry_price * 1.02
 
             future_metrics = RickisMetrics.objects.filter(
