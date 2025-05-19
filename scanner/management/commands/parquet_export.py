@@ -14,6 +14,7 @@ class Command(BaseCommand):
         end = make_aware(datetime(2025, 5, 12))
 
         fields = [
+            'id',  # Required for ID-based pagination
             'price', 'volume',
             'change_5m', 'change_1h', 'change_24h',
             'high_24h', 'low_24h', 'open', 'close',
@@ -30,17 +31,22 @@ class Command(BaseCommand):
 
         output_path = '/workspace/scanner/long.parquet'
         batch_size = 5000
-        offset = 0
         total_written = 0
+        last_id = 0
         writer = None
 
         while True:
             batch_qs = (
                 RickisMetrics.objects
-                .filter(timestamp__gte=start, timestamp__lt=end, long_result__isnull=False)
-                .order_by('id')[offset:offset + batch_size]
+                .filter(
+                    id__gt=last_id,
+                    timestamp__gte=start,
+                    timestamp__lt=end,
+                    long_result__isnull=False
+                )
+                .order_by('id')
                 .values(*fields)
-            )
+            )[:batch_size]
 
             rows = list(batch_qs)
             if not rows:
@@ -48,7 +54,13 @@ class Command(BaseCommand):
 
             df = pd.DataFrame.from_records(rows)
 
-            # Cast decimals to float
+            # Update last_id for pagination
+            last_id = max(row['id'] for row in rows)
+
+            # Drop ID column for export
+            df.drop(columns=['id'], inplace=True)
+
+            # Cast decimal fields to float
             decimal_cols = [
                 'price', 'high_24h', 'low_24h', 'open', 'close',
                 'avg_volume_1h', 'support_level', 'resistance_level', 'atr_1h'
@@ -67,7 +79,6 @@ class Command(BaseCommand):
             writer.write_table(table)
 
             total_written += len(df)
-            offset += batch_size
             self.stdout.write(f"✅ Wrote {total_written} rows so far...")
 
         if writer:
