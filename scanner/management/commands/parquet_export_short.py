@@ -11,8 +11,8 @@ class Command(BaseCommand):
         self.stdout.write("🚀 Exporting RickisMetrics for short model...")
 
         # 1️⃣ Date window
-        start = make_aware(datetime(2025, 4, 30))
-        end   = make_aware(datetime(2025, 5, 2)) + timedelta(days=1)
+        start = make_aware(datetime(2025, 3, 23))
+        end   = make_aware(datetime(2025, 5, 12))
 
         # 2️⃣ Fields including coin symbol and timestamp
         fields = [
@@ -27,6 +27,7 @@ class Command(BaseCommand):
             'change_since_high', 'change_since_low',
             'fib_distance_0_236', 'fib_distance_0_382',
             'fib_distance_0_5', 'fib_distance_0_618', 'fib_distance_0_786',
+            'short_result'
         ]
 
         # 3️⃣ Filter to only completed labels in range
@@ -59,7 +60,7 @@ class Command(BaseCommand):
         # 6️⃣ Drop any rows with NaNs in numeric features or the label
         #df.dropna(subset=numeric_cols + ['short_result'], inplace=True)
 
-        output_path = '/workspace/scanner/short_test.parquet'
+        output_path = '/workspace/scanner/short.parquet'
         df.to_parquet(output_path, index=False)
 
         self.stdout.write(self.style.SUCCESS(f"✅ Exported {len(df)} rows to {output_path}"))
