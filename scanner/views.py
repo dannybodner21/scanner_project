@@ -504,7 +504,7 @@ REGION = 'us-central1'
 
 SHORT_PROJECT_ID = 'bodner-main-project'
 SHORT_REGION = 'us-central1'
-SHORT_ENDPOINT_ID = '5322327871249711104'
+SHORT_ENDPOINT_ID = '4630251272262385664'
 
 def get_google_jwt_token():
 
