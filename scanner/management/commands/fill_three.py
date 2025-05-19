@@ -69,7 +69,9 @@ start = make_aware(datetime(2025, 3, 23))
 end = make_aware(datetime(2025, 5, 12))
 
 # Define the coin symbols to check
-symbols = ["ETC",
+symbols = ["BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
+"AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+"XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
 "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
 "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
 "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
@@ -83,8 +85,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(change_1h__isnull=True).count()
-        zero = metrics.filter(change_1h=0).count()
+        missing = metrics.filter(long_result__isnull=True).count()
+        zero = metrics.filter(long_result=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
@@ -104,7 +106,7 @@ from scanner.models import Coin, RickisMetrics
 
 # Define date range
 start = make_aware(datetime(2025, 3, 23))
-end = make_aware(datetime(2025, 5, 12))
+end = make_aware(datetime(2025, 4, 7))
 
 # Define the coin symbols to check
 symbols = ["ETC",
@@ -121,8 +123,8 @@ for symbol in symbols:
         metrics = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end)
 
         total = metrics.count()
-        missing = metrics.filter(fib_distance_0_236__isnull=True).count()
-        zero = metrics.filter(fib_distance_0_236=0).count()
+        missing = metrics.filter(long_result__isnull=True).count()
+        zero = metrics.filter(long_result=0).count()
 
         print(f"{symbol}: {total} entries — Missing: {missing}, Zero: {zero}")
 
@@ -187,7 +189,7 @@ short_result = models.BooleanField(null=True)
 
 
 
-nohup python manage.py fill_seven > output.log 2>&1 &
+nohup python manage.py m2_trade_outcomes > output.log 2>&1 &
 
 tail -f output.log
 

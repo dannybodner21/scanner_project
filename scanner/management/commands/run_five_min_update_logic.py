@@ -41,7 +41,7 @@ def run_five_min_update_logic():
         "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
         "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
         "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
-    ]    
+    ]
 
     batch_size = 100
     for i in range(0, len(cmc_ids), batch_size):
@@ -134,7 +134,7 @@ def run_five_min_update_logic():
                                 }
                             )
 
-                            five_min_price_change = calculate_price_change_five_min(coin)
+                            five_min_price_change = calculate_price_change_five_min(coin, timestamp)
                             if five_min_price_change is None:
                                 raise ValueError("Missing price change five min")
 
@@ -142,7 +142,7 @@ def run_five_min_update_logic():
                             if rel_vol is None:
                                 raise ValueError("Missing relative_volume")
 
-                            obv = calculate_obv(coin)
+                            obv = calculate_obv(coin, timestamp)
                             if obv is None:
                                 raise ValueError("Missing obv")
 
