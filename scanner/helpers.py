@@ -277,8 +277,6 @@ def calculate_stddev_1h(coin, timestamp):
         # get recent prices
         prices = get_recent_prices(coin, timestamp, 20)
 
-        print(f"std prices: {prices}")
-
         if not prices:
             return None
 

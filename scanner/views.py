@@ -614,7 +614,7 @@ def predict_live_vertex_new(request):
                 print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
                 count += 1
 
-                if confidence > 0.8:
+                if confidence > 0.6:
 
                     messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
@@ -634,7 +634,7 @@ def predict_live_vertex_new(request):
                                 entry_price=metric.price,
                                 model_confidence=confidence,
                                 take_profit_percent=3,
-                                stop_loss_percent=3,
+                                stop_loss_percent=2,
                             )
 
                             print("LONG trade created")
@@ -745,7 +745,7 @@ def predict_short_vertex_new(request):
             print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
 
             # send message through Telegram if confidence is greater than 0.9
-            if confidence > 0.85:
+            if confidence > 0.6:
                 messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
 
 
@@ -764,8 +764,8 @@ def predict_short_vertex_new(request):
                             duration_minutes=0,
                             entry_price=metric.price,
                             model_confidence=confidence,
-                            take_profit_percent=3.0,
-                            stop_loss_percent=3.0,
+                            take_profit_percent=3,
+                            stop_loss_percent=2,
                         )
 
                         print("SHORT trade created")
