@@ -1,29 +1,18 @@
-from django.core.management.base import BaseCommand
+from datetime import datetime
 from django.utils.timezone import make_aware
-from datetime import datetime, timedelta
+from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 class Command(BaseCommand):
-    help = 'Export Metrics (long_result as target) to Parquet for training, from March 22 to April 29, 2025.'
+    help = 'Streamed export of labeled RickisMetrics (March 23 to May 12, 2025) to Parquet without blowing memory.'
 
     def handle(self, *args, **kwargs):
-        # Define inclusive date window
         start = make_aware(datetime(2025, 3, 23))
         end = make_aware(datetime(2025, 5, 12))
 
-        # Filter metrics that have been labeled (wins or losses) in the date range
-        qs = (
-            RickisMetrics.objects
-            .filter(
-                timestamp__gte=start,
-                timestamp__lt=end,
-                long_result__isnull=False
-            )
-            .select_related('coin')
-        )
-
-        # Fields to retrieve, include coin symbol and timestamp
         fields = [
             'price', 'volume',
             'change_5m', 'change_1h', 'change_24h',
@@ -39,30 +28,49 @@ class Command(BaseCommand):
             'long_result'
         ]
 
-        metrics = qs.values(*fields)
-        df = pd.DataFrame.from_records(metrics)
-
-        if df.empty:
-            self.stdout.write(self.style.WARNING("⚠️ No labeled long-result metrics found in the given date range."))
-            return
-
-        # Cast high-precision decimals to floats (DOUBLE) to avoid BigQuery NUMERIC limits
-        decimal_cols = [
-            'price', 'high_24h', 'low_24h', 'open', 'close',
-            'avg_volume_1h', 'support_level', 'resistance_level',
-            'atr_1h'
-        ]
-        for col in decimal_cols:
-            if col in df.columns:
-                df[col] = df[col].astype(float)
-
-        # Clean numeric columns, excluding identifiers
-        numeric_cols = [c for c in df.columns if c not in ('coin__symbol', 'timestamp')]
-        df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
-
-        # Drop rows with any NaNs in features or label
-        #df.dropna(subset=numeric_cols + ['long_result'], inplace=True)
-
         output_path = '/workspace/scanner/long.parquet'
-        df.to_parquet(output_path, index=False)
-        self.stdout.write(self.style.SUCCESS(f"✅ Exported {len(df)} rows to {output_path}"))
+        batch_size = 5000
+        offset = 0
+        total_written = 0
+        writer = None
+
+        while True:
+            batch_qs = (
+                RickisMetrics.objects
+                .filter(timestamp__gte=start, timestamp__lt=end, long_result__isnull=False)
+                .order_by('id')[offset:offset + batch_size]
+                .values(*fields)
+            )
+
+            rows = list(batch_qs)
+            if not rows:
+                break
+
+            df = pd.DataFrame.from_records(rows)
+
+            # Cast decimals to float
+            decimal_cols = [
+                'price', 'high_24h', 'low_24h', 'open', 'close',
+                'avg_volume_1h', 'support_level', 'resistance_level', 'atr_1h'
+            ]
+            for col in decimal_cols:
+                if col in df.columns:
+                    df[col] = df[col].astype(float)
+
+            df = df.apply(pd.to_numeric, errors='coerce')
+            df.dropna(subset=['long_result'], inplace=True)
+
+            table = pa.Table.from_pandas(df)
+
+            if writer is None:
+                writer = pq.ParquetWriter(output_path, table.schema)
+            writer.write_table(table)
+
+            total_written += len(df)
+            offset += batch_size
+            self.stdout.write(f"✅ Wrote {total_written} rows so far...")
+
+        if writer:
+            writer.close()
+
+        self.stdout.write(self.style.SUCCESS(f"🎉 Export complete. Total rows written: {total_written} to {output_path}"))

@@ -1,11 +1,13 @@
-from django.core.management.base import BaseCommand
+from datetime import datetime
 from django.utils.timezone import make_aware
-from datetime import datetime, timedelta
+from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 class Command(BaseCommand):
-    help = 'Export RickisMetrics to Parquet for short model training (full features + label)'
+    help = 'Streamed export of labeled RickisMetrics for short model to Parquet (March 23 – May 12, 2025)'
 
     def handle(self, *args, **kwargs):
         self.stdout.write("🚀 Exporting RickisMetrics for short model...")
@@ -14,7 +16,7 @@ class Command(BaseCommand):
         start = make_aware(datetime(2025, 3, 23))
         end   = make_aware(datetime(2025, 5, 12))
 
-        # 2️⃣ Fields including coin symbol and timestamp
+        # 2️⃣ Fields to include
         fields = [
             'price', 'volume',
             'change_5m', 'change_1h', 'change_24h',
@@ -30,37 +32,49 @@ class Command(BaseCommand):
             'short_result'
         ]
 
-        # 3️⃣ Filter to only completed labels in range
-        qs = (
-            RickisMetrics.objects
-            .filter(timestamp__gte=start, timestamp__lt=end, short_result__isnull=False)
-            .select_related('coin')
-            .values(*fields)
-        )
-
-        df = pd.DataFrame.from_records(qs)
-        if df.empty:
-            self.stdout.write(self.style.ERROR("❌ No labeled short-result metrics found in the given date range."))
-            return
-
-        # 4️⃣ Cast high-precision decimals to float so Parquet writes them as DOUBLE
-        decimal_cols = [
-            "price", "high_24h", "low_24h", "open", "close",
-            "avg_volume_1h", "support_level", "resistance_level",
-            "atr_1h"
-        ]
-        for col in decimal_cols:
-            if col in df.columns:
-                df[col] = df[col].astype(float)
-
-        # 5️⃣ Clean numeric columns only (excluding coin__symbol and timestamp)
-        numeric_cols = [c for c in df.columns if c not in ('coin__symbol', 'timestamp')]
-        df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
-
-        # 6️⃣ Drop any rows with NaNs in numeric features or the label
-        #df.dropna(subset=numeric_cols + ['short_result'], inplace=True)
-
         output_path = '/workspace/scanner/short.parquet'
-        df.to_parquet(output_path, index=False)
+        batch_size = 5000
+        offset = 0
+        total_written = 0
+        writer = None
 
-        self.stdout.write(self.style.SUCCESS(f"✅ Exported {len(df)} rows to {output_path}"))
+        while True:
+            batch_qs = (
+                RickisMetrics.objects
+                .filter(timestamp__gte=start, timestamp__lt=end, short_result__isnull=False)
+                .order_by('id')[offset:offset + batch_size]
+                .values(*fields)
+            )
+
+            rows = list(batch_qs)
+            if not rows:
+                break
+
+            df = pd.DataFrame.from_records(rows)
+
+            # Cast decimals to float
+            decimal_cols = [
+                "price", "high_24h", "low_24h", "open", "close",
+                "avg_volume_1h", "support_level", "resistance_level", "atr_1h"
+            ]
+            for col in decimal_cols:
+                if col in df.columns:
+                    df[col] = df[col].astype(float)
+
+            df = df.apply(pd.to_numeric, errors='coerce')
+            df.dropna(subset=['short_result'], inplace=True)
+
+            table = pa.Table.from_pandas(df)
+
+            if writer is None:
+                writer = pq.ParquetWriter(output_path, table.schema)
+            writer.write_table(table)
+
+            total_written += len(df)
+            offset += batch_size
+            self.stdout.write(f"✅ Wrote {total_written} rows so far...")
+
+        if writer:
+            writer.close()
+
+        self.stdout.write(self.style.SUCCESS(f"🎉 Export complete. Total rows written: {total_written} to {output_path}"))
