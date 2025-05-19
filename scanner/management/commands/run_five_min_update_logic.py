@@ -94,8 +94,8 @@ def run_five_min_update_logic():
 
                             support, resistance = calculate_support_resistance(coin, timestamp)
                             fib_distances = calculate_fib_distances(
-                                high=ohlcv_data["quote"]["USD"].get("high", 0),
-                                low=ohlcv_data["quote"]["USD"].get("low", 0),
+                                high=ohlcv_data["quote"]["USD"].get("high"),
+                                low=ohlcv_data["quote"]["USD"].get("low"),
                                 current_price=current_price,
                             )
 
@@ -105,13 +105,13 @@ def run_five_min_update_logic():
                                 timestamp=timestamp,
                                 defaults={
                                     'price': current_price,
-                                    'high_24h': ohlcv_data["quote"]["USD"].get("high", 0),
-                                    'low_24h': ohlcv_data["quote"]["USD"].get("low", 0),
-                                    'open': ohlcv_data["quote"]["USD"].get("open", 0),
-                                    'close': ohlcv_data["quote"]["USD"].get("close", 0),
-                                    'change_1h': crypto_data["quote"]["USD"].get("percent_change_1h", 0),
-                                    'change_24h': crypto_data["quote"]["USD"].get("percent_change_24h", 0),
-                                    'volume': crypto_data["quote"]["USD"].get("volume_24h", 0),
+                                    'high_24h': ohlcv_data["quote"]["USD"].get("high"),
+                                    'low_24h': ohlcv_data["quote"]["USD"].get("low"),
+                                    'open': ohlcv_data["quote"]["USD"].get("open"),
+                                    'close': ohlcv_data["quote"]["USD"].get("close"),
+                                    'change_1h': crypto_data["quote"]["USD"].get("percent_change_1h"),
+                                    'change_24h': crypto_data["quote"]["USD"].get("percent_change_24h"),
+                                    'volume': crypto_data["quote"]["USD"].get("volume_24h"),
                                     'avg_volume_1h': calculate_avg_volume_1h(coin, timestamp),
                                     'rsi': calculate_rsi(coin, timestamp),
                                     'macd': macd,
@@ -124,13 +124,13 @@ def run_five_min_update_logic():
                                     'sma_20': calculate_sma(coin, timestamp, window=20),
                                     'stddev_1h': calculate_stddev_1h(coin, timestamp),
                                     'atr_1h': calculate_atr_1h(coin, timestamp),
-                                    'change_since_high': calculate_change_since_high(current_price, ohlcv_data["quote"]["USD"].get("high", 0)),
-                                    'change_since_low': calculate_change_since_low(current_price, ohlcv_data["quote"]["USD"].get("low", 0)),
-                                    'fib_distance_0_236': fib_distances.get("fib_distance_0_236", 0),
-                                    'fib_distance_0_382': fib_distances.get("fib_distance_0_382", 0),
-                                    'fib_distance_0_5': fib_distances.get("fib_distance_0_5", 0),
-                                    'fib_distance_0_618': fib_distances.get("fib_distance_0_618", 0),
-                                    'fib_distance_0_786': fib_distances.get("fib_distance_0_786", 0),
+                                    'change_since_high': calculate_change_since_high(current_price, ohlcv_data["quote"]["USD"].get("high")),
+                                    'change_since_low': calculate_change_since_low(current_price, ohlcv_data["quote"]["USD"].get("low")),
+                                    'fib_distance_0_236': fib_distances.get("fib_distance_0_236"),
+                                    'fib_distance_0_382': fib_distances.get("fib_distance_0_382"),
+                                    'fib_distance_0_5': fib_distances.get("fib_distance_0_5"),
+                                    'fib_distance_0_618': fib_distances.get("fib_distance_0_618"),
+                                    'fib_distance_0_786': fib_distances.get("fib_distance_0_786"),
                                 }
                             )
 
@@ -151,7 +151,7 @@ def run_five_min_update_logic():
                             metrics.obv = obv
                             metrics.save()
 
-                            print(f"✅ Created/updated RickisMetrics for {coin.symbol}")
+                            #print(f"✅ Created/updated RickisMetrics for {coin.symbol}")
 
                         except Exception as e:
                             print(f"❌ Failed RickisMetrics for {coin.symbol}: {e}")
@@ -162,7 +162,7 @@ def run_five_min_update_logic():
         time.sleep(1.5)
 
     print("\n✅ Five minute update complete.")
-    print(f"✅ Total runtime: {datetime.now() - start}")
+    #print(f"✅ Total runtime: {datetime.now() - start}")
 
     # get open trades
     open_trades = ModelTrade.objects.filter(exit_timestamp__isnull=True)
