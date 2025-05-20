@@ -189,7 +189,7 @@ short_result = models.BooleanField(null=True)
 
 
 
-nohup python manage.py parquet_export > output.log 2>&1 &
+nohup python manage.py m2_trade_outcomes > output.log 2>&1 &
 
 tail -f output.log
 

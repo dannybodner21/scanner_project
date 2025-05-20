@@ -447,44 +447,46 @@ def calculate_obv(coin, timestamp):
 
 # Fibonacci retracement levels based on recent highs / lows
 # technical indicators used to determine support and resistance levels
-def calculate_fib_distances(high, low, current_price):
+from decimal import Decimal, InvalidOperation, getcontext
 
+# Set precision high enough to handle financial prices
+getcontext().prec = 28
+
+def calculate_fib_distances(high, low, current_price):
     try:
         if high is None or low is None or current_price is None:
-            print(f"high, low, or current price is NONE")
-
+            print("⚠️ One or more inputs are None")
             return {}
 
-        # get recent high / low
-        high = float(high)
-        low = float(low)
-        current_price = float(current_price)
+        high = Decimal(str(high))
+        low = Decimal(str(low))
+        current_price = Decimal(str(current_price))
+
+        if high == low:
+            print(f"⚠️ Skipping fib calc because high == low ({high})")
+            return {}
+
         diff = high - low
 
-        if diff == 0:
-            print(f"high: {high}")
-            print(f"low: {low}")
-            print(f"price: {current_price}")
-            print(f"diff: {diff}")
-            return {}
-
-        # calculate the Fibonacci retracement levels
+        # Calculate Fibonacci retracement levels from high and low
         levels = {
-            "fib_distance_0_236": low + 0.236 * diff,
-            "fib_distance_0_382": low + 0.382 * diff,
-            "fib_distance_0_5":   low + 0.5 * diff,
-            "fib_distance_0_618": low + 0.618 * diff,
-            "fib_distance_0_786": low + 0.786 * diff,
+            "fib_distance_0_236": low + Decimal("0.236") * diff,
+            "fib_distance_0_382": low + Decimal("0.382") * diff,
+            "fib_distance_0_5":   low + Decimal("0.5")   * diff,
+            "fib_distance_0_618": low + Decimal("0.618") * diff,
+            "fib_distance_0_786": low + Decimal("0.786") * diff,
         }
 
-        # return the percentage distance between current price and each level
+        # Calculate percent distance from current price to each level
         return {
-            key: ((current_price - val) / val) * 100 if val != 0 else None
-            for key, val in levels.items()
+            key: float(((current_price - level) / level) * 100) if level != 0 else None
+            for key, level in levels.items()
         }
-    except Exception as e:
-        print(f"error in calculate_fib_distances: {e}")
+
+    except (InvalidOperation, Exception) as e:
+        print(f"❌ Error in calculate_fib_distances: {e}")
         return {}
+
 
 
 
