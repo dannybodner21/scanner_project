@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
         # 1️⃣ Date window
         start = make_aware(datetime(2025, 3, 23))
-        end = make_aware(datetime(2025, 5, 12))
+        end = make_aware(datetime(2025, 5, 9))
 
         # 2️⃣ Fields to include
         fields = [
