@@ -11,7 +11,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 23))
-        end = make_aware(datetime(2025, 5, 12))
+        end = make_aware(datetime(2025, 5, 9))
 
         fields = [
             'id',  # Required for ID-based pagination

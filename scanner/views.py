@@ -499,7 +499,7 @@ def get_model_results(request):
 # new model functions ----------------------------------------------------------
 
 PROJECT_ID = 'bodner-main-project'
-ENDPOINT_ID = '7813451783883194368'
+ENDPOINT_ID = '2523692546559836160'
 REGION = 'us-central1'
 
 SHORT_PROJECT_ID = 'bodner-main-project'
