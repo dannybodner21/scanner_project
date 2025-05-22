@@ -458,7 +458,7 @@ def get_closed_trades(request):
         ModelTrade.objects
         .filter(exit_timestamp__isnull=False)
         .select_related("coin")
-        .order_by("-exit_timestamp")[:20]
+        .order_by("-exit_timestamp")[:100]
     )
 
     data = []
