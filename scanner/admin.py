@@ -1,5 +1,5 @@
 from django.contrib import admin
-from scanner.models import Coin, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, RealTrade, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from import_export.admin import ExportMixin
 
 admin.site.register(Coin)
@@ -11,6 +11,7 @@ admin.site.register(Pattern)
 admin.site.register(SupportResistance)
 admin.site.register(RickisMetrics)
 admin.site.register(ModelTrade)
+admin.site.register(RealTrade)
 
 @admin.register(BacktestResult)
 class BacktestResultAdmin(admin.ModelAdmin):
