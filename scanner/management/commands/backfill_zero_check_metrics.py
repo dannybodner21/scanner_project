@@ -70,7 +70,8 @@ class Command(BaseCommand):
                     if ts.date() != day:
                         continue
                     ts_epoch = int(ts.timestamp())
-                    q = quotes.get(ts_epoch)
+                    candidates = [ts_epoch, ts_epoch - 60, ts_epoch + 60, ts_epoch - 120, ts_epoch + 120]
+                    q = next((quotes.get(c) for c in candidates if quotes.get(c)), None)
                     if not q:
                         self.stdout.write(f"⚠️ No quote for {symbol} at {ts} (epoch: {ts_epoch})")
                         continue
