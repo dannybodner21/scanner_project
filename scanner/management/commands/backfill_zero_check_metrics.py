@@ -4,6 +4,7 @@ from django.utils.timezone import make_aware
 from datetime import datetime, timedelta
 import requests
 import time
+from dateutil import parser
 
 CMC_API_KEY = "6520549c-03bb-41cd-86e3-30355ece87ba"
 HEADERS = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
@@ -103,7 +104,7 @@ class Command(BaseCommand):
         data = response.json().get("data", {}).get("quotes", [])
 
         return {
-            int(datetime.fromisoformat(item["timestamp"]).timestamp()): {
+            int(parser.isoparse(item["timestamp"]).timestamp()): {
                 "price": item["quote"]["USD"]["price"],
                 "volume_24h": item["quote"]["USD"]["volume_24h"],
                 "percent_change_1h": item["quote"]["USD"].get("percent_change_1h"),
