@@ -419,7 +419,7 @@ def get_open_trades(request):
         ModelTrade.objects
         .filter(exit_timestamp__isnull=True)
         .select_related("coin")
-        .order_by("-entry_timestamp")[:20]
+        .order_by("-entry_timestamp")[:70]
     )
 
     data = []

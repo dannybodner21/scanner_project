@@ -56,7 +56,6 @@ class Command(BaseCommand):
 
             self.stdout.write(f"🔧 {symbol} is missing {len(missing_ts)} entries, fetching...")
 
-            # Fetch data in daily chunks
             date_chunks = sorted(set(ts.date() for ts in missing_ts))
             for day in date_chunks:
                 day_start = make_aware(datetime.combine(day, datetime.min.time()))
@@ -70,8 +69,11 @@ class Command(BaseCommand):
                     if ts.date() != day:
                         continue
                     ts_epoch = int(ts.timestamp())
-                    if ts_epoch in quotes:
-                        q = quotes[ts_epoch]
+                    q = quotes.get(ts_epoch)
+                    if not q:
+                        self.stdout.write(f"⚠️ No quote for {symbol} at {ts} (epoch: {ts_epoch})")
+                        continue
+                    try:
                         RickisMetrics.objects.create(
                             coin=coin,
                             timestamp=ts,
@@ -80,6 +82,9 @@ class Command(BaseCommand):
                             change_1h=q.get("percent_change_1h"),
                             change_24h=q.get("percent_change_24h")
                         )
+                        self.stdout.write(f"✅ Inserted {symbol} at {ts}")
+                    except Exception as e:
+                        self.stdout.write(f"❌ Failed insert {symbol} at {ts}: {e}")
                 time.sleep(1.2)
 
         self.stdout.write("\n🎉 Backfill complete.")
