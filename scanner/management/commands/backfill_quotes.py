@@ -5,15 +5,15 @@ from scanner.models import Coin, RickisMetrics
 import requests
 import time
 
-API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
+API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 CMC_QUOTES_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 
 class Command(BaseCommand):
     help = 'Backfill RickisMetrics with latest CMC quotes (volume_24h, change_1h, change_24h)'
 
     def handle(self, *args, **kwargs):
-        start_date = make_aware(datetime(2025, 4, 23))
-        end_date = make_aware(datetime(2025, 5, 3))
+        start_date = make_aware(datetime(2025, 5, 9))
+        end_date = make_aware(datetime(2025, 5, 24))
 
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -35,7 +35,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"❌ {symbol} coin not found."))
                 continue
 
-            self.stdout.write(self.style.NOTICE(f"\n🚀 Backfilling CMC quotes for {symbol}"))
+            self.stdout.write(self.style.NOTICE(f"\n🚀 Processing {symbol}"))
 
             metrics = list(RickisMetrics.objects.filter(
                 coin=coin,
@@ -51,11 +51,13 @@ class Command(BaseCommand):
                 continue
 
             quote = cmc_data[symbol]['quote']['USD']
-            volume = quote.get('volume_24h', 0)
-            change_1h = quote.get('percent_change_1h', 0)
-            change_24h = quote.get('percent_change_24h', 0)
+            volume = quote.get('volume_24h')
+            change_1h = quote.get('percent_change_1h')
+            change_24h = quote.get('percent_change_24h')
+            price = quote.get('price')
 
             for entry in metrics:
+                entry.price = price
                 entry.volume = volume
                 entry.change_1h = change_1h
                 entry.change_24h = change_24h
