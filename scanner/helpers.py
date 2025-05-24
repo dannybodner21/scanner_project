@@ -72,7 +72,7 @@ def calculate_rsi(coin, timestamp, period=14):
         losses = []
 
         for i in range(1, len(prices)):
-            delta = prices[i] - prices[i - 1]            
+            delta = prices[i] - prices[i - 1]
             if delta > 0:
                 gains.append(delta)
             elif delta < 0:
@@ -146,7 +146,7 @@ def calculate_macd(coin, timestamp):
 # C = current closing price
 # Ln = lowest low over last n periods (I am using 14)
 # Hn = highest high over the last n periods (14)
-def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
+def calculate_stochastic_one(coin, timestamp, period=14, smoothing=3):
     try:
         # Pull enough candles to calculate smoothed K
         candles = (
@@ -174,6 +174,52 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
             highest_high = max(highs)
             lowest_low = min(lows)
             current_close = closes[-1]
+
+            if highest_high == lowest_low:
+                k = 0
+            else:
+                k = (current_close - lowest_low) / (highest_high - lowest_low) * 100
+
+            k_values.append(k)
+
+        if not k_values:
+            return None, None
+
+        k = k_values[-1]
+        d = sum(k_values) / len(k_values)
+
+        return k, d
+
+    except Exception as e:
+        print(f"error in calculate_stochastic: {e}")
+        return None, None
+
+
+def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
+    try:
+        candles = (
+            RickisMetrics.objects
+            .filter(coin=coin, timestamp__lte=timestamp)
+            .order_by('-timestamp')[:period + smoothing - 1]
+        )
+
+        if len(candles) < period + smoothing - 1:
+            print(f"❌ Not enough data for stochastic: {coin.symbol} at {timestamp}")
+            return None, None
+
+        candles = list(candles)[::-1]  # oldest to newest
+        k_values = []
+
+        for i in range(smoothing):
+            window = candles[i:i+period]
+            prices = [float(c.price) for c in window if c.price]
+
+            if len(prices) < period:
+                continue
+
+            highest_high = max(prices)
+            lowest_low = min(prices)
+            current_close = prices[-1]
 
             if highest_high == lowest_low:
                 k = 0
@@ -290,7 +336,7 @@ def calculate_stddev_1h(coin, timestamp):
 # Average True Rating over 1 hour
 # Used to measure how much an asset moves on average over a time period
 # ATR_1h = mean of price differences over 1 hour
-def calculate_atr_1h(coin, timestamp):
+def calculate_atr_1h_one(coin, timestamp):
 
     try:
         # get an hour of metrics
@@ -329,6 +375,39 @@ def calculate_atr_1h(coin, timestamp):
         if not true_ranges:
             return None
         # return the numpy mean
+        return np.mean(true_ranges)
+
+    except Exception as e:
+        print(f"error in calculate_atr_1h: {e}")
+        return None
+
+
+def calculate_atr_1h(coin, timestamp):
+    try:
+        candles = RickisMetrics.objects.filter(
+            coin=coin,
+            timestamp__lte=timestamp
+        ).order_by('-timestamp')[:12]
+
+        if len(candles) < 2:
+            return None
+
+        candles = list(candles)[::-1]
+        true_ranges = []
+
+        for i in range(1, len(candles)):
+            current_price = float(candles[i].price)
+            previous_price = float(candles[i - 1].price)
+
+            if current_price is None or previous_price is None:
+                continue
+
+            true_range = abs(current_price - previous_price)
+            true_ranges.append(true_range)
+
+        if not true_ranges:
+            return None
+
         return np.mean(true_ranges)
 
     except Exception as e:
@@ -414,7 +493,7 @@ def calculate_change_since_low(price, low_24h):
 # Shows if volume is flowing in or out of an asset
 # current price > previous = previous obv + volume
 # current price < previous = previous obv - volume
-def calculate_obv(coin, timestamp):
+def calculate_obv_one(coin, timestamp):
     metrics = (
         RickisMetrics.objects
         .filter(coin=coin, timestamp__lte=timestamp)
@@ -522,73 +601,77 @@ def calculate_ema_from_prices(prices, window):
 # middle band = SMA - Simple Moving Average
 # lower band = moving average - 2 x standard deviation
 def calculate_bollinger_bands(coin, timestamp):
+    try:
+        # Get recent metrics for 20 5-minute intervals
+        candles = RickisMetrics.objects.filter(
+            coin=coin,
+            timestamp__lte=timestamp
+        ).order_by('-timestamp')[:20]
 
-    # get recent metrics on 20 5 min time window
-    candles = RickisMetrics.objects.filter(
-        coin=coin,
-        timestamp__lte=timestamp
-    ).order_by('-timestamp')[:20]
+        if len(candles) < 20:
+            return None, None, None
 
-    if len(candles) < 20:
+        # Extract prices instead of close
+        prices = [float(c.price) for c in reversed(candles) if c.price is not None]
+
+        if len(prices) < 20:
+            return None, None, None
+
+        # Use ta library to calculate Bollinger Bands
+        df = pd.DataFrame({"price": prices})
+        bb = BollingerBands(close=df["price"], window=20, window_dev=2)
+
+        return (
+            bb.bollinger_hband().iloc[-1],
+            bb.bollinger_mavg().iloc[-1],
+            bb.bollinger_lband().iloc[-1],
+        )
+
+    except Exception as e:
+        print(f"error in calculate_bollinger_bands: {e}")
         return None, None, None
 
-    # get the recent candle closing prices
-    closes = []
-    for c in candles[::-1]:
-        if c.close is not None:
+
+def calculate_adx(coin, timestamp):
+    try:
+        candles = RickisMetrics.objects.filter(
+            coin=coin,
+            timestamp__lte=timestamp
+        ).order_by('-timestamp')[:30]
+
+        if len(candles) < 14:
+            return None
+
+        data = list(candles)[::-1]  # Oldest to newest
+        rows = []
+
+        for c in data:
             try:
-                closes.append(float(c.close))
+                if c.high_24h is None or c.low_24h is None or c.price is None:
+                    continue
+                rows.append({
+                    "high": float(c.high_24h),
+                    "low": float(c.low_24h),
+                    "close": float(c.price)  # using 5m price as "close"
+                })
             except:
                 continue
 
-    # make sure we have at least 20 closing prices
-    if len(closes) < 20:
-        return None, None, None
+        if len(rows) < 14:
+            return None
 
-    # use ta library to calculate bollinger bands
-    df = pd.DataFrame({"close": closes})
-    bb = BollingerBands(close=df["close"], window=20, window_dev=2)
-    return (
-        bb.bollinger_hband().iloc[-1],
-        bb.bollinger_mavg().iloc[-1],
-        bb.bollinger_lband().iloc[-1],
-    )
+        df = pd.DataFrame(rows)
+        indicator = ADXIndicator(df['high'], df['low'], df['close'], window=14)
+        adx_series = indicator.adx()
 
-def calculate_adx(coin, timestamp):
+        if adx_series.empty or len(adx_series) < 14:
+            return None
 
-    candles = RickisMetrics.objects.filter(
-        coin=coin,
-        timestamp__lte=timestamp
-    ).order_by('-timestamp')[:30]
+        return adx_series.iloc[-1]
 
-    if len(candles) < 14:
+    except Exception as e:
+        print(f"error in calculate_adx: {e}")
         return None
-
-    data = list(candles)[::-1]
-    rows = []
-    for c in data:
-        try:
-            if c.high_24h is None or c.low_24h is None or c.close is None:
-                continue
-            rows.append({
-                "high": float(c.high_24h),
-                "low": float(c.low_24h),
-                "close": float(c.close)
-            })
-        except:
-            continue
-
-    if len(rows) < 14:
-        return None
-
-    df = pd.DataFrame(rows)
-    indicator = ADXIndicator(df['high'], df['low'], df['close'], window=14)
-    adx_series = indicator.adx()
-
-    if adx_series.empty or len(adx_series) < 14:
-        return None
-
-    return adx_series.iloc[-1]
 
 
 # GOING TO DELETE THIS FUNCTION - NOT WORKING RIGHT

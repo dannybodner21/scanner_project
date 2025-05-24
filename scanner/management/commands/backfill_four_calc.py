@@ -12,6 +12,14 @@ from scanner.helpers import (
 # nohup python manage.py backfill_four_calc > output.log 2>&1 &
 # tail -f output.log
 
+# need to full redo these:
+#   calculate_stochastic
+#   calculate_atr_1h
+#   calculate_bollinger_bands
+#   calculate_adx
+#   fib -> the values being passed in
+#   possibly change since high / low
+
 class Command(BaseCommand):
     help = 'Recalculate missing metrics for RickisMetrics from May 9 to May 23, 2025'
 
@@ -28,41 +36,6 @@ class Command(BaseCommand):
             updated = False
 
             try:
-                if metric.change_5m in [None, 0]:
-                    change_5m = calculate_price_change_five_min(coin, timestamp)
-                    if change_5m is not None:
-                        metric.change_5m = change_5m
-                        updated = True
-
-                if metric.avg_volume_1h in [None, 0]:
-                    avg_volume = calculate_avg_volume_1h(coin, timestamp)
-                    if avg_volume is not None:
-                        metric.avg_volume_1h = avg_volume
-                        updated = True
-
-                if metric.rsi in [None, 0]:
-                    rsi = calculate_rsi(coin, timestamp)
-                    if rsi is not None:
-                        metric.rsi = rsi
-                        updated = True
-
-                if metric.macd in [None, 0] or metric.macd_signal in [None, 0]:
-                    macd, signal = calculate_macd(coin, timestamp)
-                    if macd is not None:
-                        metric.macd = macd
-                        updated = True
-                    if signal is not None:
-                        metric.macd_signal = signal
-                        updated = True
-
-                if metric.stochastic_k in [None, 0] or metric.stochastic_d in [None, 0]:
-                    k, d = calculate_stochastic(coin, timestamp)
-                    if k is not None:
-                        metric.stochastic_k = k
-                        updated = True
-                    if d is not None:
-                        metric.stochastic_d = d
-                        updated = True
 
                 if metric.support_level in [None, 0] or metric.resistance_level in [None, 0]:
                     support, resistance = calculate_support_resistance(coin, timestamp)
@@ -97,12 +70,6 @@ class Command(BaseCommand):
                         metric.stddev_1h = stddev
                         updated = True
 
-                if metric.atr_1h in [None, 0]:
-                    atr = calculate_atr_1h(coin, timestamp)
-                    if atr is not None:
-                        metric.atr_1h = atr
-                        updated = True
-
                 if metric.obv in [None, 0]:
                     obv = calculate_obv(coin, timestamp)
                     if obv is not None:
@@ -118,3 +85,44 @@ class Command(BaseCommand):
                 print(f"❌ Error at {coin.symbol} {timestamp}: {e}")
 
         print(f"✅ Updated {count} metrics")
+
+
+'''
+
+python manage.py shell -c "
+from scanner.models import RickisMetrics
+from django.utils.timezone import make_aware
+from django.db.models import Q
+from datetime import datetime
+
+start = make_aware(datetime(2025, 5, 9))
+end = make_aware(datetime(2025, 5, 23))
+
+fields = [
+    'stochastic_k', 'stochastic_d', 'support_level', 'resistance_level',
+    'relative_volume', 'sma_5', 'sma_20', 'stddev_1h', 'atr_1h', 'obv'
+]
+
+qs = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).filter(
+    Q(stochastic_k__isnull=True) | Q(stochastic_k=0) |
+    Q(stochastic_d__isnull=True) | Q(stochastic_d=0) |
+    Q(support_level__isnull=True) | Q(support_level=0) |
+    Q(resistance_level__isnull=True) | Q(resistance_level=0) |
+    Q(relative_volume__isnull=True) | Q(relative_volume=0) |
+    Q(sma_5__isnull=True) | Q(sma_5=0) |
+    Q(sma_20__isnull=True) | Q(sma_20=0) |
+    Q(stddev_1h__isnull=True) | Q(stddev_1h=0) |
+    Q(atr_1h__isnull=True) | Q(atr_1h=0) |
+    Q(obv__isnull=True) | Q(obv=0)
+).values('timestamp', 'coin__symbol', *fields)
+
+for row in qs:
+    for field in fields:
+        val = row.get(field)
+        if val in [None, 0]:
+            print(f\"{row['timestamp']} {row['coin__symbol']} {field} {val}\")
+"
+
+
+
+'''
