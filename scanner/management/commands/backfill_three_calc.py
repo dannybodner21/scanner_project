@@ -7,6 +7,9 @@ from scanner.helpers import (
     calculate_avg_volume_1h
 )
 
+# nohup python manage.py backfill_three_calc > output.log 2>&1 &
+# tail -f output.log
+
 class Command(BaseCommand):
     help = 'Recalculate missing core metrics: change_5m, avg_volume_1h, rsi, macd, macd_signal for RickisMetrics from May 9 to May 23, 2025'
 
@@ -53,8 +56,41 @@ class Command(BaseCommand):
                 if updated:
                     metric.save()
                     count += 1
+                    print(f"✅ Updated {count} metrics")
 
             except Exception as e:
                 print(f"❌ Error at {coin.symbol} {timestamp}: {e}")
 
         print(f"✅ Updated {count} metrics")
+
+
+
+'''
+CHECK MISSING CHANGE5M, AVGVOLUME1H, RSI, MACD, MACD SIGNAL
+
+python manage.py shell -c "
+from scanner.models import RickisMetrics
+from django.utils.timezone import make_aware
+from django.db.models import Q
+from datetime import datetime
+
+start = make_aware(datetime(2025, 5, 9))
+end = make_aware(datetime(2025, 5, 23))
+
+count = RickisMetrics.objects.filter(
+    timestamp__gte=start,
+    timestamp__lt=end
+).filter(
+    Q(change_5m__isnull=True) | Q(change_5m=0) |
+    Q(avg_volume_1h__isnull=True) | Q(avg_volume_1h=0) |
+    Q(rsi__isnull=True) | Q(rsi=0) |
+    Q(macd__isnull=True) | Q(macd=0) |
+    Q(macd_signal__isnull=True) | Q(macd_signal=0)
+).count()
+
+print(f'Missing or zero metrics: {count}')
+"
+
+
+
+'''

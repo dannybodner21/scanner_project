@@ -73,6 +73,7 @@ def calculate_rsi(coin, timestamp, period=14):
 
         for i in range(1, len(prices)):
             delta = prices[i] - prices[i - 1]
+            print(delta)
             if delta > 0:
                 gains.append(delta)
             elif delta < 0:
@@ -80,6 +81,9 @@ def calculate_rsi(coin, timestamp, period=14):
 
         if not gains and not losses:
             return None  # Flat price, no movement
+
+        print(gains)
+        print(losses)
 
         avg_gain = np.mean(gains) if gains else 0
         avg_loss = np.mean(losses) if losses else 0
