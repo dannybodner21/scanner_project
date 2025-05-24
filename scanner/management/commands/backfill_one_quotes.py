@@ -4,17 +4,20 @@ from django.utils.timezone import make_aware
 from datetime import datetime, timedelta
 import requests
 import time
+from dateutil import parser
+import pytz
 
 CMC_API_KEY = "6520549c-03bb-41cd-86e3-30355ece87ba"
 HEADERS = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
 BASE_URL = "https://pro-api.coinmarketcap.com/v2"
+UTC = pytz.UTC
 
 class Command(BaseCommand):
-    help = "Backfill RickisMetrics data (price, volume, change_1h, change_24h) using CMC historical quotes"
+    help = "Ensure every 5-minute RickisMetrics entry from May 5 to May 23, 2025 exists and has full price/volume/change data."
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 5, 10))
-        end = make_aware(datetime(2025, 5, 23))
+        start = make_aware(datetime(2025, 5, 5))
+        end = make_aware(datetime(2025, 5, 24))
 
         rickisSymbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -28,57 +31,65 @@ class Command(BaseCommand):
         ]
 
         for symbol in rickisSymbols:
-            try:
-                coin = Coin.objects.get(symbol=symbol)
-            except Coin.DoesNotExist:
-                print(f"❌ Coin not found: {symbol}")
+            coin = Coin.objects.filter(symbol=symbol).first()
+            if not coin:
+                self.stdout.write(f"❌ Coin not found: {symbol}")
                 continue
 
             current = start
             while current < end:
                 next_day = current + timedelta(days=1)
-                print(f"🔍 Fetching {symbol} data for {current.date()}")
+                self.stdout.write(f"🔍 Checking {symbol} for {current.date()}...")
 
                 try:
                     quotes = self.get_quotes(symbol, current)
                 except Exception as e:
-                    print(f"❌ Error fetching quotes for {symbol} on {current.date()}: {e}")
+                    self.stdout.write(f"❌ Error fetching quotes for {symbol} on {current.date()}: {e}")
                     current = next_day
                     continue
 
-                metrics = RickisMetrics.objects.filter(
-                    coin=coin,
-                    timestamp__gte=current,
-                    timestamp__lt=next_day,
-                )
-
                 updated = 0
-                for metric in metrics:
-                    ts = int(metric.timestamp.timestamp())
-                    quote = quotes.get(ts)
-                    if not quote:
-                        continue
+                for q_ts, q_data in quotes.items():
+                    quote_time = datetime.fromtimestamp(q_ts, tz=UTC)
+                    rounded_minute = quote_time.minute - (quote_time.minute % 5)
+                    rounded_time = quote_time.replace(minute=rounded_minute, second=0, microsecond=0)
 
-                    needs_update = (
-                        not metric.price or metric.price == 0 or
-                        not metric.volume or metric.volume == 0 or
-                        metric.change_1h in [None, 0] or
-                        metric.change_24h in [None, 0]
+                    metric, created = RickisMetrics.objects.get_or_create(
+                        coin=coin,
+                        timestamp=rounded_time,
+                        defaults={
+                            "price": q_data.get("price"),
+                            "volume": q_data.get("volume_24h"),
+                            "change_1h": q_data.get("percent_change_1h"),
+                            "change_24h": q_data.get("percent_change_24h"),
+                        },
                     )
 
-                    if needs_update:
-                        metric.price = quote.get("price")
-                        metric.volume = quote.get("volume_24h")
-                        metric.change_1h = quote.get("percent_change_1h")
-                        metric.change_24h = quote.get("percent_change_24h")
-                        metric.save()
+                    if not created:
+                        needs_update = False
+                        if metric.price in [None, 0]:
+                            metric.price = q_data.get("price")
+                            needs_update = True
+                        if metric.volume in [None, 0]:
+                            metric.volume = q_data.get("volume_24h")
+                            needs_update = True
+                        if metric.change_1h in [None, 0]:
+                            metric.change_1h = q_data.get("percent_change_1h")
+                            needs_update = True
+                        if metric.change_24h in [None, 0]:
+                            metric.change_24h = q_data.get("percent_change_24h")
+                            needs_update = True
+                        if needs_update:
+                            metric.save()
+                            updated += 1
+                    else:
                         updated += 1
 
-                print(f"✅ {symbol} on {current.date()}: {updated} metrics updated")
+                self.stdout.write(f"✅ {symbol} on {current.date()}: {updated} metrics filled or updated")
                 current = next_day
                 time.sleep(1.2)
 
-        print("🎉 Backfill complete.")
+        self.stdout.write("\n🎉 Full backfill complete.")
 
     def get_quotes(self, symbol, date):
         url = f"{BASE_URL}/cryptocurrency/quotes/historical"
@@ -91,15 +102,14 @@ class Command(BaseCommand):
 
         response = requests.get(url, headers=HEADERS, params=params)
         response.raise_for_status()
-
         data = response.json().get("data", {}).get("quotes", [])
 
         return {
-            int(datetime.fromisoformat(q["timestamp"]).timestamp()): {
-                "price": q["quote"]["USD"]["price"],
-                "volume_24h": q["quote"]["USD"]["volume_24h"],
-                "percent_change_1h": q["quote"]["USD"].get("percent_change_1h"),
-                "percent_change_24h": q["quote"]["USD"].get("percent_change_24h"),
+            int(parser.isoparse(item["timestamp"]).timestamp()): {
+                "price": item["quote"]["USD"]["price"],
+                "volume_24h": item["quote"]["USD"]["volume_24h"],
+                "percent_change_1h": item["quote"]["USD"].get("percent_change_1h"),
+                "percent_change_24h": item["quote"]["USD"].get("percent_change_24h"),
             }
-            for q in data
+            for item in data
         }
