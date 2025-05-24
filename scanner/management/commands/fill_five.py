@@ -5,6 +5,9 @@ from scanner.models import RickisMetrics, Coin
 import requests
 import time
 
+# nohup python manage.py fill_five > output.log 2>&1 &
+# tail -f output.log
+
 CMC_API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 HEADERS = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": CMC_API_KEY}
 CMC_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
@@ -16,8 +19,8 @@ class Command(BaseCommand):
     help = 'Fill missing OHLCV values in RickisMetrics using daily data from March 22 to May 12'
 
     def handle(self, *args, **kwargs):
-        start = datetime(2025, 4, 20)
-        end = datetime(2025, 5, 12)
+        start = datetime(2025, 5, 9)
+        end = datetime(2025, 5, 24)
 
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
