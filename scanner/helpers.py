@@ -493,7 +493,7 @@ def calculate_change_since_low(price, low_24h):
 # Shows if volume is flowing in or out of an asset
 # current price > previous = previous obv + volume
 # current price < previous = previous obv - volume
-def calculate_obv_one(coin, timestamp):
+def calculate_obv(coin, timestamp):
     metrics = (
         RickisMetrics.objects
         .filter(coin=coin, timestamp__lte=timestamp)
