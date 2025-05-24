@@ -20,7 +20,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start = datetime(2025, 5, 9)
-        end = datetime(2025, 5, 24)
+        end = datetime(2025, 5, 23)
 
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
