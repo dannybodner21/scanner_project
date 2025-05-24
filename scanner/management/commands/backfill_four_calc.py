@@ -84,7 +84,7 @@ class Command(BaseCommand):
             except Exception as e:
                 print(f"❌ Error at {coin.symbol} {timestamp}: {e}")
 
-        print(f"✅ Updated {count} metrics")
+        print(f"✅ Done. Updated {count} metrics")
 
 
 '''
