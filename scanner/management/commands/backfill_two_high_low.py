@@ -12,44 +12,42 @@ url = 'https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical'
 headers = {"X-CMC_PRO_API_KEY": API_KEY}
 
 class Command(BaseCommand):
-
-    help = 'Backfill high, low, open, close'
+    help = 'Backfill high_24h, low_24h, open, close from CoinMarketCap OHLCV data'
 
     def handle(self, *args, **kwargs):
+        start_date = make_aware(datetime(2025, 5, 9))
+        end_date = make_aware(datetime(2025, 5, 24))
 
-        # get metrics from given dates
-        metrics = Metrics.objects.filter(
-            timestamp__gte=make_aware(datetime(2025, 5, 9)),
-            timestamp__lt=make_aware(datetime(2025, 5, 24)),
-        ).order_by("timestamp")
+        current_date = start_date
+        while current_date < end_date:
+            for symbol in RickisMetrics.objects.filter(timestamp__date=current_date.date()).values_list('coin__symbol', flat=True).distinct():
+                metrics = RickisMetrics.objects.filter(
+                    coin__symbol=symbol,
+                    timestamp__date=current_date.date()
+                )
 
-        # loop through metrics
-        for i, entry in enumerate(metrics, start=1):
+                try:
+                    data = self.fetch_ohlcv(symbol, current_date.date().isoformat())
+                    if not data:
+                        print(f"⚠️ No OHLCV data for {symbol} on {current_date.date()}")
+                        continue
 
-            date_str = entry.timestamp.date().isoformat()
-            symbol = entry.coin.symbol
+                    quote = data["quote"]["USD"]
+                    for entry in metrics:
+                        entry.open = Decimal(str(quote["open"]))
+                        entry.high_24h = Decimal(str(quote["high"]))
+                        entry.low_24h = Decimal(str(quote["low"]))
+                        entry.close = Decimal(str(quote["close"]))
+                        entry.save()
 
-            # fetch ohlcv data and save
-            try:
-                data = self.fetch_ohlcv(symbol, date_str)
-                if not data:
-                    print(f"⚠️ No OHLCV data for {symbol} on {date_str}")
-                    continue
+                    print(f"✅ Updated {symbol} on {current_date.date()} ({len(metrics)} entries)")
 
-                quote = data["quote"]["USD"]
-                entry.open = Decimal(str(quote["open"]))
-                entry.high_24h = Decimal(str(quote["high"]))
-                entry.low_24h = Decimal(str(quote["low"]))
-                entry.close = Decimal(str(quote["close"]))
-                entry.save()
-                print(f"✅ Updated {symbol} @ {entry.timestamp}")
+                except Exception as e:
+                    print(f"❌ Error for {symbol} on {current_date.date()}: {e}")
 
-            except Exception as e:
-                print(f"❌ Error for {symbol} on {date_str}: {e}")
+                time.sleep(1.2)
+            current_date += timedelta(days=1)
 
-            time.sleep(2)
-
-    # functin to get ohlcv data from Coinmarketcap
     def fetch_ohlcv(self, symbol, date_str):
         params = {
             "symbol": symbol,
