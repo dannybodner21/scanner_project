@@ -5,7 +5,7 @@ from scanner.models import Coin, RickisMetrics
 import requests
 import time
 
-API_KEY = '7dd5dd98-35d0-475d-9338-407631033cd9'
+API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 CMC_QUOTES_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical'
 
 class Command(BaseCommand):
@@ -25,6 +25,8 @@ class Command(BaseCommand):
             "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
             "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
         ]
+
+        symbolsTwo = ["LINK","BCH","FLOKI"]
 
         coins = Coin.objects.filter(symbol__in=symbols)
         coin_map = {coin.symbol: coin for coin in coins}
@@ -101,3 +103,65 @@ class Command(BaseCommand):
         except Exception as e:
             print(f"Error fetching historical quotes for {symbol}: {e}")
             return []
+
+'''
+CHECK THAT METRICS EXIST ON THE 5 MIN TIMESTAMP
+
+from datetime import datetime, timedelta
+from django.utils.timezone import make_aware
+from scanner.models import Coin, RickisMetrics
+
+start = make_aware(datetime(2025, 5, 9))
+end = make_aware(datetime(2025, 5, 24))
+expected_count = int(((end - start).total_seconds()) // 300)
+
+symbols = [
+    "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
+    "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+    "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
+    "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
+    "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+    "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
+    "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
+    "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
+]
+
+for symbol in symbols:
+    coin = Coin.objects.filter(symbol=symbol).first()
+    if not coin:
+        print(f"❌ {symbol}: Coin not found")
+        continue
+    count = RickisMetrics.objects.filter(coin=coin, timestamp__gte=start, timestamp__lt=end).count()
+    status = "✅" if count == expected_count else "⚠️"
+    print(f"{status} {symbol}: {count} entries (expected {expected_count})")
+
+
+'''
+
+'''
+CHECK EACH METRIC FOR FILLED OUT PRICE, VOLUME, CHANGE 1H AND CHANGE 24H
+
+python manage.py shell -c "
+from django.utils.timezone import make_aware
+from datetime import datetime
+from django.db.models import Q
+from scanner.models import RickisMetrics
+
+start = make_aware(datetime(2025, 5, 9))
+end = make_aware(datetime(2025, 5, 24))
+
+missing = RickisMetrics.objects.filter(
+    timestamp__gte=start,
+    timestamp__lt=end
+).filter(
+    Q(price__isnull=True) | Q(price=0) |
+    Q(volume__isnull=True) | Q(volume=0) |
+    Q(change_1h__isnull=True) | Q(change_1h=0) |
+    Q(change_24h__isnull=True) | Q(change_24h=0)
+).count()
+
+print(f'Missing or invalid entries: {missing}')
+"
+
+
+'''
