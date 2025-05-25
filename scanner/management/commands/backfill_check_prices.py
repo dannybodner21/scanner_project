@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
+from dateutil.parser import isoparse
 from scanner.models import RickisMetrics, Coin
 import requests
 import time
@@ -16,11 +17,11 @@ def round_to_five_minutes(dt):
     return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
 
 class Command(BaseCommand):
-    help = 'Verify and correct historical prices for RickisMetrics from March 22 to May 23, 2025'
+    help = 'Verify and correct historical prices for RickisMetrics from March 22 to April 23, 2025'
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 23))
+        end = make_aware(datetime(2025, 4, 23))  # Inclusive to 5-min marks on April 23
 
         coins = Coin.objects.filter(symbol__in=[
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -64,7 +65,13 @@ class Command(BaseCommand):
                     data = response.json()
                     quotes = data.get("data", {}).get("quotes", [])
 
-                    matched_quote = next((q for q in quotes if q.get("timestamp") == ts_start), None)
+                    # Normalize timestamps and match
+                    quote_map = {
+                        make_aware(isoparse(q["timestamp"]).replace(second=0, microsecond=0, minute=(isoparse(q["timestamp"]).minute // 5) * 5)): q
+                        for q in quotes
+                    }
+                    matched_quote = quote_map.get(rounded_ts)
+
                     if not matched_quote:
                         print(f"⚠️ No matching quote for {coin.symbol} at {rounded_ts}")
                         current += timedelta(minutes=5)
