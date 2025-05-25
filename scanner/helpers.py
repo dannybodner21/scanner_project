@@ -197,22 +197,23 @@ def calculate_stochastic_one(coin, timestamp, period=14, smoothing=3):
 
 def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
     try:
+        extra_buffer = 10
         candles = (
             RickisMetrics.objects
             .filter(coin=coin, timestamp__lte=timestamp)
-            .order_by('-timestamp')[:period + smoothing - 1]
+            .order_by('-timestamp')[:period + smoothing + extra_buffer]
         )
 
-        if len(candles) < period + smoothing - 1:
-            print(f"❌ Not enough data for stochastic: {coin.symbol} at {timestamp}")
+        if len(candles) < period + smoothing:
+            print(f"❌ Not enough candles for stochastic: {coin.symbol} at {timestamp}")
             return None, None
 
         candles = list(candles)[::-1]  # oldest to newest
         k_values = []
 
         for i in range(smoothing):
-            window = candles[i:i+period]
-            prices = [float(c.price) for c in window if c.price]
+            window = candles[i:i + period]
+            prices = [float(c.price) for c in window if c.price and float(c.price) > 0]
 
             if len(prices) < period:
                 continue
@@ -222,22 +223,22 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
             current_close = prices[-1]
 
             if highest_high == lowest_low:
-                k = 0
-            else:
-                k = (current_close - lowest_low) / (highest_high - lowest_low) * 100
+                print(f"⚠️ Flat window for {coin.symbol} at {timestamp}: all prices = {highest_high}")
+                continue
 
+            k = (current_close - lowest_low) / (highest_high - lowest_low) * 100
             k_values.append(k)
 
         if not k_values:
+            print(f"⚠️ No valid K values for {coin.symbol} at {timestamp}")
             return None, None
 
         k = k_values[-1]
         d = sum(k_values) / len(k_values)
-
         return k, d
 
     except Exception as e:
-        print(f"error in calculate_stochastic: {e}")
+        print(f"❌ Error in calculate_stochastic for {coin.symbol} at {timestamp}: {e}")
         return None, None
 
 
