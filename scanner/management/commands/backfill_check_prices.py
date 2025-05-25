@@ -8,10 +8,7 @@ import time
 
 CMC_API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 HEADERS = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": CMC_API_KEY}
-CMC_URL = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/historical"
-
-# nohup python manage.py backfill_check_prices > output.log 2>&1 &
-# tail -f output.log
+CMC_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
 
 def round_to_five_minutes(dt):
     return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
@@ -42,7 +39,7 @@ class Command(BaseCommand):
             while current <= end:
                 rounded_ts = round_to_five_minutes(current)
                 ts_start = rounded_ts.isoformat()
-                ts_end = (rounded_ts + timedelta(minutes=10)).isoformat()
+                ts_end = (rounded_ts + timedelta(minutes=5)).isoformat()
                 metric = RickisMetrics.objects.filter(coin=coin, timestamp=rounded_ts).first()
 
                 if not metric:
@@ -65,12 +62,13 @@ class Command(BaseCommand):
                     data = response.json()
                     quotes = data.get("data", {}).get("quotes", [])
 
-                    # Normalize timestamps and match
-                    quote_map = {
-                        make_aware(isoparse(q["timestamp"]).replace(second=0, microsecond=0, minute=(isoparse(q["timestamp"]).minute // 5) * 5)): q
-                        for q in quotes
-                    }
-                    matched_quote = quote_map.get(rounded_ts)
+                    matched_quote = next(
+                        (
+                            q for q in quotes
+                            if make_aware(isoparse(q["timestamp"]).replace(second=0, microsecond=0)) == rounded_ts
+                        ),
+                        None
+                    )
 
                     if not matched_quote:
                         print(f"⚠️ No matching quote for {coin.symbol} at {rounded_ts}")
