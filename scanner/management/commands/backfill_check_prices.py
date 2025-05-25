@@ -9,12 +9,15 @@ CMC_API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 HEADERS = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": CMC_API_KEY}
 CMC_URL = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/historical"
 
+# nohup python manage.py backfill_check_prices > output.log 2>&1 &
+# tail -f output.log
+
 class Command(BaseCommand):
     help = 'Verify and correct historical prices for RickisMetrics from March 22 to May 23, 2025'
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 5, 24))
+        end = make_aware(datetime(2025, 5, 23, 23, 55))  # Inclusive to 5-min marks on May 23
 
         coins = Coin.objects.filter(symbol__in=[
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -33,10 +36,11 @@ class Command(BaseCommand):
             print(f"\n🔍 Checking {coin.symbol}")
             current = start
             while current <= end:
-                ts_str = current.isoformat()
-                metrics = RickisMetrics.objects.filter(coin=coin, timestamp=current).first()
+                ts_start = current.isoformat()
+                ts_end = (current + timedelta(minutes=10)).isoformat()
+                metric = RickisMetrics.objects.filter(coin=coin, timestamp=current).first()
 
-                if not metrics:
+                if not metric:
                     current += timedelta(minutes=5)
                     continue
 
@@ -46,22 +50,29 @@ class Command(BaseCommand):
                         headers=HEADERS,
                         params={
                             "symbol": coin.symbol,
-                            "time_start": ts_str,
-                            "time_end": ts_str,
+                            "time_start": ts_start,
+                            "time_end": ts_end,
                             "interval": "5m",
                             "convert": "USD"
                         }
                     )
                     response.raise_for_status()
                     data = response.json()
-                    quote = data["data"]["quotes"][0]["quote"]["USD"]
-                    cmc_price = float(quote["close"])
+                    quotes = data.get("data", {}).get("quotes", [])
 
-                    db_price = float(metrics.price)
-                    if abs(db_price - cmc_price) / cmc_price > 0.01:  # More than 1% off
+                    matched_quote = next((q for q in quotes if q.get("timestamp") == current.isoformat()), None)
+                    if not matched_quote:
+                        print(f"⚠️ No matching quote for {coin.symbol} at {current}")
+                        current += timedelta(minutes=5)
+                        continue
+
+                    cmc_price = float(matched_quote["quote"]["USD"]["close"])
+                    db_price = float(metric.price)
+
+                    if abs(db_price - cmc_price) / cmc_price > 0.01:
                         print(f"❌ {coin.symbol} at {current} - DB: {db_price}, CMC: {cmc_price}")
-                        metrics.price = cmc_price
-                        metrics.save()
+                        metric.price = cmc_price
+                        metric.save()
                         errors.append((coin.symbol, current))
 
                 except Exception as e:
