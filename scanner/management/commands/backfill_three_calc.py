@@ -93,4 +93,30 @@ print(f'Missing or zero metrics: {count}')
 
 
 
+CHECK OTHER MISSING VALUES
+
+python manage.py shell -c "
+from django.utils.timezone import make_aware
+from datetime import datetime
+from django.db.models import Q
+from scanner.models import RickisMetrics
+
+start = make_aware(datetime(2025, 3, 23))
+end = make_aware(datetime(2025, 5, 22))
+
+missing = RickisMetrics.objects.filter(
+    timestamp__gte=start,
+    timestamp__lt=end
+).filter(
+    Q(change_since_high__isnull=True) | Q(change_since_high=0)
+).count()
+
+print(f'Missing or zero stochastic values: {missing}')
+"
+
+
+
+
+
+
 '''
