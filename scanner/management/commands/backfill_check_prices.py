@@ -12,6 +12,9 @@ CMC_URL = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/historical
 # nohup python manage.py backfill_check_prices > output.log 2>&1 &
 # tail -f output.log
 
+def round_to_five_minutes(dt):
+    return dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
+
 class Command(BaseCommand):
     help = 'Verify and correct historical prices for RickisMetrics from March 22 to May 23, 2025'
 
@@ -36,9 +39,10 @@ class Command(BaseCommand):
             print(f"\n🔍 Checking {coin.symbol}")
             current = start
             while current <= end:
-                ts_start = current.isoformat()
-                ts_end = (current + timedelta(minutes=10)).isoformat()
-                metric = RickisMetrics.objects.filter(coin=coin, timestamp=current).first()
+                rounded_ts = round_to_five_minutes(current)
+                ts_start = rounded_ts.isoformat()
+                ts_end = (rounded_ts + timedelta(minutes=10)).isoformat()
+                metric = RickisMetrics.objects.filter(coin=coin, timestamp=rounded_ts).first()
 
                 if not metric:
                     current += timedelta(minutes=5)
@@ -60,9 +64,9 @@ class Command(BaseCommand):
                     data = response.json()
                     quotes = data.get("data", {}).get("quotes", [])
 
-                    matched_quote = next((q for q in quotes if q.get("timestamp") == current.isoformat()), None)
+                    matched_quote = next((q for q in quotes if q.get("timestamp") == ts_start), None)
                     if not matched_quote:
-                        print(f"⚠️ No matching quote for {coin.symbol} at {current}")
+                        print(f"⚠️ No matching quote for {coin.symbol} at {rounded_ts}")
                         current += timedelta(minutes=5)
                         continue
 
@@ -70,13 +74,13 @@ class Command(BaseCommand):
                     db_price = float(metric.price)
 
                     if abs(db_price - cmc_price) / cmc_price > 0.01:
-                        print(f"❌ {coin.symbol} at {current} - DB: {db_price}, CMC: {cmc_price}")
+                        print(f"❌ {coin.symbol} at {rounded_ts} - DB: {db_price}, CMC: {cmc_price}")
                         metric.price = cmc_price
                         metric.save()
-                        errors.append((coin.symbol, current))
+                        errors.append((coin.symbol, rounded_ts))
 
                 except Exception as e:
-                    print(f"❌ API Error for {coin.symbol} at {current}: {e}")
+                    print(f"❌ API Error for {coin.symbol} at {rounded_ts}: {e}")
 
                 current += timedelta(minutes=5)
                 time.sleep(2)  # Rate limiting
