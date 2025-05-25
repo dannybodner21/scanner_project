@@ -6,6 +6,9 @@ from scanner.models import RickisMetrics, Coin
 import requests
 import time
 
+# nohup python manage.py backfill_check_prices > output.log 2>&1 &
+# tail -f output.log
+
 CMC_API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 HEADERS = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": CMC_API_KEY}
 CMC_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
