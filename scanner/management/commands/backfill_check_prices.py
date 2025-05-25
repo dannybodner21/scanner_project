@@ -6,6 +6,9 @@ from scanner.models import RickisMetrics, Coin
 import requests
 import time
 
+# nohup python manage.py backfill_check_prices > output.log 2>&1 &
+# tail -f output.log
+
 CMC_API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 HEADERS = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": CMC_API_KEY}
 CMC_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical"
@@ -18,7 +21,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 23))  # Inclusive to 5-min marks on April 23
+        end = make_aware(datetime(2025, 4, 23))
 
         coins = Coin.objects.filter(symbol__in=[
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -65,7 +68,7 @@ class Command(BaseCommand):
                     matched_quote = next(
                         (
                             q for q in quotes
-                            if make_aware(isoparse(q["timestamp"]).replace(second=0, microsecond=0)) == rounded_ts
+                            if isoparse(q["timestamp"]).replace(second=0, microsecond=0) == rounded_ts
                         ),
                         None
                     )
