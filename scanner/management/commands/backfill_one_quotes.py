@@ -111,8 +111,8 @@ from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
 from scanner.models import Coin, RickisMetrics
 
-start = make_aware(datetime(2025, 5, 9))
-end = make_aware(datetime(2025, 5, 24))
+start = make_aware(datetime(2025, 3, 22))
+end = make_aware(datetime(2025, 5, 23))
 expected_count = int(((end - start).total_seconds()) // 300)
 
 symbols = [
@@ -147,7 +147,7 @@ from datetime import datetime
 from django.db.models import Q
 from scanner.models import RickisMetrics
 
-start = make_aware(datetime(2025, 5, 9))
+start = make_aware(datetime(2025, 3, 22))
 end = make_aware(datetime(2025, 5, 24))
 
 missing = RickisMetrics.objects.filter(

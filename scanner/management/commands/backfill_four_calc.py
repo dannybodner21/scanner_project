@@ -95,7 +95,7 @@ from django.utils.timezone import make_aware
 from django.db.models import Q
 from datetime import datetime
 
-start = make_aware(datetime(2025, 5, 9))
+start = make_aware(datetime(2025, 3, 23))
 end = make_aware(datetime(2025, 5, 23))
 
 fields = [
