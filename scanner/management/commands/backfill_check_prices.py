@@ -20,7 +20,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 5, 23, 23, 55))  # Inclusive to 5-min marks on May 23
+        end = make_aware(datetime(2025, 4, 23))
 
         coins = Coin.objects.filter(symbol__in=[
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
