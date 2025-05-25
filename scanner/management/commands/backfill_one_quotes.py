@@ -26,8 +26,6 @@ class Command(BaseCommand):
             "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
         ]
 
-        symbolsTwo = ["LINK","BCH","FLOKI"]
-
         coins = Coin.objects.filter(symbol__in=symbols)
         coin_map = {coin.symbol: coin for coin in coins}
 

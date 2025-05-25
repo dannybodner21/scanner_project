@@ -1,8 +1,3 @@
-
-
-# nohup python manage.py backfill_check_prices > output.log 2>&1 &
-# tail -f output.log
-
 from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
@@ -10,6 +5,9 @@ from scanner.models import Coin, RickisMetrics
 from dateutil.parser import isoparse
 import requests
 import time
+
+# nohup python manage.py backfill_check_prices > output.log 2>&1 &
+# tail -f output.log
 
 API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 CMC_QUOTES_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical'
@@ -54,9 +52,11 @@ class Command(BaseCommand):
 
                 for quote in quotes:
                     try:
-                        ts = isoparse(quote["timestamp"]).replace(second=0, microsecond=0)
+                        ts = datetime.strptime(quote["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                        ts = ts.replace(second=0, microsecond=0)
                         ts = make_aware(ts)
-                        ts = ts.replace(minute=(ts.minute // 5) * 5)
+                        rounded_minute = ts.minute - (ts.minute % 5)
+                        ts = ts.replace(minute=rounded_minute)
 
                         metric = RickisMetrics.objects.filter(coin=coin, timestamp=ts).first()
                         if not metric:
