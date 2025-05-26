@@ -195,9 +195,9 @@ def calculate_stochastic_one(coin, timestamp, period=14, smoothing=3):
         return None, None
 
 
-def calculate_stochastic(coin, timestamp, period=21, smoothing=3):
+def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
     try:
-        extra_buffer = 10
+        extra_buffer = 5
         candles = (
             RickisMetrics.objects
             .filter(coin=coin, timestamp__lte=timestamp)

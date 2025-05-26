@@ -14,7 +14,7 @@ class Command(BaseCommand):
     help = 'Recalculate missing core metrics: change_5m, avg_volume_1h, rsi, macd, macd_signal for RickisMetrics from May 9 to May 23, 2025'
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 5, 9))
+        start = make_aware(datetime(2025, 3, 23))
         end = make_aware(datetime(2025, 5, 23))
 
         metrics = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related("coin")
@@ -61,7 +61,7 @@ class Command(BaseCommand):
             except Exception as e:
                 print(f"❌ Error at {coin.symbol} {timestamp}: {e}")
 
-        print(f"✅ Updated {count} metrics")
+        print(f"✅ DONE: Updated {count} metrics")
 
 
 
@@ -74,18 +74,18 @@ from django.utils.timezone import make_aware
 from django.db.models import Q
 from datetime import datetime
 
-start = make_aware(datetime(2025, 5, 9))
-end = make_aware(datetime(2025, 5, 23))
+start = make_aware(datetime(2025, 3, 23))
+end = make_aware(datetime(2025, 4, 23))
 
 count = RickisMetrics.objects.filter(
     timestamp__gte=start,
     timestamp__lt=end
 ).filter(
-    Q(change_5m__isnull=True) | Q(change_5m=0) |
-    Q(avg_volume_1h__isnull=True) | Q(avg_volume_1h=0) |
-    Q(rsi__isnull=True) | Q(rsi=0) |
-    Q(macd__isnull=True) | Q(macd=0) |
-    Q(macd_signal__isnull=True) | Q(macd_signal=0)
+    Q(change_5m__isnull=True) |
+    Q(avg_volume_1h__isnull=True) |
+    Q(rsi__isnull=True) |
+    Q(macd__isnull=True) |
+    Q(macd_signal__isnull=True)
 ).count()
 
 print(f'Missing or zero metrics: {count}')
