@@ -75,7 +75,7 @@ from django.db.models import Q
 from datetime import datetime
 
 start = make_aware(datetime(2025, 3, 23))
-end = make_aware(datetime(2025, 4, 23))
+end = make_aware(datetime(2025, 5, 23))
 
 count = RickisMetrics.objects.filter(
     timestamp__gte=start,
@@ -102,13 +102,14 @@ from django.db.models import Q
 from scanner.models import RickisMetrics
 
 start = make_aware(datetime(2025, 3, 23))
-end = make_aware(datetime(2025, 5, 22))
+end = make_aware(datetime(2025, 5, 23))
 
 missing = RickisMetrics.objects.filter(
     timestamp__gte=start,
     timestamp__lt=end
 ).filter(
-    Q(change_since_high__isnull=True) | Q(change_since_high=0)
+    Q(stochastic_k__isnull=True) |
+    Q(stochastic_k=0)
 ).count()
 
 print(f'Missing or zero stochastic values: {missing}')

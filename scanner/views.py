@@ -614,7 +614,7 @@ def predict_live_vertex_new(request):
                 print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
                 count += 1
 
-                if confidence > 0.6:
+                if confidence > 0.75:
 
                     messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
@@ -745,7 +745,7 @@ def predict_short_vertex_new(request):
             print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
 
             # send message through Telegram if confidence is greater than 0.9
-            if confidence > 0.6:
+            if confidence > 0.75:
                 messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
 
 

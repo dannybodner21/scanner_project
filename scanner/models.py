@@ -172,31 +172,31 @@ class RickisMetrics(models.Model):
 
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
     timestamp = models.DateTimeField()
-    price = models.DecimalField(max_digits=20, decimal_places=10)
-    high_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    low_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    open = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    close = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    change_5m = models.FloatField(null=True) # 100 zero values
-    change_1h = models.FloatField(null=True)
-    change_24h = models.FloatField(null=True)
-    volume = models.DecimalField(max_digits=30, decimal_places=2)
-    avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True)
-    rsi = models.FloatField(null=True) # bad - a lot of zeros
-    macd = models.FloatField(null=True) # 49 zeros
-    macd_signal = models.FloatField(null=True) # 50 zeros
-    stochastic_k = models.FloatField(null=True) # check
-    stochastic_d = models.FloatField(null=True) # check
-    support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    relative_volume = models.FloatField(null=True)
-    sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    stddev_1h = models.FloatField(null=True) # bad - 13204 zeros
-    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # bad - 30k
-    obv = models.FloatField(null=True)
-    change_since_high = models.FloatField(null=True) # bad
-    change_since_low = models.FloatField(null=True) # bad
+    price = models.DecimalField(max_digits=20, decimal_places=10) # good
+    high_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
+    low_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
+    open = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
+    close = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
+    change_5m = models.FloatField(null=True) # 9554
+    change_1h = models.FloatField(null=True) # good
+    change_24h = models.FloatField(null=True) # good
+    volume = models.DecimalField(max_digits=30, decimal_places=2) # good
+    avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True) # good
+    rsi = models.FloatField(null=True) # 1143
+    macd = models.FloatField(null=True) # good
+    macd_signal = models.FloatField(null=True) # good
+    stochastic_k = models.FloatField(null=True) #
+    stochastic_d = models.FloatField(null=True) #
+    support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
+    resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
+    relative_volume = models.FloatField(null=True) #
+    sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
+    sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
+    stddev_1h = models.FloatField(null=True) #
+    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
+    obv = models.FloatField(null=True) #
+    change_since_high = models.FloatField(null=True) #
+    change_since_low = models.FloatField(null=True) #
 
     fib_distance_0_236 = models.FloatField(null=True)
     fib_distance_0_382 = models.FloatField(null=True)
