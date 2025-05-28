@@ -18,7 +18,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 23))
-        end = make_aware(datetime(2025, 4, 1))
+        end = make_aware(datetime(2025, 4, 23))
 
         metrics = RickisMetrics.objects.filter(timestamp__gte=start, timestamp__lt=end).select_related("coin")
         count = 0
@@ -31,16 +31,30 @@ class Command(BaseCommand):
             try:
 
 
-                if metric.support_level in [None, 0] or metric.resistance_level in [None, 0]:
-                    support, resistance = calculate_support_resistance(coin, timestamp)
-                    if support is not None:
-                        metric.support_level = support
-                        updated = True
-                    if resistance is not None:
-                        metric.resistance_level = resistance
+
+                if metric.atr_1h in [None, 0]:
+                    atr = calculate_atr_1h(coin, timestamp)
+                    if atr is not None:
+                        metric.atr_1h = atr
                         updated = True
 
+                if metric.sma_5 in [None, 0]:
+                    sma_5 = calculate_sma(coin, timestamp, window=5)
+                    if sma_5 is not None:
+                        metric.sma_5 = sma_5
+                        updated = True
 
+                if metric.sma_20 in [None, 0]:
+                    sma_20 = calculate_sma(coin, timestamp, window=20)
+                    if sma_20 is not None:
+                        metric.sma_20 = sma_20
+                        updated = True
+
+                if metric.obv in [None, 0]:
+                    obv = calculate_obv(coin, timestamp)
+                    if obv is not None:
+                        metric.obv = obv
+                        updated = True
 
                 if updated:
                     metric.save()
