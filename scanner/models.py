@@ -175,8 +175,8 @@ class RickisMetrics(models.Model):
     price = models.DecimalField(max_digits=20, decimal_places=10) # good
     high_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
     low_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
-    open = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
-    close = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
+    open = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
+    close = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
     change_5m = models.FloatField(null=True) # 9554
     change_1h = models.FloatField(null=True) # good
     change_24h = models.FloatField(null=True) # good
@@ -187,14 +187,14 @@ class RickisMetrics(models.Model):
     macd_signal = models.FloatField(null=True) # good
     stochastic_k = models.FloatField(null=True) # bad
     stochastic_d = models.FloatField(null=True) # bad
-    support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) # bad
-    resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) # bad
-    relative_volume = models.FloatField(null=True) #
-    sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # bad
-    sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # bad
-    stddev_1h = models.FloatField(null=True) # bad
+    support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
+    resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
+    relative_volume = models.FloatField(null=True) # good
+    sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
+    sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
+    stddev_1h = models.FloatField(null=True) # 64
     atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # 641
-    obv = models.FloatField(null=True) # bad
+    obv = models.FloatField(null=True) # 46k
     change_since_high = models.FloatField(null=True) #
     change_since_low = models.FloatField(null=True) #
 

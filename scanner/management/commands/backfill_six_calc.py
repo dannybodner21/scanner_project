@@ -5,7 +5,8 @@ from scanner.models import RickisMetrics
 from scanner.helpers import (
     calculate_stochastic, calculate_atr_1h, calculate_bollinger_bands,
     calculate_adx, calculate_support_resistance, calculate_relative_volume,
-    calculate_sma, calculate_stddev_1h, calculate_obv
+    calculate_sma, calculate_stddev_1h, calculate_obv,
+    calculate_change_since_high, calculate_change_since_low, calculate_fib_distance
 )
 
 # nohup python manage.py backfill_six_calc > output.log 2>&1 &
@@ -14,7 +15,7 @@ from scanner.helpers import (
 # ps aux | grep backfill_six_calc
 
 class Command(BaseCommand):
-    help = 'Recalculate fixed metrics for RickisMetrics from March 23 to April 23, 2025'
+    help = 'Recalculate fixed metrics for RickisMetrics from March 23 to April 1, 2025'
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 23))
@@ -29,25 +30,33 @@ class Command(BaseCommand):
             updated = False
 
             try:
-                if metric.stochastic_k in [None, 0] or metric.stochastic_d in [None, 0]:
-                    k, d = calculate_stochastic(coin, timestamp)
-                    if k is not None:
-                        metric.stochastic_k = k
-                        updated = True
-                    if d is not None:
-                        metric.stochastic_d = d
+
+
+                if metric.obv in [None, 0]:
+                    obv = calculate_obv(coin, timestamp)
+                    if obv is not None:
+                        metric.obv = obv
                         updated = True
 
-                if metric.relative_volume in [None, 0]:
-                    rvol = calculate_relative_volume(coin, timestamp)
-                    if rvol is not None:
-                        metric.relative_volume = rvol
+                # 🆕 Change Since High / Low
+                if metric.change_since_high in [None, 0] and metric.price and metric.high_24h:
+                    change_high = calculate_change_since_high(metric.price, metric.high_24h)
+                    if change_high is not None:
+                        metric.change_since_high = change_high
                         updated = True
 
-                if metric.stddev_1h in [None, 0]:
-                    std = calculate_stddev_1h(coin, timestamp)
-                    if std is not None:
-                        metric.stddev_1h = std
+                if metric.change_since_low in [None, 0] and metric.price and metric.low_24h:
+                    change_low = calculate_change_since_low(metric.price, metric.low_24h)
+                    if change_low is not None:
+                        metric.change_since_low = change_low
+                        updated = True
+
+                # 🆕 Fibonacci Distances
+                if any(getattr(metric, f"fib_distance_{level}") in [None, 0] for level in ['0_236', '0_382', '0_5', '0_618', '0_786']):
+                    fibs = calculate_fib_distances(metric.high_24h, metric.low_24h, metric.price)
+                    if fibs:
+                        for key, val in fibs.items():
+                            setattr(metric, key, val)
                         updated = True
 
                 if updated:
