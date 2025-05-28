@@ -15,8 +15,8 @@ from collections import deque
 API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 CMC_QUOTES_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical'
 MAX_WORKERS = 5
-REQUEST_SPACING = 2.6  # Seconds between any 2 global requests
-MAX_PER_MIN = 25       # CMC rate limit
+REQUEST_SPACING = 3  # Seconds between any 2 global requests
+MAX_PER_MIN = 20       # CMC rate limit
 
 request_lock = threading.Lock()
 request_times = deque()
@@ -105,24 +105,32 @@ class Command(BaseCommand):
 
         print(f"✅ {symbol} on {date.date()} — fixed: {corrected}")
 
-    def fetch_cmc_quotes(self, symbol, date, retries=5):
-        headers = {"X-CMC_PRO_API_KEY": API_KEY}
-        params = {
-            "symbol": symbol,
-            "interval": "5m",
-            "time_start": date.strftime("%Y-%m-%d"),
-            "time_end": (date + timedelta(days=1)).strftime("%Y-%m-%d"),
-            "convert": "USD"
-        }
+    def fetch_cmc_quotes(self, symbol, date, retries=6):
+    headers = {"X-CMC_PRO_API_KEY": API_KEY}
+    params = {
+        "symbol": symbol,
+        "interval": "5m",
+        "time_start": date.strftime("%Y-%m-%d"),
+        "time_end": (date + timedelta(days=1)).strftime("%Y-%m-%d"),
+        "convert": "USD"
+    }
 
-        for attempt in range(retries):
-            try:
-                wait_for_request_slot()
-                response = requests.get(CMC_QUOTES_URL, headers=headers, params=params, timeout=15)
-                response.raise_for_status()
-                return response.json().get("data", {}).get("quotes", [])
-            except Exception as e:
-                print(f"❌ Error (attempt {attempt + 1}) fetching {symbol} on {date.date()}: {e}")
-                time.sleep(5 * (attempt + 1))
+    for attempt in range(retries):
+        try:
+            response = requests.get(CMC_QUOTES_URL, headers=headers, params=params, timeout=20)
+            if response.status_code == 429:
+                print(f"❌ 429 rate limit hit for {symbol} on {date.date()} (attempt {attempt + 1})")
+                time.sleep(15)
+                continue
+            if response.status_code >= 500:
+                print(f"❌ {response.status_code} server error for {symbol} on {date.date()} (attempt {attempt + 1})")
+                time.sleep(10 * (attempt + 1))
+                continue
+            response.raise_for_status()
+            return response.json().get("data", {}).get("quotes", [])
+        except Exception as e:
+            print(f"❌ Error (attempt {attempt + 1}) fetching {symbol} on {date.date()}: {e}")
+            time.sleep(8 * (attempt + 1))
 
-        return []
+    print(f"🚫 Failed to fetch {symbol} on {date.date()} after {retries} attempts.")
+    return []
