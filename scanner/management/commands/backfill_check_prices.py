@@ -3,14 +3,18 @@ from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
 from scanner.models import Coin, RickisMetrics
 import requests
+import concurrent.futures
 import time
+
+# nohup python manage.py backfill_check_prices > output.log 2>&1 &
+# tail -f output.log
 
 API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 CMC_QUOTES_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical'
-RATE_LIMIT_DELAY = 2.5  # 25 requests per minute
+MAX_WORKERS = 25  # CoinMarketCap allows 25 req/min
 
 class Command(BaseCommand):
-    help = 'Efficiently verify and correct RickisMetrics prices from historical CMC quotes.'
+    help = 'Efficiently verify and correct RickisMetrics prices from historical CMC quotes using concurrency.'
 
     def handle(self, *args, **kwargs):
         start_date = make_aware(datetime(2025, 3, 23))
@@ -30,57 +34,56 @@ class Command(BaseCommand):
         coin_map = {coin.symbol: coin for coin in coins}
         corrections = []
 
-        for symbol in symbols:
-            coin = coin_map.get(symbol)
-            if not coin:
-                self.stdout.write(self.style.ERROR(f"❌ {symbol} coin not found."))
-                continue
+        def check_day(symbol, coin, date):
+            quotes = self.fetch_cmc_quotes(symbol, date)
+            day_corrections = []
+            for quote in quotes:
+                try:
+                    ts_str = quote.get("timestamp")
+                    if not ts_str:
+                        continue
+                    ts = datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    ts = make_aware(ts.replace(second=0, microsecond=0))
+                    ts = ts.replace(minute=ts.minute - (ts.minute % 5))
+                    metric = RickisMetrics.objects.filter(coin=coin, timestamp=ts).first()
+                    if not metric:
+                        continue
 
-            self.stdout.write(self.style.NOTICE(f"\n🔍 Checking {symbol}"))
+                    cmc_price = float(quote["quote"]["USD"]["price"])
+                    db_price = float(metric.price)
 
-            current_day = start_date
-            while current_day < end_date:
-                quotes = self.fetch_cmc_quotes(symbol, current_day)
-                if not quotes:
-                    self.stdout.write(self.style.WARNING(f"⚠️  No data for {symbol} on {current_day.date()}"))
-                    current_day += timedelta(days=1)
+                    if abs(db_price - cmc_price) / cmc_price > 0.01:
+                        metric.price = cmc_price
+                        metric.save()
+                        day_corrections.append((symbol, ts))
+                except Exception as e:
+                    print(f"💥 Error at {symbol} {quote.get('timestamp')}: {e}")
+            return (symbol, date, day_corrections)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = []
+            for symbol in symbols:
+                coin = coin_map.get(symbol)
+                if not coin:
+                    self.stdout.write(self.style.ERROR(f"❌ {symbol} coin not found."))
                     continue
+                date = start_date
+                while date < end_date:
+                    futures.append(executor.submit(check_day, symbol, coin, date))
+                    date += timedelta(days=1)
 
-                for quote in quotes:
-                    try:
-                        ts_str = quote.get("timestamp")
-                        if not ts_str:
-                            continue
-                        ts = datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-                        ts = make_aware(ts.replace(second=0, microsecond=0))
-                        ts = ts.replace(minute=ts.minute - (ts.minute % 5))
+            for i, future in enumerate(concurrent.futures.as_completed(futures)):
+                try:
+                    symbol, date, fixed = future.result()
+                    if fixed:
+                        for sym, ts in fixed:
+                            print(f"✔️ Fixed {sym} at {ts}")
+                            corrections.append((sym, ts))
+                    print(f"✅ {symbol} on {date.date()} checked")
+                except Exception as e:
+                    print(f"❌ Worker error: {e}")
 
-                        metric = RickisMetrics.objects.filter(coin=coin, timestamp=ts).first()
-                        if not metric:
-                            continue
-
-                        cmc_price = float(quote["quote"]["USD"]["price"])
-                        db_price = float(metric.price)
-
-                        if abs(db_price - cmc_price) / cmc_price > 0.01:
-                            self.stdout.write(
-                                self.style.WARNING(
-                                    f"❌ {symbol} at {ts} — DB: {db_price}, CMC: {cmc_price}"
-                                )
-                            )
-                            metric.price = cmc_price
-                            metric.save()
-                            corrections.append((symbol, ts))
-                    except Exception as e:
-                        self.stdout.write(self.style.ERROR(f"💥 Error at {quote.get('timestamp')}: {e}"))
-
-                self.stdout.write(self.style.SUCCESS(f"✅ {symbol} on {current_day.date()} checked"))
-                current_day += timedelta(days=1)
-                time.sleep(RATE_LIMIT_DELAY)
-
-        self.stdout.write(self.style.SUCCESS(f"\n🎯 Corrections made: {len(corrections)}"))
-        for sym, ts in corrections:
-            print(f"✔️ Fixed {sym} at {ts}")
+        print(f"\n🎯 Total Corrections: {len(corrections)}")
 
     def fetch_cmc_quotes(self, symbol, date, retries=3):
         headers = {"X-CMC_PRO_API_KEY": API_KEY}
@@ -91,7 +94,6 @@ class Command(BaseCommand):
             "time_end": (date + timedelta(days=1)).strftime("%Y-%m-%d"),
             "convert": "USD"
         }
-
         for attempt in range(retries):
             try:
                 response = requests.get(CMC_QUOTES_URL, headers=headers, params=params, timeout=10)
@@ -99,5 +101,5 @@ class Command(BaseCommand):
                 return response.json().get("data", {}).get("quotes", [])
             except Exception as e:
                 print(f"❌ Error (attempt {attempt + 1}) fetching {symbol} on {date.date()}: {e}")
-                time.sleep(5 * (attempt + 1))  # Exponential backoff
+                time.sleep(3 * (attempt + 1))
         return []
