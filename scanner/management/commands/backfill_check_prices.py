@@ -5,18 +5,16 @@ from django.db import close_old_connections
 from scanner.models import Coin, RickisMetrics
 import requests
 import time
-import threading
-from queue import Queue
 from collections import deque
+import threading
 
 # nohup python manage.py backfill_check_prices > output.log 2>&1 &
 # tail -f output.log
 
 API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 CMC_QUOTES_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical'
-MAX_WORKERS = 5
-REQUEST_SPACING = 3  # Seconds between any 2 global requests
-MAX_PER_MIN = 20       # CMC rate limit
+REQUEST_SPACING = 3  # One request every 3 seconds = 20/min
+MAX_PER_MIN = 20
 
 request_lock = threading.Lock()
 request_times = deque()
@@ -36,7 +34,7 @@ class Command(BaseCommand):
     help = 'Backfill RickisMetrics prices safely with CoinMarketCap data.'
 
     def handle(self, *args, **kwargs):
-        start_date = make_aware(datetime(2025, 4, 18))
+        start_date = make_aware(datetime(2025, 4, 20))
         end_date = make_aware(datetime(2025, 5, 23))
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -50,30 +48,20 @@ class Command(BaseCommand):
         ]
 
         coins = {c.symbol: c for c in Coin.objects.filter(symbol__in=symbols)}
-        queue = Queue()
-
         for symbol in symbols:
             coin = coins.get(symbol)
             if not coin:
                 print(f"❌ {symbol} not found in DB.")
                 continue
+
             current = start_date
             while current < end_date:
-                queue.put((symbol, coin.id, current))
-                current += timedelta(days=1)
-
-        def worker():
-            while not queue.empty():
-                symbol, coin_id, date = queue.get()
                 try:
-                    self.process_day(symbol, coin_id, date)
+                    self.process_day(symbol, coin.id, current)
                 except Exception as e:
-                    print(f"💥 {symbol} {date.date()} failed: {e}")
-                queue.task_done()
-
-        threads = [threading.Thread(target=worker) for _ in range(MAX_WORKERS)]
-        for t in threads: t.start()
-        for t in threads: t.join()
+                    print(f"💥 {symbol} {current.date()} failed: {e}")
+                time.sleep(REQUEST_SPACING)
+                current += timedelta(days=1)
 
     def process_day(self, symbol, coin_id, date):
         quotes = self.fetch_cmc_quotes(symbol, date)
@@ -106,31 +94,32 @@ class Command(BaseCommand):
         print(f"✅ {symbol} on {date.date()} — fixed: {corrected}")
 
     def fetch_cmc_quotes(self, symbol, date, retries=6):
-    headers = {"X-CMC_PRO_API_KEY": API_KEY}
-    params = {
-        "symbol": symbol,
-        "interval": "5m",
-        "time_start": date.strftime("%Y-%m-%d"),
-        "time_end": (date + timedelta(days=1)).strftime("%Y-%m-%d"),
-        "convert": "USD"
-    }
+        headers = {"X-CMC_PRO_API_KEY": API_KEY}
+        params = {
+            "symbol": symbol,
+            "interval": "5m",
+            "time_start": date.strftime("%Y-%m-%d"),
+            "time_end": (date + timedelta(days=1)).strftime("%Y-%m-%d"),
+            "convert": "USD"
+        }
 
-    for attempt in range(retries):
-        try:
-            response = requests.get(CMC_QUOTES_URL, headers=headers, params=params, timeout=20)
-            if response.status_code == 429:
-                print(f"❌ 429 rate limit hit for {symbol} on {date.date()} (attempt {attempt + 1})")
-                time.sleep(15)
-                continue
-            if response.status_code >= 500:
-                print(f"❌ {response.status_code} server error for {symbol} on {date.date()} (attempt {attempt + 1})")
-                time.sleep(10 * (attempt + 1))
-                continue
-            response.raise_for_status()
-            return response.json().get("data", {}).get("quotes", [])
-        except Exception as e:
-            print(f"❌ Error (attempt {attempt + 1}) fetching {symbol} on {date.date()}: {e}")
-            time.sleep(8 * (attempt + 1))
+        for attempt in range(retries):
+            wait_for_request_slot()
+            try:
+                response = requests.get(CMC_QUOTES_URL, headers=headers, params=params, timeout=20)
+                if response.status_code == 429:
+                    print(f"❌ 429 rate limit hit for {symbol} on {date.date()} (attempt {attempt + 1})")
+                    time.sleep(20)
+                    continue
+                if response.status_code >= 500:
+                    print(f"❌ {response.status_code} server error for {symbol} on {date.date()} (attempt {attempt + 1})")
+                    time.sleep(10 * (attempt + 1))
+                    continue
+                response.raise_for_status()
+                return response.json().get("data", {}).get("quotes", [])
+            except Exception as e:
+                print(f"❌ Error (attempt {attempt + 1}) fetching {symbol} on {date.date()}: {e}")
+                time.sleep(8 * (attempt + 1))
 
-    print(f"🚫 Failed to fetch {symbol} on {date.date()} after {retries} attempts.")
-    return []
+        print(f"🚫 Failed to fetch {symbol} on {date.date()} after {retries} attempts.")
+        return []
