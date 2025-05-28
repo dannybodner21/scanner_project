@@ -29,31 +29,25 @@ class Command(BaseCommand):
             updated = False
 
             try:
-
-
-
-                if metric.atr_1h in [None, 0]:
-                    atr = calculate_atr_1h(coin, timestamp)
-                    if atr is not None:
-                        metric.atr_1h = atr
+                if metric.stochastic_k in [None, 0] or metric.stochastic_d in [None, 0]:
+                    k, d = calculate_stochastic(coin, timestamp)
+                    if k is not None:
+                        metric.stochastic_k = k
+                        updated = True
+                    if d is not None:
+                        metric.stochastic_d = d
                         updated = True
 
-                if metric.sma_5 in [None, 0]:
-                    sma_5 = calculate_sma(coin, timestamp, window=5)
-                    if sma_5 is not None:
-                        metric.sma_5 = sma_5
+                if metric.relative_volume in [None, 0]:
+                    rvol = calculate_relative_volume(coin, timestamp)
+                    if rvol is not None:
+                        metric.relative_volume = rvol
                         updated = True
 
-                if metric.sma_20 in [None, 0]:
-                    sma_20 = calculate_sma(coin, timestamp, window=20)
-                    if sma_20 is not None:
-                        metric.sma_20 = sma_20
-                        updated = True
-
-                if metric.obv in [None, 0]:
-                    obv = calculate_obv(coin, timestamp)
-                    if obv is not None:
-                        metric.obv = obv
+                if metric.stddev_1h in [None, 0]:
+                    std = calculate_stddev_1h(coin, timestamp)
+                    if std is not None:
+                        metric.stddev_1h = std
                         updated = True
 
                 if updated:
