@@ -185,16 +185,16 @@ class RickisMetrics(models.Model):
     rsi = models.FloatField(null=True) # 1143
     macd = models.FloatField(null=True) # good
     macd_signal = models.FloatField(null=True) # good
-    stochastic_k = models.FloatField(null=True) #
-    stochastic_d = models.FloatField(null=True) #
-    support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
-    resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
+    stochastic_k = models.FloatField(null=True) # bad
+    stochastic_d = models.FloatField(null=True) # bad
+    support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) # bad
+    resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) # bad
     relative_volume = models.FloatField(null=True) #
-    sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
-    sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
-    stddev_1h = models.FloatField(null=True) #
-    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) #
-    obv = models.FloatField(null=True) #
+    sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # bad
+    sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # bad
+    stddev_1h = models.FloatField(null=True) # bad
+    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # 641
+    obv = models.FloatField(null=True) # bad
     change_since_high = models.FloatField(null=True) #
     change_since_low = models.FloatField(null=True) #
 
