@@ -18,7 +18,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start_date = make_aware(datetime(2025, 3, 23))
-        end_date = make_aware(datetime(2025, 4, 23))
+        end_date = make_aware(datetime(2025, 4, 1))
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
             "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
@@ -87,7 +87,7 @@ class Command(BaseCommand):
 
         print(f"✅ {symbol} on {date.date()} — fixed: {corrected}")
 
-    def fetch_cmc_quotes(self, symbol, date, retries=3):
+    def fetch_cmc_quotes(self, symbol, date, retries=5):
         headers = {"X-CMC_PRO_API_KEY": API_KEY}
         params = {
             "symbol": symbol,
@@ -99,9 +99,11 @@ class Command(BaseCommand):
 
         for attempt in range(retries):
             try:
-                response = requests.get(CMC_QUOTES_URL, headers=headers, params=params, timeout=10)
+                response = requests.get(CMC_QUOTES_URL, headers=headers, params=params, timeout=15)
                 if response.status_code == 429:
-                    raise Exception("Rate limit hit (429)")
+                    print(f"❌ 429 rate limit hit for {symbol} on {date.date()} (attempt {attempt + 1})")
+                    time.sleep(REQUEST_INTERVAL * 2)
+                    continue
                 response.raise_for_status()
                 return response.json().get("data", {}).get("quotes", [])
             except Exception as e:
