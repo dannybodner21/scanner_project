@@ -7,18 +7,37 @@ import requests
 import time
 import threading
 from queue import Queue
+from collections import deque
+
+# nohup python manage.py backfill_check_prices > output.log 2>&1 &
+# tail -f output.log
 
 API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 CMC_QUOTES_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical'
-REQUEST_INTERVAL = 2.5  # 25 req/min
-MAX_WORKERS = 5         # Number of concurrent threads
+MAX_WORKERS = 5
+REQUEST_SPACING = 2.6  # Seconds between any 2 global requests
+MAX_PER_MIN = 25       # CMC rate limit
+
+request_lock = threading.Lock()
+request_times = deque()
+
+def wait_for_request_slot():
+    while True:
+        with request_lock:
+            now = time.time()
+            while request_times and now - request_times[0] > 60:
+                request_times.popleft()
+            if len(request_times) < MAX_PER_MIN:
+                request_times.append(now)
+                return
+        time.sleep(0.5)
 
 class Command(BaseCommand):
     help = 'Backfill RickisMetrics prices safely with CoinMarketCap data.'
 
     def handle(self, *args, **kwargs):
-        start_date = make_aware(datetime(2025, 3, 23))
-        end_date = make_aware(datetime(2025, 4, 1))
+        start_date = make_aware(datetime(2025, 4, 18))
+        end_date = make_aware(datetime(2025, 5, 23))
         symbols = [
             "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
             "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
@@ -31,8 +50,8 @@ class Command(BaseCommand):
         ]
 
         coins = {c.symbol: c for c in Coin.objects.filter(symbol__in=symbols)}
-
         queue = Queue()
+
         for symbol in symbols:
             coin = coins.get(symbol)
             if not coin:
@@ -50,7 +69,6 @@ class Command(BaseCommand):
                     self.process_day(symbol, coin_id, date)
                 except Exception as e:
                     print(f"💥 {symbol} {date.date()} failed: {e}")
-                time.sleep(REQUEST_INTERVAL)
                 queue.task_done()
 
         threads = [threading.Thread(target=worker) for _ in range(MAX_WORKERS)]
@@ -99,11 +117,8 @@ class Command(BaseCommand):
 
         for attempt in range(retries):
             try:
+                wait_for_request_slot()
                 response = requests.get(CMC_QUOTES_URL, headers=headers, params=params, timeout=15)
-                if response.status_code == 429:
-                    print(f"❌ 429 rate limit hit for {symbol} on {date.date()} (attempt {attempt + 1})")
-                    time.sleep(REQUEST_INTERVAL * 2)
-                    continue
                 response.raise_for_status()
                 return response.json().get("data", {}).get("quotes", [])
             except Exception as e:
