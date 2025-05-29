@@ -108,8 +108,8 @@ missing = RickisMetrics.objects.filter(
     timestamp__gte=start,
     timestamp__lt=end
 ).filter(
-    Q(change_since_high__isnull=True) |
-    Q(change_since_high=0)
+    Q(fib_distance_0_236__isnull=True) |
+    Q(fib_distance_0_236=0)
 ).count()
 
 print(f'Missing or zero stochastic values: {missing}')

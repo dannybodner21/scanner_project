@@ -6,7 +6,7 @@ from scanner.helpers import (
     calculate_stochastic, calculate_atr_1h, calculate_bollinger_bands,
     calculate_adx, calculate_support_resistance, calculate_relative_volume,
     calculate_sma, calculate_stddev_1h, calculate_obv,
-    calculate_change_since_high, calculate_change_since_low, calculate_fib_distance
+    calculate_change_since_high, calculate_change_since_low, calculate_fib_distances
 )
 
 # nohup python manage.py backfill_six_calc > output.log 2>&1 &

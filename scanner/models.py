@@ -211,8 +211,6 @@ class RickisMetrics(models.Model):
 
 
     price_slope_1h = models.FloatField(null=True)
-    market_sentiment_score = models.IntegerField(null=True)
-    market_sentiment_label = models.CharField(max_length=32, null=True)
     adx = models.FloatField(null=True)
     bollinger_upper = models.FloatField(null=True)
     bollinger_middle = models.FloatField(null=True)
@@ -220,6 +218,8 @@ class RickisMetrics(models.Model):
     ema_12 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     ema_26 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     volume_mc_ratio = models.FloatField(null=True)
+    market_sentiment_score = models.IntegerField(null=True)
+    market_sentiment_label = models.CharField(max_length=32, null=True)
 
     class Meta:
 
@@ -277,3 +277,61 @@ class RealTrade(models.Model):
 
 
 #
+
+'''
+
+
+from datetime import datetime
+from django.utils.timezone import make_aware
+from scanner.models import RickisMetrics
+from django.db.models import Q
+
+start = make_aware(datetime(2025, 3, 23))
+end = make_aware(datetime(2025, 5, 23))
+
+qs = RickisMetrics.objects.filter(timestamp__range=(start, end))
+
+fields = [
+    'price',
+    'high_24h',
+    'low_24h',
+    'open',
+    'close',
+    'change_5m',
+    'change_1h',
+    'change_24h',
+    'volume',
+    'avg_volume_1h',
+    'rsi',
+    'macd',
+    'macd_signal',
+    'stochastic_k',
+    'stochastic_d',
+    'support_level',
+    'resistance_level',
+    'relative_volume',
+    'sma_5',
+    'sma_20',
+    'stddev_1h',
+    'atr_1h',
+    'obv',
+    'change_since_high',
+    'change_since_low',
+    'fib_distance_0_236',
+    'fib_distance_0_382',
+    'fib_distance_0_5',
+    'fib_distance_0_618',
+    'fib_distance_0_786',
+    'long_result',
+    'short_result',
+]
+
+for field in fields:
+    null_count = qs.filter(**{f"{field}__isnull": True}).count()
+    zero_count = qs.filter(**{field: 0}).count()
+    print(f"{field}: None={null_count}, Zero={zero_count}")
+
+
+
+
+'''
