@@ -73,16 +73,11 @@ def calculate_rsi(coin, timestamp, period=14):
 
         for i in range(1, len(prices)):
             delta = prices[i] - prices[i - 1]
-            if delta > 0:
-                gains.append(delta)
-            elif delta < 0:
-                losses.append(abs(delta))
+            gains.append(max(delta, 0))
+            losses.append(max(-delta, 0))
 
-        if not gains and not losses:
-            return None  # Flat price, no movement
-
-        avg_gain = np.mean(gains) if gains else 0
-        avg_loss = np.mean(losses) if losses else 0
+        avg_gain = sum(gains) / period
+        avg_loss = sum(losses) / period
 
         if avg_loss == 0:
             return 100
@@ -90,11 +85,13 @@ def calculate_rsi(coin, timestamp, period=14):
             return 0
 
         rs = avg_gain / avg_loss
-        return 100 - (100 / (1 + rs))
+        rsi = 100 - (100 / (1 + rs))
+        return round(rsi, 2)
 
     except Exception as e:
         print(f"❌ Error in calculate_rsi for {coin.symbol} at {timestamp}: {e}")
         return None
+
 
 
 

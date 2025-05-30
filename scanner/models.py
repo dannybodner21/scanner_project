@@ -287,7 +287,7 @@ from scanner.models import RickisMetrics
 from django.db.models import Q
 
 start = make_aware(datetime(2025, 3, 23))
-end = make_aware(datetime(2025, 5, 23))
+end = make_aware(datetime(2025, 5, 22))
 
 symbols = [
     "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
