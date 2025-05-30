@@ -62,7 +62,7 @@ def get_recent_volumes(coin, timestamp, window):
 
 # take a coin and calculate RSI based on 14 time periods
 # RSI = 100 - (100 / (1 + (average_gain / average_loss)))
-def calculate_rsi(coin, timestamp, period=14):
+def calculate_rsi_old(coin, timestamp, period=14):
     try:
         prices = get_recent_prices(coin, timestamp, period + 1)
         if len(prices) < period + 1:
@@ -91,6 +91,41 @@ def calculate_rsi(coin, timestamp, period=14):
     except Exception as e:
         print(f"❌ Error in calculate_rsi for {coin.symbol} at {timestamp}: {e}")
         return None
+
+import numpy as np
+
+def calculate_rsi(coin, timestamp, period=14):
+    try:
+        prices = get_recent_prices(coin, timestamp, period + 100)  # Get extra history for smoothing
+        if len(prices) < period + 1:
+            return None  # Not enough data
+
+        # Calculate price changes
+        deltas = np.diff(prices)
+
+        # Separate gains and losses
+        gains = np.where(deltas > 0, deltas, 0)
+        losses = np.where(deltas < 0, -deltas, 0)
+
+        # First average gain/loss (simple average over first period)
+        avg_gain = np.sum(gains[:period]) / period
+        avg_loss = np.sum(losses[:period]) / period
+
+        # Now use Wilder's smoothing
+        for i in range(period, len(gains)):
+            avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+            avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+
+        if avg_loss == 0:
+            return 100
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+        return rsi
+
+    except Exception as e:
+        print(f"❌ Error in calculate_rsi for {coin.symbol} at {timestamp}: {e}")
+        return None
+
 
 
 
