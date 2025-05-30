@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 import requests
 import time
 
+# nohup python manage.py backfill_two_two > output.log 2>&1 &
+# tail -f output.log
+
 CMC_API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 HEADERS = {
     "Accepts": "application/json",
