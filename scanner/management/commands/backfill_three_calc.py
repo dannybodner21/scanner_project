@@ -26,17 +26,7 @@ class Command(BaseCommand):
             updated = False
 
             try:
-                if metric.change_5m in [None, 0]:
-                    change_5m = calculate_price_change_five_min(coin, timestamp)
-                    if change_5m is not None:
-                        metric.change_5m = change_5m
-                        updated = True
 
-                if metric.avg_volume_1h in [None, 0]:
-                    avg_volume = calculate_avg_volume_1h(coin, timestamp)
-                    if avg_volume is not None:
-                        metric.avg_volume_1h = avg_volume
-                        updated = True
 
                 if metric.rsi in [None, 0]:
                     rsi = calculate_rsi(coin, timestamp)
@@ -44,14 +34,7 @@ class Command(BaseCommand):
                         metric.rsi = rsi
                         updated = True
 
-                if metric.macd in [None, 0] or metric.macd_signal in [None, 0]:
-                    macd, signal = calculate_macd(coin, timestamp)
-                    if macd is not None:
-                        metric.macd = macd
-                        updated = True
-                    if signal is not None:
-                        metric.macd_signal = signal
-                        updated = True
+
 
                 if updated:
                     metric.save()

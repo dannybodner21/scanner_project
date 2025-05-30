@@ -289,18 +289,24 @@ from django.db.models import Q
 start = make_aware(datetime(2025, 3, 23))
 end = make_aware(datetime(2025, 5, 23))
 
-qs = RickisMetrics.objects.filter(timestamp__range=(start, end))
+symbols = [
+    "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
+    "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+    "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
+    "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
+    "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+    "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
+    "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
+    "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
+]
+
+qs = RickisMetrics.objects.filter(
+    timestamp__range=(start, end),
+    coin__symbol__in=symbols
+)
 
 fields = [
-    'price',
-    'high_24h',
-    'low_24h',
-    'open',
-    'close',
     'change_5m',
-    'change_1h',
-    'change_24h',
-    'volume',
     'avg_volume_1h',
     'rsi',
     'macd',
@@ -330,7 +336,6 @@ for field in fields:
     null_count = qs.filter(**{f"{field}__isnull": True}).count()
     zero_count = qs.filter(**{field: 0}).count()
     print(f"{field}: None={null_count}, Zero={zero_count}")
-
 
 
 
