@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
 from scanner.helpers import calculate_stochastic
 from django.db.models import Q
+from collections import defaultdict
 
 # Run with:
 # nohup python manage.py backfill_three_calc > output.log 2>&1 &
@@ -21,51 +22,80 @@ TRACKED_SYMBOLS = [
 ]
 
 class Command(BaseCommand):
-    help = 'Fast Recalculate missing stochastic_k and stochastic_d'
+    help = 'Ultra Fast Recalculate stochastic_k and stochastic_d for RickisMetrics'
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 23))
         end = make_aware(datetime(2025, 4, 1))
 
-        batch_size = 1000  # Tune this depending on your memory
-        offset = 0
-        count = 0
+        print("🔍 Loading all metrics into memory...")
 
-        while True:
-            metrics_batch = list(
-                RickisMetrics.objects
-                .filter(timestamp__gte=start, timestamp__lt=end)
-                .filter(coin__symbol__in=TRACKED_SYMBOLS)
-                .filter(Q(stochastic_k__isnull=True) | Q(stochastic_d__isnull=True))
-                .select_related("coin")
-                .order_by('id')[offset:offset + batch_size]
-            )
+        # Load all relevant metrics
+        all_metrics = list(
+            RickisMetrics.objects.filter(
+                timestamp__gte=start,
+                timestamp__lt=end,
+                coin__symbol__in=TRACKED_SYMBOLS
+            ).select_related('coin')
+            .order_by('timestamp')  # Important for sequential lookup
+        )
 
-            if not metrics_batch:
-                break
+        print(f"✅ Loaded {len(all_metrics)} metrics.")
 
-            for metric in metrics_batch:
-                coin = metric.coin
-                timestamp = metric.timestamp
+        # Group metrics by coin
+        metrics_by_coin = defaultdict(list)
+        for metric in all_metrics:
+            metrics_by_coin[metric.coin.symbol].append(metric)
+
+        print("📚 Starting recalculation...")
+
+        batch_size = 5000
+        updates = []
+        total_updated = 0
+
+        for symbol, metrics in metrics_by_coin.items():
+            print(f"⚡ Processing {symbol} with {len(metrics)} entries...")
+            for idx, metric in enumerate(metrics):
                 try:
-                    k, d = calculate_stochastic(coin, timestamp)
-                    if k is not None:
-                        metric.stochastic_k = k
-                    if d is not None:
-                        metric.stochastic_d = d
+                    # Smooth over last 3 entries
+                    window = metrics[max(0, idx - 2):idx + 1]
+                    if len(window) < 1:
+                        continue
+
+                    k_values = []
+                    for win_metric in window:
+                        close = float(win_metric.price)
+                        high_24h = float(win_metric.high_24h)
+                        low_24h = float(win_metric.low_24h)
+
+                        if high_24h == low_24h:
+                            k = 50.0
+                        else:
+                            k = (close - low_24h) / (high_24h - low_24h) * 100
+
+                        k_values.append(k)
+
+                    k = k_values[-1]  # latest %K
+                    d = sum(k_values) / len(k_values)  # smoothed %D
+
+                    metric.stochastic_k = k
+                    metric.stochastic_d = d
+                    updates.append(metric)
+
                 except Exception as e:
-                    print(f"❌ Error at {coin.symbol} {timestamp}: {e}")
+                    print(f"❌ Error at {symbol} {metric.timestamp}: {e}")
 
-            # Bulk update
-            RickisMetrics.objects.bulk_update(
-                metrics_batch,
-                fields=["stochastic_k", "stochastic_d"],
-                batch_size=batch_size
-            )
+                # Bulk update every batch_size
+                if len(updates) >= batch_size:
+                    RickisMetrics.objects.bulk_update(updates, ['stochastic_k', 'stochastic_d'], batch_size=batch_size)
+                    total_updated += len(updates)
+                    print(f"✅ {total_updated} metrics updated...")
+                    updates.clear()
 
-            count += len(metrics_batch)
-            print(f"✅ Updated {count} metrics so far...")
+        # Final flush
+        if updates:
+            RickisMetrics.objects.bulk_update(updates, ['stochastic_k', 'stochastic_d'], batch_size=batch_size)
+            total_updated += len(updates)
+            print(f"✅ Final {total_updated} metrics updated...")
 
-            offset += batch_size
-
-        print(f"🎯 DONE: Total {count} stochastic_k and stochastic_d updated")
+        print(f"🎯 DONE: Total {total_updated} stochastic_k and stochastic_d updated")
