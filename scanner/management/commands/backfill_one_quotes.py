@@ -145,17 +145,14 @@ from datetime import datetime
 from django.db.models import Q
 from scanner.models import RickisMetrics
 
-start = make_aware(datetime(2025, 3, 22))
-end = make_aware(datetime(2025, 5, 24))
+start = make_aware(datetime(2025, 3, 23))
+end = make_aware(datetime(2025, 5, 23))
 
 missing = RickisMetrics.objects.filter(
     timestamp__gte=start,
     timestamp__lt=end
 ).filter(
-    Q(price__isnull=True) | Q(price=0) |
-    Q(volume__isnull=True) | Q(volume=0) |
-    Q(change_1h__isnull=True) | Q(change_1h=0) |
-    Q(change_24h__isnull=True) | Q(change_24h=0)
+    Q(stochastic_d=0)
 ).count()
 
 print(f'Missing or invalid entries: {missing}')

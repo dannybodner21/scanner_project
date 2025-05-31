@@ -227,46 +227,38 @@ def calculate_stochastic_one(coin, timestamp, period=14, smoothing=3):
         return None, None
 
 
-def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
+def calculate_stochastic(coin, timestamp, period=3):
     try:
-        extra_buffer = 5
+        # Get the last `period` candles for smoothing
         candles = (
             RickisMetrics.objects
             .filter(coin=coin, timestamp__lte=timestamp)
             .exclude(price__isnull=True)
             .exclude(price=0)
-            .order_by('-timestamp')[:period + smoothing + extra_buffer]
+            .order_by('-timestamp')[:period]
         )
 
-        if len(candles) < period + smoothing:
-            print(f"❌ Not enough candles for stochastic: {coin.symbol} at {timestamp}")
-            return None, None
-
         candles = list(candles)[::-1]  # oldest to newest
+
+        if len(candles) < period:
+            return 50.0, 50.0  # Not enough data — fallback
+
         k_values = []
 
-        for i in range(smoothing):
-            window = candles[i:i + period]
-            prices = [float(c.price) for c in window]
+        for candle in candles:
+            current_close = float(candle.price)
+            high_24h = float(candle.high_24h)
+            low_24h = float(candle.low_24h)
 
-            if len(prices) < period:
+            if high_24h == low_24h:
+                k_values.append(50.0)  # fallback for no volatility
                 continue
 
-            highest_high = max(prices)
-            lowest_low = min(prices)
-            current_close = prices[-1]
-
-            if highest_high == lowest_low:
-                print(f"⚠️ Flat window for {coin.symbol} at {timestamp}: all prices = {highest_high}")
-                k_values.append(50.0)
-                continue
-
-            k = (current_close - lowest_low) / (highest_high - lowest_low) * 100
+            k = (current_close - low_24h) / (high_24h - low_24h) * 100
             k_values.append(k)
 
         if not k_values:
-            print(f"⚠️ No valid K values for {coin.symbol} at {timestamp}")
-            return 50.0, 50.0
+            return 50.0, 50.0  # fallback
 
         k = k_values[-1]  # latest K
         d = sum(k_values) / len(k_values)  # smoothed D
@@ -274,7 +266,7 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
 
     except Exception as e:
         print(f"❌ Error in calculate_stochastic for {coin.symbol} at {timestamp}: {e}")
-        return None, None
+        return 50.0, 50.0
 
 
 

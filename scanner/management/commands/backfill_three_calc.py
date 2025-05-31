@@ -2,13 +2,7 @@ from datetime import datetime
 from django.utils.timezone import make_aware
 from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
-from scanner.helpers import (
-    calculate_rsi,
-    calculate_macd,
-    calculate_price_change_five_min,
-    calculate_avg_volume_1h,
-    calculate_stochastic
-)
+from scanner.helpers import calculate_stochastic
 from django.db.models import Q
 
 # Run with:
@@ -27,48 +21,51 @@ TRACKED_SYMBOLS = [
 ]
 
 class Command(BaseCommand):
-    help = 'Recalculate missing core metrics: stochastic_k, stochastic_d for RickisMetrics from March 23 to April 23, 2025'
+    help = 'Fast Recalculate missing stochastic_k and stochastic_d'
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 23))
-        end = make_aware(datetime(2025, 4, 23))
+        end = make_aware(datetime(2025, 4, 1))
 
-        metrics = (
-            RickisMetrics.objects
-            .filter(timestamp__gte=start, timestamp__lt=end)
-            .filter(coin__symbol__in=TRACKED_SYMBOLS)  # <-- Only these coins
-            .filter(Q(stochastic_k__isnull=True) | Q(stochastic_d__isnull=True))
-            .select_related("coin")
-            .iterator(chunk_size=500)  # ⚡ efficient
-        )
-
+        batch_size = 1000  # Tune this depending on your memory
+        offset = 0
         count = 0
 
-        for metric in metrics:
-            coin = metric.coin
-            timestamp = metric.timestamp
-            updated = False
+        while True:
+            metrics_batch = list(
+                RickisMetrics.objects
+                .filter(timestamp__gte=start, timestamp__lt=end)
+                .filter(coin__symbol__in=TRACKED_SYMBOLS)
+                .filter(Q(stochastic_k__isnull=True) | Q(stochastic_d__isnull=True))
+                .select_related("coin")
+                .order_by('id')[offset:offset + batch_size]
+            )
 
-            try:
-                # Only calculate if needed
-                if metric.stochastic_k in [None, 0] or metric.stochastic_d in [None, 0]:
+            if not metrics_batch:
+                break
+
+            for metric in metrics_batch:
+                coin = metric.coin
+                timestamp = metric.timestamp
+                try:
                     k, d = calculate_stochastic(coin, timestamp)
-
-                    if k is not None and metric.stochastic_k != k:
+                    if k is not None:
                         metric.stochastic_k = k
-                        updated = True
-
-                    if d is not None and metric.stochastic_d != d:
+                    if d is not None:
                         metric.stochastic_d = d
-                        updated = True
+                except Exception as e:
+                    print(f"❌ Error at {coin.symbol} {timestamp}: {e}")
 
-                if updated:
-                    metric.save(update_fields=["stochastic_k", "stochastic_d"])
-                    count += 1
-                    if count % 100 == 0:  # Log every 100 updates
-                        print(f"✅ Updated {count} metrics so far...")
+            # Bulk update
+            RickisMetrics.objects.bulk_update(
+                metrics_batch,
+                fields=["stochastic_k", "stochastic_d"],
+                batch_size=batch_size
+            )
 
-            except Exception as e:
-                print(f"❌ Error at {coin.symbol} {timestamp}: {e}")
+            count += len(metrics_batch)
+            print(f"✅ Updated {count} metrics so far...")
+
+            offset += batch_size
 
         print(f"🎯 DONE: Total {count} stochastic_k and stochastic_d updated")
