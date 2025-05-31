@@ -233,6 +233,8 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
         candles = (
             RickisMetrics.objects
             .filter(coin=coin, timestamp__lte=timestamp)
+            .exclude(price__isnull=True)
+            .exclude(price=0)
             .order_by('-timestamp')[:period + smoothing + extra_buffer]
         )
 
@@ -245,7 +247,7 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
 
         for i in range(smoothing):
             window = candles[i:i + period]
-            prices = [float(c.price) for c in window if c.price and float(c.price) > 0]
+            prices = [float(c.price) for c in window]
 
             if len(prices) < period:
                 continue
@@ -265,13 +267,14 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
             print(f"⚠️ No valid K values for {coin.symbol} at {timestamp}")
             return None, None
 
-        k = k_values[-1]
-        d = sum(k_values) / len(k_values)
+        k = k_values[-1]  # latest K
+        d = sum(k_values) / len(k_values)  # smoothed D
         return k, d
 
     except Exception as e:
         print(f"❌ Error in calculate_stochastic for {coin.symbol} at {timestamp}: {e}")
         return None, None
+
 
 
 # get recent support / resistance levels on a 20 time period window

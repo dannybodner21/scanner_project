@@ -28,10 +28,13 @@ class Command(BaseCommand):
             try:
 
 
-                if metric.rsi in [None, 0]:
-                    rsi = calculate_rsi(coin, timestamp)
-                    if rsi is not None:
-                        metric.rsi = rsi
+                if metric.stochastic_k in [None, 0] or metric.stochastic_d in [None, 0]:
+                    k, d = calculate_stochastic(coin, timestamp)
+                    if k is not None:
+                        metric.stochastic_k = k
+                        updated = True
+                    if d is not None:
+                        metric.stochastic_d = d
                         updated = True
 
 
