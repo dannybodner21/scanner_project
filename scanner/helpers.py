@@ -258,6 +258,7 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
 
             if highest_high == lowest_low:
                 print(f"⚠️ Flat window for {coin.symbol} at {timestamp}: all prices = {highest_high}")
+                k_values.append(50.0)
                 continue
 
             k = (current_close - lowest_low) / (highest_high - lowest_low) * 100
@@ -265,7 +266,7 @@ def calculate_stochastic(coin, timestamp, period=14, smoothing=3):
 
         if not k_values:
             print(f"⚠️ No valid K values for {coin.symbol} at {timestamp}")
-            return None, None
+            return 50.0, 50.0
 
         k = k_values[-1]  # latest K
         d = sum(k_values) / len(k_values)  # smoothed D

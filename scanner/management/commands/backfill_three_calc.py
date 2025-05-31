@@ -9,6 +9,7 @@ from scanner.helpers import (
     calculate_avg_volume_1h,
     calculate_stochastic
 )
+from django.db.models import Q
 
 # Run with:
 # nohup python manage.py backfill_three_calc > output.log 2>&1 &
