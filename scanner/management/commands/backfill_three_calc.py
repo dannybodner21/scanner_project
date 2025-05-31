@@ -7,12 +7,23 @@ from scanner.helpers import (
     calculate_macd,
     calculate_price_change_five_min,
     calculate_avg_volume_1h,
-    calculate_stochastic  # ⬅️ make sure it's imported!
+    calculate_stochastic
 )
 
 # Run with:
 # nohup python manage.py backfill_three_calc > output.log 2>&1 &
 # tail -f output.log
+
+TRACKED_SYMBOLS = [
+    "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
+    "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+    "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
+    "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
+    "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+    "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
+    "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
+    "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
+]
 
 class Command(BaseCommand):
     help = 'Recalculate missing core metrics: stochastic_k, stochastic_d for RickisMetrics from March 23 to April 23, 2025'
@@ -24,6 +35,7 @@ class Command(BaseCommand):
         metrics = (
             RickisMetrics.objects
             .filter(timestamp__gte=start, timestamp__lt=end)
+            .filter(coin__symbol__in=TRACKED_SYMBOLS)  # <-- Only these coins
             .filter(Q(stochastic_k__isnull=True) | Q(stochastic_d__isnull=True))
             .select_related("coin")
             .iterator(chunk_size=500)  # ⚡ efficient
