@@ -182,14 +182,14 @@ null_count = RickisMetrics.objects.filter(
     coin__symbol__in=TRACKED_SYMBOLS,
     timestamp__gte=start,
     timestamp__lt=end,
-    stochastic_k__isnull=True
+    change_since_low__isnull=True
 ).count()
 
 zero_count = RickisMetrics.objects.filter(
     coin__symbol__in=TRACKED_SYMBOLS,
     timestamp__gte=start,
     timestamp__lt=end,
-    stochastic_k=0
+    change_since_low=0
 ).count()
 
 print(f"NULL change_5m: {null_count}")

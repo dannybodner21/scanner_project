@@ -195,8 +195,8 @@ class RickisMetrics(models.Model):
     stddev_1h = models.FloatField(null=True) # 64 zeros
     atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # 641 zeros
     obv = models.FloatField(null=True) # 46k zeros
-    change_since_high = models.FloatField(null=True) #
-    change_since_low = models.FloatField(null=True) #
+    change_since_high = models.FloatField(null=True) # good
+    change_since_low = models.FloatField(null=True) # good
 
     fib_distance_0_236 = models.FloatField(null=True)
     fib_distance_0_382 = models.FloatField(null=True)

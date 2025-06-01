@@ -5,6 +5,9 @@ from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
 from scanner.models import RickisMetrics, Coin
 
+# nohup python manage.py check_price_windows > output.log 2>&1 &
+# tail -f output.log
+
 TRACKED_SYMBOLS = [
     "BTC", "ETH", "BNB", "XRP", "SOL", "TRX", "DOGE", "ADA", "LINK",
     "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
