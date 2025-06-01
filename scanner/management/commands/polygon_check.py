@@ -1,4 +1,4 @@
-# nohup python manage.py polygon_fix_prices > output.log 2>&1 &
+# nohup python manage.py polygon_check > output.log 2>&1 &
 # tail -f output.log
 
 from datetime import datetime, timedelta
