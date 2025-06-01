@@ -35,12 +35,15 @@ class Command(BaseCommand):
         coins = Coin.objects.filter(symbol__in=TRACKED_SYMBOLS)
         print(f"🚀 Found {coins.count()} tracked coins to process.")
 
+        skipped_coins = []
+
         for coin in coins:
             polygon_symbol = f"X:{coin.symbol}-USD"
             print(f"\n🔍 Checking {coin.symbol} availability...")
 
             if not self.is_symbol_available(polygon_symbol):
                 print(f"⚠️ Skipping {coin.symbol} — Not available on Polygon.")
+                skipped_coins.append(coin.symbol)
                 continue
 
             print(f"✅ {coin.symbol} is available. Processing...")
@@ -79,6 +82,11 @@ class Command(BaseCommand):
                 time.sleep(0.5)  # Respect rate limits
 
         print("\n🎯 All tracked coins have been processed.")
+
+        if skipped_coins:
+            print("\n🚫 Skipped Coins (No Polygon data):")
+            for symbol in skipped_coins:
+                print(f" - {symbol}")
 
     def fetch_polygon_candles(self, symbol, from_date, to_date, multiplier=5, timespan='minute'):
         url = POLYGON_URL.format(
