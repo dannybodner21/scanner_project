@@ -88,7 +88,6 @@ class Command(BaseCommand):
         )
         params = {
             "apiKey": POLYGON_API_KEY,
-            "limit": 10000
         }
         try:
             response = requests.get(url, params=params, timeout=10)
