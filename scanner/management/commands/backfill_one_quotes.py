@@ -175,21 +175,21 @@ TRACKED_SYMBOLS = [
     "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
 ]
 
-start = make_aware(datetime(2025, 3, 23))
-end = make_aware(datetime(2025, 5, 23))
+start = make_aware(datetime(2025, 4, 23))
+end = make_aware(datetime(2025, 5, 5))
 
 null_count = RickisMetrics.objects.filter(
     coin__symbol__in=TRACKED_SYMBOLS,
     timestamp__gte=start,
     timestamp__lt=end,
-    change_since_low__isnull=True
+    change_5m__isnull=True
 ).count()
 
 zero_count = RickisMetrics.objects.filter(
     coin__symbol__in=TRACKED_SYMBOLS,
     timestamp__gte=start,
     timestamp__lt=end,
-    change_since_low=0
+    change_5m=0
 ).count()
 
 print(f"NULL change_5m: {null_count}")

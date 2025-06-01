@@ -4,14 +4,15 @@ from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
 
 class Command(BaseCommand):
-    help = "Label each RickisMetrics row as a winning or losing long/short trade (TP=10%, SL=2%)."
+    help = "Label RickisMetrics rows as winning or losing long/short trades (TP=5%, SL=2%)."
 
     def handle(self, *args, **kwargs):
-        start = make_aware(datetime(2025, 3, 22))
-        end = make_aware(datetime(2025, 4, 12))
+        start = make_aware(datetime(2025, 3, 23))
+        end = make_aware(datetime(2025, 5, 23))
 
         entries = RickisMetrics.objects.filter(
-            timestamp__gte=start, timestamp__lt=end
+            timestamp__gte=start, timestamp__lt=end,
+            long_result__isnull=True, short_result__isnull=True  # Only unlabeled
         ).select_related("coin").order_by("timestamp")
 
         total = entries.count()
@@ -24,22 +25,22 @@ class Command(BaseCommand):
 
         for index, entry in enumerate(entries, 1):
             entry_price = float(entry.price)
-            tp_long = entry_price * 1.06
-            sl_long = entry_price * 0.98
-            tp_short = entry_price * 0.94
-            sl_short = entry_price * 1.02
+            tp_long = entry_price * 1.05   # Take Profit at +5%
+            sl_long = entry_price * 0.98   # Stop Loss at -2%
+            tp_short = entry_price * 0.95  # Take Profit at -5%
+            sl_short = entry_price * 1.02  # Stop Loss at +2%
 
             future_metrics = RickisMetrics.objects.filter(
                 coin=entry.coin,
                 timestamp__gt=entry.timestamp,
                 timestamp__lte=entry.timestamp + timedelta(hours=24)
-            ).only("timestamp", "price").order_by("timestamp")
+            ).values_list("price", flat=False).order_by("timestamp")
 
             long_result = None
             short_result = None
 
-            for metric in future_metrics:
-                price = float(metric.price)
+            for (price,) in future_metrics:
+                price = float(price)
 
                 if long_result is None:
                     if price >= tp_long:

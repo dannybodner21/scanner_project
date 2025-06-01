@@ -185,24 +185,26 @@ class RickisMetrics(models.Model):
     rsi = models.FloatField(null=True) # good
     macd = models.FloatField(null=True) # good
     macd_signal = models.FloatField(null=True) # good
-    stochastic_k = models.FloatField(null=True) # bad
-    stochastic_d = models.FloatField(null=True) # bad
+    stochastic_k = models.FloatField(null=True) # good
+    stochastic_d = models.FloatField(null=True) # good
     support_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
     resistance_level = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
     relative_volume = models.FloatField(null=True) # good
     sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
     sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
-    stddev_1h = models.FloatField(null=True) # 64 zeros
-    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # 641 zeros
-    obv = models.FloatField(null=True) # 46k zeros
+    stddev_1h = models.FloatField(null=True) # 60 zeros
+    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # 538 zeros
+
+    obv = models.FloatField(null=True) # 46k zeros - don't use
+
     change_since_high = models.FloatField(null=True) # good
     change_since_low = models.FloatField(null=True) # good
 
-    fib_distance_0_236 = models.FloatField(null=True)
-    fib_distance_0_382 = models.FloatField(null=True)
-    fib_distance_0_5   = models.FloatField(null=True)
-    fib_distance_0_618 = models.FloatField(null=True)
-    fib_distance_0_786 = models.FloatField(null=True)
+    fib_distance_0_236 = models.FloatField(null=True) # 18
+    fib_distance_0_382 = models.FloatField(null=True) # 18
+    fib_distance_0_5   = models.FloatField(null=True) # 18
+    fib_distance_0_618 = models.FloatField(null=True) # 18
+    fib_distance_0_786 = models.FloatField(null=True) # 18
 
     long_result = models.BooleanField(null=True)
     short_result = models.BooleanField(null=True)
