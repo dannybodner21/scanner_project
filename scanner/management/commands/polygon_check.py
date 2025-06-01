@@ -14,7 +14,6 @@ import time
 POLYGON_URL = 'https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from_date}/{to_date}'
 POLYGON_API_KEY = 'qq9Sptr4VfkonQimqFJEgc3oyXoaJ54L'
 
-# Only fix these coins
 TRACKED_SYMBOLS = [
     "BTC", "ETH", "BNB", "XRP", "SOL", "TRX", "DOGE", "ADA", "LINK",
     "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
@@ -38,7 +37,13 @@ class Command(BaseCommand):
 
         for coin in coins:
             polygon_symbol = f"X:{coin.symbol}-USD"
-            print(f"\n🔍 Processing {coin.symbol}...")
+            print(f"\n🔍 Checking {coin.symbol} availability...")
+
+            if not self.is_symbol_available(polygon_symbol):
+                print(f"⚠️ Skipping {coin.symbol} — Not available on Polygon.")
+                continue
+
+            print(f"✅ {coin.symbol} is available. Processing...")
 
             current_date = start_date
             while current_date < end_date:
@@ -95,3 +100,25 @@ class Command(BaseCommand):
         except Exception as e:
             print(f"❌ Error fetching candles for {symbol} from {from_date}: {e}")
             return []
+
+    def is_symbol_available(self, symbol):
+        """Check if the symbol exists on Polygon.io"""
+        url = POLYGON_URL.format(
+            ticker=symbol,
+            multiplier=5,
+            timespan='minute',
+            from_date='2025-04-01T00:00:00',
+            to_date='2025-04-01T23:55:00'
+        )
+        params = {
+            "apiKey": POLYGON_API_KEY,
+        }
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            if 'results' in data and len(data['results']) > 0:
+                return True
+            return False
+        except:
+            return False
