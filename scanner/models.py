@@ -177,12 +177,12 @@ class RickisMetrics(models.Model):
     low_24h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
     open = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
     close = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
-    change_5m = models.FloatField(null=True) # 9554
+    change_5m = models.FloatField(null=True) # 9554 zeros - leave it
     change_1h = models.FloatField(null=True) # good
     change_24h = models.FloatField(null=True) # good
     volume = models.DecimalField(max_digits=30, decimal_places=2) # good
     avg_volume_1h = models.DecimalField(max_digits=30, decimal_places=2, null=True) # good
-    rsi = models.FloatField(null=True) # 1143
+    rsi = models.FloatField(null=True) # good
     macd = models.FloatField(null=True) # good
     macd_signal = models.FloatField(null=True) # good
     stochastic_k = models.FloatField(null=True) # bad
@@ -192,9 +192,9 @@ class RickisMetrics(models.Model):
     relative_volume = models.FloatField(null=True) # good
     sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
     sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
-    stddev_1h = models.FloatField(null=True) # 64
-    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # 641
-    obv = models.FloatField(null=True) # 46k
+    stddev_1h = models.FloatField(null=True) # 64 zeros
+    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # 641 zeros
+    obv = models.FloatField(null=True) # 46k zeros
     change_since_high = models.FloatField(null=True) #
     change_since_low = models.FloatField(null=True) #
 

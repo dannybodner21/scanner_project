@@ -146,17 +146,56 @@ from django.db.models import Q
 from scanner.models import RickisMetrics
 
 start = make_aware(datetime(2025, 3, 23))
-end = make_aware(datetime(2025, 5, 23))
+end = make_aware(datetime(2025, 4, 1))
 
 missing = RickisMetrics.objects.filter(
     timestamp__gte=start,
     timestamp__lt=end
 ).filter(
-    Q(stochastic_k__isnull=True)
+    Q(stochastic_d__isnull=True) | Q(stochastic_d=0)
 ).count()
 
 print(f'Missing or invalid entries: {missing}')
 "
+
+
+python manage.py shell -c '
+from scanner.models import RickisMetrics
+from django.utils.timezone import make_aware
+from datetime import datetime
+
+TRACKED_SYMBOLS = [
+    "BTC", "ETH", "BNB", "XRP", "SOL", "TRX", "DOGE", "ADA", "LINK",
+    "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+    "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
+    "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
+    "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+    "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
+    "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
+    "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
+]
+
+start = make_aware(datetime(2025, 3, 23))
+end = make_aware(datetime(2025, 5, 23))
+
+null_count = RickisMetrics.objects.filter(
+    coin__symbol__in=TRACKED_SYMBOLS,
+    timestamp__gte=start,
+    timestamp__lt=end,
+    stddev_1h__isnull=True
+).count()
+
+zero_count = RickisMetrics.objects.filter(
+    coin__symbol__in=TRACKED_SYMBOLS,
+    timestamp__gte=start,
+    timestamp__lt=end,
+    stddev_1h=0
+).count()
+
+print(f"NULL change_5m: {null_count}")
+print(f"ZERO change_5m: {zero_count}")
+'
+
 
 
 '''

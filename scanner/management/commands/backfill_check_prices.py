@@ -15,9 +15,8 @@ from collections import deque
 API_KEY = '6520549c-03bb-41cd-86e3-30355ece87ba'
 CMC_QUOTES_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical'
 
-REQUEST_SPACING = 3.1  # Slightly more than 3s to stay under 20/min
-MAX_WORKERS = 5
-MAX_REQUESTS_PER_MIN = 20
+MAX_WORKERS = 5            # Slow but safe
+MAX_REQUESTS_PER_MIN = 20  # Must match your CMC plan limits
 
 request_lock = threading.Lock()
 request_times = deque()
@@ -26,29 +25,23 @@ def wait_for_global_slot():
     while True:
         with request_lock:
             now = time.time()
+            # Clear out timestamps older than 60 seconds
             while request_times and now - request_times[0] > 60:
                 request_times.popleft()
             if len(request_times) < MAX_REQUESTS_PER_MIN:
                 request_times.append(now)
                 return
-        time.sleep(0.2)
+        time.sleep(0.5)  # Wait and try again
 
 class Command(BaseCommand):
     help = 'Backfill RickisMetrics prices safely with CoinMarketCap data.'
 
     def handle(self, *args, **kwargs):
-        start_date = make_aware(datetime(2025, 4, 20))
-        end_date = make_aware(datetime(2025, 5, 23))
+        start_date = make_aware(datetime(2025, 3, 23))
+        end_date = make_aware(datetime(2025, 4, 23))
 
         symbols = [
-            "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "LINK",
-            "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
-            "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
-            "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
-            "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
-            "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
-            "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
-            "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
+            "BNB", "LINK", "AVAX", "SHIB", "WLD", "SEI", "IOTA"
         ]
 
         coins = {c.symbol: c for c in Coin.objects.filter(symbol__in=symbols)}
@@ -79,8 +72,11 @@ class Command(BaseCommand):
 
     def process_day(self, symbol, coin_id, date):
         quotes = self.fetch_cmc_quotes(symbol, date)
+        if not quotes:
+            return
         coin = Coin.objects.get(id=coin_id)
         corrected = 0
+        updates = []
 
         for quote in quotes:
             try:
@@ -88,8 +84,9 @@ class Command(BaseCommand):
                 if not ts_str:
                     continue
                 ts = datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-                ts = make_aware(ts.replace(second=0, microsecond=0))
-                ts = ts.replace(minute=ts.minute - (ts.minute % 5))
+                ts = make_aware(ts)
+                minute = ts.minute - (ts.minute % 5)
+                ts = ts.replace(minute=minute, second=0, microsecond=0)
 
                 close_old_connections()
                 metric = RickisMetrics.objects.filter(coin=coin, timestamp=ts).first()
@@ -100,10 +97,18 @@ class Command(BaseCommand):
                 db_price = float(metric.price)
                 if abs(db_price - cmc_price) / cmc_price > 0.01:
                     metric.price = cmc_price
-                    metric.save()
+                    updates.append(metric)
                     corrected += 1
+
+                if len(updates) >= 500:
+                    RickisMetrics.objects.bulk_update(updates, ["price"])
+                    updates = []
+
             except Exception as e:
                 print(f"💥 {symbol} at {ts_str}: {e}")
+
+        if updates:
+            RickisMetrics.objects.bulk_update(updates, ["price"])
 
         print(f"✅ {symbol} on {date.date()} — fixed: {corrected}")
 
@@ -123,13 +128,14 @@ class Command(BaseCommand):
                 response = requests.get(CMC_QUOTES_URL, headers=headers, params=params, timeout=20)
                 if response.status_code == 429:
                     print(f"❌ 429 rate limit hit for {symbol} on {date.date()} (attempt {attempt + 1})")
-                    time.sleep(20)
+                    time.sleep(60)  # wait a full minute if 429
                     continue
                 if response.status_code >= 500:
                     print(f"❌ {response.status_code} server error for {symbol} on {date.date()} (attempt {attempt + 1})")
                     time.sleep(10 * (attempt + 1))
                     continue
                 response.raise_for_status()
+                time.sleep(3.1)  # Slow down after success to not burst
                 return response.json().get("data", {}).get("quotes", [])
             except Exception as e:
                 print(f"❌ Error (attempt {attempt + 1}) fetching {symbol} on {date.date()}: {e}")
