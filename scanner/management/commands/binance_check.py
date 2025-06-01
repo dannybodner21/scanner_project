@@ -11,7 +11,7 @@ import time
 # nohup python manage.py binance_check > output.log 2>&1 &
 # tail -f output.log
 
-BINANCE_US_URL = 'https://api.binance.us/api/v3/klines'
+BINANCE_URL = 'https://api.binance.com/api/v3/klines'
 
 class Command(BaseCommand):
     help = 'Full range price accuracy check between Binance.US and RickisMetrics for BTCUSD from March 23 to May 23, 2025'
@@ -86,9 +86,9 @@ class Command(BaseCommand):
             "limit": 1000
         }
         try:
-            response = requests.get(BINANCE_US_URL, params=params, timeout=10)
+            response = requests.get(BINANCE_URL, params=params, timeout=10)
             response.raise_for_status()
-            time.sleep(1)  # sleep to respect Binance.US rate limits
+            time.sleep(1)
             return response.json()
         except Exception as e:
             print(f"❌ Error fetching candles: {e}")
