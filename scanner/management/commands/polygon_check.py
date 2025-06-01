@@ -1,6 +1,4 @@
-
-
-# nohup python manage.py polygon_check > output.log 2>&1 &
+# nohup python manage.py polygon_fix_prices > output.log 2>&1 &
 # tail -f output.log
 
 from datetime import datetime, timedelta
@@ -35,27 +33,18 @@ class Command(BaseCommand):
         coins = Coin.objects.filter(symbol__in=TRACKED_SYMBOLS)
         print(f"🚀 Found {coins.count()} tracked coins to process.")
 
-        skipped_coins = []
-
         for coin in coins:
             polygon_symbol = f"X:{coin.symbol}-USD"
-            print(f"\n🔍 Checking {coin.symbol} availability...")
-
-            if not self.is_symbol_available(polygon_symbol):
-                print(f"⚠️ Skipping {coin.symbol} — Not available on Polygon.")
-                skipped_coins.append(coin.symbol)
-                continue
-
-            print(f"✅ {coin.symbol} is available. Processing...")
+            print(f"\n🔍 Processing {coin.symbol}...")
 
             current_date = start_date
             while current_date < end_date:
-                from_date = current_date.strftime('%Y-%m-%dT00:00:00')
-                to_date = current_date.strftime('%Y-%m-%dT23:55:00')
+                from_date = current_date.strftime('%Y-%m-%d')
+                to_date = current_date.strftime('%Y-%m-%d')
 
                 candles = self.fetch_polygon_candles(polygon_symbol, from_date, to_date)
                 if not candles:
-                    print(f"⚠️ No candles fetched for {current_date.date()}")
+                    print(f"⚠️ No candles fetched for {coin.symbol} on {current_date.date()}")
                     current_date += timedelta(days=1)
                     continue
 
@@ -73,20 +62,15 @@ class Command(BaseCommand):
                     difference = abs(db_price - close_price) / close_price
 
                     if difference > 0.01:
-                        print(f"🔧 Fixing {ts_dt} — Old: {db_price}, New: {close_price}")
+                        print(f"🔧 Fixing {coin.symbol} at {ts_dt} — Old: {db_price}, New: {close_price}")
                         metric.price = close_price
                         metric.save(update_fields=['price'])
 
-                print(f"✅ Done checking {current_date.date()} — candles: {len(candles)}")
+                print(f"✅ Done checking {coin.symbol} on {current_date.date()} — candles: {len(candles)}")
                 current_date += timedelta(days=1)
-                time.sleep(0.5)  # Respect rate limits
+                time.sleep(0.25)  # Respect Polygon rate limits
 
         print("\n🎯 All tracked coins have been processed.")
-
-        if skipped_coins:
-            print("\n🚫 Skipped Coins (No Polygon data):")
-            for symbol in skipped_coins:
-                print(f" - {symbol}")
 
     def fetch_polygon_candles(self, symbol, from_date, to_date, multiplier=5, timespan='minute'):
         url = POLYGON_URL.format(
@@ -102,31 +86,8 @@ class Command(BaseCommand):
         try:
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
-            time.sleep(0.5)  # Sleep to respect Polygon rate limits
             data = response.json()
             return data.get('results', [])
         except Exception as e:
             print(f"❌ Error fetching candles for {symbol} from {from_date}: {e}")
             return []
-
-    def is_symbol_available(self, symbol):
-        """Check if the symbol exists on Polygon.io"""
-        url = POLYGON_URL.format(
-            ticker=symbol,
-            multiplier=5,
-            timespan='minute',
-            from_date='2025-04-01T00:00:00',
-            to_date='2025-04-01T23:55:00'
-        )
-        params = {
-            "apiKey": POLYGON_API_KEY,
-        }
-        try:
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            if 'results' in data and len(data['results']) > 0:
-                return True
-            return False
-        except:
-            return False
