@@ -1,3 +1,8 @@
+
+
+# nohup python manage.py polygon_check > output.log 2>&1 &
+# tail -f output.log
+
 from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
@@ -6,77 +11,69 @@ from scanner.models import RickisMetrics, Coin
 import requests
 import time
 
-# nohup python manage.py polygon_check > output.log 2>&1 &
-# tail -f output.log
-
 POLYGON_URL = 'https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from_date}/{to_date}'
-
-# Replace with your actual Polygon.io API Key
 POLYGON_API_KEY = 'qq9Sptr4VfkonQimqFJEgc3oyXoaJ54L'
 
+# Only fix these coins
+TRACKED_SYMBOLS = [
+    "BTC", "ETH", "BNB", "XRP", "SOL", "TRX", "DOGE", "ADA", "LINK",
+    "AVAX", "XLM", "TON", "SHIB", "SUI", "HBAR", "BCH", "DOT", "LTC",
+    "XMR", "UNI", "PEPE", "APT", "NEAR", "ONDO", "TAO", "ICP", "ETC",
+    "RENDER", "MNT", "KAS", "CRO", "AAVE", "POL", "VET", "FIL", "ALGO",
+    "ENA", "ATOM", "TIA", "ARB", "DEXE", "OP", "JUP", "MKR", "STX",
+    "EOS", "WLD", "BONK", "FARTCOIN", "SEI", "INJ", "IMX", "GRT",
+    "PAXG", "CRV", "JASMY", "SAND", "GALA", "CORE", "KAIA", "LDO",
+    "THETA", "IOTA", "HNT", "MANA", "FLOW", "CAKE", "MOVE", "FLOKI"
+]
+
 class Command(BaseCommand):
-    help = 'Full range price accuracy check between Polygon.io and RickisMetrics for BTC-USD from March 23 to May 23, 2025'
+    help = 'Fix wrong prices in RickisMetrics by fetching correct close price from Polygon.io'
 
     def handle(self, *args, **kwargs):
-        symbol = "BTC-USD"
-        polygon_symbol = "X:BTC-USD"
-
         start_date = datetime(2025, 3, 23)
         end_date = datetime(2025, 5, 23)
 
-        print(f"🚀 Fetching 5m candles for {symbol} from {start_date.date()} to {end_date.date()}")
+        coins = Coin.objects.filter(symbol__in=TRACKED_SYMBOLS)
+        print(f"🚀 Found {coins.count()} tracked coins to process.")
 
-        try:
-            coin = Coin.objects.get(symbol="BTC")
-        except Coin.DoesNotExist:
-            print(f"❌ BTC not found in your Coin table.")
-            return
+        for coin in coins:
+            polygon_symbol = f"X:{coin.symbol}-USD"
+            print(f"\n🔍 Processing {coin.symbol}...")
 
-        current_date = start_date
-        total = 0
-        matches = 0
-        mismatches = 0
+            current_date = start_date
+            while current_date < end_date:
+                from_date = current_date.strftime('%Y-%m-%dT00:00:00')
+                to_date = current_date.strftime('%Y-%m-%dT23:55:00')
 
-        while current_date < end_date:
-            from_date = f"{current_date.strftime('%Y-%m-%d')}T00:00:00"
-            to_date = f"{current_date.strftime('%Y-%m-%d')}T23:55:00"
-
-            candles = self.fetch_polygon_candles(polygon_symbol, from_date, to_date)
-            if not candles:
-                print(f"⚠️ No candles fetched for {current_date.date()}")
-                current_date += timedelta(days=1)
-                continue
-
-            for candle in candles:
-                ts = int(candle['t']) // 1000
-                ts_dt = make_aware(datetime.utcfromtimestamp(ts))
-                close_price = float(candle['c'])
-
-                close_old_connections()
-                metric = RickisMetrics.objects.filter(coin=coin, timestamp=ts_dt).first()
-                if not metric:
-                    print(f"⚠️ No metric found at {ts_dt} — skipping.")
+                candles = self.fetch_polygon_candles(polygon_symbol, from_date, to_date)
+                if not candles:
+                    print(f"⚠️ No candles fetched for {current_date.date()}")
+                    current_date += timedelta(days=1)
                     continue
 
-                db_price = float(metric.price)
-                difference = abs(db_price - close_price) / close_price
+                for candle in candles:
+                    ts = int(candle['t']) // 1000
+                    ts_dt = make_aware(datetime.utcfromtimestamp(ts))
+                    close_price = float(candle['c'])
 
-                if difference <= 0.01:
-                    matches += 1
-                else:
-                    mismatches += 1
-                    print(f"❌ Mismatch at {ts_dt}: DB={db_price}, Polygon={close_price}, Diff={difference:.5f}")
+                    close_old_connections()
+                    metric = RickisMetrics.objects.filter(coin=coin, timestamp=ts_dt).first()
+                    if not metric:
+                        continue
 
-                total += 1
+                    db_price = float(metric.price)
+                    difference = abs(db_price - close_price) / close_price
 
-            print(f"✅ Done checking {current_date.date()} — total candles: {len(candles)}")
-            current_date += timedelta(days=1)
-            time.sleep(1)  # Sleep between days to avoid burst limits
+                    if difference > 0.01:
+                        print(f"🔧 Fixing {ts_dt} — Old: {db_price}, New: {close_price}")
+                        metric.price = close_price
+                        metric.save(update_fields=['price'])
 
-        print(f"\n🎯 Final Summary for {symbol} {start_date.date()} to {end_date.date()}")
-        print(f"Total checked: {total}")
-        print(f"✅ Matches: {matches}")
-        print(f"❌ Mismatches: {mismatches}")
+                print(f"✅ Done checking {current_date.date()} — candles: {len(candles)}")
+                current_date += timedelta(days=1)
+                time.sleep(0.5)  # Respect rate limits
+
+        print("\n🎯 All tracked coins have been processed.")
 
     def fetch_polygon_candles(self, symbol, from_date, to_date, multiplier=5, timespan='minute'):
         url = POLYGON_URL.format(
@@ -92,9 +89,9 @@ class Command(BaseCommand):
         try:
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
-            time.sleep(1)  # Sleep to respect Polygon rate limits
+            time.sleep(0.5)  # Sleep to respect Polygon rate limits
             data = response.json()
             return data.get('results', [])
         except Exception as e:
-            print(f"❌ Error fetching candles: {e}")
+            print(f"❌ Error fetching candles for {symbol} from {from_date}: {e}")
             return []
