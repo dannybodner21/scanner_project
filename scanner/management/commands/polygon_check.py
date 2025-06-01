@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         start_date = datetime(2025, 3, 23)
-        end_date = datetime(2025, 5, 23)
+        end_date = datetime(2025, 4, 23)
 
         coins = Coin.objects.filter(symbol__in=TRACKED_SYMBOLS)
         print(f"🚀 Found {coins.count()} tracked coins to process.")
