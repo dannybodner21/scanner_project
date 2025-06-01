@@ -15,6 +15,7 @@ from scanner.helpers import (
     calculate_fib_distances,
 )
 import time
+from datetime import datetime, timedelta
 
 TRACKED_SYMBOLS = [
     "BTC", "ETH", "BNB", "XRP", "SOL", "TRX", "DOGE", "ADA", "LINK",
@@ -81,20 +82,20 @@ class Command(BaseCommand):
                 fibs = calculate_fib_distances(metric.high_24h, metric.low_24h, metric.price)
 
                 if fibs:
-                    if not metric.fib_distance_236 or metric.fib_distance_236 == 0:
-                        metric.fib_distance_236 = fibs.get('fib_distance_0_236')
+                    if not metric.fib_distance_0_236 or metric.fib_distance_0_236 == 0:
+                        metric.fib_distance_0_236 = fibs.get('fib_distance_0_236')
                         update_needed = True
-                    if not metric.fib_distance_382 or metric.fib_distance_382 == 0:
-                        metric.fib_distance_382 = fibs.get('fib_distance_0_382')
+                    if not metric.fib_distance_0_382 or metric.fib_distance_0_382 == 0:
+                        metric.fib_distance_0_382 = fibs.get('fib_distance_0_382')
                         update_needed = True
-                    if not metric.fib_distance_5 or metric.fib_distance_5 == 0:
-                        metric.fib_distance_5 = fibs.get('fib_distance_0_5')
+                    if not metric.fib_distance_0_5 or metric.fib_distance_0_5 == 0:
+                        metric.fib_distance_0_5 = fibs.get('fib_distance_0_5')
                         update_needed = True
-                    if not metric.fib_distance_618 or metric.fib_distance_618 == 0:
-                        metric.fib_distance_618 = fibs.get('fib_distance_0_618')
+                    if not metric.fib_distance_0_618 or metric.fib_distance_0_618 == 0:
+                        metric.fib_distance_0_618 = fibs.get('fib_distance_0_618')
                         update_needed = True
-                    if not metric.fib_distance_786 or metric.fib_distance_786 == 0:
-                        metric.fib_distance_786 = fibs.get('fib_distance_0_786')
+                    if not metric.fib_distance_0_786 or metric.fib_distance_0_786 == 0:
+                        metric.fib_distance_0_786 = fibs.get('fib_distance_0_786')
                         update_needed = True
 
                 if update_needed:
@@ -105,8 +106,8 @@ class Command(BaseCommand):
                     RickisMetrics.objects.bulk_update(batch, [
                         'change_5m', 'stochastic_k', 'stochastic_d',
                         'stddev_1h', 'atr_1h', 'obv',
-                        'fib_distance_236', 'fib_distance_382', 'fib_distance_5',
-                        'fib_distance_618', 'fib_distance_786'
+                        'fib_distance_0_236', 'fib_distance_0_382', 'fib_distance_0_5',
+                        'fib_distance_0_618', 'fib_distance_0_786'
                     ])
                     print(f"💾 Saved {len(batch)} metrics (batch).")
                     batch = []
@@ -116,8 +117,8 @@ class Command(BaseCommand):
                 RickisMetrics.objects.bulk_update(batch, [
                     'change_5m', 'stochastic_k', 'stochastic_d',
                     'stddev_1h', 'atr_1h', 'obv',
-                    'fib_distance_236', 'fib_distance_382', 'fib_distance_5',
-                    'fib_distance_618', 'fib_distance_786'
+                    'fib_distance_0_236', 'fib_distance_0_382', 'fib_distance_0_5',
+                    'fib_distance_0_618', 'fib_distance_0_786'
                 ])
                 print(f"💾 Saved {len(batch)} metrics (final batch).")
                 batch = []
