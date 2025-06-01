@@ -3,6 +3,9 @@ from django.utils.timezone import make_aware
 from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
 
+# nohup python manage.py m2_trade_outcomes > output.log 2>&1 &
+# tail -f output.log
+
 class Command(BaseCommand):
     help = "Label RickisMetrics rows as winning or losing long/short trades (TP=5%, SL=2%)."
 
@@ -12,7 +15,7 @@ class Command(BaseCommand):
 
         entries = RickisMetrics.objects.filter(
             timestamp__gte=start, timestamp__lt=end,
-            long_result__isnull=True, short_result__isnull=True  # Only unlabeled
+            long_result__isnull=True, short_result__isnull=True  t# Only unlabeled
         ).select_related("coin").order_by("timestamp")
 
         total = entries.count()

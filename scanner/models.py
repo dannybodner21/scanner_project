@@ -194,17 +194,17 @@ class RickisMetrics(models.Model):
     sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True) # good
     stddev_1h = models.FloatField(null=True) # 60 zeros
     atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True) # 538 zeros
-
-    obv = models.FloatField(null=True) # 46k zeros - don't use
-
     change_since_high = models.FloatField(null=True) # good
     change_since_low = models.FloatField(null=True) # good
-
     fib_distance_0_236 = models.FloatField(null=True) # 18
     fib_distance_0_382 = models.FloatField(null=True) # 18
     fib_distance_0_5   = models.FloatField(null=True) # 18
     fib_distance_0_618 = models.FloatField(null=True) # 18
     fib_distance_0_786 = models.FloatField(null=True) # 18
+    adx = models.FloatField(null=True) # good
+    bollinger_upper = models.FloatField(null=True) # good
+    bollinger_middle = models.FloatField(null=True) # good
+    bollinger_lower = models.FloatField(null=True) # good
 
     long_result = models.BooleanField(null=True)
     short_result = models.BooleanField(null=True)
@@ -212,11 +212,8 @@ class RickisMetrics(models.Model):
 
 
 
-    price_slope_1h = models.FloatField(null=True)
-    adx = models.FloatField(null=True)
-    bollinger_upper = models.FloatField(null=True)
-    bollinger_middle = models.FloatField(null=True)
-    bollinger_lower = models.FloatField(null=True)
+    obv = models.FloatField(null=True) # 46k zeros - don't use
+    price_slope_1h = models.FloatField(null=True) # bad
     ema_12 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     ema_26 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     volume_mc_ratio = models.FloatField(null=True)
