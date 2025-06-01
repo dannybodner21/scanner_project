@@ -38,8 +38,8 @@ class Command(BaseCommand):
         mismatches = 0
 
         while current_date < end_date:
-            from_date = current_date.strftime('%Y-%m-%d')
-            to_date = (current_date + timedelta(days=1)).strftime('%Y-%m-%d')
+            from_date = f"{current_date.strftime('%Y-%m-%d')}T00:00:00"
+            to_date = f"{current_date.strftime('%Y-%m-%d')}T23:55:00"
 
             candles = self.fetch_polygon_candles(polygon_symbol, from_date, to_date)
             if not candles:
