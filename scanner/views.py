@@ -659,7 +659,6 @@ def predict_live_vertex_new(request):
         return JsonResponse({
             "status": "error",
             "message": str(e),
-            "response": getattr(response, "text", "No response")
         }, status=500)
 
 
