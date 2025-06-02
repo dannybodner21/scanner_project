@@ -7,13 +7,12 @@ from scanner.helpers import (
     calculate_relative_volume, calculate_sma, calculate_ema, calculate_price_slope_1h,
     calculate_stddev_1h, calculate_atr_1h, calculate_price_change_five_min,
     calculate_change_since_high, calculate_change_since_low, calculate_obv,
-    calculate_fib_distances,
+    calculate_fib_distances, calculate_bollinger_bands, calculate_adx  # <-- ✅ make sure these are imported
 )
-from django.utils.timezone import make_aware, is_naive
+from django.utils.timezone import make_aware, is_naive, now
 from datetime import datetime
 import requests
 import time
-from django.utils.timezone import now
 
 def run_five_min_update_logic():
     start = datetime.now()
@@ -21,7 +20,6 @@ def run_five_min_update_logic():
 
     API_KEY_QUOTES = 'c35740fd-4f78-45b5-9350-c4afdd929432'
     API_KEY_OHLCV = '7dd5dd98-35d0-475d-9338-407631033cd9'
-    #API_KEY_OHLCV = 'c35740fd-4f78-45b5-9350-c4afdd929432'
 
     url_quotes = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
     url_ohlcv = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/latest'
@@ -99,7 +97,10 @@ def run_five_min_update_logic():
                                 current_price=current_price,
                             )
 
-                            # STEP 1: Create/update initial metrics without relative_volume
+                            # ✅ New calculations for adx and bollinger bands
+                            adx = calculate_adx(coin, timestamp)
+                            bollinger_upper, bollinger_middle, bollinger_lower = calculate_bollinger_bands(coin, timestamp)
+
                             metrics, _ = RickisMetrics.objects.update_or_create(
                                 coin=coin,
                                 timestamp=timestamp,
@@ -131,6 +132,10 @@ def run_five_min_update_logic():
                                     'fib_distance_0_5': fib_distances.get("fib_distance_0_5"),
                                     'fib_distance_0_618': fib_distances.get("fib_distance_0_618"),
                                     'fib_distance_0_786': fib_distances.get("fib_distance_0_786"),
+                                    'adx': adx,
+                                    'bollinger_upper': bollinger_upper,
+                                    'bollinger_middle': bollinger_middle,
+                                    'bollinger_lower': bollinger_lower
                                 }
                             )
 
@@ -151,8 +156,6 @@ def run_five_min_update_logic():
                             metrics.obv = obv
                             metrics.save()
 
-                            #print(f"✅ Created/updated RickisMetrics for {coin.symbol}")
-
                         except Exception as e:
                             print(f"❌ Failed RickisMetrics for {coin.symbol}: {e}")
 
@@ -162,15 +165,12 @@ def run_five_min_update_logic():
         time.sleep(1.5)
 
     print("\n✅ Five minute update complete.")
-    #print(f"✅ Total runtime: {datetime.now() - start}")
 
-    # get open trades
+    # Update model trades
     open_trades = ModelTrade.objects.filter(exit_timestamp__isnull=True)
 
     for trade in open_trades:
-
         try:
-            # get latest metric for this coin
             latest_metric = RickisMetrics.objects.filter(coin=trade.coin).order_by("-timestamp").first()
             if not latest_metric:
                 continue
@@ -178,13 +178,13 @@ def run_five_min_update_logic():
             current_price = float(latest_metric.price)
             entry = float(trade.entry_price)
             tp = 3.0
-            sl = 3.0
+            sl = 2.0
             result = True
 
             if trade.trade_type == "long":
                 if current_price >= entry * 1.03:
                     status = "💰 TAKE PROFIT"
-                elif current_price <= entry * 0.97:
+                elif current_price <= entry * 0.98:
                     status = "🛑 STOP LOSS"
                     result = False
                 else:
@@ -192,13 +192,12 @@ def run_five_min_update_logic():
             else:  # short
                 if current_price <= entry * 0.97:
                     status = "💰 TAKE PROFIT"
-                elif current_price >= entry * 1.03:
+                elif current_price >= entry * 1.02:
                     status = "🛑 STOP LOSS"
                     result = False
                 else:
                     continue
 
-            # close trade
             trade.exit_price = current_price
             trade.exit_timestamp = now()
             trade.result = result

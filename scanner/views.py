@@ -499,7 +499,7 @@ def get_model_results(request):
 # new model functions ----------------------------------------------------------
 
 PROJECT_ID = 'bodner-main-project'
-ENDPOINT_ID = '2523692546559836160'
+ENDPOINT_ID = '105356303685124096'
 REGION = 'us-central1'
 
 SHORT_PROJECT_ID = 'bodner-main-project'
@@ -553,28 +553,27 @@ def predict_live_vertex_new(request):
         try:
             instances.append({
                 "price": float(metric.price),
-                "volume": float(metric.volume),
-                "change_5m": float(metric.change_5m),
-                "change_1h": float(metric.change_1h),
-                "change_24h": float(metric.change_24h),
                 "high_24h": float(metric.high_24h),
                 "low_24h": float(metric.low_24h),
                 "open": float(metric.open),
                 "close": float(metric.close),
+                "change_5m": float(metric.change_5m),
+                "change_1h": float(metric.change_1h),
+                "change_24h": float(metric.change_24h),
+                "volume": float(metric.volume),
                 "avg_volume_1h": float(metric.avg_volume_1h),
-                "relative_volume": float(metric.relative_volume),
-                "sma_5": float(metric.sma_5),
-                "sma_20": float(metric.sma_20),
+                "rsi": float(metric.rsi),
                 "macd": float(metric.macd),
                 "macd_signal": float(metric.macd_signal),
-                "rsi": float(metric.rsi),
                 "stochastic_k": float(metric.stochastic_k),
                 "stochastic_d": float(metric.stochastic_d),
                 "support_level": float(metric.support_level),
                 "resistance_level": float(metric.resistance_level),
+                "relative_volume": float(metric.relative_volume),
+                "sma_5": float(metric.sma_5),
+                "sma_20": float(metric.sma_20),
                 "stddev_1h": float(metric.stddev_1h),
                 "atr_1h": float(metric.atr_1h),
-                "obv": float(metric.obv),
                 "change_since_high": float(metric.change_since_high),
                 "change_since_low": float(metric.change_since_low),
                 "fib_distance_0_236": float(metric.fib_distance_0_236),
@@ -582,6 +581,10 @@ def predict_live_vertex_new(request):
                 "fib_distance_0_5": float(metric.fib_distance_0_5),
                 "fib_distance_0_618": float(metric.fib_distance_0_618),
                 "fib_distance_0_786": float(metric.fib_distance_0_786),
+                "adx": float(metric.adx),
+                "bollinger_upper": float(metric.bollinger_upper),
+                "bollinger_middle": float(metric.bollinger_middle),
+                "bollinger_lower": float(metric.bollinger_lower),
             })
 
         except Exception as e:
@@ -614,7 +617,7 @@ def predict_live_vertex_new(request):
                 print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
                 count += 1
 
-                if confidence > 0.75:
+                if confidence > 0.70:
 
                     messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 

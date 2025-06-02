@@ -1,5 +1,8 @@
 # scanner/management/commands/long_data.py
 
+# nohup python manage.py long_data_try_2 > output.log 2>&1 &
+# tail -f output.log
+
 import csv
 import random
 from datetime import datetime
