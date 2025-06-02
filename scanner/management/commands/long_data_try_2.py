@@ -1,11 +1,6 @@
-# scanner/management/commands/long_data.py
-
-# nohup python manage.py long_data_try_2 > output.log 2>&1 &
-# tail -f output.log
-
-import csv
 import random
 from datetime import datetime
+import pandas as pd
 from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
 from scanner.models import RickisMetrics
@@ -23,7 +18,7 @@ FIELDS = [
 ]
 
 class Command(BaseCommand):
-    help = "Export clean long wins and random long losses to CSV."
+    help = "Export clean long wins and random long losses to Parquet."
 
     def handle(self, *args, **kwargs):
         start = make_aware(datetime(2025, 3, 23))
@@ -130,17 +125,23 @@ class Command(BaseCommand):
 
         sampled_losses = RickisMetrics.objects.filter(id__in=sampled_loss_ids)
 
-        # Open CSV file for writing
-        with open("long_training_data.csv", mode="w", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(FIELDS)
+        # Convert to DataFrame
+        print("📦 Building DataFrame for long wins...")
+        win_data = [
+            {field: getattr(entry, field) for field in FIELDS}
+            for entry in long_wins.iterator(chunk_size=1000)
+        ]
 
-            print("💾 Writing long wins...")
-            for entry in long_wins.iterator(chunk_size=1000):
-                writer.writerow([getattr(entry, field) for field in FIELDS])
+        print("📦 Building DataFrame for sampled long losses...")
+        loss_data = [
+            {field: getattr(entry, field) for field in FIELDS}
+            for entry in sampled_losses.iterator(chunk_size=1000)
+        ]
 
-            print("💾 Writing sampled long losses...")
-            for entry in sampled_losses.iterator(chunk_size=1000):
-                writer.writerow([getattr(entry, field) for field in FIELDS])
+        all_data = win_data + loss_data
+        df = pd.DataFrame(all_data)
 
-        print("\n✅ CSV export complete: long_training_data.csv")
+        print("💾 Writing to Parquet file...")
+        df.to_parquet("long_training_data.parquet", index=False)
+
+        print("\n✅ Parquet export complete: long_training_data.parquet")
