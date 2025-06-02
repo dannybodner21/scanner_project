@@ -5,6 +5,9 @@ from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
 from scanner.models import RickisMetrics
 
+# nohup python manage.py long_data_try_2 > output.log 2>&1 &
+# tail -f output.log
+
 FIELDS = [
     "price", "high_24h", "low_24h", "open", "close",
     "change_5m", "change_1h", "change_24h", "volume", "avg_volume_1h",
@@ -15,6 +18,18 @@ FIELDS = [
     "fib_distance_0_5", "fib_distance_0_618", "fib_distance_0_786",
     "adx", "bollinger_upper", "bollinger_middle", "bollinger_lower",
     "long_result"
+]
+
+# Columns we need to force to float64 and round
+FLOAT_COLUMNS = [
+    "price", "high_24h", "low_24h", "open", "close",
+    "change_5m", "change_1h", "change_24h", "volume", "avg_volume_1h",
+    "rsi", "macd", "macd_signal", "stochastic_k", "stochastic_d",
+    "support_level", "resistance_level", "relative_volume",
+    "sma_5", "sma_20", "stddev_1h", "atr_1h", "change_since_high",
+    "change_since_low", "fib_distance_0_236", "fib_distance_0_382",
+    "fib_distance_0_5", "fib_distance_0_618", "fib_distance_0_786",
+    "adx", "bollinger_upper", "bollinger_middle", "bollinger_lower"
 ]
 
 class Command(BaseCommand):
@@ -141,7 +156,13 @@ class Command(BaseCommand):
         all_data = win_data + loss_data
         df = pd.DataFrame(all_data)
 
-        print("💾 Writing to Parquet file...")
-        df.to_parquet("long_training_data.parquet", index=False)
+        # Round float columns to 9 decimal places and cast to float64
+        print("🔧 Rounding and casting float columns...")
+        for col in FLOAT_COLUMNS:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce').astype('float64').round(9)
 
-        print("\n✅ Parquet export complete: long_training_data.parquet")
+        print("💾 Writing to Parquet file...")
+        df.to_parquet("/workspace/scanner/long_training_data.parquet", index=False)
+
+        print("\n✅ Parquet export complete: /workspace/scanner/long_training_data.parquet")
