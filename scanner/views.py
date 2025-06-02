@@ -532,7 +532,7 @@ def get_vertex_access_token():
     return creds.token
 
 
-def predict_live_vertex_new(request):
+def predict_live_vertex_new_old(request):
 
     try:
         access_token = get_google_jwt_token()
@@ -660,6 +660,137 @@ def predict_live_vertex_new(request):
             "status": "error",
             "message": str(e),
         }, status=500)
+
+
+import math
+
+def safe_float(val):
+    try:
+        val = float(val)
+        if math.isnan(val) or math.isinf(val):
+            return None
+        return val
+    except (TypeError, ValueError):
+        return None
+
+def predict_live_vertex_new(request):
+
+    try:
+        access_token = get_google_jwt_token()
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
+
+    # Load RickisMetrics
+    cutoff = now() - timedelta(minutes=5)
+    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
+
+    if not metrics.exists():
+        return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
+
+    # Build instances
+    instances = []
+    valid_metrics = []
+    for metric in metrics:
+        instance = {
+            "price": safe_float(metric.price),
+            "high_24h": safe_float(metric.high_24h),
+            "low_24h": safe_float(metric.low_24h),
+            "open": safe_float(metric.open),
+            "close": safe_float(metric.close),
+            "change_5m": safe_float(metric.change_5m),
+            "change_1h": safe_float(metric.change_1h),
+            "change_24h": safe_float(metric.change_24h),
+            "volume": safe_float(metric.volume),
+            "avg_volume_1h": safe_float(metric.avg_volume_1h),
+            "rsi": safe_float(metric.rsi),
+            "macd": safe_float(metric.macd),
+            "macd_signal": safe_float(metric.macd_signal),
+            "stochastic_k": safe_float(metric.stochastic_k),
+            "stochastic_d": safe_float(metric.stochastic_d),
+            "support_level": safe_float(metric.support_level),
+            "resistance_level": safe_float(metric.resistance_level),
+            "relative_volume": safe_float(metric.relative_volume),
+            "sma_5": safe_float(metric.sma_5),
+            "sma_20": safe_float(metric.sma_20),
+            "stddev_1h": safe_float(metric.stddev_1h),
+            "atr_1h": safe_float(metric.atr_1h),
+            "change_since_high": safe_float(metric.change_since_high),
+            "change_since_low": safe_float(metric.change_since_low),
+            "fib_distance_0_236": safe_float(metric.fib_distance_0_236),
+            "fib_distance_0_382": safe_float(metric.fib_distance_0_382),
+            "fib_distance_0_5": safe_float(metric.fib_distance_0_5),
+            "fib_distance_0_618": safe_float(metric.fib_distance_0_618),
+            "fib_distance_0_786": safe_float(metric.fib_distance_0_786),
+            "adx": safe_float(metric.adx),
+            "bollinger_upper": safe_float(metric.bollinger_upper),
+            "bollinger_middle": safe_float(metric.bollinger_middle),
+            "bollinger_lower": safe_float(metric.bollinger_lower),
+        }
+
+        if None not in instance.values():
+            instances.append(instance)
+            valid_metrics.append(metric)  # save only valid ones for post-processing
+
+    if not instances:
+        return JsonResponse({"status": "error", "message": "No valid metrics to send."}, status=500)
+
+    # Send request to Vertex
+    url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json={"instances": instances})
+        response.raise_for_status()
+        predictions = response.json().get("predictions", [])
+
+        messages = []
+        count = 0
+
+        for metric, pred in zip(valid_metrics, predictions):
+            try:
+                class_idx = pred["classes"].index("true")
+                confidence = pred["scores"][class_idx]
+                print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
+                count += 1
+
+                if confidence > 0.70:
+                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
+
+                    if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
+                        try:
+                            ModelTrade.objects.create(
+                                coin=metric.coin,
+                                trade_type="long",
+                                entry_timestamp=metric.timestamp,
+                                duration_minutes=0,
+                                entry_price=metric.price,
+                                model_confidence=confidence,
+                                take_profit_percent=3,
+                                stop_loss_percent=2,
+                            )
+                            print("LONG trade created")
+                        except Exception as e:
+                            print(f"error creating long trade: {e}")
+            except Exception as e:
+                print(f"Failed to parse prediction for {metric.coin.symbol}: {e}")
+
+        if messages:
+            send_text(messages)
+
+        print(f"Total LONG metrics looked at: {count}")
+        print("Predictions complete.")
+        return JsonResponse({"status": "done"})
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e),
+            "response": getattr(locals().get('response', None), "text", "No response")
+        }, status=500)
+
 
 
 def predict_short_vertex_new(request):
