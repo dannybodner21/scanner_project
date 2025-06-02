@@ -499,7 +499,7 @@ def get_model_results(request):
 # new model functions ----------------------------------------------------------
 
 PROJECT_ID = 'healthy-mark-446922-p8'
-ENDPOINT_ID = '105356303685124096'
+ENDPOINT_ID = '1437014418503237632'
 REGION = 'us-central1'
 
 SHORT_PROJECT_ID = 'bodner-main-project'
@@ -756,10 +756,14 @@ def predict_live_vertex_new(request):
                 print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
                 count += 1
 
-                if confidence > 0.70:
+                if confidence > 0.9:
                     messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
 
-                    if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
+                    if not ModelTrade.objects.filter(
+                        coin=metric.coin,
+                        confidence_trade=0.9,
+                        exit_timestamp__isnull=True,
+                    ).exists():
                         try:
                             ModelTrade.objects.create(
                                 coin=metric.coin,
@@ -770,10 +774,88 @@ def predict_live_vertex_new(request):
                                 model_confidence=confidence,
                                 take_profit_percent=3,
                                 stop_loss_percent=2,
+                                confidence_trade=0.9,
                             )
                             print("LONG trade created")
                         except Exception as e:
                             print(f"error creating long trade: {e}")
+
+                elif confidence > 0.8:
+                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
+
+                    if not ModelTrade.objects.filter(
+                        coin=metric.coin,
+                        confidence_trade=0.8,
+                        exit_timestamp__isnull=True,
+                    ).exists():
+                        try:
+                            ModelTrade.objects.create(
+                                coin=metric.coin,
+                                trade_type="long",
+                                entry_timestamp=metric.timestamp,
+                                duration_minutes=0,
+                                entry_price=metric.price,
+                                model_confidence=confidence,
+                                take_profit_percent=3,
+                                stop_loss_percent=2,
+                                confidence_trade=0.8,
+                            )
+                            print("LONG trade created")
+                        except Exception as e:
+                            print(f"error creating long trade: {e}")
+
+
+                elif confidence > 0.7:
+                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
+
+                    if not ModelTrade.objects.filter(
+                        coin=metric.coin,
+                        confidence_trade=0.7,
+                        exit_timestamp__isnull=True,
+                    ).exists():
+                        try:
+                            ModelTrade.objects.create(
+                                coin=metric.coin,
+                                trade_type="long",
+                                entry_timestamp=metric.timestamp,
+                                duration_minutes=0,
+                                entry_price=metric.price,
+                                model_confidence=confidence,
+                                take_profit_percent=3,
+                                stop_loss_percent=2,
+                                confidence_trade=0.7,
+                            )
+                            print("LONG trade created")
+                        except Exception as e:
+                            print(f"error creating long trade: {e}")
+
+                elif confidence > 0.6:
+                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
+
+                    if not ModelTrade.objects.filter(
+                        coin=metric.coin,
+                        confidence_trade=0.6,
+                        exit_timestamp__isnull=True,
+                    ).exists():
+                        try:
+                            ModelTrade.objects.create(
+                                coin=metric.coin,
+                                trade_type="long",
+                                entry_timestamp=metric.timestamp,
+                                duration_minutes=0,
+                                entry_price=metric.price,
+                                model_confidence=confidence,
+                                take_profit_percent=3,
+                                stop_loss_percent=2,
+                                confidence_trade=0.6,
+                            )
+                            print("LONG trade created")
+                        except Exception as e:
+                            print(f"error creating long trade: {e}")
+
+
+
+
             except Exception as e:
                 print(f"Failed to parse prediction for {metric.coin.symbol}: {e}")
 

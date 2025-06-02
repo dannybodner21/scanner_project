@@ -247,6 +247,7 @@ class ModelTrade(models.Model):
     stop_loss_percent = models.FloatField()
     duration_minutes = models.IntegerField(null=True, blank=True)
     result = models.BooleanField(null=True, blank=True)
+    confidence_trade = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.coin.symbol} | {self.trade_type.upper()} | {self.entry_timestamp.strftime('%Y-%m-%d %H:%M')}"
