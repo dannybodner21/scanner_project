@@ -498,7 +498,7 @@ def get_model_results(request):
 
 # new model functions ----------------------------------------------------------
 
-PROJECT_ID = 'bodner-main-project'
+PROJECT_ID = 'healthy-mark-446922-p8'
 ENDPOINT_ID = '105356303685124096'
 REGION = 'us-central1'
 
