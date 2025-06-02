@@ -751,6 +751,8 @@ def predict_live_vertex_new(request):
 
         for metric, pred in zip(valid_metrics, predictions):
             try:
+                print("--------------------------------------------")
+                print(pred["classes"])
                 class_idx = pred["classes"].index("true")
                 confidence = pred["scores"][class_idx]
                 print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
