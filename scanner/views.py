@@ -678,7 +678,7 @@ def safe_float(val):
 
 def is_valid_payload(payload):
     return all(value is not None for value in payload.values())
-    
+
 
 def predict_live_vertex_new(request):
 
@@ -736,7 +736,7 @@ def predict_live_vertex_new(request):
 
         if None not in instance.values():
             instances.append(instance)
-            valid_metrics.append(metric)  # save only valid ones for post-processing
+            valid_metrics.append(metric)
 
     if not instances:
         return JsonResponse({"status": "error", "message": "No valid metrics to send."}, status=500)
