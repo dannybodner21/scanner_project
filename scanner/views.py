@@ -665,6 +665,8 @@ def predict_live_vertex_new_old(request):
 import math
 
 def safe_float(val):
+    if val is None:
+        return None
     try:
         val = float(val)
         if math.isnan(val) or math.isinf(val):
@@ -672,6 +674,11 @@ def safe_float(val):
         return val
     except (TypeError, ValueError):
         return None
+
+
+def is_valid_payload(payload):
+    return all(value is not None for value in payload.values())
+    
 
 def predict_live_vertex_new(request):
 
@@ -692,39 +699,39 @@ def predict_live_vertex_new(request):
     valid_metrics = []
     for metric in metrics:
         instance = {
-            "price": float(metric.price),
-            "high_24h": float(metric.high_24h),
-            "low_24h": float(metric.low_24h),
-            "open": float(metric.open),
-            "close": float(metric.close),
-            "change_5m": float(metric.change_5m),
-            "change_1h": float(metric.change_1h),
-            "change_24h": float(metric.change_24h),
-            "volume": float(metric.volume),
-            "avg_volume_1h": float(metric.avg_volume_1h),
-            "rsi": float(metric.rsi),
-            "macd": float(metric.macd),
-            "macd_signal": float(metric.macd_signal),
-            "stochastic_k": float(metric.stochastic_k),
-            "stochastic_d": float(metric.stochastic_d),
-            "support_level": float(metric.support_level),
-            "resistance_level": float(metric.resistance_level),
-            "relative_volume": float(metric.relative_volume),
-            "sma_5": float(metric.sma_5),
-            "sma_20": float(metric.sma_20),
-            "stddev_1h": float(metric.stddev_1h),
-            "atr_1h": float(metric.atr_1h),
-            "change_since_high": float(metric.change_since_high),
-            "change_since_low": float(metric.change_since_low),
-            "fib_distance_0_236": float(metric.fib_distance_0_236),
-            "fib_distance_0_382": float(metric.fib_distance_0_382),
-            "fib_distance_0_5": float(metric.fib_distance_0_5),
-            "fib_distance_0_618": float(metric.fib_distance_0_618),
-            "fib_distance_0_786": float(metric.fib_distance_0_786),
-            "adx": float(metric.adx),
-            "bollinger_upper": float(metric.bollinger_upper),
-            "bollinger_middle": float(metric.bollinger_middle),
-            "bollinger_lower": float(metric.bollinger_lower),
+            "price": safe_float(metric.price),
+            "high_24h": safe_float(metric.high_24h),
+            "low_24h": safe_float(metric.low_24h),
+            "open": safe_float(metric.open),
+            "close": safe_float(metric.close),
+            "change_5m": safe_float(metric.change_5m),
+            "change_1h": safe_float(metric.change_1h),
+            "change_24h": safe_float(metric.change_24h),
+            "volume": safe_float(metric.volume),
+            "avg_volume_1h": safe_float(metric.avg_volume_1h),
+            "rsi": safe_float(metric.rsi),
+            "macd": safe_float(metric.macd),
+            "macd_signal": safe_float(metric.macd_signal),
+            "stochastic_k": safe_float(metric.stochastic_k),
+            "stochastic_d": safe_float(metric.stochastic_d),
+            "support_level": safe_float(metric.support_level),
+            "resistance_level": safe_float(metric.resistance_level),
+            "relative_volume": safe_float(metric.relative_volume),
+            "sma_5": safe_float(metric.sma_5),
+            "sma_20": safe_float(metric.sma_20),
+            "stddev_1h": safe_float(metric.stddev_1h),
+            "atr_1h": safe_float(metric.atr_1h),
+            "change_since_high": safe_float(metric.change_since_high),
+            "change_since_low": safe_float(metric.change_since_low),
+            "fib_distance_0_236": safe_float(metric.fib_distance_0_236),
+            "fib_distance_0_382": safe_float(metric.fib_distance_0_382),
+            "fib_distance_0_5": safe_float(metric.fib_distance_0_5),
+            "fib_distance_0_618": safe_float(metric.fib_distance_0_618),
+            "fib_distance_0_786": safe_float(metric.fib_distance_0_786),
+            "adx": safe_float(metric.adx),
+            "bollinger_upper": safe_float(metric.bollinger_upper),
+            "bollinger_middle": safe_float(metric.bollinger_middle),
+            "bollinger_lower": safe_float(metric.bollinger_lower),
         }
 
         if None not in instance.values():
