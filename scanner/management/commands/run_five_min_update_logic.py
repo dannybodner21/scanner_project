@@ -31,12 +31,13 @@ def get_chart_patterns_for_coin(symbol, finnhub_api_key):
             response = requests.get(url, params=params, timeout=5)
             response.raise_for_status()
             data = response.json()
-            print("data")
-            print(symbol)
-            print(data)
+
             if data.get('points'):
-                latest = data['points'][-1]
-                patterns[f'pattern_{res}m'] = latest.get('pattern', 'No Pattern')
+                latest = data['points'][0]
+
+                chart_string = f'{latest.status} {latest.patterntype} {latest.patternname} | target: {latest.profit1}'
+
+                patterns[f'pattern_{res}m'] = chart_string
             else:
                 patterns[f'pattern_{res}m'] = 'No Pattern'
         except Exception as e:
