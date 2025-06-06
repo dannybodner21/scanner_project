@@ -459,6 +459,9 @@ def get_open_trades(request):
 from django.db.models import F
 from django.db.models.functions import Abs
 
+from django.db.models import Q
+from datetime import timedelta
+
 def get_closed_trades(request):
     closed_trades = (
         ModelTrade.objects
@@ -470,17 +473,32 @@ def get_closed_trades(request):
     data = []
     for trade in closed_trades:
 
-        closest_metric = (
+        # Define a search window of +/- 1 day (or smaller if you want)
+        time_window = timedelta(days=1)
+
+        metrics = (
             RickisMetrics.objects
-            .filter(coin=trade.coin)
-            .annotate(
-                time_diff=Abs(F('timestamp') - trade.entry_timestamp)
+            .filter(
+                coin=trade.coin,
+                timestamp__range=(
+                    trade.entry_timestamp - time_window,
+                    trade.entry_timestamp + time_window
+                )
             )
-            .order_by('time_diff')
-            .first()
+            .order_by('timestamp')
         )
 
-        fear_greed = closest_metric.fear_greed if closest_metric else 0
+        # Find the metric with the smallest time difference manually
+        closest_metric = None
+        min_diff = None
+
+        for metric in metrics:
+            diff = abs((metric.timestamp - trade.entry_timestamp).total_seconds())
+            if min_diff is None or diff < min_diff:
+                min_diff = diff
+                closest_metric = metric
+
+        fear_greed = closest_metric.fear_greed if closest_metric and closest_metric.fear_greed is not None else None
 
         data.append({
             "coin": trade.coin.symbol,
