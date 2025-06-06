@@ -462,6 +462,14 @@ from django.db.models.functions import Abs
 from django.db.models import Q
 from datetime import timedelta
 
+
+def round_to_five_minutes(dt):
+    discard = timedelta(minutes=dt.minute % 5, seconds=dt.second, microseconds=dt.microsecond)
+    dt -= discard
+    if discard >= timedelta(minutes=2, seconds=30):
+        dt += timedelta(minutes=5)
+    return dt
+
 def get_closed_trades(request):
     closed_trades = (
         ModelTrade.objects
@@ -473,32 +481,19 @@ def get_closed_trades(request):
     data = []
     for trade in closed_trades:
 
-        # Define a search window of +/- 1 day (or smaller if you want)
-        time_window = timedelta(days=1)
+        # 🧠 Round entry timestamp to nearest 5min
+        rounded_entry_time = round_to_five_minutes(trade.entry_timestamp)
 
-        metrics = (
+        closest_metric = (
             RickisMetrics.objects
             .filter(
                 coin=trade.coin,
-                timestamp__range=(
-                    trade.entry_timestamp - time_window,
-                    trade.entry_timestamp + time_window
-                )
+                timestamp=rounded_entry_time
             )
-            .order_by('timestamp')
+            .first()
         )
 
-        # Find the metric with the smallest time difference manually
-        closest_metric = None
-        min_diff = None
-
-        for metric in metrics:
-            diff = abs((metric.timestamp - trade.entry_timestamp).total_seconds())
-            if min_diff is None or diff < min_diff:
-                min_diff = diff
-                closest_metric = metric
-
-        fear_greed = closest_metric.fear_greed if closest_metric and closest_metric.fear_greed is not None else None
+        fear_greed = closest_metric.fear_greed if closest_metric and closest_metric.fear_greed is not None else 0
 
         data.append({
             "coin": trade.coin.symbol,
@@ -514,7 +509,6 @@ def get_closed_trades(request):
         })
 
     return JsonResponse(data, safe=False)
-
 
 
 def get_model_results(request):
