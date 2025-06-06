@@ -35,7 +35,12 @@ def get_chart_patterns_for_coin(symbol, finnhub_api_key):
             if data.get('points'):
                 latest = data['points'][0]
 
-                chart_string = f'{latest.status} {latest.patterntype} {latest.patternname} | target: {latest.profit1}'
+                status = latest.status or ""
+                patterntype = latest.patterntype or "no pattern"
+                patternname = lastest.patternname or "no name"
+                target = latest.profit1 or "no target"
+
+                chart_string = f'{status} {patterntype} {patternname} | target: {target}'
 
                 patterns[f'pattern_{res}m'] = chart_string
             else:
