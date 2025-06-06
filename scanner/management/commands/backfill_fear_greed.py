@@ -4,6 +4,9 @@ from datetime import datetime
 from django.core.management.base import BaseCommand
 from scanner.models import RickisMetrics
 
+# nohup python manage.py backfill_fear_greed > output.log 2>&1 &
+# tail -f output.log
+
 class Command(BaseCommand):
     help = "Backfill Fear & Greed Index for RickisMetrics from March 23, 2025 to May 23, 2025."
 
@@ -50,5 +53,6 @@ class Command(BaseCommand):
                 metric.fear_greed = fg_value
                 metric.save(update_fields=['fear_greed_index'])
                 updated_count += 1
+            print(f'updated: {updated_count}')
 
         self.stdout.write(self.style.SUCCESS(f"✅ Successfully updated {updated_count} RickisMetrics with Fear & Greed Index."))

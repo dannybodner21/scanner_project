@@ -433,6 +433,7 @@ def get_open_trades(request):
         )
         current_price = float(latest_metric.price) if latest_metric and latest_metric.price else 0
         entry_price = float(trade.entry_price)
+        fear_greed = latest_metric.fear_greed
         current_percentage = 0
         if (entry_price and entry_price != 0):
             current_percentage = float(((current_price - entry_price) / entry_price) * 100)
@@ -448,10 +449,15 @@ def get_open_trades(request):
             "duration_minutes": trade.duration_minutes,
             "current_price": current_price,
             "current_percentage": current_percentage,
+            "fear_greed": fear_greed,
         })
 
     return JsonResponse(data, safe=False)
 
+
+
+from django.db.models import F
+from django.db.models.functions import Abs
 
 def get_closed_trades(request):
     closed_trades = (
@@ -463,6 +469,19 @@ def get_closed_trades(request):
 
     data = []
     for trade in closed_trades:
+
+        closest_metric = (
+            RickisMetrics.objects
+            .filter(coin=trade.coin)
+            .annotate(
+                time_diff=Abs(F('timestamp') - trade.entry_timestamp)
+            )
+            .order_by('time_diff')
+            .first()
+        )
+
+        fear_greed = closest_metric.fear_greed if closest_metric else 0
+
         data.append({
             "coin": trade.coin.symbol,
             "trade_type": trade.trade_type,
@@ -473,6 +492,7 @@ def get_closed_trades(request):
             "exit_price": float(trade.exit_price or 0),
             "duration_minutes": trade.duration_minutes,
             "result": trade.result,
+            "fear_greed": fear_greed,
         })
 
     return JsonResponse(data, safe=False)
