@@ -29,8 +29,8 @@ class Command(BaseCommand):
         fg_df['value'] = fg_df['value'].astype(int)
 
         # Step 3: Filter for date range
-        start_date = datetime(2025, 3, 23).date()
-        end_date = datetime(2025, 5, 23).date()
+        start_date = datetime(2025, 5, 23).date()
+        end_date = datetime(2025, 6, 6).date()
         fg_df = fg_df[(fg_df['timestamp'] >= start_date) & (fg_df['timestamp'] <= end_date)]
 
         # Step 4: Build map {date: value}
