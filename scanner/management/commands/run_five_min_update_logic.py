@@ -31,6 +31,9 @@ def get_chart_patterns_for_coin(symbol, finnhub_api_key):
             response = requests.get(url, params=params, timeout=5)
             response.raise_for_status()
             data = response.json()
+            print("data")
+            print(symbol)
+            print(data)
             if data.get('points'):
                 latest = data['points'][-1]
                 patterns[f'pattern_{res}m'] = latest.get('pattern', 'No Pattern')
@@ -41,6 +44,20 @@ def get_chart_patterns_for_coin(symbol, finnhub_api_key):
             patterns[f'pattern_{res}m'] = 'No Pattern'
 
     return patterns
+
+
+
+def get_fear_greed_index():
+    url = "https://api.alternative.me/fng/?limit=1&format=json"
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        value = int(data['data'][0]['value'])
+        return value
+    except Exception as e:
+        print(f"❌ Error fetching Fear & Greed Index: {e}")
+        return None
 
 
 
@@ -136,6 +153,8 @@ def run_five_min_update_logic():
                             # Finnhub stuff ------------------------------------
                             finnhub_symbol = f"BINANCE:{coin.symbol}USDT"
                             patterns = get_chart_patterns_for_coin(finnhub_symbol, FINNHUB_API_KEY)
+
+                            print(patterns)
 
                             chart_pattern_5m = patterns.get('pattern_5m', 'No Pattern')
                             chart_pattern_15m = patterns.get('pattern_15m', 'No Pattern')
