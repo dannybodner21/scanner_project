@@ -433,7 +433,7 @@ def get_open_trades(request):
         )
         current_price = float(latest_metric.price) if latest_metric and latest_metric.price else 0
         entry_price = float(trade.entry_price)
-        fear_greed = latest_metric.fear_greed
+        fear_greed = latest_metric.fear_greed if latest_metric and latest_metric.fear_greed else 0
         current_percentage = 0
         if (entry_price and entry_price != 0):
             current_percentage = float(((current_price - entry_price) / entry_price) * 100)
