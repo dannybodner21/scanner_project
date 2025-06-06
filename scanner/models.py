@@ -210,6 +210,8 @@ class RickisMetrics(models.Model):
     chart_pattern_15m = models.CharField(max_length=100, null=True, blank=True)
     chart_pattern_60m = models.CharField(max_length=100, null=True, blank=True)
 
+    fear_greed = models.CharField(max_length=100, null=True, blank=True)
+
 
     long_result = models.BooleanField(null=True)
     short_result = models.BooleanField(null=True)
