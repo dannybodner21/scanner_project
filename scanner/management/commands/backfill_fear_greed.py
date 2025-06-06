@@ -51,7 +51,7 @@ class Command(BaseCommand):
             fg_value = fg_map.get(metric.timestamp.date())
             if fg_value is not None:
                 metric.fear_greed = fg_value
-                metric.save(update_fields=['fear_greed_index'])
+                metric.save(update_fields=['fear_greed'])
                 updated_count += 1
             print(f'updated: {updated_count}')
 
