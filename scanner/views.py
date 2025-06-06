@@ -455,21 +455,6 @@ def get_open_trades(request):
     return JsonResponse(data, safe=False)
 
 
-
-from django.db.models import F
-from django.db.models.functions import Abs
-
-from django.db.models import Q
-from datetime import timedelta
-
-
-def round_to_five_minutes(dt):
-    discard = timedelta(minutes=dt.minute % 5, seconds=dt.second, microseconds=dt.microsecond)
-    dt -= discard
-    if discard >= timedelta(minutes=2, seconds=30):
-        dt += timedelta(minutes=5)
-    return dt
-
 def get_closed_trades(request):
     closed_trades = (
         ModelTrade.objects
@@ -481,19 +466,26 @@ def get_closed_trades(request):
     data = []
     for trade in closed_trades:
 
-        # 🧠 Round entry timestamp to nearest 5min
-        rounded_entry_time = round_to_five_minutes(trade.entry_timestamp)
+        entry_timestamp = trade.entry_timestamp
+
+        print("entry timestamp:")
+        print(entry_timestamp)
 
         closest_metric = (
             RickisMetrics.objects
             .filter(
                 coin=trade.coin,
-                timestamp=rounded_entry_time
+                timestamp=entry_timestamp
             )
             .first()
         )
 
+        print("metric:")
+        print(closest_metric)
+        print(closest_metric.fear_greed)
+
         fear_greed = closest_metric.fear_greed if closest_metric and closest_metric.fear_greed is not None else 0
+
 
         data.append({
             "coin": trade.coin.symbol,
