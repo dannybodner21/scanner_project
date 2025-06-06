@@ -7,12 +7,42 @@ from scanner.helpers import (
     calculate_relative_volume, calculate_sma, calculate_ema, calculate_price_slope_1h,
     calculate_stddev_1h, calculate_atr_1h, calculate_price_change_five_min,
     calculate_change_since_high, calculate_change_since_low, calculate_obv,
-    calculate_fib_distances, calculate_bollinger_bands, calculate_adx  # <-- ✅ make sure these are imported
+    calculate_fib_distances, calculate_bollinger_bands, calculate_adx
 )
 from django.utils.timezone import make_aware, is_naive, now
 from datetime import datetime
 import requests
 import time
+
+
+
+def get_chart_patterns_for_coin(symbol, finnhub_api_key):
+    url = "https://finnhub.io/api/v1/scan/pattern"
+    patterns = {}
+    resolutions = [5, 15, 60]
+
+    for res in resolutions:
+        params = {
+            "symbol": symbol,
+            "resolution": res,
+            "token": finnhub_api_key
+        }
+        try:
+            response = requests.get(url, params=params, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            if data.get('points'):
+                latest = data['points'][-1]
+                patterns[f'pattern_{res}m'] = latest.get('pattern', 'No Pattern')
+            else:
+                patterns[f'pattern_{res}m'] = 'No Pattern'
+        except Exception as e:
+            print(f"❌ Error fetching pattern for {symbol} at {res}m: {e}")
+            patterns[f'pattern_{res}m'] = 'No Pattern'
+
+    return patterns
+
+
 
 def run_five_min_update_logic():
     start = datetime.now()
@@ -20,6 +50,7 @@ def run_five_min_update_logic():
 
     API_KEY_QUOTES = 'c35740fd-4f78-45b5-9350-c4afdd929432'
     API_KEY_OHLCV = '7dd5dd98-35d0-475d-9338-407631033cd9'
+    FINNHUB_API_KEY = 'cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0'
 
     url_quotes = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
     url_ohlcv = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/latest'
@@ -97,9 +128,26 @@ def run_five_min_update_logic():
                                 current_price=current_price,
                             )
 
-                            # ✅ New calculations for adx and bollinger bands
                             adx = calculate_adx(coin, timestamp)
                             bollinger_upper, bollinger_middle, bollinger_lower = calculate_bollinger_bands(coin, timestamp)
+
+
+
+                            # Finnhub stuff ------------------------------------
+                            finnhub_symbol = f"BINANCE:{coin.symbol}USDT"
+                            patterns = get_chart_patterns_for_coin(finnhub_symbol, FINNHUB_API_KEY)
+
+                            chart_pattern_5m = patterns.get('pattern_5m', 'No Pattern')
+                            chart_pattern_15m = patterns.get('pattern_15m', 'No Pattern')
+                            chart_pattern_60m = patterns.get('pattern_60m', 'No Pattern')
+
+                            print("--------------------")
+                            print(chart_pattern_5m)
+                            print("--------------------")
+                            print(chart_pattern_15m)
+                            print("--------------------")
+                            print(chart_pattern_60m)
+                            print("--------------------")
 
                             metrics, _ = RickisMetrics.objects.update_or_create(
                                 coin=coin,
@@ -135,7 +183,11 @@ def run_five_min_update_logic():
                                     'adx': adx,
                                     'bollinger_upper': bollinger_upper,
                                     'bollinger_middle': bollinger_middle,
-                                    'bollinger_lower': bollinger_lower
+                                    'bollinger_lower': bollinger_lower,
+                                    'chart_pattern_5m': patterns.get('pattern_5m', 'No Pattern'),
+                                    'chart_pattern_15m': patterns.get('pattern_15m', 'No Pattern'),
+                                    'chart_pattern_60m': patterns.get('pattern_60m', 'No Pattern'),
+
                                 }
                             )
 
