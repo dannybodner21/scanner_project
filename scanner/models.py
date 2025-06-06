@@ -206,6 +206,11 @@ class RickisMetrics(models.Model):
     bollinger_middle = models.FloatField(null=True) # good
     bollinger_lower = models.FloatField(null=True) # good
 
+    chart_pattern_5m = models.CharField(max_length=100, null=True, blank=True)
+    chart_pattern_15m = models.CharField(max_length=100, null=True, blank=True)
+    chart_pattern_60m = models.CharField(max_length=100, null=True, blank=True)
+
+
     long_result = models.BooleanField(null=True)
     short_result = models.BooleanField(null=True)
 
