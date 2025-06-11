@@ -158,21 +158,13 @@ def run_five_min_update_logic():
 
                             # Finnhub stuff ------------------------------------
                             finnhub_symbol = f"BINANCE:{coin.symbol}USDT"
-                            patterns = get_chart_patterns_for_coin(finnhub_symbol, FINNHUB_API_KEY)
+                            #patterns = get_chart_patterns_for_coin(finnhub_symbol, FINNHUB_API_KEY)
 
-                            print(patterns)
 
-                            chart_pattern_5m = patterns.get('pattern_5m', 'No Pattern')
-                            chart_pattern_15m = patterns.get('pattern_15m', 'No Pattern')
-                            chart_pattern_60m = patterns.get('pattern_60m', 'No Pattern')
+                            #chart_pattern_5m = patterns.get('pattern_5m', 'No Pattern')
+                            #chart_pattern_15m = patterns.get('pattern_15m', 'No Pattern')
+                            #chart_pattern_60m = patterns.get('pattern_60m', 'No Pattern')
 
-                            print("--------------------")
-                            print(chart_pattern_5m)
-                            print("--------------------")
-                            print(chart_pattern_15m)
-                            print("--------------------")
-                            print(chart_pattern_60m)
-                            print("--------------------")
 
                             metrics, _ = RickisMetrics.objects.update_or_create(
                                 coin=coin,
@@ -209,9 +201,9 @@ def run_five_min_update_logic():
                                     'bollinger_upper': bollinger_upper,
                                     'bollinger_middle': bollinger_middle,
                                     'bollinger_lower': bollinger_lower,
-                                    'chart_pattern_5m': patterns.get('pattern_5m', 'No Pattern'),
-                                    'chart_pattern_15m': patterns.get('pattern_15m', 'No Pattern'),
-                                    'chart_pattern_60m': patterns.get('pattern_60m', 'No Pattern'),
+                                    #'chart_pattern_5m': patterns.get('pattern_5m', 'No Pattern'),
+                                    #'chart_pattern_15m': patterns.get('pattern_15m', 'No Pattern'),
+                                    #'chart_pattern_60m': patterns.get('pattern_60m', 'No Pattern'),
 
                                 }
                             )

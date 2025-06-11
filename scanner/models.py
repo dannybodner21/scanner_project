@@ -237,6 +237,28 @@ class RickisMetrics(models.Model):
         return f"{self.coin.symbol} @ {self.timestamp}"
 
 
+
+
+class BinancePrice(models.Model):
+    coin = models.CharField(max_length=20)  # e.g. 'BTCUSDT'
+    timestamp = models.DateTimeField(unique=True)  # 5-min candle open time (UTC)
+
+    open = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    high = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    low = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    close = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    volume = models.DecimalField(max_digits=30, decimal_places=15, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['coin', 'timestamp']),
+        ]
+        unique_together = ('coin', 'timestamp')
+
+
+
+
+
 class ModelTrade(models.Model):
     TRADE_TYPE_CHOICES = [
         ('long', 'Long'),
