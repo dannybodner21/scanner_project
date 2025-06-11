@@ -239,7 +239,7 @@ class RickisMetrics(models.Model):
 
 
 
-class BinancePrice(models.Model):
+class CoinAPIPrice(models.Model):
     coin = models.CharField(max_length=20)  # e.g. 'BTCUSDT'
     timestamp = models.DateTimeField(unique=True)  # 5-min candle open time (UTC)
 
