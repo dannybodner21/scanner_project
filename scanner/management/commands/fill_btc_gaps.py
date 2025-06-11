@@ -1,4 +1,5 @@
 
+
 from django.core.management.base import BaseCommand
 from datetime import datetime, timedelta, timezone
 from scanner.models import CoinAPIPrice
@@ -7,8 +8,11 @@ import time
 
 COINAPI_KEY = '01293e2a-dcf1-4e81-8310-c6aa9d0cb743'
 
+def normalize_timestamp(ts):
+    return ts.replace(second=0, microsecond=0)
+
 class Command(BaseCommand):
-    help = 'Detect and fill missing BTCUSDT 5-min candles'
+    help = 'Detect and fill missing BTCUSDT 5-min candles with timestamp normalization'
 
     def handle(self, *args, **options):
         symbol = 'BTCUSDT'
@@ -22,8 +26,10 @@ class Command(BaseCommand):
             expected_timestamps.add(t)
             t += timedelta(minutes=5)
 
+        # Normalize DB timestamps
         existing_timestamps = set(
-            CoinAPIPrice.objects
+            normalize_timestamp(ts)
+            for ts in CoinAPIPrice.objects
             .filter(coin=symbol, timestamp__gte=start_time, timestamp__lte=end_time)
             .values_list('timestamp', flat=True)
         )
@@ -48,10 +54,16 @@ class Command(BaseCommand):
 
                 if data:
                     candle = data[0]
+                    candle_time = normalize_timestamp(datetime.fromisoformat(candle['time_period_start'].replace('Z', '+00:00')))
+
+                    # DOUBLE CHECK if it exists
+                    if CoinAPIPrice.objects.filter(coin=symbol, timestamp=candle_time).exists():
+                        print(f"⚠️ Already exists: {candle_time}")
+                        continue
 
                     CoinAPIPrice.objects.create(
                         coin=symbol,
-                        timestamp=datetime.fromisoformat(candle['time_period_start'].replace('Z', '+00:00')),
+                        timestamp=candle_time,
                         open=candle['price_open'],
                         high=candle['price_high'],
                         low=candle['price_low'],
@@ -65,6 +77,6 @@ class Command(BaseCommand):
             except Exception as e:
                 print(f"❌ Error fetching {ts}: {e}")
 
-            time.sleep(1.1)  # Avoid hitting rate limits
+            time.sleep(1.1)
 
         self.stdout.write(self.style.SUCCESS("🔥 Gap filling complete 🔥"))
