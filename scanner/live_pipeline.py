@@ -55,7 +55,10 @@ def run_live_pipeline():
                 raise ValueError("No data returned")
 
             candle = data[0]
+
             ts = datetime.fromisoformat(candle['time_period_start'].replace("Z", "+00:00"))
+
+
             price = Decimal(candle['price_close'])
             high = Decimal(candle['price_high'])
             low = Decimal(candle['price_low'])
@@ -108,7 +111,7 @@ def run_live_pipeline():
 
             LiveModelMetrics.objects.create(
                 coin=coin,
-                timestamp=make_aware(ts),
+                timestamp=ts,
                 price=price,
                 high_24h=high,
                 low_24h=low,
