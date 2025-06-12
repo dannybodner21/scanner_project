@@ -1,3 +1,11 @@
 db.sqlite3
 scanner/model/ml_model.pkl
 venv/
+*.csv
+*.parquet
+exported_data/
+exported_data_enriched/
+final_training_data/
+final_training_data_with_results/
+vertex_training_data.parquet
+vertex_training_data_clean.csv
