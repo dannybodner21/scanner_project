@@ -86,12 +86,7 @@ WSGI_APPLICATION = "scanner_project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+import os
 
 if os.getenv('DIGITALOCEAN_ENV') == 'production':
     DATABASES = {
@@ -103,6 +98,27 @@ if os.getenv('DIGITALOCEAN_ENV') == 'production':
             'HOST': os.getenv('DATABASE_HOST'),
             'PORT': os.getenv('DATABASE_PORT'),
             'CONN_MAX_AGE': 60,
+        }
+    }
+elif os.getenv('USE_DO_REMOTE') == 'true':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': 'defaultdb',
+            'USER': 'doadmin',
+            'PASSWORD': 'AVNS_Nkqtq-GTWCVBhLIicE4',
+            'HOST': 'scanner-project-db-do-user-9681180-0.h.db.ondigitalocean.com',
+            'PORT': '25060',
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
 

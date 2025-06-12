@@ -241,7 +241,7 @@ class RickisMetrics(models.Model):
 
 class CoinAPIPrice(models.Model):
     coin = models.CharField(max_length=20)  # e.g. 'BTCUSDT'
-    timestamp = models.DateTimeField(unique=True)  # 5-min candle open time (UTC)
+    timestamp = models.DateTimeField()  # 5-min candle open time (UTC)
 
     open = models.DecimalField(max_digits=20, decimal_places=10, null=True)
     high = models.DecimalField(max_digits=20, decimal_places=10, null=True)
