@@ -4,7 +4,7 @@ import time
 from django.core.management.base import BaseCommand
 from scanner.models import Coin, Pattern
 
-FINNHUB_API_KEY = "YOUR_FINNHUB_API_KEY"
+FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
 
 class Command(BaseCommand):
     help = "Fetch pattern data from Finnhub and store to Pattern model"
@@ -29,6 +29,8 @@ class Command(BaseCommand):
 
                     if data.get("points"):
                         latest = data["points"][0]
+
+                        print(latest)
 
                         patterntype = latest.get("patterntype")
                         patternname = latest.get("patternname")
