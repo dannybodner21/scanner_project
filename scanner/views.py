@@ -1075,11 +1075,11 @@ def predict_short_vertex_new(request):
 
 
 
-from .live_pipeline_original import run_pipeline
+from .live_pipeline import run_live_pipeline
 
 def run_live_pipeline_view(request):
     try:
-        run_pipeline()
+        run_live_pipeline()
         return JsonResponse({"status": "success"})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
