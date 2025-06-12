@@ -1,2 +1,3 @@
 db.sqlite3
 scanner/model/ml_model.pkl
+venv/
