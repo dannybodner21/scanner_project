@@ -304,6 +304,66 @@ class RealTrade(models.Model):
         return f"{self.coin.symbol} | {self.trade_type.upper()} | {self.entry_timestamp.strftime('%Y-%m-%d %H:%M')}"
 
 
+class LiveModelMetrics(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField()
+
+    # Core fields
+    open = models.DecimalField(max_digits=20, decimal_places=10)
+    high = models.DecimalField(max_digits=20, decimal_places=10)
+    low = models.DecimalField(max_digits=20, decimal_places=10)
+    close = models.DecimalField(max_digits=20, decimal_places=10)
+    volume = models.DecimalField(max_digits=30, decimal_places=2)
+
+    # All the enriched metrics you just trained on:
+    sma_5 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    sma_20 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    ema_12 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    ema_26 = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    ema_crossover_flag = models.BooleanField(null=True)
+    rsi = models.FloatField(null=True)
+    macd = models.FloatField(null=True)
+    macd_signal = models.FloatField(null=True)
+    stochastic_k = models.FloatField(null=True)
+    stochastic_d = models.FloatField(null=True)
+    bollinger_upper = models.FloatField(null=True)
+    bollinger_middle = models.FloatField(null=True)
+    bollinger_lower = models.FloatField(null=True)
+    adx = models.FloatField(null=True)
+    atr_1h = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    stddev_1h = models.FloatField(null=True)
+    momentum_10 = models.FloatField(null=True)
+    momentum_50 = models.FloatField(null=True)
+    roc = models.FloatField(null=True)
+    rolling_volatility_5h = models.FloatField(null=True)
+    rolling_volatility_24h = models.FloatField(null=True)
+    high_low_ratio = models.FloatField(null=True)
+    price_position = models.FloatField(null=True)
+    candle_body_size = models.FloatField(null=True)
+    candle_body_pct = models.FloatField(null=True)
+    wick_upper = models.FloatField(null=True)
+    wick_lower = models.FloatField(null=True)
+    slope_5h = models.FloatField(null=True)
+    slope_24h = models.FloatField(null=True)
+    trend_acceleration = models.FloatField(null=True)
+    fib_distance_0_236 = models.FloatField(null=True)
+    fib_distance_0_382 = models.FloatField(null=True)
+    fib_distance_0_618 = models.FloatField(null=True)
+    vwap = models.FloatField(null=True)
+    volume_price_ratio = models.FloatField(null=True)
+    volume_change_5m = models.FloatField(null=True)
+    volume_surge = models.FloatField(null=True)
+    overbought_rsi = models.BooleanField(null=True)
+    oversold_rsi = models.BooleanField(null=True)
+    upper_bollinger_break = models.BooleanField(null=True)
+    lower_bollinger_break = models.BooleanField(null=True)
+    atr_normalized = models.FloatField(null=True)
+    short_vs_long_strength = models.FloatField(null=True)
+
+    class Meta:
+        unique_together = ('coin', 'timestamp')
+
+
 
 #
 

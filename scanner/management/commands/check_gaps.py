@@ -9,7 +9,7 @@ class Command(BaseCommand):
         start_time = datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
         end_time = datetime.datetime(2025, 6, 10, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
-        timestamps = list(CoinAPIPrice.objects.filter(coin='SNXUSDT')
+        timestamps = list(CoinAPIPrice.objects.filter(coin='MKRUSDT')
                           .values_list('timestamp', flat=True).order_by('timestamp'))
 
         expected = start_time

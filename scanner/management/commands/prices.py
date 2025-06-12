@@ -8,12 +8,14 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from scanner.models import CoinAPIPrice
 
+# source venv/bin/activate
+
 class Command(BaseCommand):
     help = "Optimized full 5-min backfill with strict verification from CoinAPI"
 
     def handle(self, *args, **kwargs):
-        coinapi_symbol = "BINANCE_SPOT_SNX_USDT"
-        db_coin = "SNXUSDT"
+        coinapi_symbol = "BINANCE_SPOT_TRX_USDT"
+        db_coin = "TRXUSDT"
 
         api_key = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
         headers = {"X-CoinAPI-Key": api_key}
