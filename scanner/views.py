@@ -468,9 +468,6 @@ def get_closed_trades(request):
 
         entry_timestamp = trade.entry_timestamp
 
-        print("entry timestamp:")
-        print(entry_timestamp)
-
         closest_metric = (
             RickisMetrics.objects
             .filter(
@@ -479,10 +476,6 @@ def get_closed_trades(request):
             )
             .first()
         )
-
-        print("metric:")
-        print(closest_metric)
-        print(closest_metric.fear_greed)
 
         fear_greed = closest_metric.fear_greed if closest_metric and closest_metric.fear_greed is not None else 0
 
