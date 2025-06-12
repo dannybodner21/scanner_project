@@ -40,16 +40,18 @@ SYMBOL_MAP = {
 def run_live_pipeline():
     print(f"⏱ Live pipeline started: {datetime.now()}")
 
-    # Always lag behind 5 full minutes for safety
-    safe_now = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc) - timedelta(minutes=5)
-    start_time = safe_now.isoformat()
-    end_time = (safe_now + timedelta(minutes=5)).isoformat()
+    now_utc = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
+    buffered_time = now_utc - timedelta(minutes=10)
+
+    start_time = (buffered_time - timedelta(minutes=5)).isoformat()
+    end_time = buffered_time.isoformat()
 
     for symbol, coinapi_symbol in SYMBOL_MAP.items():
         try:
             coin = Coin.objects.get(symbol=symbol)
 
             url = f"{BASE_URL}/{coinapi_symbol}/history?period_id=5MIN&time_start={start_time}&time_end={end_time}&limit=1"
+
             headers = {"X-CoinAPI-Key": COINAPI_KEY}
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
