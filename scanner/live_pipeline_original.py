@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from django.core.management.base import BaseCommand
-from scanner.models import Coin, LiveMetrics
+from scanner.models import Coin, LiveModelMetrics
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 

@@ -148,24 +148,21 @@ class Trigger(models.Model):
 
 
 class Pattern(models.Model):
-    coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="pattern")
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE, related_name="patterns")
     symbol = models.CharField(max_length=200, null=True, blank=True)
-    name = models.CharField(max_length=200, null=True, blank=True)
+    resolution = models.IntegerField(null=True, blank=True)  # 5, 15, or 60
     patterntype = models.CharField(max_length=200, null=True, blank=True)
-    status = models.CharField(max_length=200)
-    entry = models.DecimalField(max_digits=20, decimal_places=8)
-    takeprofit = models.DecimalField(max_digits=20, decimal_places=8)
-    stoploss = models.DecimalField(max_digits=20, decimal_places=8)
-    five_min_signal = models.CharField(max_length=200, null=True, blank=True)
-    fifteen_min_signal = models.CharField(max_length=200, null=True, blank=True)
-    one_hour_signal = models.CharField(max_length=200, null=True, blank=True)
-    five_min_adx = models.DecimalField(max_digits=20, decimal_places=8, null=True)
-    fifteen_min_adx = models.DecimalField(max_digits=20, decimal_places=8, null=True)
-    one_hour_adx = models.DecimalField(max_digits=20, decimal_places=8, null=True)
+    patternname = models.CharField(max_length=200, null=True, blank=True)
+    status = models.CharField(max_length=200, null=True, blank=True)
+    entry = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
+    takeprofit = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
+    stoploss = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
+    adx = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
     timestamp = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.symbol}, {self.timestamp}"
+        return f"{self.symbol} | {self.resolution}min | {self.patternname} | {self.timestamp}"
+
 
 
 class RickisMetrics(models.Model):

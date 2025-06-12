@@ -1052,7 +1052,7 @@ def predict_short_vertex_new(request):
 
 
 
-from .live_pipeline import run_live_pipeline
+from .live_pipeline_original import run_pipeline
 
 def run_live_pipeline_view(request):
     try:
