@@ -1056,7 +1056,7 @@ from .live_pipeline_original import run_pipeline
 
 def run_live_pipeline_view(request):
     try:
-        run_live_pipeline()
+        run_pipeline()
         return JsonResponse({"status": "success"})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

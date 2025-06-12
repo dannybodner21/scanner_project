@@ -30,8 +30,6 @@ class Command(BaseCommand):
                     if data.get("points"):
                         latest = data["points"][0]
 
-                        print(latest)
-
                         patterntype = latest.get("patterntype")
                         patternname = latest.get("patternname")
                         status = latest.get("status")
@@ -61,7 +59,6 @@ class Command(BaseCommand):
 
                 except Exception as e:
                     self.stdout.write(f"❌ Error for {coin.symbol} at {resolution}min: {e}")
-                    self.stdout.write(data)
 
                 time.sleep(0.25)  # tiny delay to avoid rate limits
 
