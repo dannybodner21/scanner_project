@@ -40,13 +40,14 @@ SYMBOL_MAP = {
 def run_live_pipeline():
     print(f"⏱ Live pipeline started: {datetime.now()}")
 
+    # Always lag behind 5 full minutes for safety
+    safe_now = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc) - timedelta(minutes=5)
+    start_time = safe_now.isoformat()
+    end_time = (safe_now + timedelta(minutes=5)).isoformat()
+
     for symbol, coinapi_symbol in SYMBOL_MAP.items():
         try:
             coin = Coin.objects.get(symbol=symbol)
-
-            now_utc = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
-            start_time = (now_utc - timedelta(minutes=5)).isoformat()
-            end_time = now_utc.isoformat()
 
             url = f"{BASE_URL}/{coinapi_symbol}/history?period_id=5MIN&time_start={start_time}&time_end={end_time}&limit=1"
             headers = {"X-CoinAPI-Key": COINAPI_KEY}
@@ -75,9 +76,7 @@ def run_live_pipeline():
                 "volume": float(volume)
             }])
 
-            # -----------------------------------
             # Calculations start here
-            # -----------------------------------
 
             df["sma_5"] = df["close"].rolling(window=5).mean().fillna(df["close"])
             df["sma_20"] = df["close"].rolling(window=20).mean().fillna(df["close"])
