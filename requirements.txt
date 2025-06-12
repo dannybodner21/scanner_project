@@ -20,6 +20,7 @@ google-cloud-storage==3.1.0
 google-crc32c==1.7.1
 google-resumable-media==2.7.2
 googleapis-common-protos==1.70.0
+gunicorn==23.0.0
 httplib2==0.22.0
 idna==3.10
 joblib==1.5.1
@@ -46,6 +47,7 @@ scipy==1.15.3
 six==1.17.0
 sqlparse==0.5.3
 ta==0.11.0
+ta-lib==0.6.4
 tablib==3.8.0
 threadpoolctl==3.6.0
 tzdata==2025.2
