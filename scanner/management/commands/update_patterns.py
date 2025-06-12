@@ -28,6 +28,7 @@ class Command(BaseCommand):
                     data = response.json()
 
                     if data.get("points"):
+
                         latest = data["points"][0]
 
                         patterntype = latest.get("patterntype")

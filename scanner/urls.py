@@ -27,6 +27,7 @@ urlpatterns = [
     path("api/open-trades/", views.get_open_trades, name="open-trades"),
     path("api/closed-trades/", views.get_closed_trades, name="closed-trades"),
     path("api/model-results/", views.get_model_results, name="model-results"),
+    path("api/patterns/", views.get_patterns, name="patterns"),
 
     path("api/metrics-health-daily/", views.daily_metrics_health, name="daily-metrics-health"),
 

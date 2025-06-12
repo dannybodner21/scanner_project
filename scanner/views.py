@@ -533,6 +533,29 @@ def get_model_results(request):
     })
 
 
+def get_patterns(request):
+
+    data = []
+
+    patterns = Pattern.objects.exclude(status__iexact='No Pattern').order_by('symbol', '-timestamp')
+
+    for pattern in patterns:
+        data.append({
+            "symbol": pattern.symbol,
+            "resolution": pattern.resolution,
+            "pattern_type": pattern.patterntype,
+            "pattern_name": pattern.patternname,
+            "status": pattern.status,
+            "entry": float(pattern.entry) if pattern.entry else None,
+            "takeprofit": float(pattern.takeprofit) if pattern.takeprofit else None,
+            "stoploss": float(pattern.stoploss) if pattern.stoploss else None,
+            "adx": float(pattern.adx) if pattern.adx else None,
+            "timestamp": pattern.timestamp.isoformat(),
+        })
+
+    return JsonResponse(data, safe=False)
+
+
 
 # new model functions ----------------------------------------------------------
 
