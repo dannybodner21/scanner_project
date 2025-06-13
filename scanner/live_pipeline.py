@@ -6,7 +6,7 @@ import numpy as np
 from decimal import Decimal
 from datetime import datetime
 from django.utils.timezone import make_aware
-from scanner.models import Coin, LiveModelMetrics
+from scanner.models import Coin, LiveModelMetrics, ModelTrade
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 
@@ -156,28 +156,23 @@ def run_live_pipeline():
 
             df["short_vs_long_strength"] = df["ema_12"] / df["ema_26"]
 
-            # ADX Calculation (matching your training)
+            # ADX Calculation
             high_diff = df["high"].diff()
             low_diff = df["low"].diff()
-
             plus_dm = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0)
             minus_dm = np.where((low_diff > high_diff) & (low_diff > 0), low_diff, 0)
-
             tr1 = df["high"] - df["low"]
             tr2 = abs(df["high"] - df["close"].shift())
             tr3 = abs(df["low"] - df["close"].shift())
             tr = np.maximum.reduce([tr1, tr2, tr3])
-
             atr = pd.Series(tr).rolling(window=14).sum()
             plus_di = 100 * pd.Series(plus_dm).rolling(window=14).sum() / atr
             minus_di = 100 * pd.Series(minus_dm).rolling(window=14).sum() / atr
             dx = (abs(plus_di - minus_di) / (plus_di + minus_di)) * 100
             adx = dx.rolling(window=14).mean()
-
             df["adx"] = adx.fillna(0)
             df.fillna(0, inplace=True)
 
-            # Save latest row:
             row = df.iloc[-1]
 
             LiveModelMetrics.objects.create(
@@ -233,7 +228,6 @@ def run_live_pipeline():
                 short_vs_long_strength=float(row["short_vs_long_strength"])
             )
 
-            # Build instance for prediction
             instance = row.to_dict()
             instance.pop("timestamp")
             instance.pop("bollinger_std")
@@ -241,13 +235,49 @@ def run_live_pipeline():
                 if isinstance(instance[k], np.generic):
                     instance[k] = float(instance[k])
 
+            # CONVERT BOOLEANS TO STRINGS FOR VERTEX
+            instance["ema_crossover_flag"] = "true" if instance["ema_crossover_flag"] else "false"
+            instance["volume_surge"] = "true" if instance["volume_surge"] else "false"
+            instance["overbought_rsi"] = "true" if instance["overbought_rsi"] else "false"
+            instance["oversold_rsi"] = "true" if instance["oversold_rsi"] else "false"
+            instance["upper_bollinger_break"] = "true" if instance["upper_bollinger_break"] else "false"
+            instance["lower_bollinger_break"] = "true" if instance["lower_bollinger_break"] else "false"
+
             jwt_token = get_google_jwt_token()
             vertex_url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
             headers = {"Authorization": f"Bearer {jwt_token}", "Content-Type": "application/json"}
             payload = {"instances": [instance]}
             response = requests.post(vertex_url, headers=headers, json=payload)
-            prediction = response.json()
-            print(f"✅ {symbol}: Model Prediction: {prediction}")
+            response.raise_for_status()
+            predictions = response.json().get("predictions", [])
+
+            if predictions:
+                pred = predictions[0]
+                class_idx = pred["classes"].index("true")
+                confidence = pred["scores"][class_idx]
+                print(f"LONG | {symbol} — Confidence: {confidence:.4f}")
+
+                metric_obj = LiveModelMetrics.objects.get(coin=coin, timestamp=row["timestamp"])
+
+                for threshold in [0.9, 0.8, 0.7, 0.6]:
+                    if confidence >= threshold:
+                        if not ModelTrade.objects.filter(
+                            coin=coin,
+                            confidence_trade=threshold,
+                            exit_timestamp__isnull=True
+                        ).exists():
+                            ModelTrade.objects.create(
+                                coin=coin,
+                                trade_type="long",
+                                entry_timestamp=metric_obj.timestamp,
+                                duration_minutes=0,
+                                entry_price=metric_obj.close,
+                                model_confidence=confidence,
+                                take_profit_percent=3,
+                                stop_loss_percent=2,
+                                confidence_trade=threshold,
+                            )
+                        break
 
         except Exception as e:
             print(f"❌ {symbol}: {e}")
