@@ -61,7 +61,7 @@ def run_live_pipeline():
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
             data = resp.json()
-            if not data or len(data) < 300:
+            if not data or len(data) < 50:
                 print(f"❌ {symbol}: Not enough candles returned ({len(data)})")
                 continue
 
