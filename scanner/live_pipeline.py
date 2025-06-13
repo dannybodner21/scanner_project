@@ -188,8 +188,29 @@ def run_live_pipeline(request=None):
                     pred = predictions[0]
                     confidence = pred["scores"][0]
                     print(f"✅ {symbol} — Confidence: {confidence:.4f}")
+
+                    for threshold in [0.9, 0.8, 0.7, 0.6]:
+                        if confidence >= threshold:
+                            if not ModelTrade.objects.filter(coin=coin, confidence_trade=threshold, exit_timestamp__isnull=True).exists():
+                                ModelTrade.objects.create(
+                                    coin=coin,
+                                    trade_type="long",
+                                    entry_timestamp=row["timestamp"],
+                                    duration_minutes=0,
+                                    entry_price=row["close"],
+                                    model_confidence=confidence,
+                                    take_profit_percent=3,
+                                    stop_loss_percent=2,
+                                    confidence_trade=threshold
+                                )
+                            break
                 else:
                     print(f"⚠ {symbol}: No predictions returned")
+
+
+
+
+
 
             except Exception as e:
                 print(f"❌ {symbol}: {e}")
