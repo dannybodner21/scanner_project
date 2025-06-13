@@ -29,6 +29,24 @@ SYMBOL_MAP = {
     "HBAR": "BINANCE_SPOT_HBAR_USDT", "UNI": "BINANCE_SPOT_UNI_USDT"
 }
 
+FEATURES = [
+    "open", "high", "low", "close", "volume", "sma_5", "sma_20",
+    "ema_12", "ema_26", "ema_crossover_flag", "rsi", "macd", "macd_signal",
+    "stochastic_k", "stochastic_d", "bollinger_upper", "bollinger_middle",
+    "bollinger_lower", "adx", "atr_1h", "stddev_1h", "momentum_10",
+    "momentum_50", "roc", "rolling_volatility_5h", "rolling_volatility_24h",
+    "high_low_ratio", "price_position", "candle_body_size", "candle_body_pct",
+    "wick_upper", "wick_lower", "slope_5h", "slope_24h", "trend_acceleration",
+    "fib_distance_0_236", "fib_distance_0_382", "fib_distance_0_618", "vwap",
+    "volume_price_ratio", "volume_change_5m", "volume_surge", "overbought_rsi",
+    "oversold_rsi", "upper_bollinger_break", "lower_bollinger_break",
+    "atr_normalized", "short_vs_long_strength"
+]
+
+TEXT_FEATURES = [
+    "ema_crossover_flag", "overbought_rsi", "oversold_rsi", "upper_bollinger_break", "lower_bollinger_break"
+]
+
 def get_google_jwt_token():
     audience = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
     service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
@@ -152,14 +170,14 @@ def run_live_pipeline():
 
             df.fillna(0, inplace=True)
             row = df.iloc[-1]
-            instance = row.to_dict()
-            instance.pop("timestamp")
-            instance.pop("bollinger_std")
 
-            for k in instance:
-                v = instance[k]
-                if isinstance(v, (np.generic, Decimal)):
-                    instance[k] = float(v)
+            # Build Vertex AI instance input properly
+            instance = []
+            for feature in FEATURES:
+                val = row[feature]
+                if feature in TEXT_FEATURES:
+                    val = int(val)  # send text fields as int
+                instance.append(float(val))
 
             jwt_token = get_google_jwt_token()
             vertex_url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
