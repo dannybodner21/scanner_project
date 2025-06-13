@@ -82,7 +82,7 @@ def get_google_jwt_token():
     credentials.refresh(Request())
     return credentials.token
 
-def predict_live_vertex_new(request=None):  # Keep your exact function name
+def run_live_pipeline(request=None):
     print(f"⏱ Running fake test at: {datetime.now()}")
 
     try:
@@ -107,4 +107,4 @@ def predict_live_vertex_new(request=None):  # Keep your exact function name
         print(f"❌ Error: {e}")
 
 if __name__ == "__main__":
-    predict_live_vertex_new()
+    run_live_pipeline()
