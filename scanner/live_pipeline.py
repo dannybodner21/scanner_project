@@ -10,9 +10,7 @@ from scanner.models import Coin, LiveModelMetrics, ModelTrade
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 
-# ----------------------------------------
 # CONFIG
-# ----------------------------------------
 PROJECT_ID = "healthy-mark-446922-p8"
 LOCATION = "us-central1"
 ENDPOINT_ID = "1878894947566878720"
@@ -31,10 +29,6 @@ SYMBOL_MAP = {
     "HBAR": "BINANCE_SPOT_HBAR_USDT", "UNI": "BINANCE_SPOT_UNI_USDT"
 }
 
-# ----------------------------------------
-# JWT TOKEN FUNCTION
-# ----------------------------------------
-
 def get_google_jwt_token():
     audience = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
     service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
@@ -44,10 +38,6 @@ def get_google_jwt_token():
     )
     credentials.refresh(Request())
     return credentials.token
-
-# ----------------------------------------
-# Main pipeline logic
-# ----------------------------------------
 
 def run_live_pipeline():
     print(f"⏱ Live pipeline started: {datetime.now()}")
@@ -77,12 +67,12 @@ def run_live_pipeline():
             df.sort_values(by="timestamp", inplace=True)
             df.reset_index(drop=True, inplace=True)
 
-            # --- All indicators you trained on ---
+            # FULL METRIC CALCULATIONS -- SAME AS YOUR TRAINING
             df["sma_5"] = df["close"].rolling(window=5).mean()
             df["sma_20"] = df["close"].rolling(window=20).mean()
             df["ema_12"] = df["close"].ewm(span=12).mean()
             df["ema_26"] = df["close"].ewm(span=26).mean()
-            df["ema_crossover_flag"] = (df["ema_12"] > df["ema_26"])
+            df["ema_crossover_flag"] = (df["ema_12"] > df["ema_26"]).astype(int)
 
             delta = df["close"].diff()
             gain = delta.clip(lower=0)
@@ -136,17 +126,16 @@ def run_live_pipeline():
             df["atr_normalized"] = df["atr_1h"] / df["close"]
             df["stddev_1h"] = df["close"].rolling(12).std()
 
-            df["overbought_rsi"] = (df["rsi"] >= 70)
-            df["oversold_rsi"] = (df["rsi"] <= 30)
-            df["upper_bollinger_break"] = (df["close"] > df["bollinger_upper"])
-            df["lower_bollinger_break"] = (df["close"] < df["bollinger_lower"])
+            df["overbought_rsi"] = (df["rsi"] >= 70).astype(int)
+            df["oversold_rsi"] = (df["rsi"] <= 30).astype(int)
+            df["upper_bollinger_break"] = (df["close"] > df["bollinger_upper"]).astype(int)
+            df["lower_bollinger_break"] = (df["close"] < df["bollinger_lower"]).astype(int)
 
             df["slope_5h"] = df["close"].rolling(60).apply(lambda x: np.polyfit(range(len(x)), x, 1)[0], raw=True)
             df["slope_24h"] = df["close"].rolling(288).apply(lambda x: np.polyfit(range(len(x)), x, 1)[0], raw=True)
             df["trend_acceleration"] = df["slope_5h"] - df["slope_24h"]
             df["short_vs_long_strength"] = df["ema_12"] / df["ema_26"]
 
-            # ADX CALCULATION
             high_diff = df["high"].diff()
             low_diff = df["low"].diff()
             plus_dm = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0)
@@ -163,23 +152,14 @@ def run_live_pipeline():
 
             df.fillna(0, inplace=True)
             row = df.iloc[-1]
-
-            # Convert row to dict for model
             instance = row.to_dict()
             instance.pop("timestamp")
             instance.pop("bollinger_std")
+
             for k in instance:
                 v = instance[k]
                 if isinstance(v, (np.generic, Decimal)):
                     instance[k] = float(v)
-
-            # Cast booleans for Vertex
-            instance["ema_crossover_flag"] = "true" if instance["ema_crossover_flag"] else "false"
-            instance["volume_surge"] = "true" if instance["volume_surge"] else "false"
-            instance["overbought_rsi"] = "true" if instance["overbought_rsi"] else "false"
-            instance["oversold_rsi"] = "true" if instance["oversold_rsi"] else "false"
-            instance["upper_bollinger_break"] = "true" if instance["upper_bollinger_break"] else "false"
-            instance["lower_bollinger_break"] = "true" if instance["lower_bollinger_break"] else "false"
 
             jwt_token = get_google_jwt_token()
             vertex_url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
