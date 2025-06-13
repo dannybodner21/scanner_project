@@ -56,7 +56,7 @@ def run_live_pipeline():
         try:
             coin = Coin.objects.get(symbol=symbol)
 
-            url = f"{BASE_URL}/{coinapi_symbol}/latest?period_id=5MIN&limit=300"
+            url = f"{BASE_URL}/{coinapi_symbol}/latest?period_id=5MIN&limit=50"
             headers = {"X-CoinAPI-Key": COINAPI_KEY}
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()

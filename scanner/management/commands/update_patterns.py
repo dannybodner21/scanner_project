@@ -7,7 +7,7 @@ from scanner.models import Coin, Pattern
 FINNHUB_API_KEY = "cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0"
 
 class Command(BaseCommand):
-    help = "Fetch pattern data from Finnhub and store to Pattern model"
+    help = "Fetch pattern data from Finnhub and update existing Pattern entries"
 
     def handle(self, *args, **kwargs):
         coins = Coin.objects.filter(symbol__in=[
@@ -27,40 +27,32 @@ class Command(BaseCommand):
                     response.raise_for_status()
                     data = response.json()
 
-                    if data.get("points"):
+                    # Load the existing pre-created row
+                    pattern_obj = Pattern.objects.get(coin=coin, resolution=resolution)
 
+                    if data.get("points"):
                         latest = data["points"][0]
 
-                        patterntype = latest.get("patterntype")
-                        patternname = latest.get("patternname")
-                        status = latest.get("status")
-                        entry = latest.get("entry")
-                        takeprofit = latest.get("profit1")
-                        stoploss = latest.get("stoploss")
-                        adx = latest.get("adx")
+                        pattern_obj.symbol = symbol
+                        pattern_obj.patterntype = latest.get("patterntype")
+                        pattern_obj.patternname = latest.get("patternname")
+                        pattern_obj.status = latest.get("status")
+                        pattern_obj.entry = latest.get("entry")
+                        pattern_obj.takeprofit = latest.get("profit1")
+                        pattern_obj.stoploss = latest.get("stoploss")
+                        pattern_obj.adx = latest.get("adx")
 
-                        Pattern.objects.update_or_create(
-                            coin=coin,
-                            symbol=symbol,
-                            resolution=resolution,
-                            defaults={
-                                "patterntype": patterntype,
-                                "patternname": patternname,
-                                "status": status,
-                                "entry": entry,
-                                "takeprofit": takeprofit,
-                                "stoploss": stoploss,
-                                "adx": adx,
-                            }
-                        )
-
-                        self.stdout.write(f"✅ {coin.symbol} {resolution}min pattern updated: {patternname}")
+                        pattern_obj.save()
+                        self.stdout.write(f"✅ {coin.symbol} {resolution}min pattern updated: {pattern_obj.patternname}")
                     else:
-                        self.stdout.write(f"⚠ No pattern found for {coin.symbol} at {resolution}min")
+                        self.stdout.write(f"⚠ No pattern found for {coin.symbol} at {resolution}min (left unchanged)")
+
+                except Pattern.DoesNotExist:
+                    self.stdout.write(f"❌ Template row missing for {coin.symbol} {resolution}min — create template rows first!")
 
                 except Exception as e:
                     self.stdout.write(f"❌ Error for {coin.symbol} at {resolution}min: {e}")
 
-                time.sleep(0.25)  # tiny delay to avoid rate limits
+                time.sleep(0.25)
 
         self.stdout.write("🚀 FINISHED updating patterns")
