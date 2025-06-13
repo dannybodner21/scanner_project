@@ -548,6 +548,9 @@ def get_patterns(request):
             )
 
             if pattern:
+                ts = pattern.timestamp.isoformat()
+                dt = datetime.fromisoformat(ts)
+                formatted = dt.strftime("%Y-%m-%d %H:%M:%S")
                 entry = {
                     "symbol": pattern.symbol,
                     "resolution": pattern.resolution,
@@ -558,7 +561,7 @@ def get_patterns(request):
                     "takeprofit": float(pattern.takeprofit) if pattern.takeprofit else None,
                     "stoploss": float(pattern.stoploss) if pattern.stoploss else None,
                     "adx": float(pattern.adx) if pattern.adx else None,
-                    "timestamp": pattern.timestamp.isoformat(),
+                    "timestamp": formatted,
                 }
             else:
                 entry = {
@@ -577,6 +580,16 @@ def get_patterns(request):
             data.append(entry)
 
     return JsonResponse(data, safe=False)
+
+
+
+def run_update_patterns(request):
+    try:
+        call_command('update_patterns')
+        return JsonResponse({"status": "success"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
 
 
 

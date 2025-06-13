@@ -18,7 +18,7 @@ LOCATION = "us-central1"
 ENDPOINT_ID = "1878894947566878720"
 REGION = LOCATION
 
-COINAPI_KEY = "cuf1yourrealkeyhere"  # <-- replace with your actual key
+COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 SYMBOL_MAP = {
     "BTC": "BINANCE_SPOT_BTC_USDT", "ETH": "BINANCE_SPOT_ETH_USDT",
