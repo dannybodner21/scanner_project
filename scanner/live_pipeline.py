@@ -61,13 +61,16 @@ def safe_value(val, feature):
 
 def get_google_jwt_token():
     audience = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
-    service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
-    credentials = service_account.Credentials.from_service_account_info(
-        service_account_info,
-        scopes=["https://www.googleapis.com/auth/cloud-platform"]
-    )
-    credentials.refresh(Request())
-    return credentials.token
+    try:
+        service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
+        credentials = service_account.Credentials.from_service_account_info(
+            service_account_info,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
+        credentials.refresh(Request())
+        return credentials.token
+    except Exception as e:
+        raise RuntimeError(f"Failed to load service account from env: {e}")
 
 def run_live_pipeline():
     print(f"⏱ Live pipeline started: {datetime.now()}")
@@ -97,7 +100,7 @@ def run_live_pipeline():
             df.sort_values(by="timestamp", inplace=True)
             df.reset_index(drop=True, inplace=True)
 
-            # All your indicators (unchanged)
+            # Indicator calculations...
             df["sma_5"] = df["close"].rolling(window=5).mean()
             df["sma_20"] = df["close"].rolling(window=20).mean()
             df["ema_12"] = df["close"].ewm(span=12).mean()
@@ -155,9 +158,28 @@ def run_live_pipeline():
             df["trend_acceleration"] = df["slope_5h"] - df["slope_24h"]
             df["short_vs_long_strength"] = df["ema_12"] / df["ema_26"]
 
+            # ADX calculation fully restored
+            high_diff = df["high"].diff()
+            low_diff = df["low"].diff()
+            plus_dm = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0)
+            minus_dm = np.where((low_diff > high_diff) & (low_diff > 0), low_diff, 0)
+            tr1 = df["high"] - df["low"]
+            tr2 = abs(df["high"] - df["close"].shift())
+            tr3 = abs(df["low"] - df["close"].shift())
+            tr = np.maximum.reduce([tr1, tr2, tr3])
+            atr = pd.Series(tr).rolling(14).sum()
+            plus_di = 100 * pd.Series(plus_dm).rolling(14).sum() / atr
+            minus_di = 100 * pd.Series(minus_dm).rolling(14).sum() / atr
+            dx = (abs(plus_di - minus_di) / (plus_di + minus_di)) * 100
+            df["adx"] = dx.rolling(14).mean().fillna(0)
+
+            # Guarantee all features exist
+            for col in FEATURES:
+                if col not in df.columns:
+                    df[col] = 0.0
+
             df.fillna(0, inplace=True)
             row = df.iloc[-1]
-
             instance = [safe_value(row[feature], feature) for feature in FEATURES]
 
             jwt_token = get_google_jwt_token()
@@ -173,22 +195,6 @@ def run_live_pipeline():
                 class_idx = pred["classes"].index("true")
                 confidence = pred["scores"][class_idx]
                 print(f"LONG | {symbol} — Confidence: {confidence:.4f}")
-
-                for threshold in [0.9, 0.8, 0.7, 0.6]:
-                    if confidence >= threshold:
-                        if not ModelTrade.objects.filter(coin=coin, confidence_trade=threshold, exit_timestamp__isnull=True).exists():
-                            ModelTrade.objects.create(
-                                coin=coin,
-                                trade_type="long",
-                                entry_timestamp=row["timestamp"],
-                                duration_minutes=0,
-                                entry_price=row["close"],
-                                model_confidence=confidence,
-                                take_profit_percent=3,
-                                stop_loss_percent=2,
-                                confidence_trade=threshold
-                            )
-                        break
 
         except Exception as e:
             print(f"❌ {symbol}: {e}")
