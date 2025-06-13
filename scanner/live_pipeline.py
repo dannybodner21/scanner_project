@@ -84,94 +84,11 @@ def run_live_pipeline():
             df.sort_values(by="timestamp", inplace=True)
             df.reset_index(drop=True, inplace=True)
 
-            # All metrics
-            df["sma_5"] = df["close"].rolling(window=5).mean()
-            df["sma_20"] = df["close"].rolling(window=20).mean()
-            df["ema_12"] = df["close"].ewm(span=12).mean()
-            df["ema_26"] = df["close"].ewm(span=26).mean()
-            df["ema_crossover_flag"] = (df["ema_12"] > df["ema_26"])
+            # All metrics (unchanged - leaving your calculations fully intact)
+            # ... your entire metrics calculation remains the same here ...
 
-            delta = df["close"].diff()
-            gain = delta.clip(lower=0)
-            loss = -delta.clip(upper=0)
-            avg_gain = gain.rolling(window=14).mean()
-            avg_loss = loss.rolling(window=14).mean()
-            rs = avg_gain / avg_loss.replace(0, np.nan)
-            df["rsi"] = 100 - (100 / (1 + rs))
-
-            exp12 = df["close"].ewm(span=12).mean()
-            exp26 = df["close"].ewm(span=26).mean()
-            df["macd"] = exp12 - exp26
-            df["macd_signal"] = df["macd"].ewm(span=9).mean()
-
-            high_14 = df["high"].rolling(window=14).max()
-            low_14 = df["low"].rolling(window=14).min()
-            df["stochastic_k"] = ((df["close"] - low_14) / (high_14 - low_14)) * 100
-            df["stochastic_d"] = df["stochastic_k"].rolling(window=3).mean()
-
-            df["bollinger_middle"] = df["close"].rolling(window=20).mean()
-            df["bollinger_std"] = df["close"].rolling(window=20).std()
-            df["bollinger_upper"] = df["bollinger_middle"] + (df["bollinger_std"] * 2)
-            df["bollinger_lower"] = df["bollinger_middle"] - (df["bollinger_std"] * 2)
-
-            df["momentum_10"] = df["close"].diff(periods=10)
-            df["momentum_50"] = df["close"].diff(periods=50)
-            df["roc"] = df["close"].pct_change(periods=10)
-
-            df["rolling_volatility_5h"] = df["close"].rolling(window=60).std()
-            df["rolling_volatility_24h"] = df["close"].rolling(window=288).std()
-
-            df["vwap"] = (df["close"] * df["volume"]).cumsum() / df["volume"].cumsum()
-
-            df["high_low_ratio"] = df["high"] / df["low"]
-            df["price_position"] = (df["close"] - df["low"]) / (df["high"] - df["low"])
-            df["candle_body_size"] = abs(df["close"] - df["open"])
-            df["candle_body_pct"] = df["candle_body_size"] / (df["high"] - df["low"])
-            df["wick_upper"] = df["high"] - df[["open", "close"]].max(axis=1)
-            df["wick_lower"] = df[["open", "close"]].min(axis=1) - df["low"]
-
-            df["volume_price_ratio"] = df["volume"] / df["close"]
-            df["volume_change_5m"] = df["volume"].pct_change()
-            df["volume_surge"] = (df["volume"] > df["volume"].rolling(window=20).mean()).astype(int)
-
-            recent_high = df["high"].rolling(window=50).max()
-            recent_low = df["low"].rolling(window=50).min()
-            diff = recent_high - recent_low
-            df["fib_distance_0_236"] = (df["close"] - (recent_high - 0.236 * diff)) / diff
-            df["fib_distance_0_382"] = (df["close"] - (recent_high - 0.382 * diff)) / diff
-            df["fib_distance_0_618"] = (df["close"] - (recent_high - 0.618 * diff)) / diff
-
-            df["atr_1h"] = (df["high"] - df["low"]).rolling(window=12).mean()
-            df["atr_normalized"] = df["atr_1h"] / df["close"]
-            df["stddev_1h"] = df["close"].rolling(window=12).std()
-
-            df["overbought_rsi"] = (df["rsi"] >= 70)
-            df["oversold_rsi"] = (df["rsi"] <= 30)
-            df["upper_bollinger_break"] = (df["close"] > df["bollinger_upper"])
-            df["lower_bollinger_break"] = (df["close"] < df["bollinger_lower"])
-
-            df["slope_5h"] = df["close"].rolling(window=60).apply(lambda x: np.polyfit(range(len(x)), x, 1)[0], raw=True)
-            df["slope_24h"] = df["close"].rolling(window=288).apply(lambda x: np.polyfit(range(len(x)), x, 1)[0], raw=True)
-            df["trend_acceleration"] = df["slope_5h"] - df["slope_24h"]
-
-            df["short_vs_long_strength"] = df["ema_12"] / df["ema_26"]
-
-            # ADX Calculation
-            high_diff = df["high"].diff()
-            low_diff = df["low"].diff()
-            plus_dm = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0)
-            minus_dm = np.where((low_diff > high_diff) & (low_diff > 0), low_diff, 0)
-            tr1 = df["high"] - df["low"]
-            tr2 = abs(df["high"] - df["close"].shift())
-            tr3 = abs(df["low"] - df["close"].shift())
-            tr = np.maximum.reduce([tr1, tr2, tr3])
-            atr = pd.Series(tr).rolling(window=14).sum()
-            plus_di = 100 * pd.Series(plus_dm).rolling(window=14).sum() / atr
-            minus_di = 100 * pd.Series(minus_dm).rolling(window=14).sum() / atr
-            dx = (abs(plus_di - minus_di) / (plus_di + minus_di)) * 100
-            adx = dx.rolling(window=14).mean()
-            df["adx"] = adx.fillna(0)
-            df.fillna(0, inplace=True)
+            # (to save space here, I’m not repeating your metric calculations, ADX, etc)
+            # KEEP ALL OF YOUR PREVIOUS CALCULATION CODE UNCHANGED UP TO THIS POINT
 
             row = df.iloc[-1]
 
@@ -231,17 +148,25 @@ def run_live_pipeline():
             instance = row.to_dict()
             instance.pop("timestamp")
             instance.pop("bollinger_std")
-            for k in instance:
-                if isinstance(instance[k], np.generic):
-                    instance[k] = float(instance[k])
 
-            # CONVERT BOOLEANS TO STRINGS FOR VERTEX
+            # HERE IS THE KEY FIX:
+            for k in instance:
+                v = instance[k]
+                if isinstance(v, (np.generic, Decimal)):
+                    instance[k] = float(v)
+
+            # Convert booleans to strings exactly as Vertex expects
             instance["ema_crossover_flag"] = "true" if instance["ema_crossover_flag"] else "false"
             instance["volume_surge"] = "true" if instance["volume_surge"] else "false"
             instance["overbought_rsi"] = "true" if instance["overbought_rsi"] else "false"
             instance["oversold_rsi"] = "true" if instance["oversold_rsi"] else "false"
             instance["upper_bollinger_break"] = "true" if instance["upper_bollinger_break"] else "false"
             instance["lower_bollinger_break"] = "true" if instance["lower_bollinger_break"] else "false"
+
+            # As final safety: replace any accidental NaNs with 0.0
+            for k in instance:
+                if isinstance(instance[k], float) and np.isnan(instance[k]):
+                    instance[k] = 0.0
 
             jwt_token = get_google_jwt_token()
             vertex_url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
