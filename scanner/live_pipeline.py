@@ -12,7 +12,6 @@ LOCATION = "us-central1"
 ENDPOINT_ID = "1878894947566878720"
 REGION = LOCATION
 
-# ✅ FIXED FEATURE ORDER - exact schema Vertex AI expects
 FEATURES = [
     "adx", "atr_1h", "atr_normalized", "bollinger_lower", "bollinger_middle", "bollinger_upper",
     "candle_body_pct", "candle_body_size", "close", "ema_12", "ema_26", "ema_crossover_flag",
@@ -24,31 +23,56 @@ FEATURES = [
     "volume_change_5m", "volume_price_ratio", "volume_surge", "vwap", "wick_lower", "wick_upper"
 ]
 
-TEXT_FEATURES = [
-    "ema_crossover_flag", "overbought_rsi", "oversold_rsi", "upper_bollinger_break", "lower_bollinger_break"
-]
-
-
-FAKE_INSTANCE = [
-    22.44, 0.01514, 0.00349, 3.99409, 4.02335, 4.04889,
-    0.49999, 0.0052, 4.02, 4.02326, 4.02441, 0,
-    -0.01507, -0.00230, 0.00186, 4.03, 1.00324,
-    4.01, 0, -5.44e-10, -1.40e-9, 0.0, -0.01247, 4.02,
-    0, 0, 0.49999, 0.0, 0.06073, 0.02629,
-    49.94, 0.99997, -3.81e-10, -3.33e-10, 4.02335, 4.023, 0.01225,
-    50.0, 50.0, 6.94e-11, 0, 49208.11,
-    -0.02054, 14108.15, 1.0, 4.93459, 0.00129, 0.00109
-]
-
-def safe_value(val, feature):
-    try:
-        if val is None or np.isnan(val) or np.isinf(val):
-            return 0.0
-        if feature in TEXT_FEATURES:
-            return int(val)
-        return float(val)
-    except:
-        return 0.0
+FAKE_INSTANCE = {
+    "adx": 22.44,
+    "atr_1h": 0.01514,
+    "atr_normalized": 0.00349,
+    "bollinger_lower": 3.99409,
+    "bollinger_middle": 4.02335,
+    "bollinger_upper": 4.04889,
+    "candle_body_pct": 0.49999,
+    "candle_body_size": 0.0052,
+    "close": 4.02,
+    "ema_12": 4.02326,
+    "ema_26": 4.02441,
+    "ema_crossover_flag": 0,
+    "fib_distance_0_236": -0.01507,
+    "fib_distance_0_382": -0.00230,
+    "fib_distance_0_618": 0.00186,
+    "high": 4.03,
+    "high_low_ratio": 1.00324,
+    "low": 4.01,
+    "lower_bollinger_break": 0,
+    "macd": -5.44e-10,
+    "macd_signal": -1.40e-9,
+    "momentum_10": 0.0,
+    "momentum_50": -0.01247,
+    "open": 4.02,
+    "overbought_rsi": 0,
+    "oversold_rsi": 0,
+    "price_position": 0.49999,
+    "roc": 0.0,
+    "rolling_volatility_24h": 0.06073,
+    "rolling_volatility_5h": 0.02629,
+    "rsi": 49.94,
+    "short_vs_long_strength": 0.99997,
+    "slope_24h": -3.81e-10,
+    "slope_5h": -3.33e-10,
+    "sma_20": 4.02335,
+    "sma_5": 4.023,
+    "stddev_1h": 0.01225,
+    "stochastic_d": 50.0,
+    "stochastic_k": 50.0,
+    "trend_acceleration": 6.94e-11,
+    "upper_bollinger_break": 0,
+    "volume": 49208.11,
+    "volume_change_5m": -0.02054,
+    "volume_price_ratio": 14108.15,
+    "volume_surge": 1.0,
+    "vwap": 4.93459,
+    "wick_lower": 0.00129,
+    "wick_upper": 0.00109
+}
 
 def get_google_jwt_token():
     service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
@@ -58,16 +82,15 @@ def get_google_jwt_token():
     credentials.refresh(Request())
     return credentials.token
 
-def run_live_pipeline():
-    print(f"⏱ Live pipeline started: {datetime.now()}")
+def predict_live_vertex_new(request=None):  # Keep your exact function name
+    print(f"⏱ Running fake test at: {datetime.now()}")
 
     try:
-        instance = [safe_value(val, feature) for val, feature in zip(FAKE_INSTANCE, FEATURES)]
-
         jwt_token = get_google_jwt_token()
         vertex_url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
         headers = {"Authorization": f"Bearer {jwt_token}", "Content-Type": "application/json"}
-        payload = {"instances": [instance]}
+
+        payload = {"instances": [FAKE_INSTANCE]}
         response = requests.post(vertex_url, headers=headers, json=payload)
         response.raise_for_status()
 
@@ -76,12 +99,12 @@ def run_live_pipeline():
             pred = predictions[0]
             class_idx = pred["classes"].index("true")
             confidence = pred["scores"][class_idx]
-            print(f"LONG | FAKE DATA — Confidence: {confidence:.4f}")
+            print(f"✅ FAKE TEST SUCCESS — Confidence: {confidence:.4f}")
+        else:
+            print("⚠ No predictions returned.")
 
     except Exception as e:
         print(f"❌ Error: {e}")
 
-    print("🚀 Live pipeline run complete.")
-
 if __name__ == "__main__":
-    run_live_pipeline()
+    predict_live_vertex_new()
