@@ -526,25 +526,55 @@ def get_model_results(request):
     })
 
 
+
 def get_patterns(request):
+    coins = [
+        "ADA", "AVAX", "BTC", "DOGE", "DOT", "ETH", "HBAR", "LINK",
+        "LTC", "PEPE", "SHIB", "SOL", "SUI", "UNI", "XLM", "XRP"
+    ]
+
+    resolutions = [5, 15, 60]
 
     data = []
 
-    patterns = Pattern.objects.exclude(status__iexact='No Pattern').order_by('symbol', '-timestamp')
+    for coin_symbol in sorted(coins):  # alphabetical order
+        for res in resolutions:
+            pattern = (
+                Pattern.objects
+                .filter(symbol=f"BINANCE:{coin_symbol}USDT", resolution=res)
+                .exclude(status__iexact='No Pattern')
+                .order_by('-timestamp')
+                .first()
+            )
 
-    for pattern in patterns:
-        data.append({
-            "symbol": pattern.symbol,
-            "resolution": pattern.resolution,
-            "pattern_type": pattern.patterntype,
-            "pattern_name": pattern.patternname,
-            "status": pattern.status,
-            "entry": float(pattern.entry) if pattern.entry else None,
-            "takeprofit": float(pattern.takeprofit) if pattern.takeprofit else None,
-            "stoploss": float(pattern.stoploss) if pattern.stoploss else None,
-            "adx": float(pattern.adx) if pattern.adx else None,
-            "timestamp": pattern.timestamp.isoformat(),
-        })
+            if pattern:
+                entry = {
+                    "symbol": pattern.symbol,
+                    "resolution": pattern.resolution,
+                    "pattern_type": pattern.patterntype,
+                    "pattern_name": pattern.patternname,
+                    "status": pattern.status,
+                    "entry": float(pattern.entry) if pattern.entry else None,
+                    "takeprofit": float(pattern.takeprofit) if pattern.takeprofit else None,
+                    "stoploss": float(pattern.stoploss) if pattern.stoploss else None,
+                    "adx": float(pattern.adx) if pattern.adx else None,
+                    "timestamp": pattern.timestamp.isoformat(),
+                }
+            else:
+                entry = {
+                    "symbol": f"BINANCE:{coin_symbol}USDT",
+                    "resolution": res,
+                    "pattern_type": None,
+                    "pattern_name": None,
+                    "status": None,
+                    "entry": None,
+                    "takeprofit": None,
+                    "stoploss": None,
+                    "adx": None,
+                    "timestamp": None,
+                }
+
+            data.append(entry)
 
     return JsonResponse(data, safe=False)
 
