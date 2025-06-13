@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from django.utils.timezone import make_aware
 from django.core.management.base import BaseCommand
 from scanner.models import Coin, LiveModelMetrics
 from google.auth.transport.requests import Request
@@ -16,7 +17,7 @@ from google.oauth2 import service_account
 COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
 PROJECT_ID = "healthy-mark-446922-p8"
 REGION = "us-central1"
-ENDPOINT_ID = "000000000000000"
+ENDPOINT_ID = "1878894947566878720"
 
 # Your 16 coin list
 SYMBOLS = [
