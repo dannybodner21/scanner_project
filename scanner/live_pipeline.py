@@ -65,6 +65,7 @@ def run_live_pipeline(request=None):
 
         for symbol, coinapi_symbol in SYMBOL_MAP.items():
             try:
+                coin = Coin.objects.get(symbol=symbol)
                 # Pull 100 latest 5m candles
                 url = f"{BASE_URL}/{coinapi_symbol}/latest?period_id=5MIN&limit=100"
                 resp = requests.get(url, headers={"X-CoinAPI-Key": COINAPI_KEY}, timeout=10)
