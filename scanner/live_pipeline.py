@@ -97,7 +97,7 @@ def run_live_pipeline(request=None):
         predictions = response.json().get("predictions", [])
         if predictions:
             pred = predictions[0]
-            class_idx = pred["classes"].index("true")
+            class_idx = pred["classes"].index("True")
             confidence = pred["scores"][class_idx]
             print(f"✅ FAKE TEST SUCCESS — Confidence: {confidence:.4f}")
         else:
