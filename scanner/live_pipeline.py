@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
+from scanner.models import Coin, ModelTrade,
 
 # CONFIG
 PROJECT_ID = "healthy-mark-446922-p8"
