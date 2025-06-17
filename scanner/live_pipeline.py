@@ -53,6 +53,7 @@ def fetch_ohlcv(coin, limit=100):
         'close': candle['price_close'],
         'volume': candle['volume_traded']
     } for candle in data])
+
     df.sort_values('timestamp', inplace=True)
     df.reset_index(drop=True, inplace=True)
     return df
@@ -116,12 +117,14 @@ def run_live_pipeline(request=None):
     for coin in COINS:
         try:
             print(f"Processing {coin}...")
-            df = fetch_ohlcv(coin)
-            df = add_features(df)
+            df = fetch_ohlcv(coin, limit=300)
 
-            if df.empty or len(df) < 1:
+
+            if df.empty or len(df) < 220:
                 print(f"⚠ Skipping {coin} due to insufficient data after feature engineering")
                 continue
+
+            df = add_features(df)
 
             instance, row = prepare_instance(df)
 
