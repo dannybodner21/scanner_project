@@ -128,7 +128,8 @@ def run_live_pipeline(request=None):
 
             instance, row = prepare_instance(df)
 
-            feature_df = pd.DataFrame([instance])
+            filtered_instance = {k: instance[k] for k in FEATURES if k in instance}
+            feature_df = pd.DataFrame([filtered_instance])
 
             # Convert to DMatrix for prediction
             dmatrix = xgb.DMatrix(feature_df)
