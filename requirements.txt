@@ -52,3 +52,4 @@ threadpoolctl==3.6.0
 tzdata==2025.2
 uritemplate==4.2.0
 urllib3==2.4.0
+xgboost

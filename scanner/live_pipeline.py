@@ -95,6 +95,9 @@ def add_features(df):
     df['sideways_regime'] = (df['adx_14'] <= 25).astype(int)
 
     df = df.dropna()
+
+    if df.empty:
+        print("⚠ Warning: DataFrame empty after dropna in add_features")
     return df
 
 def prepare_instance(df):
@@ -115,6 +118,11 @@ def run_live_pipeline(request=None):
             print(f"Processing {coin}...")
             df = fetch_ohlcv(coin)
             df = add_features(df)
+
+            if df.empty or len(df) < 1:
+                print(f"⚠ Skipping {coin} due to insufficient data after feature engineering")
+                continue
+
             instance, row = prepare_instance(df)
 
             feature_df = pd.DataFrame([instance])
