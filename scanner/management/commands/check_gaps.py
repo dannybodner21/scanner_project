@@ -6,28 +6,26 @@ class Command(BaseCommand):
     help = "Check for missing 5-minute gaps in BTCUSDT data"
 
     def handle(self, *args, **options):
-        start_time = datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 6, 10, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2019, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 13, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
-        timestamps = list(CoinAPIPrice.objects.filter(coin='MKRUSDT')
-                          .values_list('timestamp', flat=True).order_by('timestamp'))
+        # Load all existing timestamps into a set for fast lookup
+        existing_timestamps = set(
+            CoinAPIPrice.objects.filter(coin='SOLUSDT')
+            .values_list('timestamp', flat=True)
+        )
 
-        expected = start_time
         gaps = []
-
-        for ts in timestamps:
-            while expected < ts:
-                gaps.append(expected)
-                expected += datetime.timedelta(minutes=5)
-            expected += datetime.timedelta(minutes=5)
+        expected = start_time
 
         while expected <= end_time:
-            gaps.append(expected)
+            if expected not in existing_timestamps:
+                gaps.append(expected)
             expected += datetime.timedelta(minutes=5)
 
         if not gaps:
             print("✅ No gaps found.")
         else:
-            print(f"Found {len(gaps)} gaps:")
+            print(f"❌ Found {len(gaps)} gaps:")
             for gap in gaps:
                 print(gap)

@@ -14,14 +14,17 @@ class Command(BaseCommand):
     help = "Optimized full 5-min backfill with strict verification from CoinAPI"
 
     def handle(self, *args, **kwargs):
-        coinapi_symbol = "BINANCE_SPOT_TRX_USDT"
-        db_coin = "TRXUSDT"
+        coinapi_symbol = "BINANCE_SPOT_SOL_USDT"
+        db_coin = "SOLUSDT"
 
         api_key = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
         headers = {"X-CoinAPI-Key": api_key}
 
-        start_time = datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 6, 10, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        #start_time = datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        #end_time = datetime.datetime(2025, 6, 10, 23, 55, 0, tzinfo=datetime.timezone.utc)
+
+        start_time = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 13, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         self.stdout.write("Loading existing timestamps into memory...")
         existing_timestamps = set(
@@ -33,7 +36,8 @@ class Command(BaseCommand):
 
         while current_day <= end_time.date():
             day_start = datetime.datetime.combine(current_day, datetime.time.min, tzinfo=datetime.timezone.utc)
-            day_end = datetime.datetime.combine(current_day, datetime.time.max, tzinfo=datetime.timezone.utc)
+            #day_end = datetime.datetime.combine(current_day, datetime.time.max, tzinfo=datetime.timezone.utc)
+            day_end = day_start + datetime.timedelta(days=1)
 
             batch_start_str = day_start.strftime('%Y-%m-%dT%H:%M:%S')
             batch_end_str = day_end.strftime('%Y-%m-%dT%H:%M:%S')

@@ -30,6 +30,8 @@ urlpatterns = [
 
     path("api/patterns/", views.get_patterns, name="patterns"),
     path('update-patterns/', views.run_update_patterns, name='update_patterns'),
+    path('api/btc-market-regime/', views.get_btc_market_regime, name='btc-market-regime'),
+
 
     path("api/metrics-health-daily/", views.daily_metrics_health, name="daily-metrics-health"),
 

@@ -593,6 +593,57 @@ def run_update_patterns(request):
 
 
 
+
+def get_btc_market_regime(request):
+    # Load recent BTC data (last 200 + 20 candles to compute MA and volatility)
+    end_date = datetime.now(timezone.utc)
+    start_date = end_date - pd.Timedelta(minutes=5 * 250)  # 250 candles * 5 min = ~20 hours
+
+    queryset = CoinAPIPrice.objects.filter(
+        coin='BTCUSDT',
+        timestamp__gte=start_date,
+        timestamp__lte=end_date
+    ).order_by('timestamp')
+
+    df = pd.DataFrame(list(queryset.values('timestamp','close')))
+    if df.empty:
+        return JsonResponse({'error': 'No data available'}, status=404)
+
+    for col in ['close']:
+        df[col] = df[col].astype(float)
+    df = df.set_index('timestamp').sort_index()
+
+    # Calculate volatility and 200 MA
+    df['volatility'] = df['close'].pct_change().rolling(20).std()
+    df['ma_200'] = df['close'].rolling(200).mean()
+
+    latest = df.iloc[-1]
+
+    median_vol = df['volatility'].median()
+
+    if pd.isna(latest['ma_200']) or pd.isna(latest['volatility']):
+        return JsonResponse({'error': 'Insufficient data to calculate regime'}, status=400)
+
+    if latest['close'] > latest['ma_200'] and latest['volatility'] < median_vol:
+        regime = 'bull'
+    elif latest['close'] < latest['ma_200'] and latest['volatility'] > median_vol:
+        regime = 'bear'
+    else:
+        regime = 'sideways'
+
+    response = {
+        'regime': regime,
+        'timestamp': df.index[-1].isoformat(),
+        'close': latest['close'],
+        'volatility': latest['volatility'],
+        'ma_200': latest['ma_200']
+    }
+
+    return JsonResponse(response)
+
+
+
+
 # new model functions ----------------------------------------------------------
 
 PROJECT_ID = 'healthy-mark-446922-p8'
