@@ -11,18 +11,18 @@ class Command(BaseCommand):
     help = "Final gap filler using multiple CoinAPI sources"
 
     def handle(self, *args, **kwargs):
-        db_coin = "ADAUSDT"
+        db_coin = "TRXUSDT"
         fallback_symbols = [
-            "COINBASE_SPOT_ADA_USD",
-            "KRAKEN_SPOT_ADA_USD",
-            "KUCOIN_SPOT_ADA_USDT",
-            "BITFINEX_SPOT_ADA_USD"
+            "COINBASE_SPOT_TRX_USD",
+            "KRAKEN_SPOT_TRX_USD",
+            "KUCOIN_SPOT_TRX_USDT",
+            "BITFINEX_SPOT_TRX_USD"
         ]
 
         api_key = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
         headers = {"X-CoinAPI-Key": api_key}
 
-        start_time = datetime.datetime(2020, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
         end_time = datetime.datetime(2025, 6, 13, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         self.stdout.write("Loading existing timestamps...")

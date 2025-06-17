@@ -15,7 +15,7 @@ class Command(BaseCommand):
         coin = "TRXUSDT"
         polygon_api_key = "qq9Sptr4VfkonQimqFJEgc3oyXoaJ54L"
 
-        start_time = datetime.datetime(2020, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
         end_time = datetime.datetime(2025, 6, 13, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         self.stdout.write("Loading all existing timestamps into memory...")
