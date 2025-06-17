@@ -28,10 +28,10 @@ class Command(BaseCommand):
             # If no open trade and model signals long entry (label == 1)
             if open_trade is None and row.get('label', 0) == 1:
                 # Determine position size
-                if balance < 100000:
+                if balance < 1000:
                     position_size = balance * 0.10
                 else:
-                    position_size = 10000.0
+                    position_size = 1000.0
 
                 entry_price = row['close']
                 open_trade = {

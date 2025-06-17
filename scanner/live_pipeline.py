@@ -1,10 +1,10 @@
 import os
 import json
 import requests
-import pickle
 import numpy as np
 import pandas as pd
 import ta
+import xgboost as xgb
 from datetime import datetime
 from scanner.models import Coin, ModelTrade
 
@@ -105,11 +105,10 @@ def prepare_instance(df):
 def run_live_pipeline(request=None):
     import django
     django.setup()
-    import pickle
 
-    # Load your local trained model
-    with open("best_xgb_model.bin", "rb") as f:
-        model = pickle.load(f)
+    # Load XGBoost model properly
+    model = xgb.Booster()
+    model.load_model("best_xgb_model.bin")
 
     for coin in COINS:
         try:
@@ -118,13 +117,15 @@ def run_live_pipeline(request=None):
             df = add_features(df)
             instance, row = prepare_instance(df)
 
-            import pandas as pd
             feature_df = pd.DataFrame([instance])
 
-            proba = model.predict_proba(feature_df)[0][1]  # positive class probability
+            # Convert to DMatrix for prediction
+            dmatrix = xgb.DMatrix(feature_df)
+            proba = model.predict(dmatrix)[0]  # probability of positive class
+
             print(f"{coin}: Confidence = {proba:.4f}")
 
-            # Get Coin instance
+            # Get Coin instance from DB
             coin_obj = Coin.objects.get(symbol=coin)
 
             for threshold in CONFIDENCE_THRESHOLDS:
