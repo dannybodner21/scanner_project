@@ -47,8 +47,8 @@ class Command(BaseCommand):
         self.stdout.write(f"Test data rows: {len(test_df)}")
 
         # Save CSVs
-        train_df.to_csv("long_model_training_data.csv")
-        test_df.to_csv("long_model_2025_test_data.csv")
+        train_df.to_csv("updated_training_data.csv")
+        test_df.to_csv("updated_testing_data.csv")
         self.stdout.write("Training and test CSV files saved.")
 
     def load_data(self, coin, start, end):
@@ -114,19 +114,26 @@ class Command(BaseCommand):
         df = df.dropna()
         return df
 
+
     def generate_labels(self, df, tp=0.06, sl=0.03, window=288):
         df = df.copy()
         df['label'] = 0
 
-        high_rolling = df['high'].rolling(window).max().shift(-window + 1)
-        low_rolling = df['low'].rolling(window).min().shift(-window + 1)
+        future_high = df['high'].rolling(window).max().shift(-window + 1)
+        future_low = df['low'].rolling(window).min().shift(-window + 1)
+
         close = df['close']
+        tp_hit = future_high >= close * (1 + tp)
+        sl_hit = future_low <= close * (1 - sl)
 
-        tp_hit = high_rolling >= close * (1 + tp)
-        sl_hit = low_rolling <= close * (1 - sl)
-
+        df['label'] = 0
         df.loc[tp_hit & (~sl_hit), 'label'] = 1
+
+        # Shift label backward to align with feature timing
+        df['label'] = df['label'].shift(window - 1)
+
         return df.dropna()
+
 
     def balance_data(self, df):
         wins = df[df['label'] == 1]

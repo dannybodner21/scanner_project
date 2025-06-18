@@ -4,17 +4,19 @@ from sklearn.metrics import classification_report
 from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
-    help = "Test the saved XGBoost model on 2025 test data and print classification metrics"
+    help = "Test the saved XGBoost model on 2025 test data, print metrics, and save predictions"
 
     def handle(self, *args, **options):
-        test_csv_path = 'long_model_2025_test_data.csv'
+        test_csv_path = 'updated_testing_data.csv'
         model_path = 'best_xgb_model.bin'
+        output_csv_path = 'updated_predictions.csv'
 
         self.stdout.write(f"Loading test data from {test_csv_path} ...")
-        df_test = pd.read_csv(test_csv_path, index_col=0, parse_dates=True)
+        # Don't set index_col — we want to keep all original columns
+        df_test = pd.read_csv(test_csv_path, parse_dates=['timestamp'])
 
         self.stdout.write("Preparing test features and labels ...")
-        # Drop non-feature columns if present
+        # Drop only label and coin, but keep timestamp for later use
         X_test = df_test.drop(columns=['label', 'coin', 'timestamp'], errors='ignore')
         y_test = df_test['label']
 
@@ -34,3 +36,13 @@ class Command(BaseCommand):
         self.stdout.write("Classification Report on 2025 test data:")
         report = classification_report(y_test, y_pred)
         self.stdout.write(report)
+
+        self.stdout.write(f"Saving predictions to {output_csv_path} ...")
+        df_test['prediction'] = y_pred
+        df_test['prediction_prob'] = y_pred_prob
+
+        # Optional: sort chronologically to be safe for trade sim
+        df_test.sort_values('timestamp', inplace=True)
+
+        df_test.to_csv(output_csv_path, index=False)
+        self.stdout.write("Done.")

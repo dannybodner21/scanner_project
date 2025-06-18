@@ -11,7 +11,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--train-file',
             type=str,
-            default='long_model_training_data.csv',
+            default='updated_training_data.csv',
             help='Path to the training CSV file',
         )
         parser.add_argument(
@@ -124,6 +124,14 @@ class Command(BaseCommand):
 
         report = classification_report(y_val, y_pred)
         self.stdout.write("Validation classification report:\n" + report)
+
+        # Show top 10 most important features
+        importance = bst.get_score(importance_type='gain')
+        sorted_importance = sorted(importance.items(), key=lambda x: x[1], reverse=True)
+
+        self.stdout.write("Top 10 features by gain:")
+        for feat, score in sorted_importance[:10]:
+            self.stdout.write(f"{feat}: {score:.4f}")
 
         # Dummy classifier baseline
         dummy = DummyClassifier(strategy='most_frequent')
