@@ -21,6 +21,19 @@ COINAPI_SYMBOL_MAP = {
     "ADAUSDT": "BINANCE_SPOT_ADA_USDT",
 }
 
+COIN_SYMBOL_MAP_DB = {
+    "BTCUSDT": "BTC",
+    "ETHUSDT": "ETH",
+    "XRPUSDT": "XRP",
+    "LTCUSDT": "LTC",
+    "SOLUSDT": "SOL",
+    "DOGEUSDT": "DOGE",
+    "LINKUSDT": "LINK",
+    "DOTUSDT": "DOT",
+    "SHIBUSDT": "SHIB",
+    "ADAUSDT": "ADA",
+}
+
 COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 COINS = list(COINAPI_SYMBOL_MAP.keys())
@@ -145,7 +158,8 @@ def run_live_pipeline(request=None):
             print(f"{coin}: Confidence = {proba:.4f}")
 
             # Get Coin instance from DB
-            coin_obj = Coin.objects.get(symbol=coin)
+            db_symbol = COIN_SYMBOL_MAP_DB.get(coin)
+            coin_obj = Coin.objects.get(symbol=db_symbol)
 
             for threshold in CONFIDENCE_THRESHOLDS:
                 if proba >= threshold:
