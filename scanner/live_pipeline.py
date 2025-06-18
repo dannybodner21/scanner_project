@@ -103,7 +103,15 @@ def add_features(df):
 
 def prepare_instance(df):
     row = df.iloc[-1]
-    instance = {feature: row[feature] for feature in FEATURES}
+    instance = {
+        'open': row['open'],
+        'high': row['high'],
+        'low': row['low'],
+        'close': row['close'],
+        'volume': row['volume'],
+    }
+    for feature in FEATURES:
+        instance[feature] = row[feature]
     return instance, row
 
 def run_live_pipeline(request=None):
@@ -128,8 +136,7 @@ def run_live_pipeline(request=None):
 
             instance, row = prepare_instance(df)
 
-            filtered_instance = {k: instance[k] for k in FEATURES if k in instance}
-            feature_df = pd.DataFrame([filtered_instance])
+            feature_df = pd.DataFrame([instance])
 
             # Convert to DMatrix for prediction
             dmatrix = xgb.DMatrix(feature_df)
