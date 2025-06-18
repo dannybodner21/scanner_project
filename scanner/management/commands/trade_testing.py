@@ -1,6 +1,8 @@
 import pandas as pd
 from django.core.management.base import BaseCommand
 
+# python manage.py trade_testing long_model_2025_test_data.csv
+
 class Command(BaseCommand):
     help = 'Simulate sequential trading on test data with 1 open trade max'
 
@@ -15,7 +17,7 @@ class Command(BaseCommand):
         initial_balance = 5000.0
         balance = initial_balance
         open_trade = None  # dict with keys: entry_price, position_size, entry_index
-        leverage = 10
+        leverage = 5
 
         take_profit_pct = 0.06
         stop_loss_pct = 0.03

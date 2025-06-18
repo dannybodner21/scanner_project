@@ -48,7 +48,7 @@ FEATURES = [
 
 CONFIDENCE_THRESHOLDS = [0.9, 0.8, 0.7, 0.6]
 
-def fetch_ohlcv(coin, limit=100):
+def fetch_ohlcv(coin, limit=300):
     coinapi_symbol = COINAPI_SYMBOL_MAP.get(coin)
     if not coinapi_symbol:
         raise ValueError(f"CoinAPI symbol mapping not found for {coin}")
@@ -73,73 +73,40 @@ def fetch_ohlcv(coin, limit=100):
 
 def add_features(df):
     df['returns_5m'] = df['close'].pct_change(1)
-    print(f"returns_5m stats:\n{df['returns_5m'].describe()}")
-
     df['returns_15m'] = df['close'].pct_change(3)
-    print(f"returns_15m stats:\n{df['returns_15m'].describe()}")
-
     df['returns_1h'] = df['close'].pct_change(12)
-    print(f"returns_1h stats:\n{df['returns_1h'].describe()}")
-
     df['returns_4h'] = df['close'].pct_change(48)
-    print(f"returns_4h stats:\n{df['returns_4h'].describe()}")
-
     df['momentum'] = df['close'] - df['close'].shift(5)
-    print(f"momentum stats:\n{df['momentum'].describe()}")
 
     df['volume_ma_20'] = df['volume'].rolling(20).mean()
-    print(f"volume_ma_20 stats:\n{df['volume_ma_20'].describe()}")
-
     df['vol_spike'] = df['volume'] / df['volume_ma_20']
-    print(f"vol_spike stats:\n{df['vol_spike'].describe()}")
 
     df['rsi_14'] = ta.momentum.rsi(df['close'], window=14)
-    print(f"rsi_14 stats:\n{df['rsi_14'].describe()}")
-
     macd = ta.trend.MACD(df['close'])
     df['macd'] = macd.macd()
     df['macd_signal'] = macd.macd_signal()
     df['macd_hist'] = macd.macd_diff()
-    print(f"macd stats:\n{df['macd'].describe()}")
-    print(f"macd_signal stats:\n{df['macd_signal'].describe()}")
-    print(f"macd_hist stats:\n{df['macd_hist'].describe()}")
 
     bollinger = ta.volatility.BollingerBands(df['close'])
     df['bb_upper'] = bollinger.bollinger_hband()
     df['bb_lower'] = bollinger.bollinger_lband()
-    print(f"bb_upper stats:\n{df['bb_upper'].describe()}")
-    print(f"bb_lower stats:\n{df['bb_lower'].describe()}")
 
     df['atr_14'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=14)
-    print(f"atr_14 stats:\n{df['atr_14'].describe()}")
-
     df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
-    print(f"adx_14 stats:\n{df['adx_14'].describe()}")
 
     df['obv'] = ta.volume.on_balance_volume(df['close'], df['volume'])
     df['obv_slope'] = df['obv'].diff()
-    print(f"obv stats:\n{df['obv'].describe()}")
-    print(f"obv_slope stats:\n{df['obv_slope'].describe()}")
 
     df['ema_9'] = ta.trend.ema_indicator(df['close'], window=9)
     df['ema_21'] = ta.trend.ema_indicator(df['close'], window=21)
     df['ema_diff'] = df['ema_9'] - df['ema_21']
-    print(f"ema_9 stats:\n{df['ema_9'].describe()}")
-    print(f"ema_21 stats:\n{df['ema_21'].describe()}")
-    print(f"ema_diff stats:\n{df['ema_diff'].describe()}")
 
     df['volatility'] = df['close'].rolling(20).std()
-    print(f"volatility stats:\n{df['volatility'].describe()}")
-
     df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
-    print(f"ma_200 stats:\n{df['ma_200'].describe()}")
 
     df['bull_regime'] = ((df['adx_14'] > 25) & (df['close'] > df['ma_200'])).astype(int)
     df['bear_regime'] = ((df['adx_14'] > 25) & (df['close'] < df['ma_200'])).astype(int)
     df['sideways_regime'] = (df['adx_14'] <= 25).astype(int)
-    print(f"bull_regime stats:\n{df['bull_regime'].describe()}")
-    print(f"bear_regime stats:\n{df['bear_regime'].describe()}")
-    print(f"sideways_regime stats:\n{df['sideways_regime'].describe()}")
 
     df = df.dropna()
 
@@ -160,11 +127,27 @@ def prepare_instance(df):
         instance[feature] = row[feature]
     return instance, row
 
+def print_feature_stats(df, coin):
+    print(f"--- Feature stats for {coin} ---")
+    for feature in FEATURES:
+        if feature in df.columns:
+            series = df[feature]
+            print(f"{feature} stats:")
+            print(f"  count: {series.count()}")
+            print(f"  mean: {series.mean()}")
+            print(f"  std: {series.std()}")
+            print(f"  min: {series.min()}")
+            print(f"  25%: {series.quantile(0.25)}")
+            print(f"  50%: {series.median()}")
+            print(f"  75%: {series.quantile(0.75)}")
+            print(f"  max: {series.max()}")
+        else:
+            print(f"⚠ Feature {feature} missing in dataframe for {coin}")
+
 def run_live_pipeline(request=None):
     import django
     django.setup()
 
-    # Load XGBoost model properly
     model = xgb.Booster()
     model.load_model("best_xgb_model.bin")
 
@@ -174,37 +157,34 @@ def run_live_pipeline(request=None):
             df = fetch_ohlcv(coin, limit=300)
 
             if df.empty or len(df) < 220:
-                print(f"⚠ Skipping {coin} due to insufficient data after feature engineering")
+                print(f"⚠ Skipping {coin} due to insufficient raw data length")
                 continue
 
             df = add_features(df)
 
-            # Check that all features exist in dataframe columns
+            # Debug prints for feature data quality
+            print_feature_stats(df, coin)
+
+            # Verify all features exist in df columns and are not NaN in last row
             missing_features = [f for f in FEATURES if f not in df.columns]
             if missing_features:
                 print(f"⚠ Missing features {missing_features} for {coin}, skipping.")
                 continue
 
-            # Check last row for NaNs in features
-            row = df.iloc[-1]
-            nan_features = [f for f in FEATURES if pd.isna(row[f])]
+            last_row = df.iloc[-1]
+            nan_features = [f for f in FEATURES if pd.isna(last_row[f])]
             if nan_features:
-                print(f"⚠ Features with NaN values {nan_features} for {coin}, skipping.")
+                print(f"⚠ Features with NaN in last row: {nan_features} for {coin}, skipping.")
                 continue
 
             instance, row = prepare_instance(df)
             feature_df = pd.DataFrame([instance])
 
-            print(f"{coin} feature stats:")
-            print(feature_df.describe().T[['mean','std','min','max']])
-
-            # Convert to DMatrix for prediction
             dmatrix = xgb.DMatrix(feature_df)
-            proba = model.predict(dmatrix)[0]  # probability of positive class
+            proba = model.predict(dmatrix)[0]
 
             print(f"{coin}: Confidence = {proba:.4f}")
 
-            # Get Coin instance from DB
             db_symbol = COIN_SYMBOL_MAP_DB.get(coin)
             coin_obj = Coin.objects.get(symbol=db_symbol)
 
