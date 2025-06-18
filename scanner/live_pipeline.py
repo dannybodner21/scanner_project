@@ -140,15 +140,26 @@ def run_live_pipeline(request=None):
             print(f"Processing {coin}...")
             df = fetch_ohlcv(coin, limit=300)
 
-
             if df.empty or len(df) < 220:
                 print(f"⚠ Skipping {coin} due to insufficient data after feature engineering")
                 continue
 
             df = add_features(df)
 
-            instance, row = prepare_instance(df)
+            # Check that all features exist in dataframe columns
+            missing_features = [f for f in FEATURES if f not in df.columns]
+            if missing_features:
+                print(f"⚠ Missing features {missing_features} for {coin}, skipping.")
+                continue
 
+            # Check last row for NaNs in features
+            row = df.iloc[-1]
+            nan_features = [f for f in FEATURES if pd.isna(row[f])]
+            if nan_features:
+                print(f"⚠ Features with NaN values {nan_features} for {coin}, skipping.")
+                continue
+
+            instance, row = prepare_instance(df)
             feature_df = pd.DataFrame([instance])
 
             # Convert to DMatrix for prediction
