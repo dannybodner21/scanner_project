@@ -52,6 +52,15 @@ FEATURES = [
     'bull_regime', 'bear_regime', 'sideways_regime'
 ]
 
+INPUT_COLUMNS = [
+    'open', 'high', 'low', 'close', 'volume',
+    'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h', 'momentum',
+    'volume_ma_20', 'vol_spike', 'rsi_14', 'macd', 'macd_signal', 'macd_hist',
+    'bb_upper', 'bb_lower', 'atr_14', 'adx_14', 'obv', 'obv_slope',
+    'ema_9', 'ema_21', 'ema_diff', 'volatility', 'ma_200',
+    'bull_regime', 'bear_regime', 'sideways_regime'
+]
+
 CONFIDENCE_THRESHOLDS = [0.9, 0.8, 0.7, 0.6]
 
 
@@ -123,7 +132,7 @@ def add_features(df):
 
 def prepare_instance(df):
     row = df.iloc[-1]
-    instance = {feature: row[feature] for feature in FEATURES}
+    instance = {col: row[col] for col in INPUT_COLUMNS}
     return instance, row
 
 def print_feature_stats(df, coin):
@@ -175,8 +184,7 @@ def run_live_pipeline(request=None):
 
             instance, row = prepare_instance(df)
             feature_df = pd.DataFrame([instance])
-
-            feature_df = feature_df[FEATURES]
+            feature_df = feature_df[INPUT_COLUMNS]
 
             dmatrix = xgb.DMatrix(feature_df)
             proba = model.predict(dmatrix)[0]
