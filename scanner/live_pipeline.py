@@ -38,6 +38,8 @@ COIN_SYMBOL_MAP_DB = {
     "ADAUSDT": "ADA",
 }
 
+COINS = list(COIN_SYMBOL_MAP_DB.keys())
+
 FEATURES = [
     'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h', 'momentum',
     'volume_ma_20', 'vol_spike', 'rsi_14', 'macd', 'macd_signal', 'macd_hist',
