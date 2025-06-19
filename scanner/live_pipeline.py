@@ -5,6 +5,10 @@ import numpy as np
 import pandas as pd
 import ta
 import xgboost as xgb
+import time
+import base64
+import hmac
+import hashlib
 from datetime import datetime
 from scanner.models import Coin, ModelTrade
 
@@ -34,10 +38,6 @@ COIN_SYMBOL_MAP_DB = {
     "ADAUSDT": "ADA",
 }
 
-COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
-BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
-COINS = list(COINAPI_SYMBOL_MAP.keys())
-
 FEATURES = [
     'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h', 'momentum',
     'volume_ma_20', 'vol_spike', 'rsi_14', 'macd', 'macd_signal', 'macd_hist',
@@ -47,6 +47,31 @@ FEATURES = [
 ]
 
 CONFIDENCE_THRESHOLDS = [0.9, 0.8, 0.7, 0.6]
+
+
+
+
+# get account balance
+# trade 25% of account balance
+# no more than 3 open trades at a time
+# get the latest market price of the coin
+# calculate TP at +6%
+#     price * 1.06
+# calculate SL at -3%
+#     price * 0.97
+# calculate position size
+#     account balance * 0.25
+# calculate order size
+#     position size / entry price
+# place limit order
+#     px = current price
+
+
+
+
+
+
+
 
 def fetch_ohlcv(coin, limit=300):
     coinapi_symbol = COINAPI_SYMBOL_MAP.get(coin)
@@ -161,9 +186,6 @@ def run_live_pipeline(request=None):
                 continue
 
             df = add_features(df)
-
-            # Debug prints for feature data quality
-            print_feature_stats(df, coin)
 
             # Verify all features exist in df columns and are not NaN in last row
             missing_features = [f for f in FEATURES if f not in df.columns]
