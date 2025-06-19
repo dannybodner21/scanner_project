@@ -159,6 +159,9 @@ def run_live_pipeline(request=None):
     model = xgb.Booster()
     model.load_model("best_xgb_model.bin")
 
+    short_model = xgb.Booster()
+    short_model.load_model("best_short_xgb_model.bin")
+
     for coin in COINS:
         try:
             print(f"Processing {coin}...")
@@ -185,38 +188,53 @@ def run_live_pipeline(request=None):
             instance, row = prepare_instance(df)
             feature_df = pd.DataFrame([instance])
             feature_df = feature_df[INPUT_COLUMNS]
-
             dmatrix = xgb.DMatrix(feature_df)
-            proba = model.predict(dmatrix)[0]
 
-            print(f"{coin}: Confidence = {proba:.4f}")
+            #proba = model.predict(dmatrix)[0]
+            long_proba = long_model.predict(dmatrix)[0]
+            short_proba = short_model.predict(dmatrix)[0]
+
+            print(f"{coin}: Long = {long_proba:.4f}, Short = {short_proba:.4f}")
 
             db_symbol = COIN_SYMBOL_MAP_DB.get(coin)
             coin_obj = Coin.objects.get(symbol=db_symbol)
 
             for threshold in CONFIDENCE_THRESHOLDS:
-                if proba >= threshold:
-                    open_trade_exists = ModelTrade.objects.filter(
-                        coin=coin_obj,
-                        confidence_trade=threshold,
-                        exit_timestamp__isnull=True
-                    ).exists()
-
-                    if not open_trade_exists:
+                if long_proba >= threshold:
+                    if not ModelTrade.objects.filter(coin=coin_obj, confidence_trade=threshold, trade_type='long', exit_timestamp__isnull=True).exists():
                         ModelTrade.objects.create(
                             coin=coin_obj,
                             trade_type="long",
                             entry_timestamp=row["timestamp"],
                             duration_minutes=0,
                             entry_price=row["close"],
-                            model_confidence=proba,
+                            model_confidence=long_proba,
                             take_profit_percent=6,
                             stop_loss_percent=3,
                             confidence_trade=threshold
                         )
-                        print(f"💰 Trade placed for {coin} at confidence threshold {threshold}")
+                        print(f"💰 LONG trade placed for {coin} @ {threshold}")
                     else:
-                        print(f"⚠ Open trade exists for {coin} at confidence threshold {threshold}")
+                        print(f"⚠ LONG trade exists for {coin} @ {threshold}")
+                    break  # skip lower thresholds
+
+            for threshold in CONFIDENCE_THRESHOLDS:
+                if short_proba >= threshold:
+                    if not ModelTrade.objects.filter(coin=coin_obj, confidence_trade=threshold, trade_type='short', exit_timestamp__isnull=True).exists():
+                        ModelTrade.objects.create(
+                            coin=coin_obj,
+                            trade_type="short",
+                            entry_timestamp=row["timestamp"],
+                            duration_minutes=0,
+                            entry_price=row["close"],
+                            model_confidence=short_proba,
+                            take_profit_percent=6,
+                            stop_loss_percent=3,
+                            confidence_trade=threshold
+                        )
+                        print(f"🔻 SHORT trade placed for {coin} @ {threshold}")
+                    else:
+                        print(f"⚠ SHORT trade exists for {coin} @ {threshold}")
                     break
 
         except Exception as e:
