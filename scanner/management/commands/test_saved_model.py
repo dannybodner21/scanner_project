@@ -7,16 +7,14 @@ class Command(BaseCommand):
     help = "Test the saved XGBoost model on 2025 test data, print metrics, and save predictions"
 
     def handle(self, *args, **options):
-        test_csv_path = 'updated_testing_data.csv'
-        model_path = 'best_xgb_model.bin'
-        output_csv_path = 'updated_predictions.csv'
+        test_csv_path = 'two_long_testing_data.csv'
+        model_path = 'two_long_xgb_model.bin'
+        output_csv_path = 'two_long_predictions.csv'
 
         self.stdout.write(f"Loading test data from {test_csv_path} ...")
-        # Don't set index_col — we want to keep all original columns
         df_test = pd.read_csv(test_csv_path, parse_dates=['timestamp'])
 
         self.stdout.write("Preparing test features and labels ...")
-        # Drop only label and coin, but keep timestamp for later use
         X_test = df_test.drop(columns=['label', 'coin', 'timestamp'], errors='ignore')
         y_test = df_test['label']
 
@@ -40,8 +38,6 @@ class Command(BaseCommand):
         self.stdout.write(f"Saving predictions to {output_csv_path} ...")
         df_test['prediction'] = y_pred
         df_test['prediction_prob'] = y_pred_prob
-
-        # Optional: sort chronologically to be safe for trade sim
         df_test.sort_values('timestamp', inplace=True)
 
         df_test.to_csv(output_csv_path, index=False)

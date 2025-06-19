@@ -2,49 +2,23 @@ import pandas as pd
 import xgboost as xgb
 from sklearn.metrics import classification_report
 from sklearn.dummy import DummyClassifier
+from sklearn.model_selection import train_test_split
 from django.core.management.base import BaseCommand
+
+# python manage.py train_short_xgb_model
 
 class Command(BaseCommand):
     help = 'Train XGBoost model for SHORT trades with diagnostics'
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            '--train-file',
-            type=str,
-            default='short_training_data.csv',
-            help='Path to the SHORT trade training CSV file',
-        )
-        parser.add_argument(
-            '--model-output',
-            type=str,
-            default='best_short_xgb_model.bin',
-            help='Filename to save the trained SHORT model',
-        )
-        parser.add_argument(
-            '--split-date',
-            type=str,
-            default='2024-07-01',
-            help='YYYY-MM-DD date to split training/validation',
-        )
-
     def handle(self, *args, **options):
-        train_file = options['train_file']
-        model_output = options['model_output']
-        split_date_str = options['split_date']
+        train_file = 'two_short_training_data.csv'
+        model_output = 'two_short_xgb_model.bin'
+        importance_csv = 'two_short_feature_importance.csv'
+        test_size = 0.1  # 10% validation split
 
         self.stdout.write(f"Loading training data from {train_file} ...")
         df = pd.read_csv(train_file, index_col=0, parse_dates=True)
         self.stdout.write(f"Loaded {len(df)} rows.")
-
-        self.stdout.write(f"Index is unique? {df.index.is_unique}")
-        duplicate_indices_count = df.index.duplicated().sum()
-        self.stdout.write(f"Number of duplicate indices: {duplicate_indices_count}")
-        self.stdout.write(f"Index timezone info: {df.index.tz}")
-
-        split_date = pd.Timestamp(split_date_str)
-        if df.index.tz is not None:
-            split_date = split_date.tz_localize(df.index.tz)
-        self.stdout.write(f"Split date with timezone: {split_date}")
 
         drop_cols = [col for col in ['coin', 'timestamp'] if col in df.columns]
         if drop_cols:
@@ -54,31 +28,20 @@ class Command(BaseCommand):
         X = df.drop(columns=['label'])
         y = df['label']
 
-        train_mask = df.index < split_date
-        val_mask = df.index >= split_date
+        self.stdout.write("Splitting data (90% train, 10% validation)...")
+        X_train, X_val, y_train, y_val = train_test_split(
+            X, y, test_size=test_size, stratify=y, random_state=42
+        )
 
-        overlap = set(df.loc[train_mask].index).intersection(set(df.loc[val_mask].index))
-        self.stdout.write(f"Overlap rows count between train and val: {len(overlap)} (should be 0)")
-
-        X_train = X.loc[train_mask]
-        y_train = y.loc[train_mask]
-        X_val = X.loc[val_mask]
-        y_val = y.loc[val_mask]
-
-        self.stdout.write(f"Full dataset label distribution:\n{df['label'].value_counts(normalize=True)}")
-        self.stdout.write(f"Train label distribution:\n{y_train.value_counts(normalize=True)}")
-        self.stdout.write(f"Validation label distribution:\n{y_val.value_counts(normalize=True)}")
-
-        self.stdout.write("Sample TRAIN rows (features + label):")
-        train_sample = df.loc[train_mask].head(10)
-        self.stdout.write(str(train_sample))
-
-        self.stdout.write("Sample VALIDATION rows (features + label):")
-        val_sample = df.loc[val_mask].head(10)
-        self.stdout.write(str(val_sample))
+        self.stdout.write(f"Train set size: {len(X_train)}")
+        self.stdout.write(f"Validation set size: {len(X_val)}")
 
         ratio = (y_train == 0).sum() / (y_train == 1).sum()
         self.stdout.write(f"Scale_pos_weight (neg/pos): {ratio:.2f}")
+
+        self.stdout.write("Training label distribution:\n" + str(y_train.value_counts()))
+        self.stdout.write("Validation label distribution:\n" + str(y_val.value_counts()))
+
 
         dtrain = xgb.DMatrix(X_train, label=y_train)
         dval = xgb.DMatrix(X_val, label=y_val)
@@ -90,7 +53,7 @@ class Command(BaseCommand):
             'eta': 0.05,
             'subsample': 0.8,
             'colsample_bytree': 0.8,
-            'scale_pos_weight': ratio,
+            'scale_pos_weight': 1,
             'seed': 42,
         }
 
@@ -118,6 +81,9 @@ class Command(BaseCommand):
         self.stdout.write("Top 10 features by gain:")
         for feat, score in sorted_importance[:10]:
             self.stdout.write(f"{feat}: {score:.4f}")
+
+        pd.DataFrame(sorted_importance, columns=["feature", "gain"]).to_csv(importance_csv, index=False)
+        self.stdout.write(f"Full feature importance saved to {importance_csv}")
 
         dummy = DummyClassifier(strategy='most_frequent')
         dummy.fit(X_train, y_train)

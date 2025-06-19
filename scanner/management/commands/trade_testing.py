@@ -2,7 +2,7 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from datetime import date
 
-# python manage.py trade_testing updated_predictions.csv
+# python manage.py trade_testing two_long_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate sequential trading on test data with 1 open trade max'
@@ -23,8 +23,8 @@ class Command(BaseCommand):
         open_trade = None  # dict with keys: coin, entry_price, position_size, entry_index
         leverage = 10
 
-        take_profit_pct = 0.06
-        stop_loss_pct = 0.03
+        take_profit_pct = 0.04
+        stop_loss_pct = 0.02
 
         total_trades = 0
         wins = 0

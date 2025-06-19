@@ -61,8 +61,14 @@ INPUT_COLUMNS = [
     'bull_regime', 'bear_regime', 'sideways_regime'
 ]
 
-CONFIDENCE_THRESHOLDS = [0.85, 0.75, 0.65, 0.5]
+CONFIDENCE_THRESHOLDS = [0.5]
 
+def calculate_trend_slope(prices):
+    if len(prices) < 12:
+        return np.nan
+    x = np.arange(len(prices))
+    slope, _, _, _, _ = linregress(x, prices)
+    return slope
 
 def fetch_ohlcv(coin, limit=300):
     coinapi_symbol = COINAPI_SYMBOL_MAP.get(coin)
@@ -124,10 +130,24 @@ def add_features(df):
     df['bear_regime'] = ((df['adx_14'] > 25) & (df['close'] < df['ma_200'])).astype(int)
     df['sideways_regime'] = (df['adx_14'] <= 25).astype(int)
 
-    df = df.dropna()
+    df['slope_1h'] = df['close'].rolling(12).apply(calculate_trend_slope, raw=False)
+    df['dist_from_high_24h'] = (df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()
+    df['dist_from_low_24h'] = (df['close'] - df['low'].rolling(288).min()) / df['low'].rolling(288).min()
 
-    if df.empty:
-        print("⚠ Warning: DataFrame empty after dropna in add_features")
+    stoch = ta.momentum.StochasticOscillator(df['high'], df['low'], df['close'], window=14, smooth_window=3)
+    df['stoch_k'] = stoch.stoch()
+    df['stoch_d'] = stoch.stoch_signal()
+
+    df['price_change_5'] = (df['close'] - df['close'].shift(5)) / df['close'].shift(5)
+    df['volume_change_5'] = (df['volume'] - df['volume'].shift(5)) / df['volume'].shift(5)
+
+    df['high_1h'] = df['high'].rolling(12).max()
+    df['low_1h'] = df['low'].rolling(12).min()
+    df['pos_in_range_1h'] = (df['close'] - df['low_1h']) / (df['high_1h'] - df['low_1h'])
+    df['vwap_1h'] = (df['close'] * df['volume']).rolling(12).sum() / df['volume'].rolling(12).sum()
+    df['pos_vs_vwap'] = df['close'] - df['vwap_1h']
+
+    df = df.dropna()
     return df
 
 def prepare_instance(df):
@@ -157,10 +177,10 @@ def run_live_pipeline(request=None):
     django.setup()
 
     long_model = xgb.Booster()
-    long_model.load_model("best_xgb_model.bin")
+    long_model.load_model("two_long_xgb_model.bin")
 
     short_model = xgb.Booster()
-    short_model.load_model("best_short_xgb_model.bin")
+    short_model.load_model("two_short_xgb_model.bin")
 
     for coin in COINS:
         try:

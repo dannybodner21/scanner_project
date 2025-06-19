@@ -2,10 +2,10 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 
 # Run with:
-# python manage.py all_trades updated_predictions.csv short_predictions.csv
+# python manage.py all_trades two_long_predictions.csv two_short_predictions.csv
 
 class Command(BaseCommand):
-    help = 'Simulate combined long and short trading with max 3 open trades and 3 trades per day, with dynamic trailing stop'
+    help = 'Simulate combined long and short trading with max 3 open trades and 3 trades per day, with dynamic trailing stop and printed confidence scores'
 
     def add_arguments(self, parser):
         parser.add_argument('long_csv', type=str, help='Path to long predictions CSV')
@@ -18,14 +18,18 @@ class Command(BaseCommand):
         long_df['position_type'] = 'long'
         short_df['position_type'] = 'short'
 
-        # Rename predictions to avoid collision
-        long_df = long_df.rename(columns={'prediction': 'long_prediction'})
-        short_df = short_df.rename(columns={'prediction': 'short_prediction'})
+        long_df = long_df.rename(columns={
+            'prediction': 'long_prediction',
+            'prediction_prob': 'long_prediction_prob'
+        })
+        short_df = short_df.rename(columns={
+            'prediction': 'short_prediction',
+            'prediction_prob': 'short_prediction_prob'
+        })
 
-        # Align columns
         common_cols = ['timestamp', 'coin', 'high', 'low', 'close']
-        long_df = long_df[common_cols + ['long_prediction']]
-        short_df = short_df[common_cols + ['short_prediction']]
+        long_df = long_df[common_cols + ['long_prediction', 'long_prediction_prob']]
+        short_df = short_df[common_cols + ['short_prediction', 'short_prediction_prob']]
 
         df = pd.merge(long_df, short_df, on=common_cols, how='outer')
         df = df.sort_values('timestamp')
@@ -38,14 +42,13 @@ class Command(BaseCommand):
 
         tp_pct = 0.06
         initial_sl_pct = 0.03
-        trade_fee_pct = 0.004  # 0.4% round trip
+        trade_fee_pct = 0.004
 
         total_trades = 0
         wins = 0
         losses = 0
         trades_today = 0
         current_day = None
-        prev_day = None
 
         for idx, row in df.iterrows():
             timestamp = row['timestamp']
@@ -71,7 +74,6 @@ class Command(BaseCommand):
                 pos_size = trade['position_size']
                 trade_type = trade['type']
 
-                # Determine adjusted stop loss
                 if trade_type == 'long':
                     move_pct = (high - entry_price) / entry_price
                     sl_price = entry_price * (1 - initial_sl_pct)
@@ -92,7 +94,6 @@ class Command(BaseCommand):
                         if profit > 0:
                             wins += 1
                             self.stdout.write(f"{timestamp} | LONG {coin} | Trailing Stop Hit | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Profit: {profit:.2f}")
-
                         else:
                             losses += 1
                             self.stdout.write(f"{timestamp} | LONG {coin} | Stopped Out | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Loss: {profit:.2f}")
@@ -104,7 +105,6 @@ class Command(BaseCommand):
                         result = 'TAKE PROFIT'
                         wins += 1
                         self.stdout.write(f"{timestamp} | LONG {coin} | TAKE PROFIT | Entry: {entry_price:.4f} Exit: {tp_price:.4f} Profit: {profit:.2f}")
-
                     else:
                         still_open.append(trade)
                         continue
@@ -129,7 +129,6 @@ class Command(BaseCommand):
                         if profit > 0:
                             wins += 1
                             self.stdout.write(f"{timestamp} | SHORT {coin} | Trailing Stop Hit | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Profit: {profit:.2f}")
-
                         else:
                             losses += 1
                             self.stdout.write(f"{timestamp} | SHORT {coin} | Stopped Out | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Loss: {profit:.2f}")
@@ -141,7 +140,6 @@ class Command(BaseCommand):
                         result = 'TAKE PROFIT'
                         wins += 1
                         self.stdout.write(f"{timestamp} | SHORT {coin} | TAKE PROFIT | Entry: {entry_price:.4f} Exit: {tp_price:.4f} Profit: {profit:.2f}")
-
                     else:
                         still_open.append(trade)
                         continue
@@ -154,6 +152,8 @@ class Command(BaseCommand):
                 pos_size = balance * 0.10 if balance < 100000 else 10000
 
                 if row.get('long_prediction') == 1:
+                    confidence = row.get('long_prediction_prob', 0)
+                    self.stdout.write(f"{timestamp} | LONG {coin} | Trade OPENED | Confidence: {confidence:.4f}")
                     open_trades.append({
                         'type': 'long',
                         'coin': coin,
@@ -164,6 +164,8 @@ class Command(BaseCommand):
                     trades_today += 1
 
                 elif row.get('short_prediction') == 1 and len(open_trades) < max_open_trades and trades_today < 3:
+                    confidence = row.get('short_prediction_prob', 0)
+                    self.stdout.write(f"{timestamp} | SHORT {coin} | Trade OPENED | Confidence: {confidence:.4f}")
                     open_trades.append({
                         'type': 'short',
                         'coin': coin,
