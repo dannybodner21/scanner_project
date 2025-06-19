@@ -61,7 +61,7 @@ INPUT_COLUMNS = [
     'bull_regime', 'bear_regime', 'sideways_regime'
 ]
 
-CONFIDENCE_THRESHOLDS = [0.9, 0.8, 0.7, 0.6]
+CONFIDENCE_THRESHOLDS = [0.85, 0.75, 0.65, 0.5]
 
 
 def fetch_ohlcv(coin, limit=300):

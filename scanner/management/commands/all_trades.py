@@ -45,6 +45,7 @@ class Command(BaseCommand):
         losses = 0
         trades_today = 0
         current_day = None
+        prev_day = None
 
         for idx, row in df.iterrows():
             timestamp = row['timestamp']
@@ -55,6 +56,8 @@ class Command(BaseCommand):
             this_day = timestamp.date()
 
             if current_day != this_day:
+                if current_day is not None:
+                    self.stdout.write(f"{current_day} | Trades taken: {trades_today}")
                 current_day = this_day
                 trades_today = 0
 
@@ -88,14 +91,20 @@ class Command(BaseCommand):
                         result = 'STOP LOSS (adjusted)'
                         if profit > 0:
                             wins += 1
+                            self.stdout.write(f"{timestamp} | LONG {coin} | Trailing Stop Hit | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Profit: {profit:.2f}")
+
                         else:
                             losses += 1
+                            self.stdout.write(f"{timestamp} | LONG {coin} | Stopped Out | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Loss: {profit:.2f}")
+
                     elif high >= tp_price:
                         balance -= pos_size * leverage * trade_fee_pct
                         profit = pos_size * leverage * tp_pct
                         balance += profit
                         result = 'TAKE PROFIT'
                         wins += 1
+                        self.stdout.write(f"{timestamp} | LONG {coin} | TAKE PROFIT | Entry: {entry_price:.4f} Exit: {tp_price:.4f} Profit: {profit:.2f}")
+
                     else:
                         still_open.append(trade)
                         continue
@@ -119,14 +128,20 @@ class Command(BaseCommand):
                         result = 'STOP LOSS (adjusted)'
                         if profit > 0:
                             wins += 1
+                            self.stdout.write(f"{timestamp} | SHORT {coin} | Trailing Stop Hit | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Profit: {profit:.2f}")
+
                         else:
                             losses += 1
+                            self.stdout.write(f"{timestamp} | SHORT {coin} | Stopped Out | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Loss: {profit:.2f}")
+
                     elif low <= tp_price:
                         balance -= pos_size * leverage * trade_fee_pct
                         profit = pos_size * leverage * tp_pct
                         balance += profit
                         result = 'TAKE PROFIT'
                         wins += 1
+                        self.stdout.write(f"{timestamp} | SHORT {coin} | TAKE PROFIT | Entry: {entry_price:.4f} Exit: {tp_price:.4f} Profit: {profit:.2f}")
+
                     else:
                         still_open.append(trade)
                         continue
@@ -158,6 +173,7 @@ class Command(BaseCommand):
                     })
                     trades_today += 1
 
+        self.stdout.write(f"{current_day} | Trades taken: {trades_today}")
         self.stdout.write("Backtest complete.")
         self.stdout.write(f"Total trades: {total_trades}, Wins: {wins}, Losses: {losses}")
         self.stdout.write(f"Final balance: ${balance:,.2f}")
