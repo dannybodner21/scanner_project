@@ -49,30 +49,6 @@ FEATURES = [
 CONFIDENCE_THRESHOLDS = [0.9, 0.8, 0.7, 0.6]
 
 
-
-
-# get account balance
-# trade 25% of account balance
-# no more than 3 open trades at a time
-# get the latest market price of the coin
-# calculate TP at +6%
-#     price * 1.06
-# calculate SL at -3%
-#     price * 0.97
-# calculate position size
-#     account balance * 0.25
-# calculate order size
-#     position size / entry price
-# place limit order
-#     px = current price
-
-
-
-
-
-
-
-
 def fetch_ohlcv(coin, limit=300):
     coinapi_symbol = COINAPI_SYMBOL_MAP.get(coin)
     if not coinapi_symbol:
