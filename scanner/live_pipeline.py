@@ -123,15 +123,7 @@ def add_features(df):
 
 def prepare_instance(df):
     row = df.iloc[-1]
-    instance = {
-        'open': row['open'],
-        'high': row['high'],
-        'low': row['low'],
-        'close': row['close'],
-        'volume': row['volume'],
-    }
-    for feature in FEATURES:
-        instance[feature] = row[feature]
+    instance = {feature: row[feature] for feature in FEATURES}
     return instance, row
 
 def print_feature_stats(df, coin):
@@ -183,6 +175,8 @@ def run_live_pipeline(request=None):
 
             instance, row = prepare_instance(df)
             feature_df = pd.DataFrame([instance])
+
+            feature_df = feature_df[FEATURES]
 
             dmatrix = xgb.DMatrix(feature_df)
             proba = model.predict(dmatrix)[0]
