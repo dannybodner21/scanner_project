@@ -70,7 +70,7 @@ INPUT_COLUMNS = [
     'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
 ]
 
-CONFIDENCE_THRESHOLDS = [0.5]
+CONFIDENCE_THRESHOLDS = [0.9, 0.8, 0.7, 0.6]
 
 def calculate_trend_slope(prices):
     if len(prices) < 12:
