@@ -11,6 +11,8 @@ import hmac
 import hashlib
 from datetime import datetime
 from scanner.models import Coin, ModelTrade
+from scipy.stats import linregress
+
 
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
