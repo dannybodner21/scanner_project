@@ -40,6 +40,8 @@ COIN_SYMBOL_MAP_DB = {
 
 COINS = list(COIN_SYMBOL_MAP_DB.keys())
 
+COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
+
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 FEATURES = [
