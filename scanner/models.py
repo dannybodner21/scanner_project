@@ -294,7 +294,7 @@ class RealTrade(models.Model):
     result = models.BooleanField(null=True, blank=True)
     exit_timestamp = models.DateTimeField(null=True, blank=True)
     entry_usd_amount = models.DecimalField(max_digits=20, decimal_places=10)
-    exit_usd_amount = models.DecimalField(max_digits=20, decimal_places=10)
+    exit_usd_amount = models.DecimalField(max_digits=20, decimal_places=10, null=True, blank=True)
     account_balance_before = models.DecimalField(max_digits=20, decimal_places=10)
     account_balance_after = models.DecimalField(max_digits=20, decimal_places=10, null=True, blank=True)
 

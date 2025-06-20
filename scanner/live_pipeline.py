@@ -251,8 +251,8 @@ def simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry_price, tp_pr
         "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
         "side": "sell",
         "orderType": "stopLimit",
-        "stopPrice": round(sl_price, 8),
-        "price": round(sl_price * 0.999, 8),
+        "stopPrice": stop_limit_price,
+        "price": stop_limit_price,
         "size": quantity,
         "reduceOnly": True
     }, indent=2))
@@ -363,7 +363,7 @@ def run_live_pipeline(request=None):
                 # Check for open real trades first
                 if not RealTrade.objects.filter(exit_timestamp__isnull=True).exists():
 
-                    usd_amount = 500
+                    usd_amount = 200
                     leverage = 10
                     tp_pct = 4.0
                     sl_pct = 2.0
