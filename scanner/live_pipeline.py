@@ -555,7 +555,7 @@ def run_live_pipeline(request=None):
         except Exception as e:
             print(f"❌ Error processing {coin}: {e}")
 
-        send_real_trade_updates()
+    send_real_trade_updates()
 
 if __name__ == "__main__":
     run_live_pipeline()
