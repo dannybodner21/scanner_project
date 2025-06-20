@@ -20,16 +20,16 @@ KRAKEN_API_SECRET = os.getenv("KRAKEN_API_SECRET")
 KRAKEN_DERIVATIVES_URL = "https://futures.kraken.com/derivatives/api/v3/sendorder"
 
 KRAKEN_SYMBOL_MAP = {
-    "BTC": "PF_XBTUSD",   # Bitcoin
-    "ETH": "PF_ETHUSD",   # Ethereum
-    "XRP": "PF_XRPUSD",   # Ripple
-    "LTC": "PF_LTCUSD",   # Litecoin
-    "SOL": "PF_SOLUSD",   # Solana
-    "DOGE": "PF_DOGEUSD", # Dogecoin
-    "LINK": "PF_LINKUSD", # Chainlink
-    "DOT": "PF_DOTUSD",   # Polkadot
-    "SHIB": "PF_SHIBUSD", # Shiba Inu
-    "ADA": "PF_ADAUSD",   # Cardano
+    "BTC": "XBTUSD",
+    "ETH": "ETHUSD",
+    "XRP": "XRPUSD",
+    "LTC": "LTCUSD",
+    "SOL": "SOLUSD",
+    "DOGE": "DOGEUSD",
+    "LINK": "LINKUSD",
+    "DOT": "DOTUSD",
+    "SHIB": "SHIBUSD",
+    "ADA": "ADAUSD",
 }
 
 COINAPI_SYMBOL_MAP = {
@@ -484,55 +484,51 @@ def run_live_pipeline(request=None):
 
                     # 1. ENTRY LIMIT BUY
                     entry_order = {
-                        "orderType": "post",
-                        "symbol": kraken_symbol,
-                        "side": "buy",
-                        "size": str(quantity),
-                        "limitPrice": str(entry_price),
-                        "marginType": "isolated",
-                        "leverage": str(leverage),
+                        "pair": kraken_symbol,
+                        "type": "buy",
+                        "ordertype": "limit",
+                        "price": str(entry_price),
+                        "volume": str(quantity),
                     }
+
                     print("\n📤 Placing ENTRY order...")
-                    res1 = place_kraken_futures_order(entry_order)
+                    res1 = place_kraken_order("/0/private/AddOrder", entry_order)
                     print("ENTRY ORDER RESPONSE:", res1)
 
                     # 2. TAKE PROFIT LIMIT SELL
                     tp_order = {
-                        "orderType": "lmt",
-                        "symbol": kraken_symbol,
-                        "side": "sell",
-                        "size": str(quantity),
-                        "limitPrice": str(tp_price),
-                        "reduceOnly": True,
+                        "pair": kraken_symbol,
+                        "type": "sell",
+                        "ordertype": "take-profit",
+                        "price": str(tp_price),
+                        "volume": str(quantity),
                     }
                     print("\n📤 Placing TAKE PROFIT order...")
-                    res2 = place_kraken_futures_order(tp_order)
+                    res2 = place_kraken_order("/0/private/AddOrder", tp_order)
                     print("TP ORDER RESPONSE:", res2)
 
                     # 3. STOP LIMIT
                     sl_order = {
-                        "orderType": "stp_lmt",
-                        "symbol": kraken_symbol,
-                        "side": "sell",
-                        "size": str(quantity),
-                        "limitPrice": str(sl_limit),
-                        "stopPrice": str(sl_trigger),
-                        "reduceOnly": True,
+                        "pair": kraken_symbol,
+                        "type": "sell",
+                        "ordertype": "stop-loss-limit",
+                        "price": str(sl_limit),
+                        "price2": str(sl_trigger),  # trigger
+                        "volume": str(quantity),
                     }
                     print("\n📤 Placing STOP LIMIT order...")
-                    res3 = place_kraken_futures_order(sl_order)
+                    res3 = place_kraken_order("/0/private/AddOrder", sl_order)
                     print("STOP LIMIT ORDER RESPONSE:", res3)
 
                     # 4. FALLBACK MARKET STOP
                     fallback_sl = {
-                        "orderType": "mkt",
-                        "symbol": kraken_symbol,
-                        "side": "sell",
-                        "size": str(quantity),
-                        "reduceOnly": True,
+                        "pair": kraken_symbol,
+                        "type": "sell",
+                        "ordertype": "market",
+                        "volume": str(quantity),
                     }
                     print("\n📤 Placing fallback MARKET SL...")
-                    res4 = place_kraken_futures_order(fallback_sl)
+                    res4 = place_kraken_order("/0/private/AddOrder", fallback_sl)
                     print("FALLBACK SL ORDER RESPONSE:", res4)
 
                     # 5. Save RealTrade
