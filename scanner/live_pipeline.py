@@ -203,6 +203,7 @@ def add_features(df):
     df['pos_vs_vwap'] = df['close'] - df['vwap_1h']
 
     df = df.dropna()
+
     return df
 
 def prepare_instance(df):
@@ -385,9 +386,9 @@ def run_live_pipeline(request=None):
     for coin in COINS:
         try:
             print(f"Processing {coin}...")
-            df = fetch_ohlcv(coin, limit=300)
+            df = fetch_ohlcv(coin, limit=310)
 
-            if df.empty or len(df) < 220:
+            if df.empty or len(df) < 290:
                 print(f"⚠ Skipping {coin} due to insufficient raw data length")
                 continue
 

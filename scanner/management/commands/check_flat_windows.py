@@ -12,7 +12,7 @@ class Command(BaseCommand):
         coin = options['coin'].upper()
 
         start_time = datetime.datetime(2019, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 19, 23, 55, tzinfo=datetime.timezone.utc)
 
         self.stdout.write(f"Scanning {coin} for flat windows...")
 

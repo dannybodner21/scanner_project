@@ -7,11 +7,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         start_time = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 6, 13, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 19, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         # Load all existing timestamps into a set for fast lookup
         existing_timestamps = set(
-            CoinAPIPrice.objects.filter(coin='TRXUSDT')
+            ts.replace(tzinfo=datetime.timezone.utc)
+            for ts in CoinAPIPrice.objects.filter(coin='BTCUSDT')
             .values_list('timestamp', flat=True)
         )
 
