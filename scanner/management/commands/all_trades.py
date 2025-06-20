@@ -36,12 +36,14 @@ class Command(BaseCommand):
 
         initial_balance = 5000.0
         balance = initial_balance
-        leverage = 5
-        max_open_trades = 3
+        leverage = 10
+        max_open_trades = 4
         open_trades = []
 
-        tp_pct = 0.06
-        initial_sl_pct = 0.03
+        tp_pct = 0.04
+        initial_sl_pct = 0.02
+        adjusted_sl_pct = 0.02
+        move_sl_trigger_pct = 0.03
         trade_fee_pct = 0.004
 
         total_trades = 0
@@ -77,12 +79,8 @@ class Command(BaseCommand):
                 if trade_type == 'long':
                     move_pct = (high - entry_price) / entry_price
                     sl_price = entry_price * (1 - initial_sl_pct)
-                    if move_pct >= 0.05:
-                        sl_price = entry_price * 1.03
-                    elif move_pct >= 0.04:
-                        sl_price = entry_price * 1.02
-                    elif move_pct >= 0.03:
-                        sl_price = entry_price * 1.01
+                    if move_pct >= move_sl_trigger_pct:
+                        sl_price = entry_price * (1 + adjusted_sl_pct)
 
                     tp_price = entry_price * (1 + tp_pct)
 
@@ -90,19 +88,16 @@ class Command(BaseCommand):
                         balance -= pos_size * leverage * trade_fee_pct
                         profit = (sl_price - entry_price) * leverage * (pos_size / entry_price)
                         balance += profit
-                        result = 'STOP LOSS (adjusted)'
                         if profit > 0:
                             wins += 1
                             self.stdout.write(f"{timestamp} | LONG {coin} | Trailing Stop Hit | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Profit: {profit:.2f}")
                         else:
                             losses += 1
                             self.stdout.write(f"{timestamp} | LONG {coin} | Stopped Out | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Loss: {profit:.2f}")
-
                     elif high >= tp_price:
                         balance -= pos_size * leverage * trade_fee_pct
                         profit = pos_size * leverage * tp_pct
                         balance += profit
-                        result = 'TAKE PROFIT'
                         wins += 1
                         self.stdout.write(f"{timestamp} | LONG {coin} | TAKE PROFIT | Entry: {entry_price:.4f} Exit: {tp_price:.4f} Profit: {profit:.2f}")
                     else:
@@ -112,12 +107,8 @@ class Command(BaseCommand):
                 elif trade_type == 'short':
                     move_pct = (entry_price - low) / entry_price
                     sl_price = entry_price * (1 + initial_sl_pct)
-                    if move_pct >= 0.05:
-                        sl_price = entry_price * 0.97
-                    elif move_pct >= 0.04:
-                        sl_price = entry_price * 0.98
-                    elif move_pct >= 0.03:
-                        sl_price = entry_price * 0.99
+                    if move_pct >= move_sl_trigger_pct:
+                        sl_price = entry_price * (1 - adjusted_sl_pct)
 
                     tp_price = entry_price * (1 - tp_pct)
 
@@ -125,19 +116,16 @@ class Command(BaseCommand):
                         balance -= pos_size * leverage * trade_fee_pct
                         profit = (entry_price - sl_price) * leverage * (pos_size / entry_price)
                         balance += profit
-                        result = 'STOP LOSS (adjusted)'
                         if profit > 0:
                             wins += 1
                             self.stdout.write(f"{timestamp} | SHORT {coin} | Trailing Stop Hit | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Profit: {profit:.2f}")
                         else:
                             losses += 1
                             self.stdout.write(f"{timestamp} | SHORT {coin} | Stopped Out | Entry: {entry_price:.4f} Exit: {sl_price:.4f} Loss: {profit:.2f}")
-
                     elif low <= tp_price:
                         balance -= pos_size * leverage * trade_fee_pct
                         profit = pos_size * leverage * tp_pct
                         balance += profit
-                        result = 'TAKE PROFIT'
                         wins += 1
                         self.stdout.write(f"{timestamp} | SHORT {coin} | TAKE PROFIT | Entry: {entry_price:.4f} Exit: {tp_price:.4f} Profit: {profit:.2f}")
                     else:
@@ -148,8 +136,8 @@ class Command(BaseCommand):
 
             open_trades = still_open
 
-            if len(open_trades) < max_open_trades and trades_today < 3:
-                pos_size = balance * 0.10 if balance < 100000 else 10000
+            if len(open_trades) < max_open_trades and trades_today < 4:
+                pos_size = 100000 if balance > 100000 else balance * 1.00
 
                 if row.get('long_prediction') == 1:
                     confidence = row.get('long_prediction_prob', 0)

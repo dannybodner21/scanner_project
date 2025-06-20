@@ -498,30 +498,16 @@ def get_closed_trades(request):
 
 def get_model_results(request):
 
-    total_long_trades_9 = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.9, exit_timestamp__isnull=False).count()
-    total_long_trades_8 = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.8, exit_timestamp__isnull=False).count()
-    total_long_trades_7 = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.7, exit_timestamp__isnull=False).count()
-    total_long_trades_6 = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.6, exit_timestamp__isnull=False).count()
-
+    total_long_trades = ModelTrade.objects.filter(trade_type="long", exit_timestamp__isnull=False).count()
     total_short_trades = ModelTrade.objects.filter(trade_type="short", exit_timestamp__isnull=False).count()
 
-    total_long_wins_9 = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.9, result=True).count()
-    total_long_wins_8 = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.8, result=True).count()
-    total_long_wins_7 = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.7, result=True).count()
-    total_long_wins_6 = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.6, result=True).count()
-
+    total_long_wins = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.9, result=True).count()
     total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
 
     return JsonResponse({
-        "total_long_trades_9": total_long_trades_9,
-        "total_long_trades_8": total_long_trades_8,
-        "total_long_trades_7": total_long_trades_7,
-        "total_long_trades_6": total_long_trades_6,
+        "total_long_trades": total_long_trades,
         "total_short_trades": total_short_trades,
-        "total_long_wins_9": total_long_wins_9,
-        "total_long_wins_8": total_long_wins_8,
-        "total_long_wins_7": total_long_wins_7,
-        "total_long_wins_6": total_long_wins_6,
+        "total_long_wins": total_long_wins,
         "total_short_wins": total_short_wins,
     })
 
