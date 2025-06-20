@@ -414,6 +414,34 @@ def predict_live_short(request):
 # function to get trade data on Webflow
 from scanner.models import ModelTrade
 
+COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
+COINAPI_SYMBOL_MAP = {
+    "BTC": "BINANCE_SPOT_BTC_USDT",
+    "ETH": "BINANCE_SPOT_ETH_USDT",
+    "XRP": "BINANCE_SPOT_XRP_USDT",
+    "LTC": "BINANCE_SPOT_LTC_USDT",
+    "SOL": "BINANCE_SPOT_SOL_USDT",
+    "DOGE": "BINANCE_SPOT_DOGE_USDT",
+    "LINK": "BINANCE_SPOT_LINK_USDT",
+    "DOT": "BINANCE_SPOT_DOT_USDT",
+    "SHIB": "BINANCE_SPOT_SHIB_USDT",
+    "ADA": "BINANCE_SPOT_ADA_USDT",
+}
+
+def get_coinapi_price(symbol):
+    coinapi_symbol = COINAPI_SYMBOL_MAP.get(symbol)
+    if not coinapi_symbol:
+        return 0
+    url = f"https://rest.coinapi.io/v1/ohlcv/{coinapi_symbol}/latest?period_id=5MIN&limit=1"
+    headers = {"X-CoinAPI-Key": COINAPI_KEY}
+    try:
+        r = requests.get(url, headers=headers, timeout=5)
+        r.raise_for_status()
+        data = r.json()
+        return float(data[0]["price_close"]) if data else 0
+    except:
+        return 0
+
 def get_open_trades(request):
     open_trades = (
         ModelTrade.objects
@@ -425,21 +453,15 @@ def get_open_trades(request):
     data = []
     for trade in open_trades:
 
-        latest_metric = (
-            RickisMetrics.objects
-            .filter(coin=trade.coin)
-            .order_by("-timestamp")
-            .first()
-        )
-        current_price = float(latest_metric.price) if latest_metric and latest_metric.price else 0
-        entry_price = float(trade.entry_price)
-        fear_greed = latest_metric.fear_greed if latest_metric and latest_metric.fear_greed else 0
+        coin_symbol = trade.coin.symbol
+        current_price = get_coinapi_price(coin_symbol)
+        entry_price = float(trade.entry_price or 0)
         current_percentage = 0
-        if (entry_price and entry_price != 0):
-            current_percentage = float(((current_price - entry_price) / entry_price) * 100)
+        if entry_price:
+            current_percentage = ((current_price - entry_price) / entry_price) * 100
 
         data.append({
-            "coin": trade.coin.symbol,
+            "coin": coin_symbol,
             "trade_type": trade.trade_type,
             "model_confidence": trade.model_confidence,
             "entry_timestamp": trade.entry_timestamp.isoformat(),
@@ -449,7 +471,7 @@ def get_open_trades(request):
             "duration_minutes": trade.duration_minutes,
             "current_price": current_price,
             "current_percentage": current_percentage,
-            "fear_greed": fear_greed,
+            "fear_greed": 0,  # You can replace this later if needed
         })
 
     return JsonResponse(data, safe=False)
@@ -465,21 +487,6 @@ def get_closed_trades(request):
 
     data = []
     for trade in closed_trades:
-
-        entry_timestamp = trade.entry_timestamp
-
-        closest_metric = (
-            RickisMetrics.objects
-            .filter(
-                coin=trade.coin,
-                timestamp=entry_timestamp
-            )
-            .first()
-        )
-
-        fear_greed = closest_metric.fear_greed if closest_metric and closest_metric.fear_greed is not None else 0
-
-
         data.append({
             "coin": trade.coin.symbol,
             "trade_type": trade.trade_type,
@@ -490,7 +497,7 @@ def get_closed_trades(request):
             "exit_price": float(trade.exit_price or 0),
             "duration_minutes": trade.duration_minutes,
             "result": trade.result,
-            "fear_greed": fear_greed,
+            "fear_greed": 0,  # Optional: you can re-integrate this if needed
         })
 
     return JsonResponse(data, safe=False)
