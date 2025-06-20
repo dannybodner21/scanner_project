@@ -196,6 +196,24 @@ def print_feature_stats(df, coin):
         else:
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
+def get_kraken_signature(uri_path, data, nonce):
+    post_data = f"nonce={nonce}"
+    encoded = (str(nonce) + post_data).encode()
+    message = uri_path.encode() + hashlib.sha256(encoded).digest()
+    mac = hmac.new(base64.b64decode(KRAKEN_API_SECRET), message, hashlib.sha512)
+    return base64.b64encode(mac.digest()).decode()
+
+def place_kraken_order(uri_path, payload):
+    nonce = str(int(time.time() * 1000))
+    payload["nonce"] = nonce
+    headers = {
+        "API-Key": KRAKEN_API_KEY,
+        "API-Sign": get_kraken_signature(uri_path, payload, nonce),
+    }
+    response = requests.post(f"https://api.kraken.com{uri_path}", headers=headers, data=payload, timeout=10)
+    response.raise_for_status()
+    return response.json()
+
 def get_kraken_balance():
     nonce = str(int(time.time() * 1000))
     data = {"nonce": nonce}
@@ -215,7 +233,6 @@ def get_kraken_balance():
     response.raise_for_status()
     data = response.json()
     return float(data['result'].get('ZUSD', 0.0))
-
 
 def simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry_price, tp_price, sl_price):
     print(f"\n🟢 REAL LONG TRADE (simulated) for {coin_symbol}")
@@ -358,55 +375,99 @@ def run_live_pipeline(request=None):
                 print(live_balance)
 
             # Real Trades
-            if long_proba >= 0.8:
+            if long_proba >= 0.8 and not RealTrade.objects.filter(exit_timestamp__isnull=True).exists():
 
-                # Check for open real trades first
-                if not RealTrade.objects.filter(exit_timestamp__isnull=True).exists():
-
+                try:
                     usd_amount = 200
                     leverage = 10
                     tp_pct = 4.0
                     sl_pct = 2.0
 
-                    entry_price = row["close"]
+                    raw_price = row["close"]
+                    entry_price = round(raw_price * 0.999, 8)  # slightly under market
+                    tp_price = round(entry_price * (1 + tp_pct / 100), 8)
+                    sl_trigger = round(entry_price * (1 - sl_pct / 100), 8)  # trigger
+                    sl_limit = round(entry_price * (1 - 0.0195), 8)  # -1.95%
+                    quantity = round(usd_amount / entry_price, 8)
+                    coin_symbol = COIN_SYMBOL_MAP_DB[coin]
+                    kraken_symbol = KRAKEN_SYMBOL_MAP[coin_symbol]
 
-                    take_profit_price = round(row["close"] * (1 + tp_pct / 100), 8)
-                    stop_loss_price = round(row["close"] * (1 - sl_pct / 100), 8)
+                    coin_symbol = COIN_SYMBOL_MAP_DB[coin]
 
+                    # 1. ENTRY LIMIT BUY
+                    entry_order = {
+                        "symbol": kraken_symbol,
+                        "side": "buy",
+                        "orderType": "limit",
+                        "price": entry_price,
+                        "size": quantity,
+                        "marginMode": "isolated",
+                        "leverage": leverage
+                    }
+
+                    print("\n📤 Placing ENTRY order...")
+                    res1 = place_kraken_order("/0/private/AddOrder", entry_order)
+                    print("ENTRY ORDER RESPONSE:", res1)
+
+                    # 2. TAKE PROFIT LIMIT SELL
+                    tp_order = {
+                        "symbol": kraken_symbol,
+                        "side": "sell",
+                        "orderType": "limit",
+                        "price": tp_price,
+                        "size": quantity,
+                        "reduceOnly": True
+                    }
+
+                    print("\n📤 Placing TAKE PROFIT order...")
+                    res2 = place_kraken_order("/0/private/AddOrder", tp_order)
+                    print("TP ORDER RESPONSE:", res2)
+
+                    # 3. STOP LIMIT
+                    sl_order = {
+                        "symbol": kraken_symbol,
+                        "side": "sell",
+                        "orderType": "stopLimit",
+                        "stopPrice": sl_trigger,
+                        "price": sl_limit,
+                        "size": quantity,
+                        "reduceOnly": True
+                    }
+                    print("\n📤 Placing STOP LIMIT order...")
+                    res3 = place_kraken_order("/0/private/AddOrder", sl_order)
+                    print("STOP LIMIT ORDER RESPONSE:", res3)
+
+                    # 4. FALLBACK MARKET STOP
+                    fallback_sl_order = {
+                        "symbol": kraken_symbol,
+                        "side": "sell",
+                        "orderType": "market",
+                        "size": quantity,
+                        "reduceOnly": True,
+                        "note": "Failsafe SL"
+                    }
+                    print("\n📤 Placing fallback MARKET SL...")
+                    res4 = place_kraken_order("/0/private/AddOrder", fallback_sl_order)
+                    print("FALLBACK SL ORDER RESPONSE:", res4)
+
+                    # 5. Save RealTrade
                     RealTrade.objects.create(
                         coin=coin_obj,
                         trade_type="long",
                         entry_timestamp=row["timestamp"],
                         entry_price=entry_price,
                         model_confidence=long_proba,
-                        take_profit_percent=4,
-                        stop_loss_percent=2,
+                        take_profit_percent=tp_pct,
+                        stop_loss_percent=sl_pct,
                         entry_usd_amount=usd_amount,
-                        account_balance_before=live_balance,
+                        account_balance_before=live_balance
                     )
 
-                    kraken_symbol = KRAKEN_SYMBOL_MAP.get(coin_obj.symbol)
+                    print(f"\n✅ REAL TRADE executed and logged for {coin_symbol}")
 
-                    print(f"🟢 REAL LONG TRADE (simulated) for {coin}")
-                    print("POST to Kraken (simulated):")
-                    kraken_payload = {
-                      "symbol": kraken_symbol,
-                      "side": "buy",
-                      "orderType": "limit",
-                      "price": entry_price * 0.99,
-                      "size": usd_amount,
-                      "marginMode": "isolated",
-                      "leverage": leverage,
-                      "takeProfit": take_profit_price,
-                      "stopLoss": stop_loss_price
-                    }
+                except Exception as e:
+                    print(f"❌ REAL trade error for {coin}: {e}")
 
-                    coin_symbol = COIN_SYMBOL_MAP_DB[coin]
-                    entry = entry_price * 0.999
-                    tp_price = entry_price * 1.04
-                    sl_price = entry_price * 0.98
-
-                    simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry, tp_price, sl_price)
 
 
         except Exception as e:
