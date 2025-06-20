@@ -220,13 +220,15 @@ def get_kraken_balance():
 def simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry_price, tp_price, sl_price):
     print(f"\n🟢 REAL LONG TRADE (simulated) for {coin_symbol}")
 
+    quantity = round(usd_amount / entry_price, 8)
+
     print("\n🔹 Limit BUY Order:")
     print(json.dumps({
         "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
         "side": "buy",
         "orderType": "limit",
         "price": round(entry_price, 8),
-        "size": usd_amount,
+        "size": quantity,
         "marginMode": "isolated",
         "leverage": leverage
     }, indent=2))
@@ -237,9 +239,12 @@ def simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry_price, tp_pr
         "side": "sell",
         "orderType": "limit",
         "price": round(tp_price, 8),
-        "size": usd_amount,
+        "size": quantity,
         "reduceOnly": True
     }, indent=2))
+
+    stop_trigger_price = round(entry_price * 0.98, 8)     # triggers at -2.00%
+    stop_limit_price   = round(entry_price * 0.9805, 8)   # attempts limit sell at -1.95%
 
     print("\n🔹 Stop Loss - Stop Limit:")
     print(json.dumps({
@@ -248,7 +253,7 @@ def simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry_price, tp_pr
         "orderType": "stopLimit",
         "stopPrice": round(sl_price, 8),
         "price": round(sl_price * 0.999, 8),
-        "size": usd_amount,
+        "size": quantity,
         "reduceOnly": True
     }, indent=2))
 
@@ -257,7 +262,7 @@ def simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry_price, tp_pr
         "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
         "side": "sell",
         "orderType": "market",
-        "size": usd_amount,
+        "size": quantity,
         "reduceOnly": True,
         "note": "Failsafe in case stop-limit fails"
     }, indent=2))
