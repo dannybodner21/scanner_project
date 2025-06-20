@@ -315,7 +315,7 @@ def simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry_price, tp_pr
     }, indent=2))
 
 def send_real_trade_updates():
-    
+
     open_trades = RealTrade.objects.filter(exit_timestamp__isnull=True)
 
     if not open_trades.exists():
@@ -463,11 +463,10 @@ def run_live_pipeline(request=None):
                     # 1. ENTRY LIMIT BUY
                     entry_order = {
                         "symbol": kraken_symbol,
-                        "side": "buy",
-                        "orderType": "limit",
+                        "type": "buy",
+                        "ordertype": "limit",
                         "price": entry_price,
-                        "size": quantity,
-                        "marginMode": "isolated",
+                        "volume": quantity,
                         "leverage": leverage
                     }
 
@@ -478,11 +477,12 @@ def run_live_pipeline(request=None):
                     # 2. TAKE PROFIT LIMIT SELL
                     tp_order = {
                         "symbol": kraken_symbol,
-                        "side": "sell",
-                        "orderType": "limit",
+                        "type": "sell",
+                        "orderType": "take-profit-limit",
                         "price": tp_price,
-                        "size": quantity,
-                        "reduceOnly": True
+                        "price2": tp_price,
+                        "volume": quantity,
+                        "oflags": "fciq"
                     }
 
                     print("\n📤 Placing TAKE PROFIT order...")
@@ -492,12 +492,12 @@ def run_live_pipeline(request=None):
                     # 3. STOP LIMIT
                     sl_order = {
                         "symbol": kraken_symbol,
-                        "side": "sell",
-                        "orderType": "stopLimit",
-                        "stopPrice": sl_trigger,
+                        "type": "sell",
+                        "ordertype": "stop-limit",
                         "price": sl_limit,
-                        "size": quantity,
-                        "reduceOnly": True
+                        "price2": sl_trigger,
+                        "volume": quantity,
+                        "oflags": "fciq"
                     }
                     print("\n📤 Placing STOP LIMIT order...")
                     res3 = place_kraken_order("/0/private/AddOrder", sl_order)
@@ -506,11 +506,10 @@ def run_live_pipeline(request=None):
                     # 4. FALLBACK MARKET STOP
                     fallback_sl_order = {
                         "symbol": kraken_symbol,
-                        "side": "sell",
-                        "orderType": "market",
-                        "size": quantity,
-                        "reduceOnly": True,
-                        "note": "Failsafe SL"
+                        "type": "sell",
+                        "ordertype": "market",
+                        "volume": quantity,
+                        "oflags": "fciq"
                     }
                     print("\n📤 Placing fallback MARKET SL...")
                     res4 = place_kraken_order("/0/private/AddOrder", fallback_sl_order)
