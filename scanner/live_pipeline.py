@@ -70,7 +70,7 @@ INPUT_COLUMNS = [
     'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
 ]
 
-CONFIDENCE_THRESHOLDS = [0.9, 0.8, 0.7, 0.6]
+CONFIDENCE_THRESHOLD = 0.5
 
 def calculate_trend_slope(prices):
     if len(prices) < 12:
@@ -228,43 +228,40 @@ def run_live_pipeline(request=None):
             db_symbol = COIN_SYMBOL_MAP_DB.get(coin)
             coin_obj = Coin.objects.get(symbol=db_symbol)
 
-            for threshold in CONFIDENCE_THRESHOLDS:
-                if long_proba >= threshold:
-                    if not ModelTrade.objects.filter(coin=coin_obj, confidence_trade=threshold, trade_type='long', exit_timestamp__isnull=True).exists():
-                        ModelTrade.objects.create(
-                            coin=coin_obj,
-                            trade_type="long",
-                            entry_timestamp=row["timestamp"],
-                            duration_minutes=0,
-                            entry_price=row["close"],
-                            model_confidence=long_proba,
-                            take_profit_percent=6,
-                            stop_loss_percent=3,
-                            confidence_trade=threshold
-                        )
-                        print(f"💰 LONG trade placed for {coin} @ {threshold}")
-                    else:
-                        print(f"⚠ LONG trade exists for {coin} @ {threshold}")
-                    break  # skip lower thresholds
+            existing_trade = ModelTrade.objects.filter(
+                coin=coin_obj,
+                exit_timestamp__isnull=True
+            ).first()
 
-            for threshold in CONFIDENCE_THRESHOLDS:
-                if short_proba >= threshold:
-                    if not ModelTrade.objects.filter(coin=coin_obj, confidence_trade=threshold, trade_type='short', exit_timestamp__isnull=True).exists():
-                        ModelTrade.objects.create(
-                            coin=coin_obj,
-                            trade_type="short",
-                            entry_timestamp=row["timestamp"],
-                            duration_minutes=0,
-                            entry_price=row["close"],
-                            model_confidence=short_proba,
-                            take_profit_percent=6,
-                            stop_loss_percent=3,
-                            confidence_trade=threshold
-                        )
-                        print(f"🔻 SHORT trade placed for {coin} @ {threshold}")
-                    else:
-                        print(f"⚠ SHORT trade exists for {coin} @ {threshold}")
-                    break
+            if not existing_trade:
+                if long_proba >= CONFIDENCE_THRESHOLD:
+                    ModelTrade.objects.create(
+                        coin=coin_obj,
+                        trade_type="long",
+                        entry_timestamp=row["timestamp"],
+                        duration_minutes=0,
+                        entry_price=row["close"],
+                        model_confidence=long_proba,
+                        take_profit_percent=4,
+                        stop_loss_percent=2,
+                        confidence_trade=CONFIDENCE_THRESHOLD
+                    )
+                    print(f"💰 LONG trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
+                elif short_proba >= CONFIDENCE_THRESHOLD:
+                    ModelTrade.objects.create(
+                        coin=coin_obj,
+                        trade_type="short",
+                        entry_timestamp=row["timestamp"],
+                        duration_minutes=0,
+                        entry_price=row["close"],
+                        model_confidence=short_proba,
+                        take_profit_percent=4,
+                        stop_loss_percent=2,
+                        confidence_trade=CONFIDENCE_THRESHOLD
+                    )
+                    print(f"🔻 SHORT trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
+            else:
+                print(f"⚠ Trade already open for {coin}: {existing_trade.trade_type} @ {existing_trade.entry_timestamp}")
 
         except Exception as e:
             print(f"❌ Error processing {coin}: {e}")
