@@ -18,6 +18,19 @@ from django.utils.timezone import now
 KRAKEN_API_KEY = os.getenv("KRAKEN_API_KEY")
 KRAKEN_API_SECRET = os.getenv("KRAKEN_API_SECRET")
 
+KRAKEN_SYMBOL_MAP = {
+    "BTC": "PF_XBTUSD",   # Bitcoin
+    "ETH": "PF_ETHUSD",   # Ethereum
+    "XRP": "PF_XRPUSD",   # Ripple
+    "LTC": "PF_LTCUSD",   # Litecoin
+    "SOL": "PF_SOLUSD",   # Solana
+    "DOGE": "PF_DOGEUSD", # Dogecoin
+    "LINK": "PF_LINKUSD", # Chainlink
+    "DOT": "PF_DOTUSD",   # Polkadot
+    "SHIB": "PF_SHIBUSD", # Shiba Inu
+    "ADA": "PF_ADAUSD",   # Cardano
+}
+
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
     "ETHUSDT": "BINANCE_SPOT_ETH_USDT",
@@ -47,7 +60,6 @@ COIN_SYMBOL_MAP_DB = {
 COINS = list(COIN_SYMBOL_MAP_DB.keys())
 
 COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
-
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 FEATURES = [
@@ -185,45 +197,71 @@ def print_feature_stats(df, coin):
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
 def get_kraken_balance():
-    api_key = os.getenv("KRAKEN_API_KEY")
-    api_secret = os.getenv("KRAKEN_API_SECRET")
-
-    if not api_key or not api_secret:
-        print("❌ API credentials missing")
-        return None
-
-    url = "https://api.kraken.com/0/private/Balance"
     nonce = str(int(time.time() * 1000))
-    data = {
-        "nonce": nonce
-    }
-
+    data = {"nonce": nonce}
     post_data = "&".join([f"{key}={value}" for key, value in data.items()])
     encoded = (nonce + post_data).encode()
     message = b'/0/private/Balance' + hashlib.sha256(encoded).digest()
 
-    signature = hmac.new(base64.b64decode(api_secret), message, hashlib.sha512)
+    signature = hmac.new(base64.b64decode(KRAKEN_API_SECRET), message, hashlib.sha512)
     signature_b64 = base64.b64encode(signature.digest()).decode()
 
     headers = {
-        "API-Key": api_key,
+        "API-Key": KRAKEN_API_KEY,
         "API-Sign": signature_b64,
     }
 
-    try:
-        response = requests.post(url, headers=headers, data=data, timeout=10)
-        response.raise_for_status()
-        result = response.json()
+    response = requests.post("https://api.kraken.com/0/private/Balance", headers=headers, data=data, timeout=10)
+    response.raise_for_status()
+    data = response.json()
+    return float(data['result'].get('ZUSD', 0.0))
 
-        if result.get("error"):
-            print(f"❌ Kraken error: {result['error']}")
-            return None
 
-        return result["result"]
+def simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry_price, tp_price, sl_price):
+    print(f"\n🟢 REAL LONG TRADE (simulated) for {coin_symbol}")
 
-    except Exception as e:
-        print(f"❌ Exception while fetching Kraken balance: {e}")
-        return None
+    print("\n🔹 Limit BUY Order:")
+    print(json.dumps({
+        "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
+        "side": "buy",
+        "orderType": "limit",
+        "price": round(entry_price, 8),
+        "size": usd_amount,
+        "marginMode": "isolated",
+        "leverage": leverage
+    }, indent=2))
+
+    print("\n🔹 Take Profit Limit SELL:")
+    print(json.dumps({
+        "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
+        "side": "sell",
+        "orderType": "limit",
+        "price": round(tp_price, 8),
+        "size": usd_amount,
+        "reduceOnly": True
+    }, indent=2))
+
+    print("\n🔹 Stop Loss - Stop Limit:")
+    print(json.dumps({
+        "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
+        "side": "sell",
+        "orderType": "stopLimit",
+        "stopPrice": round(sl_price, 8),
+        "price": round(sl_price * 0.999, 8),
+        "size": usd_amount,
+        "reduceOnly": True
+    }, indent=2))
+
+    print("\n🔹 Fallback Market Stop:")
+    print(json.dumps({
+        "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
+        "side": "sell",
+        "orderType": "market",
+        "size": usd_amount,
+        "reduceOnly": True,
+        "note": "Failsafe in case stop-limit fails"
+    }, indent=2))
+
 
 def run_live_pipeline(request=None):
     import django
@@ -309,22 +347,23 @@ def run_live_pipeline(request=None):
 
 
 
-            balance = get_kraken_balance()
-            if balance:
+            live_balance = get_kraken_balance()
+            if live_balance:
                 print("✅ Kraken balance:")
-                for currency, amount in balance.items():
-                    print(f"{currency}: {amount}")
+                print(live_balance)
 
             # Real Trades
-            if long_proba >= 1.5:
+            if long_proba >= 0.8:
 
                 # Check for open real trades first
                 if not RealTrade.objects.filter(exit_timestamp__isnull=True).exists():
 
-                    usd_amount = 100
-                    leverage = 5
+                    usd_amount = 500
+                    leverage = 10
                     tp_pct = 4.0
                     sl_pct = 2.0
+
+                    entry_price = row["close"]
 
                     take_profit_price = round(row["close"] * (1 + tp_pct / 100), 8)
                     stop_loss_price = round(row["close"] * (1 - sl_pct / 100), 8)
@@ -333,34 +372,36 @@ def run_live_pipeline(request=None):
                         coin=coin_obj,
                         trade_type="long",
                         entry_timestamp=row["timestamp"],
-                        entry_price=row["close"],
+                        entry_price=entry_price,
                         model_confidence=long_proba,
-                        take_profit_percent=tp_pct,
-                        stop_loss_percent=sl_pct,
+                        take_profit_percent=4,
+                        stop_loss_percent=2,
                         entry_usd_amount=usd_amount,
-                        account_balance_before=1000
+                        account_balance_before=live_balance,
                     )
+
+                    kraken_symbol = KRAKEN_SYMBOL_MAP.get(coin_obj.symbol)
 
                     print(f"🟢 REAL LONG TRADE (simulated) for {coin}")
                     print("POST to Kraken (simulated):")
                     kraken_payload = {
-                        "pair": coin.lower().replace("usdt", "/usd"),
-                        "type": "buy",
-                        "ordertype": "market",
-                        "volume": str(TRADE_SIZE_USD),  # May need to convert to base currency qty
-                        "leverage": "5",  # Assuming 5x max
-                        "close": {
-                            "ordertype": "take_profit",
-                            "price": str(float(row["close"]) * 1.04)
-                        },
-                        "stoploss": {
-                            "price": str(float(row["close"]) * 0.98)
-                        }
+                      "symbol": kraken_symbol,
+                      "side": "buy",
+                      "orderType": "limit",
+                      "price": entry_price * 0.99,
+                      "size": usd_amount,
+                      "marginMode": "isolated",
+                      "leverage": leverage,
+                      "takeProfit": take_profit_price,
+                      "stopLoss": stop_loss_price
                     }
-                    print(json.dumps(kraken_payload, indent=2))
 
+                    coin_symbol = COIN_SYMBOL_MAP_DB[coin]
+                    entry = entry_price * 0.999
+                    tp_price = entry_price * 1.04
+                    sl_price = entry_price * 0.98
 
-
+                    simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry, tp_price, sl_price)
 
 
         except Exception as e:
