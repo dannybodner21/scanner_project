@@ -466,7 +466,7 @@ def run_live_pipeline(request=None):
 
                 try:
                     usd_amount = 200
-                    leverage = 10
+                    leverage = 3
                     tp_pct = 4.0
                     sl_pct = 2.0
 
