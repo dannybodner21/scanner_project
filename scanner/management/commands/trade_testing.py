@@ -2,7 +2,7 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from datetime import date
 
-# python manage.py trade_testing two_long_predictions.csv
+# python manage.py trade_testing three_long_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate sequential trading on test data with 1 open trade max'
@@ -18,7 +18,7 @@ class Command(BaseCommand):
         if 'prediction' not in df.columns:
             raise ValueError("Missing 'prediction' column. Are you using the correct file with model outputs?")
 
-        initial_balance = 1000.0
+        initial_balance = 2500.0
         balance = initial_balance
         open_trade = None  # dict with keys: coin, entry_price, position_size, entry_index
         leverage = 10
@@ -41,9 +41,9 @@ class Command(BaseCommand):
                 trades_today = 0  # reset counter for new day
 
             # If no open trade and model signals long entry (label == 1)
-            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 3:
+            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 5:
                 if balance < 100000:
-                    position_size = balance * 0.25
+                    position_size = balance * 0.1
                 else:
                     position_size = 10000.0
 
@@ -78,14 +78,18 @@ class Command(BaseCommand):
                     loss_amount = open_trade['position_size'] * leverage * stop_loss_pct
                     balance -= loss_amount
                     losses += 1
-                    self.stdout.write(f"Trade {total_trades} CLOSED for {coin_open} at index {idx} with STOP LOSS, exit price: {sl_price:.6f}, loss: {loss_amount:.2f}, balance: {balance:.2f}")
+                    self.stdout.write(
+                        f"🔴 Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | STOP LOSS | Exit: {sl_price:.6f} | Loss: {loss_amount:.2f} | Balance: {balance:.2f}"
+                    )
                     open_trade = None
 
                 elif high >= tp_price:
                     profit_amount = open_trade['position_size'] * leverage * take_profit_pct
                     balance += profit_amount
                     wins += 1
-                    self.stdout.write(f"Trade {total_trades} CLOSED for {coin_open} at index {idx} with TAKE PROFIT, exit price: {tp_price:.6f}, profit: {profit_amount:.2f}, balance: {balance:.2f}")
+                    self.stdout.write(
+                        f"🟢 Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | TAKE PROFIT | Exit: {tp_price:.6f} | Profit: {profit_amount:.2f} | Balance: {balance:.2f}"
+                    )
                     open_trade = None
 
                 else:

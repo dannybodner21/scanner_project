@@ -114,9 +114,26 @@ def run_five_min_update_logic():
             response = requests.get(latest_url, headers=headers, timeout=10)
             response.raise_for_status()
             quotes = response.json()
-            if not quotes or "bid_price" not in quotes[0]:
-                print(f"⚠️ Missing bid_price for {symbol}, skipping")
-                continue
+
+            if not quotes or "bid_price" not in quotes[0] or quotes[0]["bid_price"] is None:
+                print(f"⚠️ Missing bid_price for {symbol}, falling back to latest close")
+                try:
+                    ohlcv_url = f"{OHLCV_BASE_URL}/{coinapi_symbol}/latest?period_id=5MIN&limit=1"
+                    ohlcv_resp = requests.get(ohlcv_url, headers=headers, timeout=10)
+                    ohlcv_resp.raise_for_status()
+                    ohlcv_data = ohlcv_resp.json()
+                    if not ohlcv_data:
+                        print(f"⚠️ No OHLCV fallback data for {symbol}, skipping")
+                        continue
+                    price_now = float(ohlcv_data[0]["price_close"])
+                except Exception as e:
+                    print(f"❌ OHLCV fallback failed for {symbol}: {e}")
+                    continue
+            else:
+                price_now = float(quotes[0]["bid_price"])
+
+
+
 
             price_now = float(quotes[0]["bid_price"])
             result = True

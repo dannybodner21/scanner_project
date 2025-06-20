@@ -471,7 +471,7 @@ def run_live_pipeline(request=None):
                     sl_pct = 2.0
 
                     raw_price = row["close"]
-                    entry_price = round(raw_price * 0.999, 8)  # slightly under market
+                    entry_price = round(raw_price * 1.0005, 8)  # slightly under market
                     tp_price = round(entry_price * (1 + tp_pct / 100), 8)
                     sl_trigger = round(entry_price * (1 - sl_pct / 100), 8)  # trigger
                     sl_limit = round(entry_price * (1 - 0.0195), 8)  # -1.95%
@@ -515,8 +515,8 @@ def run_live_pipeline(request=None):
                         "symbol": kraken_symbol,
                         "side": "sell",
                         "size": str(quantity),
-                        "limitPrice": str(sl_price),
-                        "stopPrice": str(sl_price),
+                        "limitPrice": str(sl_limit),
+                        "stopPrice": str(sl_trigger),
                         "reduceOnly": True,
                     }
                     print("\n📤 Placing STOP LIMIT order...")

@@ -42,8 +42,8 @@ class Command(BaseCommand):
         self.stdout.write(f"Training data rows: {len(train_df)}")
         self.stdout.write(f"Test data rows: {len(test_df)}")
 
-        train_df.to_csv("two_long_training_data.csv")
-        test_df.to_csv("two_long_testing_data.csv")
+        train_df.to_csv("delete_long_training_data.csv")
+        test_df.to_csv("three_long_testing_data.csv")
         self.stdout.write("Training and test CSV files saved.")
 
     def load_data(self, coin, start, end):
