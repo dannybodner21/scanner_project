@@ -1,14 +1,5 @@
 from django.core.management.base import BaseCommand
-from scanner.models import Coin, CoinAPIPrice, ModelTrade
-from scanner.helpers import (
-    round_to_five_minutes, get_recent_prices, get_recent_volumes,
-    calculate_rsi, calculate_ema_from_prices, calculate_macd,
-    calculate_stochastic, calculate_support_resistance, calculate_avg_volume_1h,
-    calculate_relative_volume, calculate_sma, calculate_ema, calculate_price_slope_1h,
-    calculate_stddev_1h, calculate_atr_1h, calculate_price_change_five_min,
-    calculate_change_since_high, calculate_change_since_low, calculate_obv,
-    calculate_fib_distances, calculate_bollinger_bands, calculate_adx
-)
+from scanner.models import Coin, CoinAPIPrice, ModelTrade, RealTrade
 from django.utils.timezone import make_aware, is_naive, now
 from datetime import datetime
 import requests
@@ -16,7 +7,6 @@ import time
 
 
 FINNHUB_API_KEY = 'cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0'
-
 
 def get_chart_patterns_for_coin(symbol, finnhub_api_key):
     url = "https://finnhub.io/api/v1/scan/pattern"
@@ -69,14 +59,6 @@ COINAPI_SYMBOL_MAP = {
 }
 
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
-
-
-from django.core.management.base import BaseCommand
-from scanner.models import Coin, CoinAPIPrice, ModelTrade
-from django.utils.timezone import now
-from datetime import datetime
-import requests
-
 COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
@@ -90,9 +72,6 @@ COINAPI_SYMBOL_MAP = {
     "SHIBUSDT": "BINANCE_SPOT_SHIB_USDT",
     "ADAUSDT": "BINANCE_SPOT_ADA_USDT",
 }
-
-BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
-
 
 def run_five_min_update_logic():
     start = datetime.now()
@@ -171,6 +150,7 @@ def run_five_min_update_logic():
 
         except Exception as e:
             print(f"❌ Error evaluating trade for {trade.coin.symbol}: {e}")
+
 
     print("\n✅ Five minute update complete.")
 

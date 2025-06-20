@@ -295,7 +295,8 @@ class RealTrade(models.Model):
     exit_timestamp = models.DateTimeField(null=True, blank=True)
     entry_usd_amount = models.DecimalField(max_digits=20, decimal_places=10)
     exit_usd_amount = models.DecimalField(max_digits=20, decimal_places=10)
-    account_balance = models.DecimalField(max_digits=20, decimal_places=10)
+    account_balance_before = models.DecimalField(max_digits=20, decimal_places=10)
+    account_balance_after = models.DecimalField(max_digits=20, decimal_places=10, null=True, blank=True)
 
     def __str__(self):
         return f"{self.coin.symbol} | {self.trade_type.upper()} | {self.entry_timestamp.strftime('%Y-%m-%d %H:%M')}"

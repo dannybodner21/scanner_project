@@ -10,9 +10,13 @@ import base64
 import hmac
 import hashlib
 from datetime import datetime
-from scanner.models import Coin, ModelTrade
+from scanner.models import Coin, ModelTrade, RealTrade
 from scipy.stats import linregress
+from django.utils.timezone import now
 
+
+KRAKEN_API_KEY = os.getenv("KRAKEN_API_KEY")
+KRAKEN_API_SECRET = os.getenv("KRAKEN_API_SECRET")
 
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
@@ -56,7 +60,6 @@ FEATURES = [
     'stoch_k', 'stoch_d', 'price_change_5', 'volume_change_5',
     'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
 ]
-
 
 INPUT_COLUMNS = [
     'open', 'high', 'low', 'close', 'volume',
@@ -181,6 +184,47 @@ def print_feature_stats(df, coin):
         else:
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
+def get_kraken_balance():
+    api_key = os.getenv("KRAKEN_API_KEY")
+    api_secret = os.getenv("KRAKEN_API_SECRET")
+
+    if not api_key or not api_secret:
+        print("❌ API credentials missing")
+        return None
+
+    url = "https://api.kraken.com/0/private/Balance"
+    nonce = str(int(time.time() * 1000))
+    data = {
+        "nonce": nonce
+    }
+
+    post_data = "&".join([f"{key}={value}" for key, value in data.items()])
+    encoded = (nonce + post_data).encode()
+    message = b'/0/private/Balance' + hashlib.sha256(encoded).digest()
+
+    signature = hmac.new(base64.b64decode(api_secret), message, hashlib.sha512)
+    signature_b64 = base64.b64encode(signature.digest()).decode()
+
+    headers = {
+        "API-Key": api_key,
+        "API-Sign": signature_b64,
+    }
+
+    try:
+        response = requests.post(url, headers=headers, data=data, timeout=10)
+        response.raise_for_status()
+        result = response.json()
+
+        if result.get("error"):
+            print(f"❌ Kraken error: {result['error']}")
+            return None
+
+        return result["result"]
+
+    except Exception as e:
+        print(f"❌ Exception while fetching Kraken balance: {e}")
+        return None
+
 def run_live_pipeline(request=None):
     import django
     django.setup()
@@ -262,6 +306,62 @@ def run_live_pipeline(request=None):
                     print(f"🔻 SHORT trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
             else:
                 print(f"⚠ Trade already open for {coin}: {existing_trade.trade_type} @ {existing_trade.entry_timestamp}")
+
+
+
+            balance = get_kraken_balance()
+            if balance:
+                print("✅ Kraken balance:")
+                for currency, amount in balance.items():
+                    print(f"{currency}: {amount}")
+
+            # Real Trades
+            if long_proba >= 1.5:
+
+                # Check for open real trades first
+                if not RealTrade.objects.filter(exit_timestamp__isnull=True).exists():
+
+                    usd_amount = 100
+                    leverage = 5
+                    tp_pct = 4.0
+                    sl_pct = 2.0
+
+                    take_profit_price = round(row["close"] * (1 + tp_pct / 100), 8)
+                    stop_loss_price = round(row["close"] * (1 - sl_pct / 100), 8)
+
+                    RealTrade.objects.create(
+                        coin=coin_obj,
+                        trade_type="long",
+                        entry_timestamp=row["timestamp"],
+                        entry_price=row["close"],
+                        model_confidence=long_proba,
+                        take_profit_percent=tp_pct,
+                        stop_loss_percent=sl_pct,
+                        entry_usd_amount=usd_amount,
+                        account_balance_before=1000
+                    )
+
+                    print(f"🟢 REAL LONG TRADE (simulated) for {coin}")
+                    print("POST to Kraken (simulated):")
+                    kraken_payload = {
+                        "pair": coin.lower().replace("usdt", "/usd"),
+                        "type": "buy",
+                        "ordertype": "market",
+                        "volume": str(TRADE_SIZE_USD),  # May need to convert to base currency qty
+                        "leverage": "5",  # Assuming 5x max
+                        "close": {
+                            "ordertype": "take_profit",
+                            "price": str(float(row["close"]) * 1.04)
+                        },
+                        "stoploss": {
+                            "price": str(float(row["close"]) * 0.98)
+                        }
+                    }
+                    print(json.dumps(kraken_payload, indent=2))
+
+
+
+
 
         except Exception as e:
             print(f"❌ Error processing {coin}: {e}")
