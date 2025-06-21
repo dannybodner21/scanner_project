@@ -32,15 +32,19 @@ class Command(BaseCommand):
         trades_today = 0
         current_day = None
 
+        winning_confidence_total = 0
+        losing_confidence_total = 0
+        highest_confidence = 0
+        lowest_confidence = 100
+
         for idx, row in df.iterrows():
-            coin = row['coin'] if 'coin' in row else 'UNKNOWN'  # Adjust if your CSV has a coin column
+            coin = row['coin'] if 'coin' in row else 'UNKNOWN'
             row_day = row['timestamp'].date()
 
             if current_day != row_day:
                 current_day = row_day
-                trades_today = 0  # reset counter for new day
+                trades_today = 0
 
-            # If no open trade and model signals long entry (label == 1)
             if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 5:
                 if balance < 100000:
                     position_size = balance * 0.1
@@ -58,10 +62,10 @@ class Command(BaseCommand):
 
                 trades_today += 1
                 total_trades += 1
+
                 self.stdout.write(f"Trade {total_trades} OPENED for {coin} at index {idx}, entry price: {entry_price:.6f}, position size: {position_size:.2f}, balance: {balance:.2f}")
                 continue
 
-            # If open trade, check if TP or SL hit on this bar
             if open_trade is not None:
                 if row['timestamp'] <= open_trade['entry_timestamp']:
                     continue
@@ -78,27 +82,45 @@ class Command(BaseCommand):
                     loss_amount = open_trade['position_size'] * leverage * stop_loss_pct
                     balance -= loss_amount
                     losses += 1
-                    self.stdout.write(
-                        f"🔴 Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | STOP LOSS | Exit: {sl_price:.6f} | Loss: {loss_amount:.2f} | Balance: {balance:.2f}"
-                    )
+
+                    entry_index = open_trade['entry_index']
+                    entry_confidence = df.loc[entry_index, 'prediction_prob']
+                    self.stdout.write(f"losing confidence: {entry_confidence:.4f}")
+                    losing_confidence_total += entry_confidence
+
+                    if entry_confidence < lowest_confidence:
+                        lowest_confidence = entry_confidence
+
                     open_trade = None
 
                 elif high >= tp_price:
                     profit_amount = open_trade['position_size'] * leverage * take_profit_pct
                     balance += profit_amount
                     wins += 1
-                    self.stdout.write(
-                        f"🟢 Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | TAKE PROFIT | Exit: {tp_price:.6f} | Profit: {profit_amount:.2f} | Balance: {balance:.2f}"
-                    )
-                    open_trade = None
 
-                else:
-                    # No exit yet
-                    pass
+                    entry_index = open_trade['entry_index']
+                    entry_confidence = df.loc[entry_index, 'prediction_prob']
+                    self.stdout.write(f"winning confidence: {entry_confidence:.4f}")
+                    winning_confidence_total += entry_confidence
+
+                    if entry_confidence > highest_confidence:
+                        highest_confidence = entry_confidence
+
+                    #self.stdout.write(f"🟢 Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | TAKE PROFIT | Exit: {tp_price:.6f} | Profit: {profit_amount:.2f} | Balance: {balance:.2f}")
+
+                    open_trade = None
 
             if balance < 0:
                 self.stdout.write("Balance dropped below zero. Stopping backtest.")
                 break
+
+        average_winning_confidence = winning_confidence_total / wins if wins > 0 else 0
+        average_losing_confidence = losing_confidence_total / losses if losses > 0 else 0
+        self.stdout.write(f"average winning confidence: {average_winning_confidence:.4f}")
+        self.stdout.write(f"average losing confidence: {average_losing_confidence:.4f}")
+
+        self.stdout.write(f"highest confidence: {highest_confidence:.4f}")
+        self.stdout.write(f"lowest confidence: {lowest_confidence:.4f}")
 
         self.stdout.write("Backtest complete.")
         self.stdout.write(f"Total trades: {total_trades}, Wins: {wins}, Losses: {losses}")

@@ -394,6 +394,14 @@ def run_live_pipeline(request=None):
             instance, row = prepare_instance(df)
             feature_df = pd.DataFrame([instance])
             feature_df = feature_df[INPUT_COLUMNS]
+
+
+            # 🔍 Print input features for investigation
+            print(f"\n📊 Features sent to model for {coin}:")
+            for col in INPUT_COLUMNS:
+                print(f"  {col}: {feature_df.iloc[0][col]}")
+
+
             dmatrix = xgb.DMatrix(feature_df)
 
             #proba = model.predict(dmatrix)[0]
