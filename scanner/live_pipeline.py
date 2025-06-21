@@ -256,6 +256,15 @@ def print_feature_stats(df, coin):
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
 
+def round_price(symbol, price):
+    if symbol in ["ETH", "BTC", "LTC", "SOL", "ADA", "LINK", "DOGE"]:  # high-value coins
+        return round(price, 2)
+    elif symbol in ["SHIB", "XRP"]:  # low-value coins
+        return round(price, 6)
+    else:
+        return round(price, 4)  # fallback
+
+
 def get_kraken_signature(uri_path, data, nonce):
     post_data = f"nonce={nonce}"
     encoded = (str(nonce) + post_data).encode()
@@ -464,14 +473,20 @@ def run_live_pipeline(request=None):
                     sl_pct = 2.0
 
                     raw_price = row["close"]
+
                     entry_price = round(raw_price * 1.0005, 8)  # slightly under market
                     tp_price = round(entry_price * (1 + tp_pct / 100), 8)
                     sl_limit = round(entry_price * (1 - sl_pct / 100), 8)
+
                     sl_trigger = round(entry_price * (1 - 0.0195), 8)  # -1.95%
                     quantity = round(usd_amount / entry_price, 8)
                     coin_symbol = COIN_SYMBOL_MAP_DB[coin]
                     kraken_symbol = KRAKEN_SYMBOL_MAP[coin_symbol]
                     leverage = max_leverage_map[coin_symbol]
+
+                    entry_price = round_price(coin_symbol, entry_price)
+                    tp_price = round_price(coin_symbol, tp_price)
+                    sl_price = round_price(coin_symbol, sl_price)
 
                     # 1. ENTRY LIMIT BUY
                     entry_order = {
