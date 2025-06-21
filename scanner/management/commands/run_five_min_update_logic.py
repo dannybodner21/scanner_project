@@ -133,9 +133,6 @@ def run_five_min_update_logic():
                 price_now = float(quotes[0]["bid_price"])
 
 
-
-
-            price_now = float(quotes[0]["bid_price"])
             result = True
 
             if trade.trade_type == "long":
