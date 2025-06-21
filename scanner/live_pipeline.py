@@ -9,6 +9,9 @@ import time
 import base64
 import hmac
 import hashlib
+import urllib.parse
+import krakenex
+
 from datetime import datetime
 from scanner.models import Coin, ModelTrade, RealTrade
 from scipy.stats import linregress
@@ -17,20 +20,35 @@ from django.utils.timezone import now
 
 KRAKEN_API_KEY = os.getenv("KRAKEN_API_KEY")
 KRAKEN_API_SECRET = os.getenv("KRAKEN_API_SECRET")
-KRAKEN_DERIVATIVES_URL = "https://futures.kraken.com/derivatives/api/v3/sendorder"
+
 
 KRAKEN_SYMBOL_MAP = {
-    "BTC": "XBTUSD",
-    "ETH": "ETHUSD",
-    "XRP": "XRPUSD",
-    "LTC": "LTCUSD",
-    "SOL": "SOLUSD",
-    "DOGE": "DOGEUSD",
-    "LINK": "LINKUSD",
-    "DOT": "DOTUSD",
-    "SHIB": "SHIBUSD",
-    "ADA": "ADAUSD",
+    "BTC": "XBTUSD", # 5x
+    "ETH": "ETHUSD", # 5x
+    "XRP": "XRPUSD", # 5x
+    "LTC": "LTCUSD", # 3x
+    "SOL": "SOLUSD", # 4x
+    "DOGE": "DOGEUSD", # 5x
+    "LINK": "LINKUSD", # 3x
+    "DOT": "DOTUSD", # 3x
+    "SHIB": "SHIBUSD", # 3x
+    "ADA": "ADAUSD", # 3x
 }
+
+
+max_leverage_map = {
+    "BTC": "5",
+    "ETH": "5",
+    "XRP": "5",
+    "LTC": "3",
+    "SOL": "4",
+    "DOGE": "5",
+    "LINK": "3",
+    "DOT": "3",
+    "SHIB": "3",
+    "ADA": "3",
+}
+
 
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
@@ -45,6 +63,7 @@ COINAPI_SYMBOL_MAP = {
     "ADAUSDT": "BINANCE_SPOT_ADA_USDT",
 }
 
+
 COIN_SYMBOL_MAP_DB = {
     "BTCUSDT": "BTC",
     "ETHUSDT": "ETH",
@@ -58,10 +77,11 @@ COIN_SYMBOL_MAP_DB = {
     "ADAUSDT": "ADA",
 }
 
-COINS = list(COIN_SYMBOL_MAP_DB.keys())
 
+COINS = list(COIN_SYMBOL_MAP_DB.keys())
 COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
+
 
 FEATURES = [
     'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h', 'momentum',
@@ -73,6 +93,7 @@ FEATURES = [
     'stoch_k', 'stoch_d', 'price_change_5', 'volume_change_5',
     'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
 ]
+
 
 INPUT_COLUMNS = [
     'open', 'high', 'low', 'close', 'volume',
@@ -86,7 +107,9 @@ INPUT_COLUMNS = [
     'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
 ]
 
+
 CONFIDENCE_THRESHOLD = 0.5
+
 
 def send_text(messages):
 
@@ -118,12 +141,14 @@ def send_text(messages):
 
     return
 
+
 def calculate_trend_slope(prices):
     if len(prices) < 12:
         return np.nan
     x = np.arange(len(prices))
     slope, _, _, _, _ = linregress(x, prices)
     return slope
+
 
 def fetch_ohlcv(coin, limit=300):
     coinapi_symbol = COINAPI_SYMBOL_MAP.get(coin)
@@ -147,6 +172,7 @@ def fetch_ohlcv(coin, limit=300):
     df.sort_values('timestamp', inplace=True)
     df.reset_index(drop=True, inplace=True)
     return df
+
 
 def add_features(df):
     df['returns_5m'] = df['close'].pct_change(1)
@@ -206,10 +232,12 @@ def add_features(df):
 
     return df
 
+
 def prepare_instance(df):
     row = df.iloc[-1]
     instance = {col: row[col] for col in INPUT_COLUMNS}
     return instance, row
+
 
 def print_feature_stats(df, coin):
     print(f"--- Feature stats for {coin} ---")
@@ -228,6 +256,7 @@ def print_feature_stats(df, coin):
         else:
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
+
 def get_kraken_signature(uri_path, data, nonce):
     post_data = f"nonce={nonce}"
     encoded = (str(nonce) + post_data).encode()
@@ -235,16 +264,40 @@ def get_kraken_signature(uri_path, data, nonce):
     mac = hmac.new(base64.b64decode(KRAKEN_API_SECRET), message, hashlib.sha512)
     return base64.b64encode(mac.digest()).decode()
 
+
 def place_kraken_order(uri_path, payload):
     nonce = str(int(time.time() * 1000))
     payload["nonce"] = nonce
+
+    # Form-encode the payload
+    post_data = urllib.parse.urlencode(payload)
+
+    # Generate signature with form-encoded string
+    message = uri_path.encode() + hashlib.sha256((nonce + post_data).encode()).digest()
+    signature = base64.b64encode(
+        hmac.new(
+            base64.b64decode(KRAKEN_API_SECRET),
+            msg=message,
+            digestmod=hashlib.sha512
+        ).digest()
+    ).decode()
+
     headers = {
         "API-Key": KRAKEN_API_KEY,
-        "API-Sign": get_kraken_signature(uri_path, payload, nonce),
+        "API-Sign": signature,
+        "Content-Type": "application/x-www-form-urlencoded"
     }
-    response = requests.post(f"https://api.kraken.com{uri_path}", headers=headers, data=payload, timeout=10)
+
+    response = requests.post(
+        f"https://api.kraken.com{uri_path}",
+        headers=headers,
+        data=post_data,
+        timeout=10
+    )
+
     response.raise_for_status()
     return response.json()
+
 
 def get_kraken_balance():
     nonce = str(int(time.time() * 1000))
@@ -266,74 +319,6 @@ def get_kraken_balance():
     data = response.json()
     return float(data['result'].get('ZUSD', 0.0))
 
-
-def get_kraken_futures_signature(private_key, data, nonce, path):
-    message = hashlib.sha256((data + nonce + path.removeprefix("/derivatives")).encode()).digest()
-    return base64.b64encode(hmac.new(base64.b64decode(private_key), msg=message, digestmod=hashlib.sha512).digest()).decode()
-
-
-def place_kraken_futures_order(body):
-    nonce = str(int(time.time() * 1000))
-    body_encoded = requests.models.RequestEncodingMixin._encode_params(body)
-    headers = {
-        "APIKey": KRAKEN_API_KEY,
-        "Authent": get_kraken_futures_signature(KRAKEN_API_SECRET, body_encoded, nonce, "/derivatives/api/v3/sendorder"),
-        "Nonce": nonce
-    }
-    response = requests.post(KRAKEN_DERIVATIVES_URL, headers=headers, data=body_encoded, timeout=10)
-    response.raise_for_status()
-    return response.json()
-
-
-def simulate_kraken_orders(coin_symbol, usd_amount, leverage, entry_price, tp_price, sl_price):
-    print(f"\n🟢 REAL LONG TRADE (simulated) for {coin_symbol}")
-
-    quantity = round(usd_amount / entry_price, 8)
-
-    print("\n🔹 Limit BUY Order:")
-    print(json.dumps({
-        "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
-        "side": "buy",
-        "orderType": "limit",
-        "price": round(entry_price, 8),
-        "size": quantity,
-        "marginMode": "isolated",
-        "leverage": leverage
-    }, indent=2))
-
-    print("\n🔹 Take Profit Limit SELL:")
-    print(json.dumps({
-        "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
-        "side": "sell",
-        "orderType": "limit",
-        "price": round(tp_price, 8),
-        "size": quantity,
-        "reduceOnly": True
-    }, indent=2))
-
-    stop_trigger_price = round(entry_price * 0.98, 8)     # triggers at -2.00%
-    stop_limit_price   = round(entry_price * 0.9805, 8)   # attempts limit sell at -1.95%
-
-    print("\n🔹 Stop Loss - Stop Limit:")
-    print(json.dumps({
-        "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
-        "side": "sell",
-        "orderType": "stopLimit",
-        "stopPrice": stop_limit_price,
-        "price": stop_limit_price,
-        "size": quantity,
-        "reduceOnly": True
-    }, indent=2))
-
-    print("\n🔹 Fallback Market Stop:")
-    print(json.dumps({
-        "symbol": KRAKEN_SYMBOL_MAP[coin_symbol],
-        "side": "sell",
-        "orderType": "market",
-        "size": quantity,
-        "reduceOnly": True,
-        "note": "Failsafe in case stop-limit fails"
-    }, indent=2))
 
 def send_real_trade_updates():
 
@@ -372,6 +357,7 @@ def send_real_trade_updates():
         )
 
     send_text(updates)
+
 
 def run_live_pipeline(request=None):
     import django
@@ -473,14 +459,12 @@ def run_live_pipeline(request=None):
                     raw_price = row["close"]
                     entry_price = round(raw_price * 1.0005, 8)  # slightly under market
                     tp_price = round(entry_price * (1 + tp_pct / 100), 8)
-                    sl_trigger = round(entry_price * (1 - sl_pct / 100), 8)  # trigger
-                    sl_limit = round(entry_price * (1 - 0.0195), 8)  # -1.95%
+                    sl_limit = round(entry_price * (1 - sl_pct / 100), 8)
+                    sl_trigger = round(entry_price * (1 - 0.0195), 8)  # -1.95%
                     quantity = round(usd_amount / entry_price, 8)
                     coin_symbol = COIN_SYMBOL_MAP_DB[coin]
                     kraken_symbol = KRAKEN_SYMBOL_MAP[coin_symbol]
-
-                    coin_symbol = COIN_SYMBOL_MAP_DB[coin]
-                    kraken_symbol = KRAKEN_SYMBOL_MAP[coin_symbol]
+                    leverage = max_leverage_map[coin_symbol]
 
                     # 1. ENTRY LIMIT BUY
                     entry_order = {
@@ -489,6 +473,9 @@ def run_live_pipeline(request=None):
                         "ordertype": "limit",
                         "price": str(entry_price),
                         "volume": str(quantity),
+                        "timeinforce": "GTD",
+                        "expiretm": str(int(time.time()) + 300),
+                        "leverage": leverage,
                     }
 
                     print("\n📤 Placing ENTRY order...")
@@ -499,8 +486,9 @@ def run_live_pipeline(request=None):
                     tp_order = {
                         "pair": kraken_symbol,
                         "type": "sell",
-                        "ordertype": "take-profit",
+                        "ordertype": "take-profit-limit",
                         "price": str(tp_price),
+                        "price2": str(tp_price),
                         "volume": str(quantity),
                     }
                     print("\n📤 Placing TAKE PROFIT order...")
@@ -511,25 +499,13 @@ def run_live_pipeline(request=None):
                     sl_order = {
                         "pair": kraken_symbol,
                         "type": "sell",
-                        "ordertype": "stop-loss-limit",
-                        "price": str(sl_limit),
-                        "price2": str(sl_trigger),  # trigger
+                        "ordertype": "stop-loss",
+                        "price": str(sl_trigger),
                         "volume": str(quantity),
                     }
-                    print("\n📤 Placing STOP LIMIT order...")
+                    print("\n📤 Placing STOP MARKET order...")
                     res3 = place_kraken_order("/0/private/AddOrder", sl_order)
                     print("STOP LIMIT ORDER RESPONSE:", res3)
-
-                    # 4. FALLBACK MARKET STOP
-                    fallback_sl = {
-                        "pair": kraken_symbol,
-                        "type": "sell",
-                        "ordertype": "market",
-                        "volume": str(quantity),
-                    }
-                    print("\n📤 Placing fallback MARKET SL...")
-                    res4 = place_kraken_order("/0/private/AddOrder", fallback_sl)
-                    print("FALLBACK SL ORDER RESPONSE:", res4)
 
                     # 5. Save RealTrade
                     RealTrade.objects.create(
