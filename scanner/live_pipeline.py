@@ -34,6 +34,41 @@ KRAKEN_SYMBOL_MAP = {
     "ADA": "ADAUSD", # 3x
 }
 
+# precisions["XBTUSD"] - {'price_decimals': 1, 'volume_decimals': 8}
+# precisions["ETHUSD"] - {'price_decimals': 2, 'volume_decimals': 8}
+# precisions["XRPUSD"] - {'price_decimals': 5, 'volume_decimals': 8}
+# precisions["LTCUSD"] - {'price_decimals': 2, 'volume_decimals': 8}
+# precisions["SOLUSD"] - {'price_decimals': 2, 'volume_decimals': 8}
+# precisions["DOGEUSD"] -
+# precisions["LINKUSD"] - {'price_decimals': 5, 'volume_decimals': 8}
+
+# precisions["DOTUSD"] - {'price_decimals': 4, 'volume_decimals': 8}
+# precisions["SHIBUSD"] - {'price_decimals': 8, 'volume_decimals': 5}
+# precisions["ADAUSD"] - {'price_decimals': 6, 'volume_decimals': 8}
+
+
+def round_price(symbol, price):
+    if symbol == "BTC":
+        return round(price, 1)
+    elif symbol if ["ETH", "LTC", "SOL"]:
+        return round(price, 2)
+    elif symbol in ["DOGE"]:
+        return round(price, 3)
+    elif symbol == "DOT":
+        return round(price, 4)
+    elif symbol in ["XRP", "LINK"]:
+        return round(price, 5)
+    elif symbol == "ADA":
+        return round(price, 6)
+    else:
+        return round(price, 8)
+
+def round_quantity(symbol, quantity):
+    if symbol == "SHIB":
+        return round(quantity, 5)
+    else:
+        return round(quantity, 8)
+
 
 max_leverage_map = {
     "BTC": "5",
@@ -256,13 +291,25 @@ def print_feature_stats(df, coin):
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
 
-def round_price(symbol, price):
-    if symbol in ["ETH", "BTC", "LTC", "SOL", "ADA", "LINK", "DOGE"]:  # high-value coins
-        return round(price, 2)
-    elif symbol in ["SHIB", "XRP"]:  # low-value coins
-        return round(price, 6)
-    else:
-        return round(price, 4)  # fallback
+def get_kraken_precisions():
+    url = "https://api.kraken.com/0/public/AssetPairs"
+    response = requests.get(url)
+    data = response.json()
+
+    precisions = {}
+    for pair, info in data["result"].items():
+        if ".d" in pair:  # skip dark pool pairs
+            continue
+        altname = info["altname"]
+        price_decimals = info["pair_decimals"]  # how many decimal places for price
+        volume_decimals = info["lot_decimals"]  # how many decimal places for volume
+
+        precisions[altname] = {
+            "price_decimals": price_decimals,
+            "volume_decimals": volume_decimals
+        }
+
+    return precisions
 
 
 def get_kraken_signature(uri_path, data, nonce):
@@ -487,6 +534,8 @@ def run_live_pipeline(request=None):
                     entry_price = round_price(coin_symbol, entry_price)
                     tp_price = round_price(coin_symbol, tp_price)
                     sl_price = round_price(coin_symbol, sl_limit)
+
+                    quantity = round_quantity(coin_symbol, quantity)
 
                     # 1. ENTRY LIMIT BUY
                     entry_order = {
