@@ -10,7 +10,6 @@ import base64
 import hmac
 import hashlib
 import urllib.parse
-import krakenex
 
 from datetime import datetime
 from scanner.models import Coin, ModelTrade, RealTrade
