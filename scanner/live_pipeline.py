@@ -486,7 +486,7 @@ def run_live_pipeline(request=None):
 
                     entry_price = round_price(coin_symbol, entry_price)
                     tp_price = round_price(coin_symbol, tp_price)
-                    sl_price = round_price(coin_symbol, sl_price)
+                    sl_price = round_price(coin_symbol, sl_limit)
 
                     # 1. ENTRY LIMIT BUY
                     entry_order = {
