@@ -50,7 +50,7 @@ KRAKEN_SYMBOL_MAP = {
 def round_price(symbol, price):
     if symbol == "BTC":
         return round(price, 1)
-    elif symbol if ["ETH", "LTC", "SOL"]:
+    elif symbol in ["ETH", "LTC", "SOL"]:
         return round(price, 2)
     elif symbol in ["DOGE"]:
         return round(price, 3)
