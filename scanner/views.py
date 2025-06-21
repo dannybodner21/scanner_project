@@ -508,7 +508,7 @@ def get_model_results(request):
     total_long_trades = ModelTrade.objects.filter(trade_type="long", exit_timestamp__isnull=False).count()
     total_short_trades = ModelTrade.objects.filter(trade_type="short", exit_timestamp__isnull=False).count()
 
-    total_long_wins = ModelTrade.objects.filter(trade_type="long", confidence_trade=0.9, result=True).count()
+    total_long_wins = ModelTrade.objects.filter(trade_type="long", result=True).count()
     total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
 
     return JsonResponse({

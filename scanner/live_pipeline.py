@@ -547,6 +547,7 @@ def run_live_pipeline(request=None):
                         "timeinforce": "GTD",
                         "expiretm": str(int(time.time()) + 300),
                         "leverage": leverage,
+                        "oflags": "fciq",
                     }
 
                     print("\n📤 Placing ENTRY order...")
