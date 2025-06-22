@@ -42,8 +42,8 @@ class Command(BaseCommand):
         self.stdout.write(f"Training data rows: {len(train_df)}")
         self.stdout.write(f"Test data rows: {len(test_df)}")
 
-        train_df.to_csv("delete_long_training_data.csv")
-        test_df.to_csv("three_long_testing_data.csv")
+        train_df.to_csv("four_long_training_data.csv")
+        test_df.to_csv("four_long_testing_data.csv")
         self.stdout.write("Training and test CSV files saved.")
 
     def load_data(self, coin, start, end):
@@ -73,10 +73,14 @@ class Command(BaseCommand):
     def add_features(self, df):
         df = df.copy()
 
-        df['returns_5m'] = df['close'].pct_change(1)
-        df['returns_15m'] = df['close'].pct_change(3)
-        df['returns_1h'] = df['close'].pct_change(12)
-        df['returns_4h'] = df['close'].pct_change(48)
+        df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
+        df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
+        df = df[df['adx_14'].notna() & df['ma_200'].notna()].copy()
+
+        df['returns_5m'] = df['close'].pct_change(1).clip(-1, 1)
+        df['returns_15m'] = df['close'].pct_change(3).clip(-1, 1)
+        df['returns_1h'] = df['close'].pct_change(12).clip(-1, 1)
+        df['returns_4h'] = df['close'].pct_change(48).clip(-1, 1)
         df['momentum'] = df['close'] - df['close'].shift(5)
 
         df['volume_ma_20'] = df['volume'].rolling(20).mean()
@@ -93,7 +97,6 @@ class Command(BaseCommand):
         df['bb_lower'] = bollinger.bollinger_lband()
 
         df['atr_14'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=14)
-        df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
 
         df['obv'] = ta.volume.on_balance_volume(df['close'], df['volume'])
         df['obv_slope'] = df['obv'].diff()
@@ -103,15 +106,16 @@ class Command(BaseCommand):
         df['ema_diff'] = df['ema_9'] - df['ema_21']
 
         df['volatility'] = df['close'].rolling(20).std()
-        df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
 
-        df['bull_regime'] = ((df['adx_14'] > 25) & (df['close'] > df['ma_200'])).astype(int)
-        df['bear_regime'] = ((df['adx_14'] > 25) & (df['close'] < df['ma_200'])).astype(int)
-        df['sideways_regime'] = ((df['adx_14'] <= 25)).astype(int)
+        # 🔧 Dynamic ADX threshold
+        adx_thresh = df['adx_14'].quantile(0.5)
+        df['bull_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] > df['ma_200'])).astype(int)
+        df['bear_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] < df['ma_200'])).astype(int)
+        df['sideways_regime'] = (df['adx_14'] <= adx_thresh).astype(int)
 
         df['slope_1h'] = df['close'].rolling(12).apply(self.calculate_trend_slope, raw=False)
-        df['dist_from_high_24h'] = (df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()
-        df['dist_from_low_24h'] = (df['close'] - df['low'].rolling(288).min()) / df['low'].rolling(288).min()
+        df['dist_from_high_24h'] = ((df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()).clip(-1, 1)
+        df['dist_from_low_24h'] = ((df['close'] - df['low'].rolling(288).min()) / df['low'].rolling(288).min()).clip(-1, 5)
 
         stoch = ta.momentum.StochasticOscillator(df['high'], df['low'], df['close'], window=14, smooth_window=3)
         df['stoch_k'] = stoch.stoch()
@@ -140,7 +144,7 @@ class Command(BaseCommand):
         labels = []
         for i in range(len(df) - window):
             entry = close[i]
-            label = 0  # default
+            label = 0
             for j in range(1, window):
                 future_high = high[i + j]
                 future_low = low[i + j]

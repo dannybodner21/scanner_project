@@ -2,7 +2,7 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from datetime import date
 
-# python manage.py trade_testing three_long_predictions.csv
+# python manage.py trade_testing four_long_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate sequential trading on test data with 1 open trade max'
@@ -21,7 +21,7 @@ class Command(BaseCommand):
         initial_balance = 2500.0
         balance = initial_balance
         open_trade = None  # dict with keys: coin, entry_price, position_size, entry_index
-        leverage = 10
+        leverage = 5
 
         take_profit_pct = 0.04
         stop_loss_pct = 0.02
@@ -45,11 +45,11 @@ class Command(BaseCommand):
                 current_day = row_day
                 trades_today = 0
 
-            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 5:
+            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 3:
                 if balance < 100000:
-                    position_size = balance * 0.1
+                    position_size = balance * 0.25
                 else:
-                    position_size = 10000.0
+                    position_size = 25000.0
 
                 entry_price = row['close']
                 open_trade = {
@@ -91,6 +91,9 @@ class Command(BaseCommand):
                     if entry_confidence < lowest_confidence:
                         lowest_confidence = entry_confidence
 
+                    self.stdout.write(f" X Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | Balance: {balance:.2f}")
+
+
                     open_trade = None
 
                 elif high >= tp_price:
@@ -106,7 +109,7 @@ class Command(BaseCommand):
                     if entry_confidence > highest_confidence:
                         highest_confidence = entry_confidence
 
-                    #self.stdout.write(f"🟢 Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | TAKE PROFIT | Exit: {tp_price:.6f} | Profit: {profit_amount:.2f} | Balance: {balance:.2f}")
+                    self.stdout.write(f"🟢 Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | TAKE PROFIT | Exit: {tp_price:.6f} | Profit: {profit_amount:.2f} | Balance: {balance:.2f}")
 
                     open_trade = None
 

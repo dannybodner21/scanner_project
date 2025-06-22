@@ -215,14 +215,26 @@ def add_features(df):
     df['returns_4h'] = df['close'].pct_change(48)
     df['momentum'] = df['close'] - df['close'].shift(5)
 
+    df['price_change_5'] = (df['close'] - df['close'].shift(5)) / df['close'].shift(5)
+    df['volume_change_5'] = (df['volume'] - df['volume'].shift(5)) / df['volume'].shift(5)
+
     df['volume_ma_20'] = df['volume'].rolling(20).mean()
     df['vol_spike'] = df['volume'] / df['volume_ma_20']
+    df['volatility'] = df['close'].rolling(20).std()
 
-    df['rsi_14'] = ta.momentum.rsi(df['close'], window=14)
+    df['ema_9'] = ta.trend.ema_indicator(df['close'], window=9)
+    df['ema_21'] = ta.trend.ema_indicator(df['close'], window=21)
+    df['ema_diff'] = df['ema_9'] - df['ema_21']
+    df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
+
+    df['slope_1h'] = df['close'].rolling(12).apply(calculate_trend_slope, raw=False)
+
     macd = ta.trend.MACD(df['close'])
     df['macd'] = macd.macd()
     df['macd_signal'] = macd.macd_signal()
     df['macd_hist'] = macd.macd_diff()
+
+    df['rsi_14'] = ta.momentum.rsi(df['close'], window=14)
 
     bollinger = ta.volatility.BollingerBands(df['close'])
     df['bb_upper'] = bollinger.bollinger_hband()
@@ -234,27 +246,16 @@ def add_features(df):
     df['obv'] = ta.volume.on_balance_volume(df['close'], df['volume'])
     df['obv_slope'] = df['obv'].diff()
 
-    df['ema_9'] = ta.trend.ema_indicator(df['close'], window=9)
-    df['ema_21'] = ta.trend.ema_indicator(df['close'], window=21)
-    df['ema_diff'] = df['ema_9'] - df['ema_21']
-
-    df['volatility'] = df['close'].rolling(20).std()
-    df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
-
     df['bull_regime'] = ((df['adx_14'] > 25) & (df['close'] > df['ma_200'])).astype(int)
     df['bear_regime'] = ((df['adx_14'] > 25) & (df['close'] < df['ma_200'])).astype(int)
     df['sideways_regime'] = (df['adx_14'] <= 25).astype(int)
 
-    df['slope_1h'] = df['close'].rolling(12).apply(calculate_trend_slope, raw=False)
     df['dist_from_high_24h'] = (df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()
     df['dist_from_low_24h'] = (df['close'] - df['low'].rolling(288).min()) / df['low'].rolling(288).min()
 
     stoch = ta.momentum.StochasticOscillator(df['high'], df['low'], df['close'], window=14, smooth_window=3)
     df['stoch_k'] = stoch.stoch()
     df['stoch_d'] = stoch.stoch_signal()
-
-    df['price_change_5'] = (df['close'] - df['close'].shift(5)) / df['close'].shift(5)
-    df['volume_change_5'] = (df['volume'] - df['volume'].shift(5)) / df['volume'].shift(5)
 
     df['high_1h'] = df['high'].rolling(12).max()
     df['low_1h'] = df['low'].rolling(12).min()
@@ -263,7 +264,6 @@ def add_features(df):
     df['pos_vs_vwap'] = df['close'] - df['vwap_1h']
 
     df = df.dropna()
-
     return df
 
 
@@ -419,7 +419,7 @@ def run_live_pipeline(request=None):
     django.setup()
 
     long_model = xgb.Booster()
-    long_model.load_model("two_long_xgb_model.bin")
+    long_model.load_model("four_long_xgb_model.bin")
 
     short_model = xgb.Booster()
     short_model.load_model("two_short_xgb_model.bin")

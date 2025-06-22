@@ -23,8 +23,8 @@ class Command(BaseCommand):
         #start_time = datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
         #end_time = datetime.datetime(2025, 6, 10, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
-        start_time = datetime.datetime(2025, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 6, 19, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2025, 6, 18, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 20, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         self.stdout.write("Loading existing timestamps into memory...")
         existing_timestamps = set(
