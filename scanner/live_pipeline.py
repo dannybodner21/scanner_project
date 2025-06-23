@@ -458,7 +458,7 @@ def run_live_pipeline(request=None):
                 print(f"  {col}: {feature_df.iloc[0][col]}")
 
 
-            dmatrix = xgb.DMatrix(feature_df)
+            dmatrix = xgb.DMatrix(feature_df, feature_names=FEATURES)
 
             #proba = model.predict(dmatrix)[0]
             long_proba = long_model.predict(dmatrix)[0]
