@@ -118,6 +118,7 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 
 FEATURES = [
+    'open', 'high', 'low', 'close', 'volume',
     'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h', 'momentum',
     'volume_ma_20', 'vol_spike', 'rsi_14', 'macd', 'macd_signal', 'macd_hist',
     'bb_upper', 'bb_lower', 'atr_14', 'adx_14', 'obv', 'obv_slope',
