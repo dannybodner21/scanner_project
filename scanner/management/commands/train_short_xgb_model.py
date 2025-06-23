@@ -11,9 +11,9 @@ class Command(BaseCommand):
     help = 'Train XGBoost model for SHORT trades with diagnostics'
 
     def handle(self, *args, **options):
-        train_file = 'two_short_training_data.csv'
-        model_output = 'two_short_xgb_model.bin'
-        importance_csv = 'two_short_feature_importance.csv'
+        train_file = 'four_short_training_data.csv'
+        model_output = 'four_short_xgb_model.bin'
+        importance_csv = 'four_short_feature_importance.csv'
         test_size = 0.1  # 10% validation split
 
         self.stdout.write(f"Loading training data from {train_file} ...")
@@ -42,7 +42,6 @@ class Command(BaseCommand):
         self.stdout.write("Training label distribution:\n" + str(y_train.value_counts()))
         self.stdout.write("Validation label distribution:\n" + str(y_val.value_counts()))
 
-
         dtrain = xgb.DMatrix(X_train, label=y_train)
         dval = xgb.DMatrix(X_val, label=y_val)
 
@@ -53,7 +52,7 @@ class Command(BaseCommand):
             'eta': 0.05,
             'subsample': 0.8,
             'colsample_bytree': 0.8,
-            'scale_pos_weight': 1,
+            'scale_pos_weight': ratio,
             'seed': 42,
         }
 

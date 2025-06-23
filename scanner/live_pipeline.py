@@ -17,57 +17,7 @@ from scipy.stats import linregress
 from django.utils.timezone import now
 
 
-KRAKEN_API_KEY = os.getenv("KRAKEN_API_KEY")
-KRAKEN_API_SECRET = os.getenv("KRAKEN_API_SECRET")
 
-
-KRAKEN_SYMBOL_MAP = {
-    "BTC": "XBTUSD", # 5x
-    "ETH": "ETHUSD", # 5x
-    "XRP": "XRPUSD", # 5x
-    "LTC": "LTCUSD", # 3x
-    "SOL": "SOLUSD", # 4x
-    "DOGE": "DOGEUSD", # 5x
-    "LINK": "LINKUSD", # 3x
-    "DOT": "DOTUSD", # 3x
-    "SHIB": "SHIBUSD", # 3x
-    "ADA": "ADAUSD", # 3x
-}
-
-# precisions["XBTUSD"] - {'price_decimals': 1, 'volume_decimals': 8}
-# precisions["ETHUSD"] - {'price_decimals': 2, 'volume_decimals': 8}
-# precisions["XRPUSD"] - {'price_decimals': 5, 'volume_decimals': 8}
-# precisions["LTCUSD"] - {'price_decimals': 2, 'volume_decimals': 8}
-# precisions["SOLUSD"] - {'price_decimals': 2, 'volume_decimals': 8}
-# precisions["DOGEUSD"] -
-# precisions["LINKUSD"] - {'price_decimals': 5, 'volume_decimals': 8}
-
-# precisions["DOTUSD"] - {'price_decimals': 4, 'volume_decimals': 8}
-# precisions["SHIBUSD"] - {'price_decimals': 8, 'volume_decimals': 5}
-# precisions["ADAUSD"] - {'price_decimals': 6, 'volume_decimals': 8}
-
-
-def round_price(symbol, price):
-    if symbol == "BTC":
-        return round(price, 1)
-    elif symbol in ["ETH", "LTC", "SOL"]:
-        return round(price, 2)
-    elif symbol in ["DOGE"]:
-        return round(price, 3)
-    elif symbol == "DOT":
-        return round(price, 4)
-    elif symbol in ["XRP", "LINK"]:
-        return round(price, 5)
-    elif symbol == "ADA":
-        return round(price, 6)
-    else:
-        return round(price, 8)
-
-def round_quantity(symbol, quantity):
-    if symbol == "SHIB":
-        return round(quantity, 5)
-    else:
-        return round(quantity, 8)
 
 
 max_leverage_map = {
@@ -292,90 +242,6 @@ def print_feature_stats(df, coin):
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
 
-def get_kraken_precisions():
-    url = "https://api.kraken.com/0/public/AssetPairs"
-    response = requests.get(url)
-    data = response.json()
-
-    precisions = {}
-    for pair, info in data["result"].items():
-        if ".d" in pair:  # skip dark pool pairs
-            continue
-        altname = info["altname"]
-        price_decimals = info["pair_decimals"]  # how many decimal places for price
-        volume_decimals = info["lot_decimals"]  # how many decimal places for volume
-
-        precisions[altname] = {
-            "price_decimals": price_decimals,
-            "volume_decimals": volume_decimals
-        }
-
-    return precisions
-
-
-def get_kraken_signature(uri_path, data, nonce):
-    post_data = f"nonce={nonce}"
-    encoded = (str(nonce) + post_data).encode()
-    message = uri_path.encode() + hashlib.sha256(encoded).digest()
-    mac = hmac.new(base64.b64decode(KRAKEN_API_SECRET), message, hashlib.sha512)
-    return base64.b64encode(mac.digest()).decode()
-
-
-def place_kraken_order(uri_path, payload):
-    nonce = str(int(time.time() * 1000))
-    payload["nonce"] = nonce
-
-    # Form-encode the payload
-    post_data = urllib.parse.urlencode(payload)
-
-    # Generate signature with form-encoded string
-    message = uri_path.encode() + hashlib.sha256((nonce + post_data).encode()).digest()
-    signature = base64.b64encode(
-        hmac.new(
-            base64.b64decode(KRAKEN_API_SECRET),
-            msg=message,
-            digestmod=hashlib.sha512
-        ).digest()
-    ).decode()
-
-    headers = {
-        "API-Key": KRAKEN_API_KEY,
-        "API-Sign": signature,
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-
-    response = requests.post(
-        f"https://api.kraken.com{uri_path}",
-        headers=headers,
-        data=post_data,
-        timeout=10
-    )
-
-    response.raise_for_status()
-    return response.json()
-
-
-def get_kraken_balance():
-    nonce = str(int(time.time() * 1000))
-    data = {"nonce": nonce}
-    post_data = "&".join([f"{key}={value}" for key, value in data.items()])
-    encoded = (nonce + post_data).encode()
-    message = b'/0/private/Balance' + hashlib.sha256(encoded).digest()
-
-    signature = hmac.new(base64.b64decode(KRAKEN_API_SECRET), message, hashlib.sha512)
-    signature_b64 = base64.b64encode(signature.digest()).decode()
-
-    headers = {
-        "API-Key": KRAKEN_API_KEY,
-        "API-Sign": signature_b64,
-    }
-
-    response = requests.post("https://api.kraken.com/0/private/Balance", headers=headers, data=data, timeout=10)
-    response.raise_for_status()
-    data = response.json()
-    return float(data['result'].get('ZUSD', 0.0))
-
-
 def send_real_trade_updates():
 
     open_trades = RealTrade.objects.filter(exit_timestamp__isnull=True)
@@ -422,8 +288,8 @@ def run_live_pipeline(request=None):
     long_model = xgb.Booster()
     long_model.load_model("four_long_xgb_model.bin")
 
-    #short_model = xgb.Booster()
-    #short_model.load_model("two_short_xgb_model.bin")
+    short_model = xgb.Booster()
+    short_model.load_model("four_short_xgb_model.bin")
 
     for coin in COINS:
         try:
@@ -463,7 +329,7 @@ def run_live_pipeline(request=None):
 
             #proba = model.predict(dmatrix)[0]
             long_proba = long_model.predict(dmatrix)[0]
-            #short_proba = short_model.predict(dmatrix)[0]
+            short_proba = short_model.predict(dmatrix)[0]
 
             print(f"{coin}: Long = {long_proba:.4f}")
 
@@ -490,7 +356,7 @@ def run_live_pipeline(request=None):
                     )
                     print(f"💰 LONG trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
 
-                '''
+
                 elif short_proba >= CONFIDENCE_THRESHOLD:
                     ModelTrade.objects.create(
                         coin=coin_obj,
@@ -504,16 +370,11 @@ def run_live_pipeline(request=None):
                         confidence_trade=CONFIDENCE_THRESHOLD
                     )
                     print(f"🔻 SHORT trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
-                '''
+
 
             else:
                 print(f"⚠ Trade already open for {coin}: {existing_trade.trade_type} @ {existing_trade.entry_timestamp}")
 
-
-            live_balance = get_kraken_balance()
-            if live_balance:
-                print("✅ Kraken balance:")
-                print(live_balance)
 
             # Real Trades
             if long_proba >= 0.8 and not RealTrade.objects.filter(exit_timestamp__isnull=True).exists():
@@ -524,78 +385,7 @@ def run_live_pipeline(request=None):
                     tp_pct = 4.0
                     sl_pct = 2.0
 
-                    raw_price = row["close"]
 
-                    entry_price = round(raw_price * 1.0005, 8)  # slightly under market
-                    tp_price = round(entry_price * (1 + tp_pct / 100), 8)
-                    sl_limit = round(entry_price * (1 - sl_pct / 100), 8)
-
-                    sl_trigger = round(entry_price * (1 - 0.0195), 8)  # -1.95%
-                    quantity = round(usd_amount / entry_price, 8)
-                    coin_symbol = COIN_SYMBOL_MAP_DB[coin]
-                    kraken_symbol = KRAKEN_SYMBOL_MAP[coin_symbol]
-                    leverage = max_leverage_map[coin_symbol]
-
-                    entry_price = round_price(coin_symbol, entry_price)
-                    tp_price = round_price(coin_symbol, tp_price)
-                    sl_price = round_price(coin_symbol, sl_limit)
-
-                    quantity = round_quantity(coin_symbol, quantity)
-
-                    # 1. ENTRY LIMIT BUY
-                    entry_order = {
-                        "pair": kraken_symbol,
-                        "type": "buy",
-                        "ordertype": "limit",
-                        "price": str(entry_price),
-                        "volume": str(quantity),
-                        "timeinforce": "GTD",
-                        "expiretm": str(int(time.time()) + 300),
-                        "leverage": leverage,
-                        "oflags": "fciq",
-                    }
-
-                    print("\n📤 Placing ENTRY order...")
-                    res1 = place_kraken_order("/0/private/AddOrder", entry_order)
-                    print("ENTRY ORDER RESPONSE:", res1)
-
-                    # 2. TAKE PROFIT LIMIT SELL
-                    tp_order = {
-                        "pair": kraken_symbol,
-                        "type": "sell",
-                        "ordertype": "take-profit-limit",
-                        "price": str(tp_price),
-                        "price2": str(tp_price),
-                        "volume": str(quantity),
-                    }
-                    print("\n📤 Placing TAKE PROFIT order...")
-                    res2 = place_kraken_order("/0/private/AddOrder", tp_order)
-                    print("TP ORDER RESPONSE:", res2)
-
-                    # 3. STOP LIMIT
-                    sl_order = {
-                        "pair": kraken_symbol,
-                        "type": "sell",
-                        "ordertype": "stop-loss",
-                        "price": str(sl_trigger),
-                        "volume": str(quantity),
-                    }
-                    print("\n📤 Placing STOP MARKET order...")
-                    res3 = place_kraken_order("/0/private/AddOrder", sl_order)
-                    print("STOP LIMIT ORDER RESPONSE:", res3)
-
-                    # 5. Save RealTrade
-                    RealTrade.objects.create(
-                        coin=coin_obj,
-                        trade_type="long",
-                        entry_timestamp=row["timestamp"],
-                        entry_price=entry_price,
-                        model_confidence=long_proba,
-                        take_profit_percent=tp_pct,
-                        stop_loss_percent=sl_pct,
-                        entry_usd_amount=usd_amount,
-                        account_balance_before=live_balance
-                    )
 
                     print(f"\n✅ REAL TRADE executed and logged for {coin_symbol}")
 
@@ -605,7 +395,7 @@ def run_live_pipeline(request=None):
         except Exception as e:
             print(f"❌ Error processing {coin}: {e}")
 
-    send_real_trade_updates()
+    #send_real_trade_updates()
 
 if __name__ == "__main__":
     run_live_pipeline()

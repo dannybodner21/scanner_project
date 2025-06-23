@@ -2,7 +2,7 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from datetime import date
 
-# python manage.py short_trade_testing two_short_predictions.csv
+# python manage.py short_trade_testing four_short_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate sequential SHORT trades on test data with 1 open trade max'
@@ -18,13 +18,13 @@ class Command(BaseCommand):
         if 'prediction' not in df.columns:
             raise ValueError("Missing 'prediction' column. Are you using the correct file with model outputs?")
 
-        initial_balance = 1000.0
+        initial_balance = 2500.0
         balance = initial_balance
         open_trade = None  # dict with keys: coin, entry_price, position_size, entry_index
         leverage = 10
 
-        take_profit_pct = 0.06  # Profit if price drops 6%
-        stop_loss_pct = 0.03    # Loss if price rises 3%
+        take_profit_pct = 0.04  # Profit if price drops 6%
+        stop_loss_pct = 0.02    # Loss if price rises 3%
 
         total_trades = 0
         wins = 0
@@ -42,7 +42,7 @@ class Command(BaseCommand):
 
             # If no open trade and model signals short entry
             if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 3:
-                position_size = balance * 0.25 if balance < 100000 else 10000.0
+                position_size = balance * 0.25 if balance < 100000 else 20000.0
                 entry_price = row['close']
                 open_trade = {
                     'coin': coin,

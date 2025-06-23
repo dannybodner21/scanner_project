@@ -20,8 +20,8 @@ class Command(BaseCommand):
 
         initial_balance = 2500.0
         balance = initial_balance
-        open_trade = None  # dict with keys: coin, entry_price, position_size, entry_index
-        leverage = 5
+        open_trade = None
+        leverage = 10
 
         take_profit_pct = 0.04
         stop_loss_pct = 0.02
@@ -37,6 +37,16 @@ class Command(BaseCommand):
         highest_confidence = 0
         lowest_confidence = 100
 
+        # milestone tracking
+        milestones = {
+            50_000: None,
+            100_000: None,
+            250_000: None,
+            500_000: None,
+            1_000_000: None,
+        }
+        remaining_milestones = set(milestones.keys())
+
         for idx, row in df.iterrows():
             coin = row['coin'] if 'coin' in row else 'UNKNOWN'
             row_day = row['timestamp'].date()
@@ -45,12 +55,8 @@ class Command(BaseCommand):
                 current_day = row_day
                 trades_today = 0
 
-            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 3:
-                if balance < 100000:
-                    position_size = balance * 0.25
-                else:
-                    position_size = 25000.0
-
+            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 1:
+                position_size = balance * 1.0 if balance < 2000000000 else 50000
                 entry_price = row['close']
                 open_trade = {
                     'coin': coin,
@@ -92,8 +98,6 @@ class Command(BaseCommand):
                         lowest_confidence = entry_confidence
 
                     self.stdout.write(f" X Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | Balance: {balance:.2f}")
-
-
                     open_trade = None
 
                 elif high >= tp_price:
@@ -110,8 +114,14 @@ class Command(BaseCommand):
                         highest_confidence = entry_confidence
 
                     self.stdout.write(f"🟢 Trade {total_trades} CLOSED | Coin: {coin_open} | Date: {row['timestamp'].date()} | Index: {idx} | TAKE PROFIT | Exit: {tp_price:.6f} | Profit: {profit_amount:.2f} | Balance: {balance:.2f}")
-
                     open_trade = None
+
+                # ✅ check for milestone after each trade resolution
+                for milestone in sorted(remaining_milestones):
+                    if balance >= milestone:
+                        milestones[milestone] = row['timestamp'].date()
+                        remaining_milestones.remove(milestone)
+                        break
 
             if balance < 0:
                 self.stdout.write("Balance dropped below zero. Stopping backtest.")
@@ -119,12 +129,19 @@ class Command(BaseCommand):
 
         average_winning_confidence = winning_confidence_total / wins if wins > 0 else 0
         average_losing_confidence = losing_confidence_total / losses if losses > 0 else 0
-        self.stdout.write(f"average winning confidence: {average_winning_confidence:.4f}")
-        self.stdout.write(f"average losing confidence: {average_losing_confidence:.4f}")
 
+        self.stdout.write(f"\naverage winning confidence: {average_winning_confidence:.4f}")
+        self.stdout.write(f"average losing confidence: {average_losing_confidence:.4f}")
         self.stdout.write(f"highest confidence: {highest_confidence:.4f}")
         self.stdout.write(f"lowest confidence: {lowest_confidence:.4f}")
 
-        self.stdout.write("Backtest complete.")
+        self.stdout.write("\nBacktest complete.")
         self.stdout.write(f"Total trades: {total_trades}, Wins: {wins}, Losses: {losses}")
         self.stdout.write(f"Final balance: ${balance:,.2f}")
+
+        self.stdout.write("\nMilestone Dates:")
+        for milestone, milestone_date in milestones.items():
+            if milestone_date:
+                self.stdout.write(f"${milestone:,.0f} reached on {milestone_date}")
+            else:
+                self.stdout.write(f"${milestone:,.0f} not reached")
