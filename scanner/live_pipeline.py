@@ -117,26 +117,15 @@ COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 
-FEATURES = [
-    'open', 'high', 'low', 'close', 'volume',
-    'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h', 'momentum',
-    'volume_ma_20', 'vol_spike', 'rsi_14', 'macd', 'macd_signal', 'macd_hist',
-    'bb_upper', 'bb_lower', 'atr_14', 'adx_14', 'obv', 'obv_slope',
-    'ema_9', 'ema_21', 'ema_diff', 'volatility', 'ma_200',
-    'bull_regime', 'bear_regime', 'sideways_regime',
-    'slope_1h', 'dist_from_high_24h', 'dist_from_low_24h',
-    'stoch_k', 'stoch_d', 'price_change_5', 'volume_change_5',
-    'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
-]
+
 
 FEATURES = [
     'open', 'high', 'low', 'close', 'volume',
-    'adx_14', 'ma_200', 'returns_5m', 'returns_15m', 'returns_1h',
-    'returns_4h', 'momentum', 'volume_ma_20', 'vol_spike', 'rsi_14', 'macd',
-    'macd_signal', 'macd_hist', 'bb_upper', 'bb_lower', 'atr_14', 'obv',
-    'obv_slope', 'ema_9', 'ema_21', 'ema_diff', 'volatility',
-    'bull_regime', 'bear_regime', 'sideways_regime',
-    'slope_1h', 'dist_from_high_24h', 'dist_from_low_24h',
+    'adx_14', 'ma_200', 'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h',
+    'momentum', 'volume_ma_20', 'vol_spike', 'rsi_14', 'macd', 'macd_signal',
+    'macd_hist', 'bb_upper', 'bb_lower', 'atr_14', 'obv', 'obv_slope',
+    'ema_9', 'ema_21', 'ema_diff', 'volatility', 'bull_regime', 'bear_regime',
+    'sideways_regime', 'slope_1h', 'dist_from_high_24h', 'dist_from_low_24h',
     'stoch_k', 'stoch_d', 'price_change_5', 'volume_change_5',
     'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
 ]
@@ -144,24 +133,11 @@ FEATURES = [
 
 INPUT_COLUMNS = [
     'open', 'high', 'low', 'close', 'volume',
-    'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h', 'momentum',
-    'volume_ma_20', 'vol_spike', 'rsi_14', 'macd', 'macd_signal', 'macd_hist',
-    'bb_upper', 'bb_lower', 'atr_14', 'adx_14', 'obv', 'obv_slope',
-    'ema_9', 'ema_21', 'ema_diff', 'volatility', 'ma_200',
-    'bull_regime', 'bear_regime', 'sideways_regime',
-    'slope_1h', 'dist_from_high_24h', 'dist_from_low_24h',
-    'stoch_k', 'stoch_d', 'price_change_5', 'volume_change_5',
-    'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
-]
-
-INPUT_COLUMNS = [
-    'open', 'high', 'low', 'close', 'volume',
-    'adx_14', 'ma_200', 'returns_5m', 'returns_15m', 'returns_1h',
-    'returns_4h', 'momentum', 'volume_ma_20', 'vol_spike', 'rsi_14', 'macd',
-    'macd_signal', 'macd_hist', 'bb_upper', 'bb_lower', 'atr_14', 'obv',
-    'obv_slope', 'ema_9', 'ema_21', 'ema_diff', 'volatility',
-    'bull_regime', 'bear_regime', 'sideways_regime',
-    'slope_1h', 'dist_from_high_24h', 'dist_from_low_24h',
+    'adx_14', 'ma_200', 'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h',
+    'momentum', 'volume_ma_20', 'vol_spike', 'rsi_14', 'macd', 'macd_signal',
+    'macd_hist', 'bb_upper', 'bb_lower', 'atr_14', 'obv', 'obv_slope',
+    'ema_9', 'ema_21', 'ema_diff', 'volatility', 'bull_regime', 'bear_regime',
+    'sideways_regime', 'slope_1h', 'dist_from_high_24h', 'dist_from_low_24h',
     'stoch_k', 'stoch_d', 'price_change_5', 'volume_change_5',
     'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
 ]
@@ -483,7 +459,7 @@ def run_live_pipeline(request=None):
                 print(f"  {col}: {feature_df.iloc[0][col]}")
 
 
-            dmatrix = xgb.DMatrix(feature_df, feature_names=FEATURES)
+            dmatrix = xgb.DMatrix(feature_df[INPUT_COLUMNS], feature_names=INPUT_COLUMNS)
 
             #proba = model.predict(dmatrix)[0]
             long_proba = long_model.predict(dmatrix)[0]
