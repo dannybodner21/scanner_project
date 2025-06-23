@@ -422,8 +422,8 @@ def run_live_pipeline(request=None):
     long_model = xgb.Booster()
     long_model.load_model("four_long_xgb_model.bin")
 
-    short_model = xgb.Booster()
-    short_model.load_model("two_short_xgb_model.bin")
+    #short_model = xgb.Booster()
+    #short_model.load_model("two_short_xgb_model.bin")
 
     for coin in COINS:
         try:
@@ -463,9 +463,9 @@ def run_live_pipeline(request=None):
 
             #proba = model.predict(dmatrix)[0]
             long_proba = long_model.predict(dmatrix)[0]
-            short_proba = short_model.predict(dmatrix)[0]
+            #short_proba = short_model.predict(dmatrix)[0]
 
-            print(f"{coin}: Long = {long_proba:.4f}, Short = {short_proba:.4f}")
+            print(f"{coin}: Long = {long_proba:.4f}")
 
             db_symbol = COIN_SYMBOL_MAP_DB.get(coin)
             coin_obj = Coin.objects.get(symbol=db_symbol)
@@ -489,6 +489,8 @@ def run_live_pipeline(request=None):
                         confidence_trade=CONFIDENCE_THRESHOLD
                     )
                     print(f"💰 LONG trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
+
+                '''
                 elif short_proba >= CONFIDENCE_THRESHOLD:
                     ModelTrade.objects.create(
                         coin=coin_obj,
@@ -502,6 +504,8 @@ def run_live_pipeline(request=None):
                         confidence_trade=CONFIDENCE_THRESHOLD
                     )
                     print(f"🔻 SHORT trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
+                '''
+
             else:
                 print(f"⚠ Trade already open for {coin}: {existing_trade.trade_type} @ {existing_trade.entry_timestamp}")
 
