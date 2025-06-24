@@ -336,12 +336,19 @@ def run_live_pipeline(request=None):
             db_symbol = COIN_SYMBOL_MAP_DB.get(coin)
             coin_obj = Coin.objects.get(symbol=db_symbol)
 
-            existing_trade = ModelTrade.objects.filter(
+            existing_long_trade = ModelTrade.objects.filter(
                 coin=coin_obj,
-                exit_timestamp__isnull=True
+                exit_timestamp__isnull=True,
+                trade_type="long"
             ).first()
 
-            if not existing_trade:
+            existing_short_trade = ModelTrade.objects.filter(
+                coin=coin_obj,
+                exit_timestamp__isnull=True,
+                trade_type="short"
+            ).first()
+
+            if not existing_long_trade:
                 if long_proba >= CONFIDENCE_THRESHOLD:
                     ModelTrade.objects.create(
                         coin=coin_obj,
@@ -356,8 +363,11 @@ def run_live_pipeline(request=None):
                     )
                     print(f"💰 LONG trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
 
+            else:
+                print(f"⚠ Long trade already open for {coin}: {existing_trade.trade_type} @ {existing_trade.entry_timestamp}")
 
-                elif short_proba >= CONFIDENCE_THRESHOLD:
+            if not existing_short_trade:
+                if short_proba >= CONFIDENCE_THRESHOLD:
                     ModelTrade.objects.create(
                         coin=coin_obj,
                         trade_type="short",
@@ -371,9 +381,10 @@ def run_live_pipeline(request=None):
                     )
                     print(f"🔻 SHORT trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
 
-
             else:
-                print(f"⚠ Trade already open for {coin}: {existing_trade.trade_type} @ {existing_trade.entry_timestamp}")
+                print(f"⚠ Short trade already open for {coin}: {existing_trade.trade_type} @ {existing_trade.entry_timestamp}")
+
+
 
 
             # Real Trades
