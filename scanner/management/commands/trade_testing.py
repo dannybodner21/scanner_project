@@ -18,7 +18,7 @@ class Command(BaseCommand):
         if 'prediction' not in df.columns:
             raise ValueError("Missing 'prediction' column. Are you using the correct file with model outputs?")
 
-        initial_balance = 5000.0
+        initial_balance = 1000.0
         balance = initial_balance
         open_trade = None
         leverage = 10
@@ -56,7 +56,7 @@ class Command(BaseCommand):
                 trades_today = 0
 
             if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 4:
-                position_size = balance * 0.25 if balance < 100000 else 50000
+                position_size = balance * 0.25 if balance < 100000 else 25000
                 entry_price = row['close']
                 open_trade = {
                     'coin': coin,

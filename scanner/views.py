@@ -46,6 +46,65 @@ from django.db.models import Q
 
 
 
+def get_current_price(symbol):
+    # CoinGecko uses coin *names*, not symbols
+    symbol_map = {
+        'BTC': 'bitcoin',
+        'ETH': 'ethereum',
+        'XRP': 'ripple',
+        'LTC': 'litecoin',
+        'SOL': 'solana',
+        'DOGE': 'dogecoin',
+        'LINK': 'chainlink',
+        'DOT': 'polkadot',
+        'SHIB': 'shiba-inu',
+        'ADA': 'cardano',
+    }
+
+    coingecko_id = symbol_map.get(symbol.upper())
+    if not coingecko_id:
+        return None
+
+    try:
+        url = f"https://api.coingecko.com/api/v3/simple/price?ids={coingecko_id}&vs_currencies=usd"
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        return Decimal(str(data.get(coingecko_id, {}).get('usd')))
+    except Exception as e:
+        print(f"Price fetch error for {symbol}: {e}")
+        return None
+
+def open_trades_view(request):
+    open_trades = RealTrade.objects.filter(exit_timestamp__isnull=True).order_by('-entry_timestamp')
+
+    trades_data = []
+    for trade in open_trades:
+        current_price = get_current_price(trade.coin.symbol)
+        if current_price is None:
+            continue  # skip this trade if price couldn't be fetched
+
+        entry_price = trade.entry_price
+        if trade.trade_type.lower() == "long":
+            pnl = ((current_price - entry_price) / entry_price) * 100
+        else:  # short
+            pnl = ((entry_price - current_price) / entry_price) * 100
+
+        trades_data.append({
+            'coin': trade.coin.symbol,
+            'side': trade.trade_type,
+            'entry_price': round(entry_price, 4),
+            'current_price': round(current_price, 4),
+            'pnl': round(pnl, 2),
+        })
+
+    return render(request, 'trades.html', {'trades': trades_data})
+
+
+
+
+
+
 # FLOW OF THE ML MODEL:
 # run five min update logic -> get new metrics
 # load latest rickismetrics -> load metrics for prediction

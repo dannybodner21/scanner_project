@@ -320,9 +320,9 @@ def run_live_pipeline(request=None):
 
 
             # 🔍 Print input features for investigation
-            print(f"\n📊 Features sent to model for {coin}:")
-            for col in INPUT_COLUMNS:
-                print(f"  {col}: {feature_df.iloc[0][col]}")
+            #print(f"\n📊 Features sent to model for {coin}:")
+            #for col in INPUT_COLUMNS:
+                #print(f"  {col}: {feature_df.iloc[0][col]}")
 
 
             dmatrix = xgb.DMatrix(feature_df[INPUT_COLUMNS], feature_names=INPUT_COLUMNS)

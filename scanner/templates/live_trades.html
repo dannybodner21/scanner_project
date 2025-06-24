@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="10">
+  <title>Live Trades</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      font-size: 1.2em;
+      margin: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border-bottom: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    .positive { color: green; }
+    .negative { color: red; }
+  </style>
+</head>
+<body>
+  <h2>Open Trades</h2>
+  <table>
+    <tr>
+      <th>Coin</th>
+      <th>Type</th>
+      <th>Entry</th>
+      <th>Current</th>
+      <th>PNL%</th>
+    </tr>
+    {% for trade in trades %}
+    <tr>
+      <td>{{ trade.coin }}</td>
+      <td>{{ trade.trade_type }}</td>
+      <td>{{ trade.entry_price }}</td>
+      <td>{{ trade.current_price }}</td>
+      <td class="{% if trade.pnl > 0 %}positive{% elif trade.pnl < 0 %}negative{% endif %}">
+        {{ trade.pnl }}%
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>
