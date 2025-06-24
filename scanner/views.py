@@ -71,7 +71,7 @@ def open_trades_view(request):
         else:
             pnl = ((entry - current_price) / entry) * 100
 
-        if symbol == "SHIB":
+        if symbol.lower() == "shib":
             entry = round(entry, 8)
             current_price = round(current_price, 8)
         else:
@@ -81,6 +81,7 @@ def open_trades_view(request):
         trades_data.append({
             'coin': symbol,
             'side': trade.trade_type,
+            'type': trade.type,
             'entry_price': entry,
             'current_price': current_price,
             'pnl': round(pnl, 2),
