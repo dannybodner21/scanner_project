@@ -98,7 +98,7 @@ def open_trades_view(request):
             'pnl': round(pnl, 2),
         })
 
-    return render(request, 'trades.html', {'trades': trades_data})
+    return render(request, 'live_trades.html', {'trades': trades_data})
 
 
 
