@@ -364,7 +364,7 @@ def run_live_pipeline(request=None):
                     print(f"💰 LONG trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
 
             else:
-                print(f"⚠ Long trade already open for {coin}: {existing_trade.trade_type} @ {existing_trade.entry_timestamp}")
+                print(f"⚠ Long trade already open for {coin}: {existing_long_trade.trade_type} @ {existing_long_trade.entry_timestamp}")
 
             if not existing_short_trade:
                 if short_proba >= CONFIDENCE_THRESHOLD:
@@ -382,7 +382,7 @@ def run_live_pipeline(request=None):
                     print(f"🔻 SHORT trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
 
             else:
-                print(f"⚠ Short trade already open for {coin}: {existing_trade.trade_type} @ {existing_trade.entry_timestamp}")
+                print(f"⚠ Short trade already open for {coin}: {existing_short_trade.trade_type} @ {existing_short_trade.entry_timestamp}")
 
 
 
