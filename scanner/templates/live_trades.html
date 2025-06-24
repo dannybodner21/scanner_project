@@ -73,13 +73,15 @@
       <div class="entry"><p>Current</p></div>
       <div class="entry"><p>PNL</p></div>
     </div>
-    <div class="table-row">
-      <div class="entry"><p>{{ trade.coin }}</p></div>
-      <div class="entry"><p>{{ trade.type }}</p></div>
-      <div class="entry"><p>{{ trade.entry_price }}</p></div>
-      <div class="entry"><p>{{ trade.current_price }}</p></div>
-      <div class="entry"><p class="{% if trade.pnl > 0 %}positive{% elif trade.pnl < 0 %}negative{% endif %}">{{ trade.pnl }}%</p></div>
-    </div>
+    {% for trade in trades %}
+      <div class="table-row">
+        <div class="entry"><p>{{ trade.coin }}</p></div>
+        <div class="entry"><p>{{ trade.type }}</p></div>
+        <div class="entry"><p>{{ trade.entry_price }}</p></div>
+        <div class="entry"><p>{{ trade.current_price }}</p></div>
+        <div class="entry"><p class="{% if trade.pnl > 0 %}positive{% elif trade.pnl < 0 %}negative{% endif %}">{{ trade.pnl }}%</p></div>
+      </div>
+    {% endfor %}
   </div>
 </body>
 </html>
