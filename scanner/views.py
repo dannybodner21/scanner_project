@@ -44,10 +44,15 @@ from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from django.db.models import Q
 
-import websockets
-from django.utils.timezone import now
-from price_cache import latest_prices, price_lock
 
+
+def get_current_price(symbol):
+    try:
+        coin = Coin.objects.get(symbol=symbol.upper())
+        latest_price = CoinAPIPrice.objects.filter(coin=coin).order_by('-timestamp').first()
+        return latest_price.close if latest_price else None
+    except Coin.DoesNotExist:
+        return None
 
 
 def open_trades_view(request):
