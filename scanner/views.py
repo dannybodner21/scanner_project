@@ -80,8 +80,7 @@ def open_trades_view(request):
 
         trades_data.append({
             'coin': symbol,
-            'side': trade.trade_type,
-            'type': trade.type,
+            'type': trade.trade_type,
             'entry_price': entry,
             'current_price': current_price,
             'pnl': round(pnl, 2),
