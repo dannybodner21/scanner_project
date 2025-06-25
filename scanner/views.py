@@ -50,6 +50,11 @@ from .models import RealTrade
 from .serializers import RealTradeLiveSerializer
 
 
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import RealTrade, Coin, CoinAPIPrice
+
 @api_view(['GET'])
 def live_trades(request):
     trades = RealTrade.objects.filter(exit_price__isnull=True).order_by('-entry_timestamp')
@@ -84,6 +89,51 @@ def live_trades(request):
         })
 
     return Response(results)
+
+
+
+def get_current_price(symbol):
+    try:
+        coin = Coin.objects.get(symbol=symbol.upper())
+        latest_price = CoinAPIPrice.objects.filter(coin=coin).order_by('-timestamp').first()
+        return latest_price.close if latest_price else None
+    except Coin.DoesNotExist:
+        return None
+
+
+def open_trades_view(request):
+    open_trades = RealTrade.objects.filter(exit_timestamp__isnull=True).order_by('-entry_timestamp')
+
+    trades_data = []
+    for trade in open_trades:
+        symbol = trade.coin.symbol.upper()
+        current_price = get_current_price(symbol)
+        if not current_price:
+            continue
+
+        entry = trade.entry_price
+        if trade.trade_type.lower() == "long":
+            pnl = ((current_price - entry) / entry) * 100
+        else:
+            pnl = ((entry - current_price) / entry) * 100
+
+        if symbol.lower() == "shib":
+            entry = round(entry, 8)
+            current_price = round(current_price, 8)
+        else:
+            entry = round(entry, 4)
+            current_price = round(current_price, 4)
+
+        trades_data.append({
+            'coin': symbol,
+            'type': trade.trade_type,
+            'entry_price': entry,
+            'current_price': current_price,
+            'pnl': round(pnl, 2),
+        })
+
+    return render(request, 'live_trades.html', {'trades': trades_data})
+
 
 
 
