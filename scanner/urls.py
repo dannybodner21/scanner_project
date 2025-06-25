@@ -39,6 +39,8 @@ urlpatterns = [
     path("run-live-pipeline/", views.run_live_pipeline_view, name="run_live_pipeline"),
 
     path('trades/', views.open_trades_view, name='open_trades'),
+    path('api/live-trades/', views.live_trades, name='live-trades'),
+
 
 
 ]

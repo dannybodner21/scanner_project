@@ -44,6 +44,18 @@ from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from django.db.models import Q
 
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import RealTrade
+from .serializers import RealTradeLiveSerializer
+
+
+
+@api_view(['GET'])
+def live_trades(request):
+    trades = RealTrade.objects.filter(exit_price__isnull=True).order_by('-entry_timestamp')
+    serializer = RealTradeLiveSerializer(trades, many=True)
+    return Response(serializer.data)
 
 
 def get_current_price(symbol):
