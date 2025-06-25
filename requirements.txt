@@ -122,8 +122,6 @@ sqlparse==0.5.3
 ta==0.11.0
 ta-lib==0.6.4
 tablib==3.8.0
-tensorboard==2.12.3
-tensorboard-data-server==0.7.2
 termcolor==3.1.0
 threadpoolctl==3.6.0
 Twisted==25.5.0
