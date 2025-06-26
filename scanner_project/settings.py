@@ -34,6 +34,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['scanner-project-bkdz5.ondigitalocean.app', 'localhost', '127.0.0.1', 'http://127.0.0.1', 'fiatisfake.com', 'https://www.fiatisfake.com']
 
 
+
 # Application definition
 
 INSTALLED_APPS = [

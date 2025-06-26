@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         test_csv_path = 'five_long_testing_data.csv'
-        model_path = 'four_long_xgb_model.bin'
+        model_path = 'five_long_xgb_model.bin'
         output_csv_path = 'five_long_predictions.csv'
 
         self.stdout.write(f"Loading test data from {test_csv_path} ...")

@@ -58,8 +58,8 @@ class Command(BaseCommand):
                 current_day = row_day
                 trades_today = 0
 
-            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 4:
-                position_size = balance * 0.25 if balance < 250000 else 50000
+            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 2:
+                position_size = balance * 0.5 if balance < 250000 else 50000
                 entry_price = row['close']
                 open_trade = {
                     'coin': coin,

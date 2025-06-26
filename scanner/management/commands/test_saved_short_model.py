@@ -7,9 +7,9 @@ class Command(BaseCommand):
     help = "Test the saved XGBoost short model on 2025 short test data, print metrics, and save predictions"
 
     def handle(self, *args, **options):
-        test_csv_path = 'four_short_testing_data.csv'
-        model_path = 'four_short_xgb_model.bin'
-        output_csv_path = 'four_short_predictions.csv'
+        test_csv_path = 'five_short_testing_data.csv'
+        model_path = 'five_short_xgb_model.bin'
+        output_csv_path = 'five_short_predictions.csv'
 
         self.stdout.write(f"Loading test data from {test_csv_path} ...")
         df_test = pd.read_csv(test_csv_path, parse_dates=['timestamp'])
@@ -29,7 +29,7 @@ class Command(BaseCommand):
         y_pred_prob = model.predict(dtest)
 
         self.stdout.write("Generating predicted labels with 0.5 threshold ...")
-        y_pred = (y_pred_prob >= 0.5).astype(int)
+        y_pred = (y_pred_prob >= 0.97).astype(int)
 
         self.stdout.write("Classification Report on 2025 short test data:")
         report = classification_report(y_test, y_pred)

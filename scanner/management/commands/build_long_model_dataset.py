@@ -13,18 +13,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        print("here1")
         coins = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'SOLUSDT', 'DOGEUSDT', 'LINKUSDT', 'DOTUSDT', 'SHIBUSDT', 'ADAUSDT']
-        print("here2")
         start_date = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        print("here3")
         #end_date = datetime.now(timezone.utc)
-        end_date = datetime(2025, 6, 18, 23, 55, tzinfo=timezone.utc)
-        print("here4")
+        end_date = datetime(2025, 6, 25, 23, 55, tzinfo=timezone.utc)
 
         dfs = []
         for coin in coins:
-            print("here5")
             self.stdout.write(f"Loading data for {coin}...")
             df = self.load_data(coin, start_date, end_date)
             if df.empty:
@@ -45,8 +40,8 @@ class Command(BaseCommand):
         balanced_df = self.balance_data(full_df)
         self.stdout.write(f"Balanced dataset size: {len(balanced_df)}")
 
-        test_df = balanced_df[balanced_df.index >= datetime(2025, 1, 1, tzinfo=timezone.utc)]
-        train_df = balanced_df[balanced_df.index < datetime(2025, 1, 1, tzinfo=timezone.utc)]
+        test_df = balanced_df[balanced_df.index >= datetime(2025, 4, 1, tzinfo=timezone.utc)]
+        train_df = balanced_df[balanced_df.index < datetime(2025, 4, 1, tzinfo=timezone.utc)]
 
         self.stdout.write(f"Training data rows: {len(train_df)}")
         self.stdout.write(f"Test data rows: {len(test_df)}")

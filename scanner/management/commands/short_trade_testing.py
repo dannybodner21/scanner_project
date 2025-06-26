@@ -2,7 +2,8 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from datetime import date
 
-# python manage.py short_trade_testing four_short_predictions.csv
+# Run like:
+# python manage.py short_trade_testing five_short_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate sequential SHORT trades on test data with 1 open trade max'
@@ -18,13 +19,13 @@ class Command(BaseCommand):
         if 'prediction' not in df.columns:
             raise ValueError("Missing 'prediction' column. Are you using the correct file with model outputs?")
 
-        initial_balance = 2500.0
+        initial_balance = 5000.0
         balance = initial_balance
-        open_trade = None  # dict with keys: coin, entry_price, position_size, entry_index
+        open_trade = None
         leverage = 10
 
-        take_profit_pct = 0.04  # Profit if price drops 6%
-        stop_loss_pct = 0.02    # Loss if price rises 3%
+        take_profit_pct = 0.04  # short TP = price drops 4%
+        stop_loss_pct = 0.02    # short SL = price rises 2%
 
         total_trades = 0
         wins = 0
@@ -32,17 +33,34 @@ class Command(BaseCommand):
         trades_today = 0
         current_day = None
 
+        winning_confidence_total = 0
+        losing_confidence_total = 0
+        highest_confidence = 0
+        lowest_confidence = 100
+
+        high_confidence_trades = 0
+        winning_high_confidence_trades = 0
+
+        milestones = {
+            50_000: None,
+            100_000: None,
+            250_000: None,
+            500_000: None,
+            1_000_000: None,
+        }
+        remaining_milestones = set(milestones.keys())
+
         for idx, row in df.iterrows():
-            coin = row['coin'] if 'coin' in row else 'UNKNOWN'
+            coin = row.get('coin', 'UNKNOWN')
             row_day = row['timestamp'].date()
 
             if current_day != row_day:
                 current_day = row_day
-                trades_today = 0  # reset daily counter
+                trades_today = 0
 
-            # If no open trade and model signals short entry
-            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 3:
-                position_size = balance * 0.25 if balance < 100000 else 20000.0
+            # Open short trade
+            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 2:
+                position_size = balance * 0.5 if balance < 250000 else 50000
                 entry_price = row['close']
                 open_trade = {
                     'coin': coin,
@@ -51,12 +69,14 @@ class Command(BaseCommand):
                     'entry_index': idx,
                     'entry_timestamp': row['timestamp']
                 }
+
                 trades_today += 1
                 total_trades += 1
-                self.stdout.write(f"SHORT {total_trades} OPENED for {coin} at index {idx}, entry price: {entry_price:.6f}, position size: {position_size:.2f}, balance: {balance:.2f}")
+
+                self.stdout.write(f"🔻 SHORT {total_trades} OPENED for {coin} at index {idx}, entry price: {entry_price:.6f}, position size: {position_size:.2f}, balance: {balance:.2f}")
                 continue
 
-            # If open trade, evaluate outcome
+            # Evaluate open short trade
             if open_trade is not None:
                 if row['timestamp'] <= open_trade['entry_timestamp']:
                     continue
@@ -66,27 +86,78 @@ class Command(BaseCommand):
                 entry_price = open_trade['entry_price']
                 coin_open = open_trade['coin']
 
-                sl_price = entry_price * (1 + stop_loss_pct)  # stop loss on upward movement
-                tp_price = entry_price * (1 - take_profit_pct)  # take profit on downward movement
+                sl_price = entry_price * (1 + stop_loss_pct)
+                tp_price = entry_price * (1 - take_profit_pct)
+
+                entry_index = open_trade['entry_index']
+                entry_confidence = df.loc[entry_index, 'prediction_prob']
 
                 if high >= sl_price:
+                    # Stop loss hit
                     loss_amount = open_trade['position_size'] * leverage * stop_loss_pct
                     balance -= loss_amount
                     losses += 1
-                    self.stdout.write(f"SHORT {total_trades} CLOSED for {coin_open} at index {idx} with STOP LOSS, exit price: {sl_price:.6f}, loss: {loss_amount:.2f}, balance: {balance:.2f}")
+                    losing_confidence_total += entry_confidence
+
+                    if entry_confidence > 0.97:
+                        high_confidence_trades += 1
+
+                    if entry_confidence < lowest_confidence:
+                        lowest_confidence = entry_confidence
+
+                    self.stdout.write(f"❌ SHORT {total_trades} CLOSED | Coin: {coin_open} | Index: {idx} | STOP LOSS | Exit: {sl_price:.6f} | Loss: {loss_amount:.2f} | Balance: {balance:.2f}")
+                    self.stdout.write(f"losing confidence: {entry_confidence:.4f}")
                     open_trade = None
 
                 elif low <= tp_price:
+                    # Take profit hit
                     profit_amount = open_trade['position_size'] * leverage * take_profit_pct
                     balance += profit_amount
                     wins += 1
-                    self.stdout.write(f"SHORT {total_trades} CLOSED for {coin_open} at index {idx} with TAKE PROFIT, exit price: {tp_price:.6f}, profit: {profit_amount:.2f}, balance: {balance:.2f}")
+                    winning_confidence_total += entry_confidence
+
+                    if entry_confidence > 0.97:
+                        high_confidence_trades += 1
+                        winning_high_confidence_trades += 1
+
+                    if entry_confidence > highest_confidence:
+                        highest_confidence = entry_confidence
+
+                    self.stdout.write(f"🟢 SHORT {total_trades} CLOSED | Coin: {coin_open} | Index: {idx} | TAKE PROFIT | Exit: {tp_price:.6f} | Profit: {profit_amount:.2f} | Balance: {balance:.2f}")
+                    self.stdout.write(f"winning confidence: {entry_confidence:.4f}")
                     open_trade = None
+
+                # Check milestones
+                for milestone in sorted(remaining_milestones):
+                    if balance >= milestone:
+                        milestones[milestone] = row['timestamp'].date()
+                        remaining_milestones.remove(milestone)
+                        break
 
             if balance < 0:
                 self.stdout.write("Balance dropped below zero. Stopping backtest.")
                 break
 
-        self.stdout.write("Backtest complete.")
+        average_winning_confidence = winning_confidence_total / wins if wins > 0 else 0
+        average_losing_confidence = losing_confidence_total / losses if losses > 0 else 0
+
+        self.stdout.write(f"\naverage winning confidence: {average_winning_confidence:.4f}")
+        self.stdout.write(f"average losing confidence: {average_losing_confidence:.4f}")
+        self.stdout.write(f"highest confidence: {highest_confidence:.4f}")
+        self.stdout.write(f"lowest confidence: {lowest_confidence:.4f}")
+
+        self.stdout.write("\nBacktest complete.")
         self.stdout.write(f"Total trades: {total_trades}, Wins: {wins}, Losses: {losses}")
         self.stdout.write(f"Final balance: ${balance:,.2f}")
+
+        self.stdout.write(f"high confidence trades: {high_confidence_trades}")
+        self.stdout.write(f"winning high confidence trades: {winning_high_confidence_trades}")
+        self.stdout.write(f"high confidence trade percentage: {winning_high_confidence_trades / high_confidence_trades if high_confidence_trades else 0:.2%}")
+        self.stdout.write(f"Final success rate: {wins / total_trades if total_trades else 0:.2%}")
+
+        self.stdout.write("\nMilestone Dates:")
+        for milestone, milestone_date in milestones.items():
+            if milestone_date:
+                self.stdout.write(f"${milestone:,.0f} reached on {milestone_date}")
+            else:
+                self.stdout.write(f"${milestone:,.0f} not reached")

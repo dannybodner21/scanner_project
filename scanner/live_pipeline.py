@@ -286,10 +286,10 @@ def run_live_pipeline(request=None):
     django.setup()
 
     long_model = xgb.Booster()
-    long_model.load_model("four_long_xgb_model.bin")
+    long_model.load_model("five_long_xgb_model.bin")
 
     short_model = xgb.Booster()
-    short_model.load_model("four_short_xgb_model.bin")
+    short_model.load_model("five_short_xgb_model.bin")
 
     for coin in COINS:
         try:

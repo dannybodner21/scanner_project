@@ -2,7 +2,7 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 
 # Run with:
-# python manage.py all_trades two_long_predictions.csv two_short_predictions.csv
+# python manage.py all_trades five_long_predictions.csv five_short_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate combined long and short trading with max 3 open trades and 3 trades per day, with dynamic trailing stop and printed confidence scores'
