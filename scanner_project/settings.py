@@ -89,6 +89,8 @@ WSGI_APPLICATION = "scanner_project.wsgi.application"
 
 import os
 
+# export USE_DO_REMOTE=true
+
 if os.getenv('DIGITALOCEAN_ENV') == 'production':
     DATABASES = {
         'default': {

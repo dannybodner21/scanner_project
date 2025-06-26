@@ -93,7 +93,7 @@ INPUT_COLUMNS = [
 ]
 
 
-CONFIDENCE_THRESHOLD = 0.8
+CONFIDENCE_THRESHOLD = 0.97
 
 
 def send_text(messages):
@@ -388,7 +388,7 @@ def run_live_pipeline(request=None):
 
 
             # Real Trades
-            if long_proba >= 0.8 and not RealTrade.objects.filter(exit_timestamp__isnull=True).exists():
+            if long_proba >= 0.99 and not RealTrade.objects.filter(exit_timestamp__isnull=True).exists():
 
                 try:
                     usd_amount = 200

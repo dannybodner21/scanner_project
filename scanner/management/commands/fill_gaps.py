@@ -12,11 +12,11 @@ class Command(BaseCommand):
     help = "Patch missing 5min candles using Polygon.io"
 
     def handle(self, *args, **kwargs):
-        coin = "ADAUSDT"
+        coin = "ETHUSDT"
         polygon_api_key = "qq9Sptr4VfkonQimqFJEgc3oyXoaJ54L"
 
         start_time = datetime.datetime(2025, 6, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 6, 19, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 25, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         self.stdout.write("Loading all existing timestamps into memory...")
         existing = set(
@@ -50,7 +50,7 @@ class Command(BaseCommand):
             day_end = datetime.datetime.combine(day, datetime.time.max, tzinfo=datetime.timezone.utc)
 
             url = (
-                f"https://api.polygon.io/v2/aggs/ticker/X:ADAUSD/range/5/minute/"
+                f"https://api.polygon.io/v2/aggs/ticker/X:ETHUSD/range/5/minute/"
                 f"{int(day_start.timestamp())}/{int(day_end.timestamp())}?adjusted=true&sort=asc&limit=50000&apiKey={polygon_api_key}"
             )
 

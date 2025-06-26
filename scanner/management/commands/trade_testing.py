@@ -2,7 +2,7 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from datetime import date
 
-# python manage.py trade_testing four_long_predictions.csv
+# python manage.py trade_testing five_long_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate sequential trading on test data with 1 open trade max'
@@ -18,7 +18,7 @@ class Command(BaseCommand):
         if 'prediction' not in df.columns:
             raise ValueError("Missing 'prediction' column. Are you using the correct file with model outputs?")
 
-        initial_balance = 1000.0
+        initial_balance = 5000.0
         balance = initial_balance
         open_trade = None
         leverage = 10
@@ -36,6 +36,9 @@ class Command(BaseCommand):
         losing_confidence_total = 0
         highest_confidence = 0
         lowest_confidence = 100
+
+        high_confidence_trades = 0
+        winning_high_confidence_trades = 0
 
         # milestone tracking
         milestones = {
@@ -56,7 +59,7 @@ class Command(BaseCommand):
                 trades_today = 0
 
             if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 4:
-                position_size = balance * 0.25 if balance < 100000 else 25000
+                position_size = balance * 0.25 if balance < 250000 else 50000
                 entry_price = row['close']
                 open_trade = {
                     'coin': coin,
@@ -85,7 +88,9 @@ class Command(BaseCommand):
                 sl_price = entry_price * (1 - stop_loss_pct)
 
                 if low <= sl_price:
+
                     loss_amount = open_trade['position_size'] * leverage * stop_loss_pct
+
                     balance -= loss_amount
                     losses += 1
 
@@ -94,6 +99,9 @@ class Command(BaseCommand):
                     self.stdout.write(f"losing confidence: {entry_confidence:.4f}")
                     losing_confidence_total += entry_confidence
 
+                    if entry_confidence > 0.97:
+                        high_confidence_trades += 1
+
                     if entry_confidence < lowest_confidence:
                         lowest_confidence = entry_confidence
 
@@ -101,7 +109,9 @@ class Command(BaseCommand):
                     open_trade = None
 
                 elif high >= tp_price:
+
                     profit_amount = open_trade['position_size'] * leverage * take_profit_pct
+
                     balance += profit_amount
                     wins += 1
 
@@ -109,6 +119,10 @@ class Command(BaseCommand):
                     entry_confidence = df.loc[entry_index, 'prediction_prob']
                     self.stdout.write(f"winning confidence: {entry_confidence:.4f}")
                     winning_confidence_total += entry_confidence
+
+                    if entry_confidence > 0.97:
+                        high_confidence_trades += 1
+                        winning_high_confidence_trades += 1
 
                     if entry_confidence > highest_confidence:
                         highest_confidence = entry_confidence
@@ -138,6 +152,12 @@ class Command(BaseCommand):
         self.stdout.write("\nBacktest complete.")
         self.stdout.write(f"Total trades: {total_trades}, Wins: {wins}, Losses: {losses}")
         self.stdout.write(f"Final balance: ${balance:,.2f}")
+
+        self.stdout.write(f"high confidence trades: {high_confidence_trades}")
+        self.stdout.write(f"winning high confidence trades: {winning_high_confidence_trades}")
+
+        self.stdout.write(f"high confidence trade percentage: {winning_high_confidence_trades/high_confidence_trades}%")
+        self.stdout.write(f"Final success rate: {wins/total_trades}%")
 
         self.stdout.write("\nMilestone Dates:")
         for milestone, milestone_date in milestones.items():
