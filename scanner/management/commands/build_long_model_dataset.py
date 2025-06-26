@@ -12,7 +12,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         coins = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'SOLUSDT', 'DOGEUSDT', 'LINKUSDT', 'DOTUSDT', 'SHIBUSDT', 'ADAUSDT']
         start_date = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        end_date = datetime.now(timezone.utc)
+        #end_date = datetime.now(timezone.utc)
+        end_date = datetime(2025, 6, 18, 23, 55, tzinfo=timezone.utc)
 
         dfs = []
         for coin in coins:
@@ -42,8 +43,8 @@ class Command(BaseCommand):
         self.stdout.write(f"Training data rows: {len(train_df)}")
         self.stdout.write(f"Test data rows: {len(test_df)}")
 
-        train_df.to_csv("four_long_training_data.csv")
-        test_df.to_csv("four_long_testing_data.csv")
+        train_df.to_csv("five_long_training_data.csv")
+        test_df.to_csv("five_long_testing_data.csv")
         self.stdout.write("Training and test CSV files saved.")
 
     def load_data(self, coin, start, end):

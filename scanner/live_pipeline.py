@@ -93,7 +93,7 @@ INPUT_COLUMNS = [
 ]
 
 
-CONFIDENCE_THRESHOLD = 0.5
+CONFIDENCE_THRESHOLD = 0.8
 
 
 def send_text(messages):
