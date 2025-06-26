@@ -12,3 +12,5 @@ vertex_training_data_clean.csv
 predictions/
 *.jsonl
 venv/
+__pycache__/
+*.pyc

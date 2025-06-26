@@ -6,17 +6,25 @@ from datetime import datetime, timezone
 from django.core.management.base import BaseCommand
 from scanner.models import CoinAPIPrice
 
+
+
 class Command(BaseCommand):
     help = 'Build dataset with engineered features for long trade model'
 
     def handle(self, *args, **options):
+
+        print("here1")
         coins = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'SOLUSDT', 'DOGEUSDT', 'LINKUSDT', 'DOTUSDT', 'SHIBUSDT', 'ADAUSDT']
+        print("here2")
         start_date = datetime(2022, 1, 1, tzinfo=timezone.utc)
+        print("here3")
         #end_date = datetime.now(timezone.utc)
         end_date = datetime(2025, 6, 18, 23, 55, tzinfo=timezone.utc)
+        print("here4")
 
         dfs = []
         for coin in coins:
+            print("here5")
             self.stdout.write(f"Loading data for {coin}...")
             df = self.load_data(coin, start_date, end_date)
             if df.empty:
