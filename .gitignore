@@ -11,3 +11,4 @@ vertex_training_data.parquet
 vertex_training_data_clean.csv
 predictions/
 *.jsonl
+venv/
