@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from datetime import date
 
 # Run like:
-# python manage.py short_trade_testing five_short_predictions.csv
+# python manage.py short_trade_testing six_short_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate sequential SHORT trades on test data with 1 open trade max'

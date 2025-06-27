@@ -7,9 +7,9 @@ class Command(BaseCommand):
     help = "Test the saved XGBoost model on 2025 test data, print metrics, and save predictions"
 
     def handle(self, *args, **options):
-        test_csv_path = 'five_long_testing_data.csv'
-        model_path = 'five_long_xgb_model.bin'
-        output_csv_path = 'five_long_predictions.csv'
+        test_csv_path = 'six_long_testing_data.csv'
+        model_path = 'six_long_xgb_model.bin'
+        output_csv_path = 'six_long_predictions.csv'
 
         self.stdout.write(f"Loading test data from {test_csv_path} ...")
         df_test = pd.read_csv(test_csv_path, parse_dates=['timestamp'])

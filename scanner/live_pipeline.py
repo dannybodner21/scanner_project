@@ -286,10 +286,10 @@ def run_live_pipeline(request=None):
     django.setup()
 
     long_model = xgb.Booster()
-    long_model.load_model("five_long_xgb_model.bin")
+    long_model.load_model("six_long_xgb_model.bin")
 
     short_model = xgb.Booster()
-    short_model.load_model("five_short_xgb_model.bin")
+    short_model.load_model("six_short_xgb_model.bin")
 
     for coin in COINS:
         try:
@@ -384,24 +384,6 @@ def run_live_pipeline(request=None):
             else:
                 print(f"⚠ Short trade already open for {coin}: {existing_short_trade.trade_type} @ {existing_short_trade.entry_timestamp}")
 
-
-
-
-            # Real Trades
-            if long_proba >= 0.99 and not RealTrade.objects.filter(exit_timestamp__isnull=True).exists():
-
-                try:
-                    usd_amount = 200
-                    leverage = 3
-                    tp_pct = 4.0
-                    sl_pct = 2.0
-
-
-
-                    print(f"\n✅ REAL TRADE executed and logged for {coin_symbol}")
-
-                except Exception as e:
-                    print(f"❌ REAL trade error for {coin}: {e}")
 
         except Exception as e:
             print(f"❌ Error processing {coin}: {e}")

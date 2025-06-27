@@ -2,7 +2,7 @@ import pandas as pd
 from django.core.management.base import BaseCommand
 from datetime import date
 
-# python manage.py trade_testing five_long_predictions.csv
+# python manage.py trade_testing six_long_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate sequential trading on test data with 1 open trade max'

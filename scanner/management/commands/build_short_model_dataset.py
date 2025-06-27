@@ -10,7 +10,8 @@ class Command(BaseCommand):
     help = 'Build dataset with engineered features for short trade model'
 
     def handle(self, *args, **options):
-        coins = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'SOLUSDT', 'DOGEUSDT', 'LINKUSDT', 'DOTUSDT', 'SHIBUSDT', 'ADAUSDT']
+
+        coins = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'SOLUSDT', 'DOGEUSDT', 'LINKUSDT', 'DOTUSDT', 'SHIBUSDT', 'ADAUSDT', 'UNIUSDT', 'AVAXUSDT', 'XLMUSDT', 'HBARUSDT']
         start_date = datetime(2022, 1, 1, tzinfo=timezone.utc)
         #end_date = datetime.now(timezone.utc)
         end_date = datetime(2025, 6, 25, 23, 55, tzinfo=timezone.utc)
@@ -37,14 +38,14 @@ class Command(BaseCommand):
         balanced_df = self.balance_data(full_df)
         self.stdout.write(f"Balanced dataset size: {len(balanced_df)}")
 
-        test_df = balanced_df[balanced_df.index >= datetime(2025, 4, 1, tzinfo=timezone.utc)]
-        train_df = balanced_df[balanced_df.index < datetime(2025, 4, 1, tzinfo=timezone.utc)]
+        test_df = balanced_df[balanced_df.index >= datetime(2025, 5, 1, tzinfo=timezone.utc)]
+        train_df = balanced_df[balanced_df.index < datetime(2025, 5, 1, tzinfo=timezone.utc)]
 
         self.stdout.write(f"Training data rows: {len(train_df)}")
         self.stdout.write(f"Test data rows: {len(test_df)}")
 
-        train_df.to_csv("five_short_training_data.csv")
-        test_df.to_csv("five_short_testing_data.csv")
+        train_df.to_csv("six_short_training_data.csv")
+        test_df.to_csv("six_short_testing_data.csv")
         self.stdout.write("Training and test CSV files saved.")
 
     def load_data(self, coin, start, end):
@@ -164,9 +165,14 @@ class Command(BaseCommand):
         wins = df[df['label'] == 1]
         losses = df[df['label'] == 0]
 
-        if len(wins) == 0 or len(losses) == 0:
+        min_len = min(len(wins), len(losses))
+
+        if min_len == 0:
+            self.stdout.write("No balance possible (zero of one class). Returning unbalanced data.")
             return df
 
-        losses_sampled = losses.sample(len(wins), random_state=42)
-        balanced = pd.concat([wins, losses_sampled]).sample(frac=1, random_state=42)
+        wins_sampled = wins.sample(min_len, random_state=42)
+        losses_sampled = losses.sample(min_len, random_state=42)
+
+        balanced = pd.concat([wins_sampled, losses_sampled]).sample(frac=1, random_state=42)
         return balanced

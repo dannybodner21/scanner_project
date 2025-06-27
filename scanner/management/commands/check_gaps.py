@@ -12,7 +12,7 @@ class Command(BaseCommand):
         # Load all existing timestamps into a set for fast lookup
         existing_timestamps = set(
             ts.replace(tzinfo=datetime.timezone.utc)
-            for ts in CoinAPIPrice.objects.filter(coin='ETHUSDT')
+            for ts in CoinAPIPrice.objects.filter(coin='HBARUSDT')
             .values_list('timestamp', flat=True)
         )
 

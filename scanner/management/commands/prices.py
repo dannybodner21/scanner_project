@@ -14,8 +14,8 @@ class Command(BaseCommand):
     help = "Optimized full 5-min backfill with strict verification from CoinAPI"
 
     def handle(self, *args, **kwargs):
-        coinapi_symbol = "BINANCE_SPOT_ADA_USDT"
-        db_coin = "ADAUSDT"
+        coinapi_symbol = "BINANCE_SPOT_HBAR_USDT"
+        db_coin = "HBARUSDT"
 
         api_key = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
         headers = {"X-CoinAPI-Key": api_key}
@@ -23,7 +23,7 @@ class Command(BaseCommand):
         #start_time = datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
         #end_time = datetime.datetime(2025, 6, 10, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
-        start_time = datetime.datetime(2025, 6, 18, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
         end_time = datetime.datetime(2025, 6, 25, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         self.stdout.write("Loading existing timestamps into memory...")
