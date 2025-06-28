@@ -332,6 +332,7 @@ def run_live_pipeline(request=None):
             short_proba = short_model.predict(dmatrix)[0]
 
             print(f"{coin}: Long = {long_proba:.4f}")
+            print(f"{coin}: Short = {short_proba:.4f}")
 
             db_symbol = COIN_SYMBOL_MAP_DB.get(coin)
             coin_obj = Coin.objects.get(symbol=db_symbol)
