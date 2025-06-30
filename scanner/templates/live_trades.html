@@ -91,12 +91,20 @@
       <div id="tradingview_{{ trade.coin|lower }}"></div>
       <script type="text/javascript">
         new TradingView.widget({
-          "width": 400,
-          "height": 350,
+          "width": 360,
+          "height": 320,
           "symbol": "BINANCE:{{ trade.coin|upper }}USDT",
           "interval": "5",
           "timezone": "Etc/UTC",
+          "hide_side_toolbar": true,
+          "hide_top_toolbar": true,
+          "hide_legend": true,
+          "hide_volume": false,
           "theme": "dark",
+          "backgroundColor": "#ffffff",
+          "gridColor": "rgba(46, 46, 46, 0.06)",
+          "withdateranges": false,
+          "autosize": true
           "style": "1",
           "locale": "en",
           "toolbar_bg": "#f1f3f6",
@@ -107,6 +115,10 @@
         });
       </script>
     </div>
+
+
+
+
 
       <div class="table-row">
         <div class="entry"><p>{{ trade.coin }}</p></div>
