@@ -87,14 +87,14 @@
     {% for trade in trades %}
 
     <div class="tradingview-widget-container">
-      
+
       <div id="tradingview_{{ trade.coin|lower }}"></div>
       <script type="text/javascript">
         new TradingView.widget({
-          "width": 300,
-          "height": 200,
-          "symbol": "BINANCE:{{ trade.coin|upper }}",
-          "interval": "1",
+          "width": 400,
+          "height": 350,
+          "symbol": "BINANCE:{{ trade.coin|upper }}USDT",
+          "interval": "5",
           "timezone": "Etc/UTC",
           "theme": "dark",
           "style": "1",
@@ -102,7 +102,7 @@
           "toolbar_bg": "#f1f3f6",
           "hide_side_toolbar": true,
           "enable_publishing": false,
-          "allow_symbol_change": false,
+          "allow_symbol_change": true,
           "container_id": "tradingview_{{ trade.coin|lower }}"
         });
       </script>
