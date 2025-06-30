@@ -92,7 +92,7 @@
           new TradingView.widget({
             "width": 300,
             "height": 200,
-            "symbol": "BINANCE:{{ trade.coin|upper|add:'-USD'|replace:'USDT-USD','USDT' }}",
+            "symbol": "BINANCE:{{ trade.coin|upper }}",
             "interval": "5m",
             "timezone": "Etc/UTC",
             "theme": "dark",
