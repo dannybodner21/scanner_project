@@ -522,10 +522,10 @@ COINAPI_SYMBOL_MAP = {
     "DOT": "BINANCE_SPOT_DOT_USDT",
     "SHIB": "BINANCE_SPOT_SHIB_USDT",
     "ADA": "BINANCE_SPOT_ADA_USDT",
-    "UNIUSDT": "BINANCE_SPOT_UNI_USDT",
-    "AVAXUSDT": "BINANCE_SPOT_AVAX_USDT",
-    "XLMUSDT": "BINANCE_SPOT_XLM_USDT",
-    "HBARUSDT": "BINANCE_SPOT_HBAR_USDT",
+    "UNI": "BINANCE_SPOT_UNI_USDT",
+    "AVAX": "BINANCE_SPOT_AVAX_USDT",
+    "XLMU": "BINANCE_SPOT_XLM_USDT",
+    "HBAR": "BINANCE_SPOT_HBAR_USDT",
 }
 
 def get_coinapi_price(symbol):
@@ -617,6 +617,12 @@ def get_model_results(request):
         "total_long_wins": total_long_wins,
         "total_short_wins": total_short_wins,
     })
+
+
+
+
+# ------------------------------------------------------------------------------
+
 
 
 
