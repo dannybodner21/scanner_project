@@ -88,11 +88,11 @@
 
     <div class="tradingview-widget-container">
 
-      <div id="tradingview_{{ trade.coin|lower }}" style="width:380px;height:450px;"></div>
+      <div id="tradingview_{{ trade.coin|lower }}" style="width:350px;height:360px;"></div>
       <script type="text/javascript">
         new TradingView.widget({
-          "width": 360,
-          "height": 380,
+          "width": 350,
+          "height": 360,
           "symbol": "BINANCE:{{ trade.coin|upper }}USDT",
           "interval": "5",
           "timezone": "Etc/UTC",
