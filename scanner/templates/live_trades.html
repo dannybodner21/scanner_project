@@ -87,6 +87,7 @@
     {% for trade in trades %}
 
     <div class="tradingview-widget-container">
+      
       <div id="tradingview_{{ trade.coin|lower }}"></div>
       <script type="text/javascript">
         new TradingView.widget({
