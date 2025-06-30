@@ -88,7 +88,7 @@
 
     <div class="tradingview-widget-container">
 
-      <div id="tradingview_{{ trade.coin|lower }}"></div>
+      <div id="tradingview_{{ trade.coin|lower }}" style="width:380px;height:450px;"></div>
       <script type="text/javascript">
         new TradingView.widget({
           "width": 380,
@@ -104,7 +104,7 @@
           "backgroundColor": "#ffffff",
           "gridColor": "rgba(46, 46, 46, 0.06)",
           "withdateranges": false,
-          "autosize": true,
+          "autosize": false,
           "style": "1",
           "locale": "en",
           "toolbar_bg": "#f1f3f6",
