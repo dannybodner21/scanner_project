@@ -18,22 +18,6 @@ from django.utils.timezone import now
 
 
 
-
-
-max_leverage_map = {
-    "BTC": "5",
-    "ETH": "5",
-    "XRP": "5",
-    "LTC": "3",
-    "SOL": "4",
-    "DOGE": "5",
-    "LINK": "3",
-    "DOT": "3",
-    "SHIB": "3",
-    "ADA": "3",
-}
-
-
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
     "ETHUSDT": "BINANCE_SPOT_ETH_USDT",
@@ -45,6 +29,11 @@ COINAPI_SYMBOL_MAP = {
     "DOTUSDT": "BINANCE_SPOT_DOT_USDT",
     "SHIBUSDT": "BINANCE_SPOT_SHIB_USDT",
     "ADAUSDT": "BINANCE_SPOT_ADA_USDT",
+
+    "UNIUSDT": "BINANCE_SPOT_UNI_USDT",
+    "AVAXUSDT": "BINANCE_SPOT_AVAX_USDT",
+    "XLMUSDT": "BINANCE_SPOT_XLM_USDT",
+    "HBARUSDT": "BINANCE_SPOT_HBAR_USDT",
 }
 
 
@@ -59,6 +48,11 @@ COIN_SYMBOL_MAP_DB = {
     "DOTUSDT": "DOT",
     "SHIBUSDT": "SHIB",
     "ADAUSDT": "ADA",
+
+    "UNIUSDT": "UNI",
+    "AVAXUSDT": "AVAX",
+    "XLMUSDT": "XLM",
+    "HBARUSDT": "HBAR",
 }
 
 
