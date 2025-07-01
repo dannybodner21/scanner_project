@@ -586,6 +586,11 @@ def get_closed_trades(request):
 
     data = []
     for trade in closed_trades:
+
+        trade_result = ✅
+        if trade.result == False:
+            trade_result = ❌
+
         data.append({
             "coin": trade.coin.symbol,
             "trade_type": trade.trade_type,
@@ -595,8 +600,7 @@ def get_closed_trades(request):
             "exit_timestamp": trade.exit_timestamp.isoformat(),
             "exit_price": float(trade.exit_price or 0),
             "duration_minutes": trade.duration_minutes,
-            "result": trade.result,
-            "fear_greed": 0,  # Optional: you can re-integrate this if needed
+            "result": trade_result,
         })
 
     return JsonResponse(data, safe=False)

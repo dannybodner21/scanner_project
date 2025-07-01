@@ -366,7 +366,7 @@ def run_live_pipeline(request=None):
     for coin in COINS:
         try:
             print(f"Processing {coin}...")
-            df = fetch_ohlcv(coin, limit=310)
+            df = fetch_ohlcv(coin, limit=350)
 
             if df.empty or len(df) < 288:
                 print(f"⚠ Skipping {coin} due to insufficient raw data length")
