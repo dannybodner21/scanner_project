@@ -150,63 +150,143 @@ def fetch_ohlcv(coin, limit=300):
 
 def add_features(df):
 
-    df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
-    df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
-    df = df[df['adx_14'].notna() & df['ma_200'].notna()].copy()
+    initial_len = len(df)
 
-    df['returns_5m'] = df['close'].pct_change(1).clip(-1, 1)
-    df['returns_15m'] = df['close'].pct_change(3).clip(-1, 1)
-    df['returns_1h'] = df['close'].pct_change(12).clip(-1, 1)
-    df['returns_4h'] = df['close'].pct_change(48).clip(-1, 1)
-    df['momentum'] = df['close'] - df['close'].shift(5)
+    try:
 
-    df['volume_ma_20'] = df['volume'].rolling(20).mean()
-    df['vol_spike'] = df['volume'] / df['volume_ma_20']
+        df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
+        df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
+        df = df[df['adx_14'].notna() & df['ma_200'].notna()].copy()
 
-    df['rsi_14'] = ta.momentum.rsi(df['close'], window=14)
-    macd = ta.trend.MACD(df['close'])
-    df['macd'] = macd.macd()
-    df['macd_signal'] = macd.macd_signal()
-    df['macd_hist'] = macd.macd_diff()
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate adx_14 or ma_200: {e}")
 
-    bollinger = ta.volatility.BollingerBands(df['close'])
-    df['bb_upper'] = bollinger.bollinger_hband()
-    df['bb_lower'] = bollinger.bollinger_lband()
+    try:
 
-    df['atr_14'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=14)
+        df['returns_5m'] = df['close'].pct_change(1).clip(-1, 1)
+        df['returns_15m'] = df['close'].pct_change(3).clip(-1, 1)
+        df['returns_1h'] = df['close'].pct_change(12).clip(-1, 1)
+        df['returns_4h'] = df['close'].pct_change(48).clip(-1, 1)
+        df['momentum'] = df['close'] - df['close'].shift(5)
 
-    df['obv'] = ta.volume.on_balance_volume(df['close'], df['volume'])
-    df['obv_slope'] = df['obv'].diff()
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate returns or momentum: {e}")
 
-    df['ema_9'] = ta.trend.ema_indicator(df['close'], window=9)
-    df['ema_21'] = ta.trend.ema_indicator(df['close'], window=21)
-    df['ema_diff'] = df['ema_9'] - df['ema_21']
 
-    df['volatility'] = df['close'].rolling(20).std()
+    try:
 
-    adx_thresh = df['adx_14'].quantile(0.5)
-    df['bull_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] > df['ma_200'])).astype(int)
-    df['bear_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] < df['ma_200'])).astype(int)
-    df['sideways_regime'] = (df['adx_14'] <= adx_thresh).astype(int)
+        df['volume_ma_20'] = df['volume'].rolling(20).mean()
+        df['vol_spike'] = df['volume'] / df['volume_ma_20']
 
-    df['slope_1h'] = df['close'].rolling(12).apply(calculate_trend_slope, raw=False)
-    df['dist_from_high_24h'] = ((df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()).clip(-1, 1)
-    df['dist_from_low_24h'] = ((df['close'] - df['low'].rolling(288).min()) / df['low'].rolling(288).min()).clip(-1, 5)
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate volume spike: {e}")
 
-    stoch = ta.momentum.StochasticOscillator(df['high'], df['low'], df['close'], window=14, smooth_window=3)
-    df['stoch_k'] = stoch.stoch()
-    df['stoch_d'] = stoch.stoch_signal()
 
-    df['price_change_5'] = (df['close'] - df['close'].shift(5)) / df['close'].shift(5)
-    df['volume_change_5'] = (df['volume'] - df['volume'].shift(5)) / df['volume'].shift(5)
+    try:
 
-    df['high_1h'] = df['high'].rolling(12).max()
-    df['low_1h'] = df['low'].rolling(12).min()
-    df['pos_in_range_1h'] = (df['close'] - df['low_1h']) / (df['high_1h'] - df['low_1h'])
-    df['vwap_1h'] = (df['close'] * df['volume']).rolling(12).sum() / df['volume'].rolling(12).sum()
-    df['pos_vs_vwap'] = df['close'] - df['vwap_1h']
+        df['rsi_14'] = ta.momentum.rsi(df['close'], window=14)
+        macd = ta.trend.MACD(df['close'])
+        df['macd'] = macd.macd()
+        df['macd_signal'] = macd.macd_signal()
+        df['macd_hist'] = macd.macd_diff()
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate RSI or MACD: {e}")
+
+    try:
+
+        bollinger = ta.volatility.BollingerBands(df['close'])
+        df['bb_upper'] = bollinger.bollinger_hband()
+        df['bb_lower'] = bollinger.bollinger_lband()
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate Bollinger Bands: {e}")
+
+    try:
+
+        df['atr_14'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=14)
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate ATR: {e}")
+
+    try:
+
+        df['obv'] = ta.volume.on_balance_volume(df['close'], df['volume'])
+        df['obv_slope'] = df['obv'].diff()
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate OBV: {e}")
+
+    try:
+
+        df['ema_9'] = ta.trend.ema_indicator(df['close'], window=9)
+        df['ema_21'] = ta.trend.ema_indicator(df['close'], window=21)
+        df['ema_diff'] = df['ema_9'] - df['ema_21']
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate EMA: {e}")
+
+    try:
+
+        df['volatility'] = df['close'].rolling(20).std()
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate volatility: {e}")
+
+    try:
+
+        adx_thresh = df['adx_14'].quantile(0.5)
+        df['bull_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] > df['ma_200'])).astype(int)
+        df['bear_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] < df['ma_200'])).astype(int)
+        df['sideways_regime'] = (df['adx_14'] <= adx_thresh).astype(int)
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate regimes: {e}")
+
+    try:
+
+        df['slope_1h'] = df['close'].rolling(12).apply(calculate_trend_slope, raw=False)
+        df['dist_from_high_24h'] = ((df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()).clip(-1, 1)
+        df['dist_from_low_24h'] = ((df['close'] - df['low'].rolling(288).min()) / df['low'].rolling(288).min()).clip(-1, 5)
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate distance from 24h high/low: {e}")
+
+
+    try:
+
+        stoch = ta.momentum.StochasticOscillator(df['high'], df['low'], df['close'], window=14, smooth_window=3)
+        df['stoch_k'] = stoch.stoch()
+        df['stoch_d'] = stoch.stoch_signal()
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate Stochastic Oscillator: {e}")
+
+
+    try:
+
+        df['price_change_5'] = (df['close'] - df['close'].shift(5)) / df['close'].shift(5)
+        df['volume_change_5'] = (df['volume'] - df['volume'].shift(5)) / df['volume'].shift(5)
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate price/volume change: {e}")
+
+    try:
+
+        df['high_1h'] = df['high'].rolling(12).max()
+        df['low_1h'] = df['low'].rolling(12).min()
+        df['pos_in_range_1h'] = (df['close'] - df['low_1h']) / (df['high_1h'] - df['low_1h'])
+        df['vwap_1h'] = (df['close'] * df['volume']).rolling(12).sum() / df['volume'].rolling(12).sum()
+        df['pos_vs_vwap'] = df['close'] - df['vwap_1h']
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate high/low/vwap metrics: {e}")
 
     df = df.dropna()
+
+    if df.empty:
+        raise RuntimeError("❌ All rows dropped after feature engineering. Check rolling windows or input data.")
+
     return df
 
 
@@ -288,11 +368,15 @@ def run_live_pipeline(request=None):
             print(f"Processing {coin}...")
             df = fetch_ohlcv(coin, limit=310)
 
-            if df.empty or len(df) < 290:
+            if df.empty or len(df) < 288:
                 print(f"⚠ Skipping {coin} due to insufficient raw data length")
                 continue
 
             df = add_features(df)
+
+            if df.empty or len(df) < 1:
+                print(f"⚠ Skipping {coin} after feature engineering — no valid rows")
+                continue
 
             # Verify all features exist in df columns and are not NaN in last row
             missing_features = [f for f in FEATURES if f not in df.columns]
