@@ -525,7 +525,6 @@ COINAPI_SYMBOL_MAP = {
     "UNI": "BINANCE_SPOT_UNI_USDT",
     "AVAX": "BINANCE_SPOT_AVAX_USDT",
     "XLM": "BINANCE_SPOT_XLM_USDT",
-    "HBAR": "BINANCE_SPOT_HBAR_USDT",
 }
 
 def get_coinapi_price(symbol):
