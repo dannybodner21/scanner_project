@@ -149,53 +149,56 @@ def fetch_ohlcv(coin, limit=300):
 
 
 def add_features(df):
-    df['returns_5m'] = df['close'].pct_change(1)
-    df['returns_15m'] = df['close'].pct_change(3)
-    df['returns_1h'] = df['close'].pct_change(12)
-    df['returns_4h'] = df['close'].pct_change(48)
-    df['momentum'] = df['close'] - df['close'].shift(5)
 
-    df['price_change_5'] = (df['close'] - df['close'].shift(5)) / df['close'].shift(5)
-    df['volume_change_5'] = (df['volume'] - df['volume'].shift(5)) / df['volume'].shift(5)
+    df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
+    df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
+    df = df[df['adx_14'].notna() & df['ma_200'].notna()].copy()
+
+    df['returns_5m'] = df['close'].pct_change(1).clip(-1, 1)
+    df['returns_15m'] = df['close'].pct_change(3).clip(-1, 1)
+    df['returns_1h'] = df['close'].pct_change(12).clip(-1, 1)
+    df['returns_4h'] = df['close'].pct_change(48).clip(-1, 1)
+    df['momentum'] = df['close'] - df['close'].shift(5)
 
     df['volume_ma_20'] = df['volume'].rolling(20).mean()
     df['vol_spike'] = df['volume'] / df['volume_ma_20']
-    df['volatility'] = df['close'].rolling(20).std()
 
-    df['ema_9'] = ta.trend.ema_indicator(df['close'], window=9)
-    df['ema_21'] = ta.trend.ema_indicator(df['close'], window=21)
-    df['ema_diff'] = df['ema_9'] - df['ema_21']
-    df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
-
-    df['slope_1h'] = df['close'].rolling(12).apply(calculate_trend_slope, raw=False)
-
+    df['rsi_14'] = ta.momentum.rsi(df['close'], window=14)
     macd = ta.trend.MACD(df['close'])
     df['macd'] = macd.macd()
     df['macd_signal'] = macd.macd_signal()
     df['macd_hist'] = macd.macd_diff()
-
-    df['rsi_14'] = ta.momentum.rsi(df['close'], window=14)
 
     bollinger = ta.volatility.BollingerBands(df['close'])
     df['bb_upper'] = bollinger.bollinger_hband()
     df['bb_lower'] = bollinger.bollinger_lband()
 
     df['atr_14'] = ta.volatility.average_true_range(df['high'], df['low'], df['close'], window=14)
-    df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
 
     df['obv'] = ta.volume.on_balance_volume(df['close'], df['volume'])
     df['obv_slope'] = df['obv'].diff()
 
-    df['bull_regime'] = ((df['adx_14'] > 25) & (df['close'] > df['ma_200'])).astype(int)
-    df['bear_regime'] = ((df['adx_14'] > 25) & (df['close'] < df['ma_200'])).astype(int)
-    df['sideways_regime'] = (df['adx_14'] <= 25).astype(int)
+    df['ema_9'] = ta.trend.ema_indicator(df['close'], window=9)
+    df['ema_21'] = ta.trend.ema_indicator(df['close'], window=21)
+    df['ema_diff'] = df['ema_9'] - df['ema_21']
 
-    df['dist_from_high_24h'] = (df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()
-    df['dist_from_low_24h'] = (df['close'] - df['low'].rolling(288).min()) / df['low'].rolling(288).min()
+    df['volatility'] = df['close'].rolling(20).std()
+
+    adx_thresh = df['adx_14'].quantile(0.5)
+    df['bull_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] > df['ma_200'])).astype(int)
+    df['bear_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] < df['ma_200'])).astype(int)
+    df['sideways_regime'] = (df['adx_14'] <= adx_thresh).astype(int)
+
+    df['slope_1h'] = df['close'].rolling(12).apply(calculate_trend_slope, raw=False)
+    df['dist_from_high_24h'] = ((df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()).clip(-1, 1)
+    df['dist_from_low_24h'] = ((df['close'] - df['low'].rolling(288).min()) / df['low'].rolling(288).min()).clip(-1, 5)
 
     stoch = ta.momentum.StochasticOscillator(df['high'], df['low'], df['close'], window=14, smooth_window=3)
     df['stoch_k'] = stoch.stoch()
     df['stoch_d'] = stoch.stoch_signal()
+
+    df['price_change_5'] = (df['close'] - df['close'].shift(5)) / df['close'].shift(5)
+    df['volume_change_5'] = (df['volume'] - df['volume'].shift(5)) / df['volume'].shift(5)
 
     df['high_1h'] = df['high'].rolling(12).max()
     df['low_1h'] = df['low'].rolling(12).min()

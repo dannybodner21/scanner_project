@@ -133,10 +133,10 @@ class Command(BaseCommand):
 
         df['volatility'] = df['close'].rolling(20).std()
 
-        adx_thresh = df['adx_14'].quantile(0.5)
-        df['bull_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] > df['ma_200'])).astype(int)
-        df['bear_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] < df['ma_200'])).astype(int)
-        df['sideways_regime'] = (df['adx_14'] <= adx_thresh).astype(int)
+        df['bull_regime'] = ((df['adx_14'] > 25) & (df['close'] > df['ma_200'])).astype(int)
+        df['bear_regime'] = ((df['adx_14'] > 25) & (df['close'] < df['ma_200'])).astype(int)
+        df['sideways_regime'] = (df['adx_14'] <= 25).astype(int)
+
 
         df['slope_1h'] = df['close'].rolling(12).apply(self.calculate_trend_slope, raw=False)
         df['dist_from_high_24h'] = ((df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()).clip(-1, 1)

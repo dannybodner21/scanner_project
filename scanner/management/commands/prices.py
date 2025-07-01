@@ -21,7 +21,7 @@ from scanner.models import CoinAPIPrice
 # 10. ADA - good
 # 11. UNI - good
 # 12. AVAX - good
-# 13. XLM -
+# 13. XLM - good
 
 
 # 14. HBAR -
@@ -30,8 +30,8 @@ class Command(BaseCommand):
     help = "Optimized full 5-min backfill with strict verification from CoinAPI"
 
     def handle(self, *args, **kwargs):
-        coinapi_symbol = "BINANCE_SPOT_XLM_USDT"
-        db_coin = "XLMUSDT"
+        coinapi_symbol = "BINANCE_SPOT_BTC_USDT"
+        db_coin = "BTCUSDT"
 
         api_key = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
         headers = {"X-CoinAPI-Key": api_key}
