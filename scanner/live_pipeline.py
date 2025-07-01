@@ -278,7 +278,7 @@ def run_live_pipeline(request=None):
     long_model.load_model("seven_long_xgb_model.bin")
 
     short_model = xgb.Booster()
-    short_model.load_model("six_short_xgb_model.bin")
+    short_model.load_model("seven_short_xgb_model.bin")
 
     for coin in COINS:
         try:

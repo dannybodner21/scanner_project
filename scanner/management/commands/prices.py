@@ -21,21 +21,23 @@ from scanner.models import CoinAPIPrice
 # 10. ADA - good
 # 11. UNI - good
 # 12. AVAX - good
-# 13. XLM - good
-# 14. HBAR - 
+# 13. XLM -
+
+
+# 14. HBAR -
 
 class Command(BaseCommand):
     help = "Optimized full 5-min backfill with strict verification from CoinAPI"
 
     def handle(self, *args, **kwargs):
-        coinapi_symbol = "BINANCE_SPOT_UNI_USDT"
-        db_coin = "UNIUSDT"
+        coinapi_symbol = "BINANCE_SPOT_XLM_USDT"
+        db_coin = "XLMUSDT"
 
         api_key = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
         headers = {"X-CoinAPI-Key": api_key}
 
-        start_time = datetime.datetime(2024, 1, 24, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 6, 30, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2025, 6, 30, 23, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 7, 1, 17, 55, 0, tzinfo=datetime.timezone.utc)
 
         #start_time = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
         #end_time = datetime.datetime(2025, 6, 30, 23, 55, 0, tzinfo=datetime.timezone.utc)

@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from datetime import date
 
 # Run like:
-# python manage.py short_trade_testing six_short_predictions.csv
+# python manage.py short_trade_testing seven_short_predictions.csv
 
 class Command(BaseCommand):
     help = 'Simulate sequential SHORT trades on test data with 1 open trade max'
@@ -22,7 +22,7 @@ class Command(BaseCommand):
         initial_balance = 5000.0
         balance = initial_balance
         open_trade = None
-        leverage = 10
+        leverage = 15
 
         take_profit_pct = 0.04  # short TP = price drops 4%
         stop_loss_pct = 0.02    # short SL = price rises 2%
@@ -59,8 +59,8 @@ class Command(BaseCommand):
                 trades_today = 0
 
             # Open short trade
-            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 2:
-                position_size = balance * 0.5 if balance < 250000 else 50000
+            if open_trade is None and row.get('prediction', 0) == 1 and trades_today < 4:
+                position_size = balance * 0.25 if balance < 250000000 else 50000
                 entry_price = row['close']
                 open_trade = {
                     'coin': coin,
