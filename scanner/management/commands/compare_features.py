@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import ta
 from scipy.stats import linregress
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from scanner.models import CoinAPIPrice
@@ -36,7 +36,11 @@ class Command(BaseCommand):
             try:
                 record = json.loads(line)
                 coin = record["coin"]
-                ts = pd.to_datetime(record["timestamp"])
+
+                # ts = pd.to_datetime(record["timestamp"])
+
+                ts = pd.to_datetime(record["timestamp"]) - pd.Timedelta(minutes=5)
+
                 stored = record["features"]
 
                 recomputed = self.compute_features(coin, ts)
@@ -75,6 +79,12 @@ class Command(BaseCommand):
         ).order_by("timestamp")
 
         df = pd.DataFrame(list(queryset.values("timestamp", "open", "high", "low", "close", "volume")))
+
+
+        print("\n📊 Database candles tail:")
+        print(df.tail(5)[['open', 'high', 'low', 'close', 'volume']])
+
+
         if df.empty or len(df) < 200:
             return None
 
@@ -82,9 +92,11 @@ class Command(BaseCommand):
             df[col] = df[col].astype(float)
 
         df.set_index("timestamp", inplace=True)
+
+
         df = self.add_features(df)
 
-        if ts not in df.index:
+        if df.empty:
             return None
 
         row = df.loc[ts]
@@ -133,10 +145,10 @@ class Command(BaseCommand):
 
         df['volatility'] = df['close'].rolling(20).std()
 
-        df['bull_regime'] = ((df['adx_14'] > 25) & (df['close'] > df['ma_200'])).astype(int)
-        df['bear_regime'] = ((df['adx_14'] > 25) & (df['close'] < df['ma_200'])).astype(int)
-        df['sideways_regime'] = (df['adx_14'] <= 25).astype(int)
-
+        adx_thresh = df['adx_14'].quantile(0.5)
+        df['bull_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] > df['ma_200'])).astype(int)
+        df['bear_regime'] = ((df['adx_14'] > adx_thresh) & (df['close'] < df['ma_200'])).astype(int)
+        df['sideways_regime'] = (df['adx_14'] <= adx_thresh).astype(int)
 
         df['slope_1h'] = df['close'].rolling(12).apply(self.calculate_trend_slope, raw=False)
         df['dist_from_high_24h'] = ((df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()).clip(-1, 1)
@@ -155,4 +167,4 @@ class Command(BaseCommand):
         df['vwap_1h'] = (df['close'] * df['volume']).rolling(12).sum() / df['volume'].rolling(12).sum()
         df['pos_vs_vwap'] = df['close'] - df['vwap_1h']
 
-        return df.dropna()
+        return df

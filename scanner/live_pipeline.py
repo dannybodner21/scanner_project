@@ -385,6 +385,10 @@ def run_live_pipeline(request=None):
             print(f"Processing {coin}...")
             df = fetch_ohlcv(coin, limit=350)
 
+            print("\n📈 LIVE CANDLE:")
+            print(df.tail(5)[['timestamp', 'open', 'high', 'low', 'close', 'volume']])
+
+
             print(df.tail(10))
             print(df.describe())
             print(df.isna().sum())
@@ -431,6 +435,8 @@ def run_live_pipeline(request=None):
 
             print(f"{coin}: Long = {long_proba:.4f}")
             print(f"{coin}: Short = {short_proba:.4f}")
+
+
 
 
 
