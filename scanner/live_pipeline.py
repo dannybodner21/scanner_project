@@ -293,12 +293,16 @@ def add_features(df):
     except Exception as e:
         raise RuntimeError(f"❌ Failed to calculate high/low/vwap metrics: {e}")
 
-    print(f"Rows before dropna: {len(df)}")
-    df = df.dropna()
-    print(f"Rows after dropna: {len(df)}")
 
-    if df.empty:
-        raise RuntimeError("❌ All rows dropped after feature engineering. Check rolling windows or input data.")
+    print(f"Rows before final check: {len(df)}")
+
+    # ✅ Only check the last row for missing values
+    for col in INPUT_COLUMNS:
+        if pd.isna(df.iloc[-1][col]):
+            raise RuntimeError(f"❌ Missing value in feature '{col}' for last row.")
+
+    print(f"✅ Last row is valid for prediction: {df.iloc[-1]['timestamp']}")
+
 
     return df
 
