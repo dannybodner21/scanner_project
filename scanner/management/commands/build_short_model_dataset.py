@@ -11,10 +11,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        coins = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'SOLUSDT', 'DOGEUSDT', 'LINKUSDT', 'DOTUSDT', 'SHIBUSDT', 'ADAUSDT', 'UNIUSDT', 'AVAXUSDT', 'XLMUSDT', 'HBARUSDT']
+        coins = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'SOLUSDT', 'DOGEUSDT', 'LINKUSDT', 'DOTUSDT', 'SHIBUSDT', 'ADAUSDT', 'UNIUSDT', 'AVAXUSDT', 'XLMUSDT']
         start_date = datetime(2022, 1, 1, tzinfo=timezone.utc)
         #end_date = datetime.now(timezone.utc)
-        end_date = datetime(2025, 6, 25, 23, 55, tzinfo=timezone.utc)
+        end_date = datetime(2025, 6, 30, 23, 55, tzinfo=timezone.utc)
 
         dfs = []
         for coin in coins:
@@ -32,21 +32,22 @@ class Command(BaseCommand):
         full_df = self.add_features(full_df)
         self.stdout.write("Features engineered.")
 
+
         full_df = self.generate_labels(full_df, tp=0.04, sl=0.02, window=288)
         self.stdout.write("Labels generated.")
 
-        balanced_df = self.balance_data(full_df)
-        self.stdout.write(f"Balanced dataset size: {len(balanced_df)}")
+        test_df = full_df[full_df.index >= datetime(2025, 6, 15, tzinfo=timezone.utc)].copy()
+        train_df = full_df[full_df.index < datetime(2025, 6, 15, tzinfo=timezone.utc)].copy()
 
-        test_df = balanced_df[balanced_df.index >= datetime(2025, 5, 1, tzinfo=timezone.utc)]
-        train_df = balanced_df[balanced_df.index < datetime(2025, 5, 1, tzinfo=timezone.utc)]
+        balanced_train_df = self.balance_data(train_df)
 
-        self.stdout.write(f"Training data rows: {len(train_df)}")
-        self.stdout.write(f"Test data rows: {len(test_df)}")
+        self.stdout.write(f"Training data rows (balanced): {len(balanced_train_df)}")
+        self.stdout.write(f"Test data rows (unbalanced): {len(test_df)}")
 
-        train_df.to_csv("six_short_training_data.csv")
-        test_df.to_csv("six_short_testing_data.csv")
+        balanced_train_df.to_csv("seven_short_training_data.csv")
+        test_df.to_csv("seven_short_testing_data.csv")
         self.stdout.write("Training and test CSV files saved.")
+
 
     def load_data(self, coin, start, end):
         queryset = CoinAPIPrice.objects.filter(

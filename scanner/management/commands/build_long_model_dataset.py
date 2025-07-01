@@ -6,8 +6,6 @@ from datetime import datetime, timezone
 from django.core.management.base import BaseCommand
 from scanner.models import CoinAPIPrice
 
-
-
 class Command(BaseCommand):
     help = 'Build dataset with engineered features for long trade model'
 
