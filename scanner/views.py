@@ -587,9 +587,9 @@ def get_closed_trades(request):
     data = []
     for trade in closed_trades:
 
-        trade_result = ✅
+        trade_result = "✅"
         if trade.result == False:
-            trade_result = ❌
+            trade_result = "❌"
 
         data.append({
             "coin": trade.coin.symbol,
