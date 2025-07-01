@@ -152,14 +152,7 @@ def add_features(df):
 
     initial_len = len(df)
 
-    try:
 
-        df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
-        df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
-        df = df[df['adx_14'].notna() & df['ma_200'].notna()].copy()
-
-    except Exception as e:
-        raise RuntimeError(f"❌ Failed to calculate adx_14 or ma_200: {e}")
 
     try:
 
@@ -233,6 +226,23 @@ def add_features(df):
     except Exception as e:
         raise RuntimeError(f"❌ Failed to calculate volatility: {e}")
 
+
+    try:
+
+        df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
+        df['ma_200'] = ta.trend.sma_indicator(df['close'], window=200)
+
+        print(f"{df['adx_14'].notna().sum()} rows with adx_14")
+        print(f"{df['ma_200'].notna().sum()} rows with ma_200")
+
+        # df = df[df['adx_14'].notna() & df['ma_200'].notna()].copy()
+
+        # print(f"Remaining rows after adx_14 and ma_200 filter: {len(df)}")
+
+    except Exception as e:
+        raise RuntimeError(f"❌ Failed to calculate adx_14 or ma_200: {e}")
+
+
     try:
 
         adx_thresh = df['adx_14'].quantile(0.5)
@@ -246,6 +256,7 @@ def add_features(df):
     try:
 
         df['slope_1h'] = df['close'].rolling(12).apply(calculate_trend_slope, raw=False)
+
         df['dist_from_high_24h'] = ((df['close'] - df['high'].rolling(288).max()) / df['high'].rolling(288).max()).clip(-1, 1)
         df['dist_from_low_24h'] = ((df['close'] - df['low'].rolling(288).min()) / df['low'].rolling(288).min()).clip(-1, 5)
 
@@ -282,7 +293,9 @@ def add_features(df):
     except Exception as e:
         raise RuntimeError(f"❌ Failed to calculate high/low/vwap metrics: {e}")
 
+    print(f"Rows before dropna: {len(df)}")
     df = df.dropna()
+    print(f"Rows after dropna: {len(df)}")
 
     if df.empty:
         raise RuntimeError("❌ All rows dropped after feature engineering. Check rolling windows or input data.")
