@@ -9,22 +9,36 @@ from django.utils import timezone
 from scanner.models import CoinAPIPrice
 
 # source venv/bin/activate
+# 1. BTC - good
+# 2. ETH - good
+# 3. XRP - good
+# 4. LTC - good
+# 5. SOL - good
+# 6. DOGE - good
+# 7. LINK - good
+# 8. DOT - good
+# 9. SHIB - good
+# 10. ADA - good
+# 11. UNI - good
+# 12. AVAX - good
+# 13. XLM - good
+# 14. HBAR - 
 
 class Command(BaseCommand):
     help = "Optimized full 5-min backfill with strict verification from CoinAPI"
 
     def handle(self, *args, **kwargs):
-        coinapi_symbol = "BINANCE_SPOT_HBAR_USDT"
-        db_coin = "HBARUSDT"
+        coinapi_symbol = "BINANCE_SPOT_UNI_USDT"
+        db_coin = "UNIUSDT"
 
         api_key = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
         headers = {"X-CoinAPI-Key": api_key}
 
-        #start_time = datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        #end_time = datetime.datetime(2025, 6, 10, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2024, 1, 24, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 30, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
-        start_time = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 6, 25, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        #start_time = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        #end_time = datetime.datetime(2025, 6, 30, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         self.stdout.write("Loading existing timestamps into memory...")
         existing_timestamps = set(

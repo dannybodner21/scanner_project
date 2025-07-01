@@ -2,6 +2,25 @@ import datetime
 from django.core.management.base import BaseCommand
 from scanner.models import CoinAPIPrice
 
+
+
+# python manage.py check_flat_windows BTCUSDT
+# python manage.py check_flat_windows ETHUSDT
+# python manage.py check_flat_windows XRPUSDT
+# python manage.py check_flat_windows LTCUSDT
+# python manage.py check_flat_windows SOLUSDT
+# python manage.py check_flat_windows DOGEUSDT
+# python manage.py check_flat_windows LINKUSDT
+# python manage.py check_flat_windows DOTUSDT
+# python manage.py check_flat_windows SHIBUSDT
+# python manage.py check_flat_windows ADAUSDT
+# python manage.py check_flat_windows UNIUSDT
+# python manage.py check_flat_windows AVAXUSDT
+# python manage.py check_flat_windows XLMUSDT
+
+# python manage.py check_flat_windows HBARUSDT 183 flat windows
+
+
 class Command(BaseCommand):
     help = "Detect flat windows (consecutive flat candles) for a coin."
 
@@ -11,8 +30,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         coin = options['coin'].upper()
 
-        start_time = datetime.datetime(2019, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 6, 19, 23, 55, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2022, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 30, 23, 55, tzinfo=datetime.timezone.utc)
 
         self.stdout.write(f"Scanning {coin} for flat windows...")
 

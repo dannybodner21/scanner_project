@@ -17,7 +17,6 @@ from scipy.stats import linregress
 from django.utils.timezone import now
 
 
-
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
     "ETHUSDT": "BINANCE_SPOT_ETH_USDT",
@@ -32,7 +31,6 @@ COINAPI_SYMBOL_MAP = {
     "UNIUSDT": "BINANCE_SPOT_UNI_USDT",
     "AVAXUSDT": "BINANCE_SPOT_AVAX_USDT",
     "XLMUSDT": "BINANCE_SPOT_XLM_USDT",
-    "HBARUSDT": "BINANCE_SPOT_HBAR_USDT",
 }
 
 
@@ -50,7 +48,6 @@ COIN_SYMBOL_MAP_DB = {
     "UNIUSDT": "UNI",
     "AVAXUSDT": "AVAX",
     "XLMUSDT": "XLM",
-    "HBARUSDT": "HBAR",
 }
 
 
@@ -278,7 +275,7 @@ def run_live_pipeline(request=None):
     django.setup()
 
     long_model = xgb.Booster()
-    long_model.load_model("six_long_xgb_model.bin")
+    long_model.load_model("seven_long_xgb_model.bin")
 
     short_model = xgb.Booster()
     short_model.load_model("six_short_xgb_model.bin")
@@ -325,6 +322,26 @@ def run_live_pipeline(request=None):
 
             print(f"{coin}: Long = {long_proba:.4f}")
             print(f"{coin}: Short = {short_proba:.4f}")
+
+
+
+
+            log_entry = {
+                "timestamp": row["timestamp"].isoformat(),
+                "coin": coin,
+                "predicted_long_prob": float(long_proba),
+                "predicted_short_prob": float(short_proba),
+                "threshold": CONFIDENCE_THRESHOLD,
+                "decision_long": "LONG" if long_proba >= CONFIDENCE_THRESHOLD else "NO TRADE",
+                "decision_short": "SHORT" if short_proba >= CONFIDENCE_THRESHOLD else "NO TRADE",
+                "features": {k: float(row[k]) for k in INPUT_COLUMNS}
+            }
+
+            with open("live_predictions_log.jsonl", "a") as f:
+                f.write(json.dumps(log_entry) + "\n")
+
+
+
 
             db_symbol = COIN_SYMBOL_MAP_DB.get(coin)
             coin_obj = Coin.objects.get(symbol=db_symbol)

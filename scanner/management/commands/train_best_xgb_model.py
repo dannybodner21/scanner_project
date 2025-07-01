@@ -11,9 +11,9 @@ class Command(BaseCommand):
     help = 'Train XGBoost model for LONG trades with diagnostics'
 
     def handle(self, *args, **options):
-        train_file = 'six_long_training_data.csv'
-        model_output = 'six_long_xgb_model.bin'
-        importance_csv = 'six_long_feature_importance.csv'
+        train_file = 'seven_long_training_data.csv'
+        model_output = 'seven_long_xgb_model.bin'
+        importance_csv = 'seven_long_feature_importance.csv'
         test_size = 0.1  # 10% validation split
 
         self.stdout.write(f"Loading training data from {train_file} ...")

@@ -11,12 +11,12 @@ class Command(BaseCommand):
     help = "Final gap filler using multiple CoinAPI sources"
 
     def handle(self, *args, **kwargs):
-        db_coin = "HBARUSDT"
+        db_coin = "UNIUSDT"
         fallback_symbols = [
-            "COINBASE_SPOT_HBAR_USD",
-            "KRAKEN_SPOT_HBAR_USD",
-            "KUCOIN_SPOT_HBAR_USDT",
-            "BITFINEX_SPOT_HBAR_USD"
+            "COINBASE_SPOT_UNI_USD",
+            "KRAKEN_SPOT_UNI_USD",
+            "KUCOIN_SPOT_UNI_USDT",
+            "BITFINEX_SPOT_UNI_USD"
         ]
 
         api_key = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
