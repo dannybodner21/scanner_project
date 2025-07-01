@@ -124,7 +124,7 @@ def calculate_trend_slope(prices):
     return slope
 
 
-def fetch_ohlcv(coin, limit=300):
+def fetch_ohlcv_old(coin, limit=300):
     coinapi_symbol = COINAPI_SYMBOL_MAP.get(coin)
     if not coinapi_symbol:
         raise ValueError(f"CoinAPI symbol mapping not found for {coin}")
@@ -146,6 +146,37 @@ def fetch_ohlcv(coin, limit=300):
     df.sort_values('timestamp', inplace=True)
     df.reset_index(drop=True, inplace=True)
     return df
+
+
+def fetch_ohlcv(coin, limit=300, end_time=None):
+    coinapi_symbol = COINAPI_SYMBOL_MAP.get(coin)
+    if not coinapi_symbol:
+        raise ValueError(f"CoinAPI symbol mapping not found for {coin}")
+
+    # Default to now if no end_time is provided
+    if end_time is None:
+        end_time = datetime.utcnow()
+
+    time_end = end_time.isoformat()
+
+    url = f"{BASE_URL}/{coinapi_symbol}/history?period_id=5MIN&time_end={time_end}&limit={limit}"
+    headers = {"X-CoinAPI-Key": COINAPI_KEY}
+    r = requests.get(url, headers=headers, timeout=10)
+    r.raise_for_status()
+    data = r.json()
+    df = pd.DataFrame([{
+        'timestamp': pd.to_datetime(candle['time_period_start']),
+        'open': candle['price_open'],
+        'high': candle['price_high'],
+        'low': candle['price_low'],
+        'close': candle['price_close'],
+        'volume': candle['volume_traded']
+    } for candle in data])
+
+    df.sort_values('timestamp', inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    return df
+
 
 
 def add_features(df):
@@ -345,7 +376,12 @@ def send_real_trade_updates():
 
         # Fetch current price via CoinAPI
         coinapi_symbol = COINAPI_SYMBOL_MAP[f"{coin_symbol}USDT"]
+
         url = f"https://rest.coinapi.io/v1/ohlcv/{coinapi_symbol}/latest?period_id=5MIN&limit=1"
+
+        # url = f"{BASE_URL}/{coinapi_symbol}/history?period_id=5MIN&time_end={timestamp}&limit=1"
+
+
         headers = {"X-CoinAPI-Key": COINAPI_KEY}
         r = requests.get(url, headers=headers, timeout=10)
         r.raise_for_status()
@@ -383,7 +419,12 @@ def run_live_pipeline(request=None):
     for coin in COINS:
         try:
             print(f"Processing {coin}...")
-            df = fetch_ohlcv(coin, limit=350)
+
+            # df = fetch_ohlcv(coin, limit=350)
+
+            aligned_now = datetime.utcnow().replace(second=0, microsecond=0)
+            df = fetch_ohlcv(coin, limit=350, end_time=aligned_now)
+
 
             print("\n📈 LIVE CANDLE:")
             print(df.tail(5)[['timestamp', 'open', 'high', 'low', 'close', 'volume']])
