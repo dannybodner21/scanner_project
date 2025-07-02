@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 import requests
 from decimal import Decimal
 import time
+from django.utils import timezone
+
 
 
 FINNHUB_API_KEY = 'cuf7nohr01qno7m552hgcuf7nohr01qno7m552i0'
