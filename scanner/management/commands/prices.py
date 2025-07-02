@@ -33,7 +33,7 @@ class Command(BaseCommand):
         headers = {"X-CoinAPI-Key": api_key}
 
         start_time = datetime.datetime(2025, 6, 30, 23, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 7, 1, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 7, 2, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         for coinapi_symbol, db_coin in self.COINS:
             self.stdout.write(f"\n🔁 Starting {db_coin}...")

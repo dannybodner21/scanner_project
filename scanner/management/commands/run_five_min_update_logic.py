@@ -1,8 +1,9 @@
 from django.core.management.base import BaseCommand
 from scanner.models import Coin, CoinAPIPrice, ModelTrade, RealTrade
 from django.utils.timezone import make_aware, is_naive, now
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
+from decimal import Decimal
 import time
 
 
@@ -64,12 +65,21 @@ COINAPI_SYMBOL_MAP = {
 LATEST_PRICE_BASE_URL = "https://rest.coinapi.io/v1/quotes"
 OHLCV_BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
+
+def get_last_closed_candle_time():
+    now_utc = datetime.utcnow().replace(second=0, microsecond=0)
+    closed = now_utc - timedelta(minutes=1)
+    aligned = closed - timedelta(minutes=closed.minute % 5)
+    return aligned, aligned + timedelta(minutes=5)
+
+
 def run_five_min_update_logic():
-    start = datetime.now()
-    print(f"\n⏱️ Start: {start}")
+
+    print(f"\n⏱️ Start: {datetime.utcnow()}")
 
     coins = Coin.objects.all()
     headers = {"X-CoinAPI-Key": COINAPI_KEY}
+    ts_start, ts_end = get_last_closed_candle_time()
 
     # STEP 1: Update CoinAPIPrice
     for coin in coins:
@@ -78,27 +88,37 @@ def run_five_min_update_logic():
         if not coinapi_symbol:
             continue
 
-        url = f"{OHLCV_BASE_URL}/{coinapi_symbol}/latest?period_id=5MIN&limit=1"
+        url = (
+            f"{OHLCV_BASE_URL}/{coinapi_symbol}/history?"
+            f"period_id=5MIN"
+            f"&time_start={ts_start.isoformat()}"
+            f"&time_end={ts_end.isoformat()}"
+            f"&limit=1"
+        )
 
         try:
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
             data = response.json()
-            candle = data[0]
+            if not data:
+                print(f"⚠️ No candle returned for {symbol}")
+                continue
 
+            candle = data[0]
             timestamp = datetime.fromisoformat(candle["time_period_start"].replace("Z", "+00:00"))
 
             CoinAPIPrice.objects.update_or_create(
                 coin=coin,
                 timestamp=timestamp,
                 defaults={
-                    "open": candle["price_open"],
-                    "high": candle["price_high"],
-                    "low": candle["price_low"],
-                    "close": candle["price_close"],
-                    "volume": candle["volume_traded"]
+                    "open": Decimal(str(candle["price_open"])),
+                    "high": Decimal(str(candle["price_high"])),
+                    "low": Decimal(str(candle["price_low"])),
+                    "close": Decimal(str(candle["price_close"])),
+                    "volume": Decimal(str(candle["volume_traded"]))
                 }
             )
+
         except Exception as e:
             print(f"❌ Error updating CoinAPIPrice for {symbol}: {e}")
 
@@ -106,6 +126,7 @@ def run_five_min_update_logic():
     open_trades = ModelTrade.objects.filter(exit_timestamp__isnull=True)
 
     for trade in open_trades:
+
         try:
             price_entry = float(trade.entry_price)
             symbol = trade.coin.symbol + "USDT"
@@ -120,18 +141,29 @@ def run_five_min_update_logic():
 
             if not quotes or "bid_price" not in quotes[0] or quotes[0]["bid_price"] is None:
                 print(f"⚠️ Missing bid_price for {symbol}, falling back to latest close")
+
                 try:
-                    ohlcv_url = f"{OHLCV_BASE_URL}/{coinapi_symbol}/latest?period_id=5MIN&limit=1"
+                    ohlcv_url = (
+                        f"{OHLCV_BASE_URL}/{coinapi_symbol}/history?"
+                        f"period_id=5MIN"
+                        f"&time_start={ts_start.isoformat()}"
+                        f"&time_end={ts_end.isoformat()}"
+                        f"&limit=1"
+                    )
                     ohlcv_resp = requests.get(ohlcv_url, headers=headers, timeout=10)
                     ohlcv_resp.raise_for_status()
                     ohlcv_data = ohlcv_resp.json()
+
                     if not ohlcv_data:
                         print(f"⚠️ No OHLCV fallback data for {symbol}, skipping")
                         continue
+
                     price_now = float(ohlcv_data[0]["price_close"])
+
                 except Exception as e:
                     print(f"❌ OHLCV fallback failed for {symbol}: {e}")
                     continue
+
             else:
                 price_now = float(quotes[0]["bid_price"])
 
@@ -146,6 +178,7 @@ def run_five_min_update_logic():
                     result = False
                 else:
                     continue
+                    
             else:
                 if price_now <= price_entry * 0.96:
                     status = "💰 TAKE PROFIT"
