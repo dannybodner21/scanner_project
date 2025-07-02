@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from scanner.models import Coin, CoinAPIPrice, ModelTrade, RealTrade
 from django.utils.timezone import make_aware, is_naive, now
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import requests
 from decimal import Decimal
 import time
@@ -32,7 +32,7 @@ def get_chart_patterns_for_coin(symbol, finnhub_api_key):
 
                 status = latest.status or ""
                 patterntype = latest.patterntype or "no pattern"
-                patternname = lastest.patternname or "no name"
+                patternname = latest.patternname or "no name"
                 target = latest.profit1 or "no target"
 
                 chart_string = f'{status} {patterntype} {patternname} | target: {target}'
@@ -80,6 +80,10 @@ def run_five_min_update_logic():
 
     print(f"\n⏱️ Start: {datetime.utcnow()}")
 
+    headers = {"X-CoinAPI-Key": COINAPI_KEY}
+
+    '''
+
     coins = Coin.objects.all()
     headers = {"X-CoinAPI-Key": COINAPI_KEY}
     ts_start, ts_end = get_last_closed_candle_time()
@@ -124,6 +128,8 @@ def run_five_min_update_logic():
 
         except Exception as e:
             print(f"❌ Error updating CoinAPIPrice for {symbol}: {e}")
+
+    '''
 
     # STEP 2: Evaluate all open trades
     open_trades = ModelTrade.objects.filter(exit_timestamp__isnull=True)

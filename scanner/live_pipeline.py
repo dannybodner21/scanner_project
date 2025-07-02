@@ -11,11 +11,10 @@ import hmac
 import hashlib
 import urllib.parse
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from scanner.models import Coin, ModelTrade, RealTrade
 from scipy.stats import linregress
 from django.utils.timezone import now
-from datetime import datetime, timedelta
 
 
 COINAPI_SYMBOL_MAP = {
