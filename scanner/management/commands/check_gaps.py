@@ -16,6 +16,8 @@ from scanner.models import CoinAPIPrice
 # 11. UNIUSDT - good
 # 12. AVAXUSDT - good
 # 13. XLMUSDT - good
+
+
 # 14. HBARUSDT -
 
 
@@ -29,7 +31,7 @@ class Command(BaseCommand):
         # Load all existing timestamps into a set for fast lookup
         existing_timestamps = set(
             ts.replace(tzinfo=datetime.timezone.utc)
-            for ts in CoinAPIPrice.objects.filter(coin='XLMUSDT')
+            for ts in CoinAPIPrice.objects.filter(coin='UNIUSDT')
             .values_list('timestamp', flat=True)
         )
 

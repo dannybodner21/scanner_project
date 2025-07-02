@@ -28,12 +28,20 @@ class Command(BaseCommand):
         ("BINANCE_SPOT_XLM_USDT", "XLMUSDT"),
     ]
 
+    COINS = [
+        ("BINANCE_SPOT_UNI_USDT", "UNIUSDT"),
+    ]
+
+    # 2024-02-04 17:10:00+00:00
+    # 2024-02-05 05:35:00+00:00
+    # 2024-05-09 02:55:00+00:00
+
     def handle(self, *args, **kwargs):
         api_key = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
         headers = {"X-CoinAPI-Key": api_key}
 
-        start_time = datetime.datetime(2025, 6, 30, 23, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 7, 2, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2024, 5, 9, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2024, 5, 10, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         for coinapi_symbol, db_coin in self.COINS:
             self.stdout.write(f"\n🔁 Starting {db_coin}...")

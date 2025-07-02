@@ -4,19 +4,50 @@ from scanner.models import CoinAPIPrice
 
 
 
-# python manage.py check_flat_windows BTCUSDT
-# python manage.py check_flat_windows ETHUSDT
-# python manage.py check_flat_windows XRPUSDT
-# python manage.py check_flat_windows LTCUSDT
-# python manage.py check_flat_windows SOLUSDT
-# python manage.py check_flat_windows DOGEUSDT
-# python manage.py check_flat_windows LINKUSDT
-# python manage.py check_flat_windows DOTUSDT
-# python manage.py check_flat_windows SHIBUSDT
-# python manage.py check_flat_windows ADAUSDT
-# python manage.py check_flat_windows UNIUSDT
+# python manage.py check_flat_windows BTCUSDT - good
+
+
+# python manage.py check_flat_windows ETHUSDT - good
+
+
+# python manage.py check_flat_windows XRPUSDT - good
+
+
+# python manage.py check_flat_windows LTCUSDT - good
+
+
+# python manage.py check_flat_windows SOLUSDT - good
+
+
+# python manage.py check_flat_windows DOGEUSDT - good
+
+
+# python manage.py check_flat_windows LINKUSDT - good
+
+
+# python manage.py check_flat_windows DOTUSDT - good
+
+
+# python manage.py check_flat_windows SHIBUSDT - good
+
+
+# python manage.py check_flat_windows ADAUSDT - good
+
+
+# python manage.py check_flat_windows UNIUSDT - good
+
+
 # python manage.py check_flat_windows AVAXUSDT
-# python manage.py check_flat_windows XLMUSDT
+
+# ❌ Found 1 flat windows:
+# Window: 2023-09-08 23:45:00+00:00 → 2023-09-08 23:50:00+00:00 (2 candles)
+
+# python manage.py check_flat_windows XLMUSDT - good
+
+
+
+
+
 
 # python manage.py check_flat_windows HBARUSDT 183 flat windows
 

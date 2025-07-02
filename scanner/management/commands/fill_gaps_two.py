@@ -23,7 +23,7 @@ class Command(BaseCommand):
         headers = {"X-CoinAPI-Key": api_key}
 
         start_time = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 6, 25, 23, 55, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 30, 23, 55, 0, tzinfo=datetime.timezone.utc)
 
         self.stdout.write("Loading existing timestamps...")
         existing_timestamps = set(

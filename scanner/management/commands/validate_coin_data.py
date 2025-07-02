@@ -2,6 +2,98 @@ import datetime
 from django.core.management.base import BaseCommand
 from scanner.models import CoinAPIPrice
 
+# python manage.py validate_coin_data BTCUSDT - good
+'''
+
+'''
+
+# python manage.py validate_coin_data ETHUSDT - good
+'''
+
+'''
+
+# python manage.py validate_coin_data XRPUSDT - good
+'''
+
+'''
+
+# python manage.py validate_coin_data LTCUSDT - good
+'''
+
+'''
+
+# python manage.py validate_coin_data SOLUSDT - not good
+'''
+
+("2025-01-01 01:05:00", "2025-01-01 01:05:00"),
+
+'''
+
+# python manage.py validate_coin_data DOGEUSDT - good
+'''
+
+'''
+
+# python manage.py validate_coin_data LINKUSDT - good
+'''
+
+'''
+
+# python manage.py validate_coin_data DOTUSDT - good
+'''
+
+'''
+
+# python manage.py validate_coin_data SHIBUSDT - good
+'''
+
+'''
+
+# python manage.py validate_coin_data ADAUSDT - good
+'''
+
+'''
+
+# python manage.py validate_coin_data UNIUSDT - not good
+'''
+❌ Found gaps:
+2024-02-04 17:10:00+00:00
+2024-02-05 05:35:00+00:00
+2024-05-09 02:55:00+00:00
+
+'''
+
+# python manage.py validate_coin_data AVAXUSDT - not good
+'''
+
+❌ Found 13 flat candles:
+2022-12-25 03:55:00+00:00
+2023-04-29 02:40:00+00:00
+2023-08-12 04:45:00+00:00
+2023-08-12 07:40:00+00:00
+2023-08-27 03:55:00+00:00
+2023-09-02 14:10:00+00:00
+2023-09-05 23:40:00+00:00
+2023-09-08 23:45:00+00:00
+2023-09-08 23:50:00+00:00
+2023-09-09 03:50:00+00:00
+2023-09-09 05:25:00+00:00
+2023-10-01 01:35:00+00:00
+2023-10-15 06:05:00+00:00
+
+'''
+
+# python manage.py validate_coin_data XLMUSDT - fine
+'''
+
+❌ Found 1 flat candles:
+2024-05-31 22:45:00+00:00
+
+
+'''
+
+
+
 class Command(BaseCommand):
     help = "Validate historical CoinAPIPrice data for gaps, flats, and volume issues."
 
@@ -11,8 +103,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         coin = options['coin'].upper()
 
-        start_time = datetime.datetime(2019, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
-        end_time = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+        start_time = datetime.datetime(2022, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+        end_time = datetime.datetime(2025, 6, 30, 23, 55, tzinfo=datetime.timezone.utc)
 
         # Load all timestamps for this coin
         self.stdout.write(f"Loading {coin} data...")

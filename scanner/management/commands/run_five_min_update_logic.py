@@ -70,7 +70,8 @@ def get_last_closed_candle_time():
     now_utc = datetime.utcnow().replace(second=0, microsecond=0)
     closed = now_utc - timedelta(minutes=1)
     aligned = closed - timedelta(minutes=closed.minute % 5)
-    return aligned, aligned + timedelta(minutes=5)
+    return aligned.replace(tzinfo=timezone.utc), (aligned + timedelta(minutes=5)).replace(tzinfo=timezone.utc)
+
 
 
 def run_five_min_update_logic():
@@ -178,7 +179,7 @@ def run_five_min_update_logic():
                     result = False
                 else:
                     continue
-                    
+
             else:
                 if price_now <= price_entry * 0.96:
                     status = "💰 TAKE PROFIT"

@@ -15,6 +15,7 @@ from datetime import datetime
 from scanner.models import Coin, ModelTrade, RealTrade
 from scipy.stats import linregress
 from django.utils.timezone import now
+from datetime import datetime, timedelta
 
 
 COINAPI_SYMBOL_MAP = {
@@ -361,49 +362,6 @@ def print_feature_stats(df, coin):
         else:
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
-
-def send_real_trade_updates():
-
-    open_trades = RealTrade.objects.filter(exit_timestamp__isnull=True)
-
-    if not open_trades.exists():
-        return
-
-    updates = []
-    for trade in open_trades:
-        coin_symbol = trade.coin.symbol
-        kraken_symbol = KRAKEN_SYMBOL_MAP[coin_symbol]
-
-        # Fetch current price via CoinAPI
-        coinapi_symbol = COINAPI_SYMBOL_MAP[f"{coin_symbol}USDT"]
-
-        url = f"https://rest.coinapi.io/v1/ohlcv/{coinapi_symbol}/latest?period_id=5MIN&limit=1"
-
-        # url = f"{BASE_URL}/{coinapi_symbol}/history?period_id=5MIN&time_end={timestamp}&limit=1"
-
-
-        headers = {"X-CoinAPI-Key": COINAPI_KEY}
-        r = requests.get(url, headers=headers, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        if not data:
-            continue
-        current_price = data[0]["price_close"]
-
-        direction = trade.trade_type.upper()
-        entry_price = float(trade.entry_price)
-        percent_change = ((current_price - entry_price) / entry_price) * 100
-        percent_display = f"{percent_change:+.2f}%"
-
-        updates.append(
-            f"*{coin_symbol}* {direction}\n"
-            f"📅 {trade.entry_timestamp.strftime('%Y-%m-%d %H:%M')}\n"
-            f"💵 Entry: `{entry_price}`\n"
-            f"📈 Now: `{current_price:.4f}`\n"
-            f"📊 Change: *{percent_display}*\n"
-        )
-
-    send_text(updates)
 
 
 def run_live_pipeline(request=None):
