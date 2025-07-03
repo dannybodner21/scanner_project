@@ -7,13 +7,26 @@ from django.core.management.base import BaseCommand
 
 # python manage.py train_best_xgb_model
 
+
+INPUT_COLUMNS = [
+    'open', 'high', 'low', 'close', 'volume',
+    'adx_14', 'ma_200', 'returns_5m', 'returns_15m', 'returns_1h', 'returns_4h',
+    'momentum', 'volume_ma_20', 'vol_spike', 'rsi_14', 'macd', 'macd_signal',
+    'macd_hist', 'bb_upper', 'bb_lower', 'atr_14', 'obv', 'obv_slope',
+    'ema_9', 'ema_21', 'ema_diff', 'volatility', 'bull_regime', 'bear_regime',
+    'sideways_regime', 'slope_1h', 'dist_from_high_24h', 'dist_from_low_24h',
+    'stoch_k', 'stoch_d', 'price_change_5', 'volume_change_5',
+    'high_1h', 'low_1h', 'pos_in_range_1h', 'vwap_1h', 'pos_vs_vwap'
+]
+
+
 class Command(BaseCommand):
     help = 'Train XGBoost model for LONG trades with diagnostics'
 
     def handle(self, *args, **options):
-        train_file = 'seven_long_training_data.csv'
-        model_output = 'seven_long_xgb_model.bin'
-        importance_csv = 'seven_long_feature_importance.csv'
+        train_file = 'eight_long_training_data.csv'
+        model_output = 'eight_long_xgb_model.bin'
+        importance_csv = 'eight_long_feature_importance.csv'
         test_size = 0.1  # 10% validation split
 
         self.stdout.write(f"Loading training data from {train_file} ...")
@@ -26,6 +39,8 @@ class Command(BaseCommand):
             self.stdout.write(f"Dropped columns: {drop_cols}")
 
         X = df.drop(columns=['label'])
+
+        # X = df[INPUT_COLUMNS]
         y = df['label']
 
         self.stdout.write("Splitting data (90% train, 10% validation)...")

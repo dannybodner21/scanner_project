@@ -368,7 +368,7 @@ def run_live_pipeline(request=None):
     django.setup()
 
     long_model = xgb.Booster()
-    long_model.load_model("seven_long_xgb_model.bin")
+    long_model.load_model("eight_long_xgb_model.bin")
 
     short_model = xgb.Booster()
     short_model.load_model("seven_short_xgb_model.bin")

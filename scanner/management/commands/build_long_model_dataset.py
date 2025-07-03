@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from django.core.management.base import BaseCommand
 from scanner.models import CoinAPIPrice
 
+
 class Command(BaseCommand):
     help = 'Build dataset with engineered features for long trade model'
 
@@ -44,8 +45,8 @@ class Command(BaseCommand):
         self.stdout.write(f"Training data rows (balanced): {len(balanced_train_df)}")
         self.stdout.write(f"Test data rows (unbalanced): {len(test_df)}")
 
-        balanced_train_df.to_csv("seven_long_training_data.csv")
-        test_df.to_csv("seven_long_testing_data.csv")
+        balanced_train_df.to_csv("eight_long_training_data.csv")
+        test_df.to_csv("eight_long_testing_data.csv")
         self.stdout.write("Training and test CSV files saved.")
 
 
@@ -66,6 +67,7 @@ class Command(BaseCommand):
         df = df.set_index('timestamp').sort_index()
         return df
 
+
     def calculate_trend_slope(self, prices):
         if len(prices) < 12:
             return np.nan
@@ -73,7 +75,9 @@ class Command(BaseCommand):
         slope, _, _, _, _ = linregress(x, prices)
         return slope
 
+
     def add_features(self, df):
+
         df = df.copy()
 
         df['adx_14'] = ta.trend.adx(df['high'], df['low'], df['close'], window=14)
@@ -129,11 +133,17 @@ class Command(BaseCommand):
 
         df['high_1h'] = df['high'].rolling(12).max()
         df['low_1h'] = df['low'].rolling(12).min()
+
+        #range_1h = df['high_1h'] - df['low_1h']
+        #df['pos_in_range_1h'] = np.where(range_1h == 0, 0.5, (df['close'] - df['low_1h']) / range_1h)
+
         df['pos_in_range_1h'] = (df['close'] - df['low_1h']) / (df['high_1h'] - df['low_1h'])
+
         df['vwap_1h'] = (df['close'] * df['volume']).rolling(12).sum() / df['volume'].rolling(12).sum()
         df['pos_vs_vwap'] = df['close'] - df['vwap_1h']
 
         df = df.dropna()
+
         return df
 
     def generate_labels(self, df, tp=0.04, sl=0.02, window=288):
