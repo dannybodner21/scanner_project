@@ -33,7 +33,7 @@ class Command(BaseCommand):
         y_pred_prob = model.predict(dtest)
 
         self.stdout.write("Generating predicted labels with 0.97 threshold ...")
-        y_pred = (y_pred_prob >= 0.95).astype(int)
+        y_pred = (y_pred_prob >= 0.99).astype(int)
 
         self.stdout.write("Classification Report on 2025 test data:")
         report = classification_report(y_test, y_pred)
