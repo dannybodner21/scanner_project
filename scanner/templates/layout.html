@@ -1,0 +1,83 @@
+<!doctype html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+      integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+    />
+
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+
+    {% block head %} {% endblock %}
+  </head>
+
+  <body style="min-height: 100vh; margin: 0px">
+
+
+    <div class="nav-bar">
+        <div class="nav-wrapper">
+
+          <div class="logo-wrapper">
+            <img class="fif-logo" src="{% static 'images/FIF-Logo-01.png' %}" alt="Logo" class="navbar-logo">
+          </div>
+
+          <nav role="navigation" class="w-nav-menu">
+            <div class="nav-link-wrap">
+              <div class="navbar-center">
+                <span>Fiat Is Fake - Market Scanner</span>
+              </div>
+            </div>
+          </nav>
+
+        </div>
+    </div>
+
+
+
+
+<!--
+    <nav
+      class="navbar navbar-expand-lg justify-content-left"
+      style="
+        box-shadow:
+          0 4px 8px 0 rgba(0, 0, 0, 0.2),
+          0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        position: -webkid-sticky;
+        position: sticky;
+        top: 0px;
+        z-index: 3;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        background-color: #162321;
+        color: white;
+        height: 100px;
+      "
+    >
+
+      <a href="/" class="navbar-brand">
+        <img src="{% static 'images/FIF-Logo-01.png' %}" alt="Logo" class="navbar-logo">
+      </a>
+
+      <div class="navbarLarge" style="text-align:center;">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <a class="nav-link">Fiat Is Fake - Market Scanner</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+-->
+
+
+    <div style="min-height: 100vh">{% block body %} {% endblock %}</div>
+
+  </body>
+</html>

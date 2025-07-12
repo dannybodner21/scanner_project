@@ -1,0 +1,110 @@
+{% load static %}
+{% load metrics_extras %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trading Bot Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        h1, h2 {
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Trading Bot Dashboard</h1>
+
+    <h2>📈 Open Trades</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Coin</th>
+                <th>Type</th>
+                <th>Time Open</th>
+                <th>PnL %</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for signal in open_signals %}
+            <tr>
+                <td>{{ signal.coin.symbol }}</td>
+                <td>{{ signal.signal_type|title }}</td>
+                <td>{{ signal.fired_at|timesince }} ago</td>
+                <td>
+                    {% with pnl=signal.metrics.last_price|percent_change:signal.price_at_fired %}
+                        {% if pnl is not None %}
+                            {{ pnl|floatformat:2 }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    {% endwith %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4">No open trades</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>✅ Recently Closed Trades</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Coin</th>
+                <th>Type</th>
+                <th>Result</th>
+                <th>Duration</th>
+                <th>Entry</th>
+                <th>Exit</th>
+                <th>PnL %</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for signal in closed_signals %}
+            <tr>
+                <td>{{ signal.coin.symbol }}</td>
+                <td>{{ signal.signal_type|title }}</td>
+                <td>{{ signal.result|title }}</td>
+                <td>{{ signal.fired_at|timesince:signal.closed_at }}</td>
+                <td>{{ signal.price_at_fired|floatformat:4 }}</td>
+                <td>{{ signal.exit_price|floatformat:4 }}</td>
+                <td>
+                    {% with pnl=signal.exit_price|percent_change:signal.price_at_fired %}
+                        {% if pnl is not None %}
+                            {{ pnl|floatformat:2 }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    {% endwith %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7">No closed trades</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>📊 Stats Since April 7</h2>
+    <ul>
+        <li><strong>LONGS</strong> — Total: {{ total_long }}, Wins: {{ wins_long }}, Losses: {{ losses_long }}, Success Rate: {{ win_rate_long }}%</li>
+        <li><strong>SHORTS</strong> — Total: {{ total_short }}, Wins: {{ wins_short }}, Losses: {{ losses_short }}, Success Rate: {{ win_rate_short }}%</li>
+    </ul>
+</body>
+</html>

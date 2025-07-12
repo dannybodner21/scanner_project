@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Short Interval Viewer</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 20px;
+    }
+    select, button {
+      padding: 6px;
+      margin-right: 10px;
+      font-size: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #444;
+    }
+    th {
+      background-color: #333;
+    }
+    tbody {
+      max-height: 500px;
+      overflow-y: auto;
+      display: block;
+    }
+    tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    .title {
+      text-align: center;
+    }
+  </style>
+
+</head>
+
+
+<body>
+
+  <div class="title">
+    <h1>Short Interval Viewer</h1>
+  </div>
+
+
+
+  {% if selected_symbol and selected_date %}
+    <h3>{{ selected_symbol }} on {{ selected_date }}</h3>
+    <p><strong>Expected entries:</strong> {{ expected_count }}</p>
+    <p><strong>Actual entries:</strong> {{ actual_count }}</p>
+  {% endif %}
+
+  <form method="get">
+    <select name="coin">
+      {% for coin in coins %}
+        <option value="{{ coin.id }}" {% if coin.id == selected_coin_id %}selected{% endif %}>
+          {{ coin.symbol }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Submit</button>
+  </form>
+
+  {% if results %}
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Count</th>
+          <th>Expected</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in results %}
+          <tr>
+            <td>{{ row.date }}</td>
+            <td>{{ row.count }}</td>
+            <td>{{ row.expected }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+
+  </body>
+</html>

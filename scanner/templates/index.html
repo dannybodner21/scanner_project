@@ -1,0 +1,642 @@
+{% extends "layout.html" %}
+
+{% block head %}
+
+  <title>Fiat Is Fake</title>
+
+  <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            height: 100vh;
+            background-color: black;
+            background: radial-gradient(circle at top left, #162321 45%, rgba(22, 35, 33, 0) 80%),
+                        radial-gradient(circle at top right, #032b1d 35%, rgba(22, 35, 33, 0) 80%),
+                        radial-gradient(circle at bottom left, #17FF88 60%, rgba(22, 35, 33, 0) 80%),
+                        radial-gradient(circle at bottom right, #162321 40%, rgba(22, 35, 33, 0) 80%);
+            background-size: 50% 50%;
+            background-repeat: no-repeat;
+            background-position: top left, top right, bottom left, bottom right;
+            background-size: cover;
+            background-attachment: fixed;
+        }
+        .volume_table {
+          background: radial-gradient(circle at top left, #1c3e32 0%, rgba(255, 255, 255, 0) 70%),
+                      radial-gradient(circle at top right, #1c3e32 0%, rgba(255, 255, 255, 0) 70%),
+                      radial-gradient(circle at bottom left, #1c3e32 0%, rgba(255, 255, 255, 0) 70%),
+                      radial-gradient(circle at bottom right, #1c3e32 0%, rgba(255, 255, 255, 0) 70%);
+          background-size: 50% 50%;
+          background-repeat: no-repeat;
+          background-position: top left, top right, bottom left, bottom right;
+          background-size: cover;
+          background-attachment: fixed;
+          border-spacing: 10px;
+          border-collapse: separate;
+        }
+        .container {
+            display: flex;
+            flex-direction: row;
+            height: auto;
+            width: 95%;
+        }
+        .left-column {
+            width: 40%;
+            padding: 10px;
+        }
+        .right-column {
+            width: 60%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100vh;
+            position: sticky;
+            top: 130px;
+            padding-top: 10px;
+        }
+        .chart-container {
+            height: 65%;
+            padding: 5px;
+        }
+        table {
+                border-spacing: 0px 10px;
+                border-radius: 15px;
+                overflow: hidden;
+                border-collapse: separate;
+            }
+
+        th, td {
+                padding: 10px;
+        }
+        .table_card {
+          color: black;
+          height: auto;
+          background-color: #162321;
+          background-image: linear-gradient(to bottom right, #162321, #1a3027);
+          border-radius:15px;
+          padding-left:15px;
+          border: 1px solid rgba(23, 255, 135, 0.2);
+        }
+        .table_card:hover {
+          border: 1px solid rgba(23, 255, 135, 1);
+          box-shadow:
+            0 0 1px rgba(23, 255, 135, 1),
+            0 0 10px rgba(23, 255, 135, 0.5),
+            0 0 20px rgba(23, 255, 135, 0.1);
+        }
+        .card_header {
+          text-align:center;
+          margin-bottom:15px;
+          color: white;
+        }
+        .card_item {
+          padding-left:30px;
+          font-size:18px;
+          color: #caedd6;
+        }
+        .table_header {
+          z-index: 5;
+          color: #20c972;
+          height:100px;
+          font-size:40px;
+          font-weight: 500;
+          text-align:center;
+          margin: 0px;
+          padding: 0px;
+          border-radius: 20px 20px 0px 0px;
+        }
+        .custom-chart-container {
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(32, 201, 114, 0.25);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            height: 78vh;
+        }
+        .trigger-section {
+          margin: 0 auto;
+          margin-top: 30px;
+          padding: 10px;
+          width: 93%;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          border-radius: 15px;
+          background-color: #073025;
+          background: radial-gradient(circle at top left, #123027 45%, rgba(22, 35, 33, 0.5) 80%),
+                      radial-gradient(circle at top right, #2ded9a 15%, rgba(22, 35, 33, 0.5) 30%),
+                      radial-gradient(circle at bottom left, #08bfa7 60%, rgba(22, 35, 33, 0.5) 80%),
+                      radial-gradient(circle at bottom right, #3af2da 80%, rgba(255, 255, 255, 0.5) 30%);
+          background-size: 10% 10%;
+          background-repeat: no-repeat;
+          background-position: top left, top right, bottom left, bottom right;
+          background-size: cover;
+          background-attachment: fixed;
+          height: auto;
+          padding-bottom: 30px;
+        }
+        .header-text {
+          text-align: center;
+          color: #1EC971;
+          font-size: 30px;
+          font-weight: 500;
+        }
+        .trigger-columns {
+          margin-top: 30px;
+          display: flex;
+          justify-content: space-between;
+          text-align: center;
+        }
+        .trigger-column {
+          flex: 1;
+          margin: 0 10px;
+        }
+        .trigger-card {
+          margin-top: 10px;
+          padding: 10px;
+          border-radius: 15px;
+          color: black;
+          height: auto;
+          background-color: #162321;
+          background-image: linear-gradient(to bottom right, #162321, #1a3027);
+          border: 1px solid rgba(23, 255, 135, 1);
+          box-shadow:
+            0 0 1px rgba(23, 255, 135, 1),
+            0 0 10px rgba(23, 255, 135, 0.5),
+            0 0 20px rgba(23, 255, 135, 0.1);
+        }
+        .trigger-text {
+          font-size: 20px;
+          color: white;
+          margin-top: 10px;
+          font-weight: 400;
+        }
+        .trigger-subtext {
+          font-size: 14px;
+          font-weight: 200;
+          color: white;
+        }
+  </style>
+
+
+{% endblock %}
+
+{% block body %}
+
+
+<section class="scanner-container">
+  <div class="w-layout-blockcontainer container w-container">
+
+    <table style="margin-top:50px;background-color:white; border-radius:20px;">
+        <thead style="position:sticky; top:0px; overflow-y:auto; background-color:white;z-index:5;border-radius:20px 20px 0px 0px;">
+            <tr>
+                <th>Coin</th>
+                <th>Price</th>
+                <th>Level One</th>
+                <th>Level Two</th>
+                <th>Level Three</th>
+                <th>Level Four</th>
+                <th>Level Five</th>
+                <th>Level Six</th>
+            </tr>
+        </thead>
+        <tbody style="background-color: white;">
+            {% for level in support_resistance_levels %}
+                <tr>
+                    <td style="color:black; border:0.5px solid black;">{{ level.coin.symbol }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.price }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_one }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_two }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_three }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_four }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_five }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ level.level_six }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+  </div>
+</section>
+
+
+
+
+
+
+<section class="scanner-container">
+  <div class="w-layout-blockcontainer container w-container">
+
+    <table style="margin-top:50px;background-color:white; border-radius:20px;">
+        <thead style="position:sticky; top:0px; overflow-y:auto; background-color:white;z-index:5;border-radius:20px 20px 0px 0px;">
+            <tr>
+                <th>Coin</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Entry Price</th>
+                <th>TP</th>
+                <th>SL</th>
+                <th>5min Signal</th>
+                <th>15min Signal</th>
+                <th>1hr Signal</th>
+                <th>5min ADX</th>
+                <th>15min ADX</th>
+                <th>1hr ADX</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody style="background-color: white;">
+            {% for pattern in patterns %}
+                <tr>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.symbol }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.name }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.patterntype }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.status }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.entry }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.takeprofit }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.stoploss }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.five_min_signal }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.fifteen_min_signal }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.one_hour_signal }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.five_min_adx }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.fifteen_min_adx }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.one_hour_adx }}</td>
+                    <td style="color:black; border:0.5px solid black;">{{ pattern.timestamp }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+  </div>
+</section>
+
+
+
+
+
+
+  <section class="trigger-section">
+    <h3 class="header-text">Current Triggers</h3>
+    <div class="trigger-columns">
+
+      <div class="trigger-column">
+        {% for trigger in triggers %}
+            {% if forloop.counter0|divisibleby:3 %}
+              <div class="trigger-card">
+                <h3 class="trigger-text">{{ trigger.trigger_name }}</h3>
+                <h5 class="trigger-subtext">{{ trigger.timestamp }}</h5>
+              </div>
+            {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="trigger-column">
+        {% for trigger in triggers %}
+            {% if forloop.counter0|add:2|divisibleby:3 %}
+              <div class="trigger-card">
+                <h3 class="trigger-text">{{ trigger.trigger_name }}</h3>
+                <h5 class="trigger-subtext">{{ trigger.timestamp }}</h5>
+              </div>
+            {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="trigger-column">
+        {% for trigger in triggers %}
+            {% if forloop.counter0|add:1|divisibleby:3 %}
+              <div class="trigger-card">
+                <h3 class="trigger-text">{{ trigger.trigger_name }}</h3>
+                <h5 class="trigger-subtext">{{ trigger.timestamp }}</h5>
+              </div>
+            {% endif %}
+        {% endfor %}
+      </div>
+
+    </div>
+  </section>
+
+  <section class="container" style="margin-top: 60px;">
+
+    <div class="left-column">
+
+      <table id="volume-table" class="volume_table" style="border-radius: 20px; width:100%; overflow-y:auto;">
+
+        <thead>
+          <th class="table_header">Relative Volume Scanner</th>
+        </thead>
+
+        <tbody id="volume-table-body" style="padding:10px;">
+          {% for coin in sorted_volumes %}
+
+              <tr data-symbol="{{ coin.exchange }}">
+                <td class="table_card">
+                  <div class="card_header">
+                    <h3>{{ coin.rank }}. {{ coin.symbol }} ${{ coin.price }}</h3>
+                  </div>
+                  <p class="card_item"><strong>24h Price Change:</strong> {{ coin.price_change_24h_percentage }}%</p>
+                  <p class="card_item"><strong>Daily RVOL:</strong> {{ coin.daily_relative_volume }}</p>
+                  <p class="card_item"><strong>RVOL Progression:</strong>
+                    {% for volume in coin.volumes %}
+                      {{ volume }} |
+                    {% endfor %}
+                  </p>
+                </td>
+              </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="right-column">
+      <div class="custom-chart-container">
+        <div id="tradingview-container" class="tradingview-widget-container" style="height:100%;width:100%">
+          <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+            {
+              "autosize": true,
+              "symbol": "BINANCE:BTCUSDT",
+              "interval": "5",
+              "timezone": "Etc/UTC",
+              "theme": "dark",
+              "style": "1",
+              "locale": "en",
+              "hide_side_toolbar": false,
+              "allow_symbol_change": true,
+              "save_image": false,
+              "calendar": false,
+              "support_host": "https://www.tradingview.com"
+            }
+          </script>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+
+
+  <section class="scanner-container">
+    <div class="w-layout-blockcontainer container w-container">
+
+      <table id="main-table" style="margin-top:50px;background-color:white; border-radius:20px;">
+          <thead style="position:sticky; top:0px; overflow-y:auto; background-color:white;z-index:5;border-radius:20px 20px 0px 0px;">
+              <tr>
+                  <!--
+                  <th>#</th>
+                  <th>Time</th>
+                  <th>Name</th>
+                  -->
+                  <th>Symbol</th>
+                  <th onclick="sortTable(0)">Price</th>
+
+                  <!--
+                  <th onclick="sortTable(1)">Market Cap</th>
+                  -->
+
+                  <th onclick="sortTable(2)">24 Hour Volume $</th>
+                  <th onclick="sortTable(3)">Daily Relative Volume</th>
+                  <th onclick="sortTable(3)">Rolling Relative Volume</th>
+                  <th onclick="sortTable(3)">5 min Relative Volume</th>
+                  <th onclick="sortTable(3)">20 min Relative Volume</th>
+                  <!--
+                  <th>24 Hour Volume %</th>
+                  -->
+                  <th onclick="sortTable(4)">5 Min Price Change %</th>
+                  <th onclick="sortTable(5)">10 Min Price Change %</th>
+                  <th onclick="sortTable(6)">1 Hour Price Change %</th>
+                  <th onclick="sortTable(7)">24 Hour Price Change %</th>
+                  <th onclick="sortTable(8)">7 day Price Change %</th>
+                  <th onclick="sortTable(9)">Circulating Supply</th>
+
+                  <!--
+                  <th onclick="sortTable(9)">Circulating Supply Change %</th>
+                  <th>Relative Volume (5 min %)</th>
+                  -->
+              </tr>
+          </thead>
+          <tbody style="background-color: white;">
+              {% for crypto in top_cryptos %}
+                  <tr>
+                      <!--
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ crypto.time }}</td>
+                      <td>{{ crypto.name }}</td>
+                      -->
+                      <td style="color:black; border:0.5px solid black;">{{ crypto.symbol }}</td>
+                      <td style="color:black; border:0.5px solid black;">
+                        {% if crypto.triggerThree == True %}
+                          <span style="color: green;">{{ crypto.price }}</span>
+                        {% else %}
+                          <span style="color: red;">{{ crypto.price }}</span>
+                        {% endif %}
+                      </td>
+                      <!--
+                      <td>
+                        {% if crypto.triggerFive == True %}
+                          <span style="color: green;">{{ crypto.market_cap }}</span>
+                        {% else %}
+                          <span style="color: red;">{{ crypto.market_cap }}</span>
+                        {% endif %}
+                      </td>
+                      -->
+                      <td style="color:black; border:0.5px solid black;">
+                        {% if crypto.triggerSix == True %}
+                          <span style="color: green;">${{ crypto.volume_24h_USD }}</span>
+                        {% else %}
+                          <span style="color: red;">${{ crypto.volume_24h_USD }}</span>
+                        {% endif %}
+                      </td>
+                      <td style="color:black; border:0.5px solid black;">{{ crypto.daily_relative_volume }}</td>
+                      <td style="color:black; border:0.5px solid black;">
+                        {% if crypto.triggerTwo == True %}
+                          <span style="color: green;">{{ crypto.rolling_relative_volume }}</span>
+                        {% else %}
+                          <span style="color: red;">{{ crypto.rolling_relative_volume }}</span>
+                        {% endif %}
+                      </td>
+                      <td style="color:black; border:0.5px solid black;">{{ crypto.five_min_relative_volume }}</td>
+                      <td style="color:black; border:0.5px solid black;">
+                        {% if crypto.triggerSeven == True %}
+                          <span style="color: green;">{{ crypto.twenty_min_relative_volume }}</span>
+                        {% else %}
+                          <span style="color: red;">{{ crypto.twenty_min_relative_volume }}</span>
+                        {% endif %}
+                      </td>
+
+                      <!--
+                      <td>{{ crypto.volume_24h_percentage }}%</td>
+                      -->
+                      <td style="color:black; border:0.5px solid black;">{{ crypto.price_change_5min }}%</td>
+                      <td style="color:black; border:0.5px solid black;">{{ crypto.price_change_10min }}%</td>
+                      <td style="color:black; border:0.5px solid black;">{{ crypto.price_change_1h }}%</td>
+                      <td style="color:black; border:0.5px solid black;">
+                        {% if crypto.triggerOne == True %}
+                          <span style="color: green;">{{ crypto.price_change_24h_percentage }}%</span>
+                        {% else %}
+                          <span style="color: red;">{{ crypto.price_change_24h_percentage }}%</span>
+                        {% endif %}
+                      </td>
+                      <td style="color:black; border:0.5px solid black;">{{ crypto.price_change_7d }}%</td>
+                      <td style="color:black; border:0.5px solid black;">
+                          {% if crypto.triggerFour == True %}
+                              <span style="color: green;">{{ crypto.circulating_supply }}</span>
+                          {% else %}
+                              <span style="color: red;">{{ crypto.circulating_supply }}</span>
+                          {% endif %}
+                      </td>
+
+                      <!--
+                      <td style="color:black; border:0.5px solid black;">
+                          {% if crypto.triggerEight == True %}
+                              <span style="color: green;">{{ crypto.circulating_supply_change }}%</span>
+                          {% else %}
+                              <span style="color: red;">{{ crypto.circulating_supply_change }}%</span>
+                          {% endif %}
+                      </td>
+                      <td>{{ crypto.five_min_relative_volume }}%</td>
+                      -->
+
+                  </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+
+    </div>
+  </section>
+
+
+  <script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js?site=67624bd2e2bb68861c119a32" type="text/javascript" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+
+  <script>
+
+
+    function loadTradingView(symbol) {
+
+        const container = document.getElementById("tradingview-container");
+
+        // Clear the existing widget
+        container.innerHTML = "";
+
+        // Create the new TradingView widget
+        const script = document.createElement("script");
+        script.type = "text/javascript";
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+        script.async = true;
+        script.innerHTML = JSON.stringify({
+            autosize: true,
+            symbol: symbol,
+            interval: "5",
+            timezone: "Etc/UTC",
+            theme: "dark",
+            style: "1",
+            locale: "en",
+            hide_side_toolbar: false,
+            allow_symbol_change: true,
+            save_image: false,
+            calendar: false,
+            support_host: "https://www.tradingview.com",
+        });
+
+        container.appendChild(script);
+    }
+
+
+    document.querySelector('#volume-table').addEventListener('click', function (event) {
+        // Check if the clicked element is a row
+        const row = event.target.closest('tr');
+        if (row && row.dataset.symbol) {
+            const symbol = row.dataset.symbol;
+            // Call the function to update the TradingView chart
+            loadTradingView(symbol);
+        }
+    });
+
+
+    // Initialize the widget with a default symbol
+    document.addEventListener("DOMContentLoaded", () => {
+        loadTradingView("BINANCE:BTCUSDT");
+    });
+
+
+    function updateTable() {
+
+        fetch(window.location.href, {
+            headers: {
+                'x-requested-with': 'XMLHttpRequest'  // Indicate this is an AJAX request
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            // Clear and rebuild the table rows using the returned data
+            let rows = '';
+            data.sorted_volumes.forEach((crypto) => {
+
+                rows += `<tr data-symbol="${ crypto.exchange }">
+                  <td class="table_card">
+                    <div class="card_header">
+                      <h3>${ crypto.rank }. ${ crypto.symbol } $${ crypto.price }</h3>
+                    </div>
+                    <p class="card_item"><strong>24h Price Change:</strong> ${ crypto.price_change_24h_percentage }%</p>
+                    <p class="card_item"><strong>Daily RVOL:</strong> ${ crypto.daily_relative_volume }</p>
+                    <p class="card_item"><strong>RVOL Progression:</strong>
+                      ${crypto.volumes[0]}
+                      ${crypto.volumes[1]}
+                      ${crypto.volumes[2]}
+                      ${crypto.volumes[3]}
+                      ${crypto.volumes[4]}
+                      ${crypto.volumes[5]}
+                      ${crypto.volumes[6]}
+                      ${crypto.volumes[7]}
+                      ${crypto.volumes[8]}
+                    </p>
+                  </td>
+                </tr>`;
+            });
+
+
+            // Update the table body
+            document.querySelector("#volume-table tbody").innerHTML = rows;
+
+            // do the same thing for the second table
+            let rows_main = '';
+            data.top_cryptos.forEach((crypto) => {
+
+                rows_main += `<tr>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.symbol }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.volume_24h_USD }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.daily_relative_volume }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.rolling_relative_volume }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.five_min_relative_volume }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.twenty_min_relative_volume }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_5min }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_10min }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_1h }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_24h_percentage }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.price_change_7d }</td>
+                            <td style="color:black; border:0.5px solid black;">${ crypto.circulating_supply }</td>
+                         </tr>`;
+            });
+
+            // Update the table body
+            document.querySelector("#main-table tbody").innerHTML = rows_main;
+
+        })
+        .catch(error => console.error('Error fetching table data:', error));
+    }
+
+
+    // Call the function every 5 min
+    setInterval(updateTable, 300000);
+
+
+  </script>
+
+
+
+{% endblock %}

@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="300">
+  <title>Live Trades</title>
+  <style>
+    body {
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .positive { color: #039975; }
+    .negative { color: #F53341; }
+    .container {
+      width: 300px;
+      font-family: sans-serif;
+      font-size: 10px;
+      margin: 10px;
+      display: flex;
+      flex-direction: column;
+      text-align: center;
+    }
+    .table-header {
+      font-size: 10px;
+      width: 300px;
+      border: 0.5px solid black;
+      height: 25px;
+      border-radius: 15px;
+      margin: 10px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      padding: 0px 15px 4px 15px;
+    }
+    .table-row {
+      font-size: 10px;
+      width: 300px;
+      border: 0.5px solid black;
+      height: 25px;
+      border-radius: 15px;
+      margin: 10px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      padding: 0px 15px 4px 15px;
+      background-color: black;
+      color: white;
+    }
+    .title {
+      width: 330px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .entry {
+      width: 50px;
+      text-align: center;
+    }
+    .text {
+      width: 100%;
+    }
+  </style>
+
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
+</head>
+<body>
+
+  <script>
+    setTimeout(() => {
+      window.location.reload();
+    }, 200000);
+  </script>
+
+  <div class-"container">
+    <h2 class="title">Open Trades</h2>
+    <div class="table-header">
+      <div class="entry"><p>Coin</p></div>
+      <div class="entry"><p>Trade</p></div>
+      <div class="entry"><p>Entry</p></div>
+      <div class="entry"><p>Current</p></div>
+      <div class="entry"><p>PNL</p></div>
+    </div>
+
+    {% for trade in trades %}
+
+    <div class="tradingview-widget-container">
+
+      <div id="tradingview_{{ trade.coin|lower }}" style="width:350px;height:360px;"></div>
+      <script type="text/javascript">
+        new TradingView.widget({
+          "width": 350,
+          "height": 360,
+          "symbol": "BINANCE:{{ trade.coin|upper }}USDT",
+          "interval": "5",
+          "timezone": "Etc/UTC",
+          "hide_side_toolbar": true,
+          "hide_top_toolbar": false,
+          "hide_legend": true,
+          "hide_volume": false,
+          "theme": "dark",
+          "backgroundColor": "#ffffff",
+          "gridColor": "rgba(46, 46, 46, 0.06)",
+          "withdateranges": false,
+          "autosize": false,
+          "style": "1",
+          "locale": "en",
+          "toolbar_bg": "#f1f3f6",
+          "hide_side_toolbar": true,
+          "enable_publishing": false,
+          "allow_symbol_change": true,
+          "container_id": "tradingview_{{ trade.coin|lower }}"
+        });
+      </script>
+    </div>
+
+
+
+
+
+      <div class="table-row">
+        <div class="entry"><p>{{ trade.coin }}</p></div>
+        <div class="entry"><p>{{ trade.type }}</p></div>
+        <div class="entry"><p>${{ trade.entry_price }}</p></div>
+        <div class="entry"><p>${{ trade.current_price }}</p></div>
+        <div class="entry"><p class="{% if trade.pnl > 0 %}positive{% elif trade.pnl < 0 %}negative{% endif %}">{{ trade.pnl }}%</p></div>
+      </div>
+
+    {% endfor %}
+
+  </div>
+</body>
+</html>

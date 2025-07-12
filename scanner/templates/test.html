@@ -1,0 +1,937 @@
+{% extends "layout.html" %}
+
+{% block head %}
+
+  <style>
+
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+    body {
+        font-family: sans-serif;
+        margin: 0;
+        height: 100vh;
+        background-color: black;
+        background: radial-gradient(circle at top left, #162321 45%, rgba(22, 35, 33, 0) 80%),
+                    radial-gradient(circle at top right, #032b1d 35%, rgba(22, 35, 33, 0) 80%),
+                    radial-gradient(circle at bottom left, #17FF88 60%, rgba(22, 35, 33, 0) 80%),
+                    radial-gradient(circle at bottom right, #162321 40%, rgba(22, 35, 33, 0) 80%);
+        background-size: 50% 50%;
+        background-repeat: no-repeat;
+        background-position: top left, top right, bottom left, bottom right;
+        background-size: cover;
+        background-attachment: fixed;
+    }
+    .volume_table {
+      background: radial-gradient(circle at top left, #1c3e32 0%, rgba(255, 255, 255, 0) 70%),
+                  radial-gradient(circle at top right, #1c3e32 0%, rgba(255, 255, 255, 0) 70%),
+                  radial-gradient(circle at bottom left, #1c3e32 0%, rgba(255, 255, 255, 0) 70%),
+                  radial-gradient(circle at bottom right, #1c3e32 0%, rgba(255, 255, 255, 0) 70%);
+      background-size: 50% 50%;
+      background-repeat: no-repeat;
+      background-position: top left, top right, bottom left, bottom right;
+      background-size: cover;
+      background-attachment: fixed;
+      border-spacing: 10px;
+      border-collapse: separate;
+    }
+    .container {
+        display: flex;
+        flex-direction: row;
+        height: auto;
+        width: 95%;
+    }
+    .left-column {
+        width: 40%;
+        padding: 10px;
+    }
+    .right-column {
+        width: 60%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        height: 100vh;
+        position: sticky;
+        top: 130px;
+        padding-top: 10px;
+    }
+    .chart-container {
+        height: 65%;
+        padding: 5px;
+    }
+    table {
+            border-spacing: 0px 10px; /* Remove gaps between cells */
+            border-radius: 15px; /* Rounds the table corners */
+            overflow: hidden; /* Clips any content that overflows the rounded corners */
+            border-collapse: separate;
+        }
+
+    th, td {
+            padding: 10px;
+    }
+    .table_card {
+      color: black;
+      height: auto;
+      background-color: #162321;
+      background-image: linear-gradient(to bottom right, #162321, #1a3027);
+      border-radius:15px;
+      padding-left:15px;
+      border: 1px solid rgba(23, 255, 135, 0.2);
+    }
+    .table_card:hover {
+      border: 1px solid rgba(23, 255, 135, 1);
+      box-shadow:
+        0 0 1px rgba(23, 255, 135, 1),
+        0 0 10px rgba(23, 255, 135, 0.5),
+        0 0 20px rgba(23, 255, 135, 0.1);
+    }
+    .card_header {
+      text-align:center;
+      margin-bottom:15px;
+      color: white;
+    }
+    .card_item {
+      padding-left:30px;
+      font-size:18px;
+      color: #caedd6;
+    }
+    .table_header {
+      z-index: 5;
+      color: #20c972;
+      height:100px;
+      font-size:40px;
+      font-weight: 500;
+      text-align:center;
+      margin: 0px;
+      padding: 0px;
+      border-radius: 20px 20px 0px 0px;
+    }
+    .custom-chart-container {
+        border-radius: 15px;
+        overflow: hidden;
+        border: 1px solid rgba(32, 201, 114, 0.25);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        height: 50vh;
+    }
+    .trigger-section {
+      margin: 0 auto;
+      margin-top: 30px;
+      padding: 10px;
+      width: 93%;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border-radius: 15px;
+      background-color: #073025;
+      background: radial-gradient(circle at top left, #123027 45%, rgba(22, 35, 33, 0.5) 80%),
+                  radial-gradient(circle at top right, #2ded9a 15%, rgba(22, 35, 33, 0.5) 30%),
+                  radial-gradient(circle at bottom left, #08bfa7 60%, rgba(22, 35, 33, 0.5) 80%),
+                  radial-gradient(circle at bottom right, #3af2da 80%, rgba(255, 255, 255, 0.5) 30%);
+      background-size: 10% 10%;
+      background-repeat: no-repeat;
+      background-position: top left, top right, bottom left, bottom right;
+      background-size: cover;
+      background-attachment: fixed;
+      height: auto;
+      padding-bottom: 30px;
+    }
+    .header-text {
+      text-align: center;
+      color: #1EC971;
+      font-size: 30px;
+      font-weight: 500;
+    }
+    .trigger-columns {
+      margin-top: 30px;
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+    }
+    .trigger-column {
+      flex: 1;
+      margin: 0 10px;
+    }
+    .trigger-card {
+      padding: 10px;
+      border-radius: 15px;
+      color: black;
+      height: auto;
+      background-color: #162321;
+      background-image: linear-gradient(to bottom right, #162321, #1a3027);
+      border: 1px solid rgba(23, 255, 135, 1);
+      box-shadow:
+        0 0 1px rgba(23, 255, 135, 1),
+        0 0 10px rgba(23, 255, 135, 0.5),
+        0 0 20px rgba(23, 255, 135, 0.1);
+    }
+    .trigger-text {
+      font-size: 20px;
+      color: white;
+      margin-top: 10px;
+      font-weight: 400;
+    }
+  </style>
+
+{% endblock %}
+
+{% block body %}
+
+
+  <section class="trigger-section">
+    <h3 class="header-text">Current Triggers</h3>
+    <div class="trigger-columns">
+
+      <div class="trigger-column">
+        <div class="trigger-card">
+          <h3 class="trigger-text"> BTC : Secondary Trigger Hit !</h3>
+        </div>
+      </div>
+
+      <div class="trigger-column">
+        <div class="trigger-card">
+          <h3 class="trigger-text"> BTC : Secondary Trigger Hit !</h3>
+        </div>
+      </div>
+
+      <div class="trigger-column">
+        <div class="trigger-card">
+          <h3 class="trigger-text"> BTC : Secondary Trigger Hit !</h3>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="container" style="margin-top:30px;">
+
+
+    <div class="left-column">
+
+      <table id="volume-table" class="volume_table" style="border-radius: 20px; width:100%; overflow-y: auto;">
+        <thead>
+          <th class="table_header">Relative Volume Scanner</th>
+        </thead>
+        <tbody id="volume-table-body" style="padding:10px;">
+
+
+                <tr data-symbol="BINANCE:ETHUSDT">
+                  <td class="table_card">
+                    <div class="card_header">
+                      <h3>1. BTC $100,000</h3>
+                    </div>
+                    <p class="card_item"><strong>24h Price Change:</strong> 1.3%</p>
+                    <p class="card_item"><strong>Daily RVOL:</strong> 2.3</p>
+                    <p class="card_item"><strong>RVOL Progression:</strong> 2.3 | 2.4 | 2.1 | 3.4 | 5.6 | 7.6</p>
+                  </td>
+                </tr>
+
+                <tr data-symbol="BINANCE:BTCUSDT">
+                  <td class="table_card">
+                    <div class="card_header">
+                      <h3>1. BTC $100,000</h3>
+                    </div>
+                    <p class="card_item"><strong>24h Price Change:</strong> 1.3%</p>
+                    <p class="card_item"><strong>Daily RVOL:</strong> 2.3</p>
+                    <p class="card_item"><strong>RVOL Progression:</strong> 2.3 | 2.4 | 2.1 | 3.4 | 5.6 | 7.6</p>
+                  </td>
+                </tr>
+                <tr data-symbol="BINANCE:DOGEUSDT">
+                  <td class="table_card">
+                    <div class="card_header">
+                      <h3>1. BTC $100,000</h3>
+                    </div>
+                    <p class="card_item"><strong>24h Price Change:</strong> 1.3%</p>
+                    <p class="card_item"><strong>Daily RVOL:</strong> 2.3</p>
+                    <p class="card_item"><strong>RVOL Progression:</strong> 2.3 | 2.4 | 2.1 | 3.4 | 5.6 | 7.6</p>
+                  </td>
+                </tr>
+                <tr data-symbol="BINANCE:DOTUSDT">
+                  <td class="table_card">
+                    <div class="card_header">
+                      <h3>1. BTC $100,000</h3>
+                    </div>
+                    <p class="card_item"><strong>24h Price Change:</strong> 1.3%</p>
+                    <p class="card_item"><strong>Daily RVOL:</strong> 2.3</p>
+                    <p class="card_item"><strong>RVOL Progression:</strong> 2.3 | 2.4 | 2.1 | 3.4 | 5.6 | 7.6</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="table_card">
+                    <div class="card_header">
+                      <h3>1. BTC $100,000</h3>
+                    </div>
+                    <p class="card_item"><strong>24h Price Change:</strong> 1.3%</p>
+                    <p class="card_item"><strong>Daily RVOL:</strong> 2.3</p>
+                    <p class="card_item"><strong>RVOL Progression:</strong> 2.3 | 2.4 | 2.1 | 3.4 | 5.6 | 7.6</p>
+                  </td>
+                </tr>
+
+
+
+        </tbody>
+      </table>
+    </div>
+
+
+    <div class="right-column">
+
+      <div class="custom-chart-container">
+        <div id="tradingview-container" class="tradingview-widget-container" style="height:100%;width:100%">
+          <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+            {
+              "autosize": true,
+              "symbol": "BINANCE:BTCUSDT",
+              "interval": "5",
+              "timezone": "Etc/UTC",
+              "theme": "dark",
+              "style": "1",
+              "locale": "en",
+              "hide_side_toolbar": false,
+              "allow_symbol_change": true,
+              "save_image": false,
+              "calendar": false,
+              "support_host": "https://www.tradingview.com"
+            }
+          </script>
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+  <script>
+    function loadTradingView(symbol) {
+
+        const container = document.getElementById("tradingview-container");
+
+        // Clear the existing widget
+        container.innerHTML = "";
+
+        // Create the new TradingView widget
+        const script = document.createElement("script");
+        script.type = "text/javascript";
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+        script.async = true;
+        script.innerHTML = JSON.stringify({
+            autosize: true,
+            symbol: symbol,
+            interval: "5",
+            timezone: "Etc/UTC",
+            theme: "dark",
+            style: "1",
+            locale: "en",
+            hide_side_toolbar: false,
+            allow_symbol_change: true,
+            save_image: false,
+            calendar: false,
+            support_host: "https://www.tradingview.com",
+        });
+
+        container.appendChild(script);
+    }
+
+    // Add event listeners to table rows
+    document.querySelectorAll("#volume-table tr").forEach((row) => {
+        row.addEventListener("click", function () {
+            const symbol = this.getAttribute("data-symbol");
+            if (symbol) {
+                loadTradingView(symbol);
+            }
+        });
+    });
+
+    // Initialize the widget with a default symbol
+    document.addEventListener("DOMContentLoaded", () => {
+        loadTradingView("BINANCE:BTCUSDT");
+    });
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+
+  document.addEventListener("DOMContentLoaded", function () {
+
+    const homeLoadingDiv = document.querySelector('#home-loading-div');
+    const noActivitiesDiv = document.querySelector('#no-activities-div');
+    const noTeamMembersDiv = document.querySelector('#no-team-members-div');
+    const noCategoriesDiv = document.querySelector('#no-categories-div');
+    noActivitiesDiv.style.display = "none";
+    noTeamMembersDiv.style.display = "none";
+    noCategoriesDiv.style.display = "none";
+    homeLoadingDiv.style.display = "flex";
+
+    window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
+        if (member) {
+
+          const userEmail = member.auth.email;
+
+          fetchAirtableUserID(userEmail)
+          	.then((airtableUserID) => {
+            	if (airtableUserID) {
+
+                fetchCustomUserID(airtableUserID).then((customUserID) => {
+
+                	if (customUserID) {
+
+                    // fetch user's Team Member info
+                    fetchTeamMemberData(customUserID);
+
+                    // fetch user's Activities info
+                    fetchActivitiesData(customUserID);
+
+                    // fetch user's Categories info
+                    fetchCategoriesData(customUserID);
+
+                    homeLoadingDiv.style.display = "none";
+
+                  } else {
+                    console.error("No custom User ID found for this Airtable Record ID.");
+                  }
+                })
+
+            	} else {
+            		console.error("No Airtable User ID found for the logged-in user.");
+           	 	}
+
+           })
+           .catch((error) => {
+             console.error("Error retrieving the logged-in user's email:", error);
+           });
+       }
+    });
+
+  });
+
+
+  async function fetchAirtableUserID(email) {
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Users?filterByFormula={Email}="${email}"`;
+
+    try {
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Return the Airtable Record ID of the user
+      return data.records.length > 0 ? data.records[0].id : null;
+
+    } catch (error) {
+      console.error("Error fetching Airtable User ID:", error);
+      return null;
+    }
+  }
+
+
+  async function fetchCustomUserID(recordID) {
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Users/${recordID}`;
+
+    try {
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Return the custom User ID
+      return data.fields["ID"];
+
+    } catch (error) {
+      console.error("Error fetching custom User ID:", error);
+      return null;
+    }
+  }
+
+
+  async function fetchTeamMemberTimeEntries(teamMemberID) {
+
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Time%20Entries?filterByFormula={ID (from Team Members)}="${teamMemberID}"`;
+    let totalTime = 0;
+
+    try {
+      // Fetch Team Member's Time Entries from Airtable
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.records && data.records.length > 0) {
+        for (const record of data.records) {
+
+          const timeEntryTime = record.fields["Time"];
+          if (timeEntryTime) {
+            totalTime += timeEntryTime;
+          }
+
+        }
+        console.log("Time Entries retrieved successfully.");
+
+      } else {
+
+        // No Time Entries found
+        console.warn("No Time Entries found for this user.");
+        return '00:00';
+
+      }
+
+      const timeEntryHours = Math.floor(totalTime / 3600);
+      const timeEntryMinutes = Math.floor((totalTime % 3600) / 60);
+      const formattedTimeEntryHours = String(timeEntryHours).padStart(2, "0");
+      const formattedTimeEntryMinutes = String(timeEntryMinutes).padStart(2, "0");
+      const finalTimeEntryTime = `${formattedTimeEntryHours}:${formattedTimeEntryMinutes}`;
+      return finalTimeEntryTime;
+
+    } catch (error) {
+
+      console.error("Error fetching Time Entries:", error);
+
+    }
+	}
+
+
+  async function fetchActivitiesData(userID) {
+
+    // get all of the User's Activities
+    // display a list of all Activities with associated total time from Time Entries
+
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Activities?filterByFormula={Users}="${userID}"`;
+    const noActivitiesDiv = document.querySelector('#no-activities-div');
+    const homeDisplaySection = document.querySelector('#home-display-section');
+
+    try {
+      // Fetch User's Activities from Airtable
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // create div to hold activity data
+      const mainActivitiesDiv = document.createElement("div");
+      //mainActivitiesDiv.classList.add("display-div");
+      mainActivitiesDiv.style.display = "flex";
+      mainActivitiesDiv.style.flexDirection = "column";
+      mainActivitiesDiv.style.gap = "10px";
+      mainActivitiesDiv.style.height = "auto";
+      mainActivitiesDiv.style.padding = "20px";
+      mainActivitiesDiv.style.alignItems = "flex-start";
+
+      // section header
+      const activitiesHeader = document.createElement("h2");
+      activitiesHeader.style.fontSize = "24px";
+      activitiesHeader.style.fontWeight = "700";
+      activitiesHeader.style.color = "black";
+      activitiesHeader.textContent = "Activities Summary:";
+      mainActivitiesDiv.appendChild(activitiesHeader);
+
+      // div to hold all the children elements
+      const activitiesGrid = document.createElement("div");
+      activitiesGrid.style.display = "flex";
+      activitiesGrid.style.flexWrap = "wrap";
+      activitiesGrid.style.justifyContent = "space-between";
+      activitiesGrid.style.gap = "20px";
+      activitiesGrid.style.width = "100%";
+
+      if (data.records && data.records.length > 0) {
+        for (const record of data.records) {
+
+          const newActivityDiv = document.createElement("div");
+          newActivityDiv.style.width = "250px";
+          newActivityDiv.style.height = "250px";
+          newActivityDiv.style.borderRadius = "15px";
+          newActivityDiv.style.backgroundColor = "white";
+          newActivityDiv.style.display = "flex";
+          newActivityDiv.style.alignItems = "center";
+          newActivityDiv.style.justifyContent = "left";
+          newActivityDiv.style.flexDirection = "column";
+          newActivityDiv.style.border = "1px solid #ccc";
+          newActivityDiv.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
+
+          // Activity name
+          const activityNameElement = document.createElement("p");
+          activityNameElement.style.fontSize = "18px";
+          activityNameElement.style.fontWeight = "500";
+          activityNameElement.style.color = "black";
+          const activityName = record.fields["Name"];
+
+          if (activityName) {
+            activityNameElement.textContent = "Activity Name: " + activityName;
+            newActivityDiv.appendChild(activityNameElement);
+          }
+
+          // Activity group name
+          const activityGroupNameElement = document.createElement("p");
+          activityGroupNameElement.style.fontSize = "18px";
+          activityGroupNameElement.style.fontWeight = "500";
+          activityGroupNameElement.style.color = "black";
+          const activityGroupName = record.fields["Name (from Activities Group)"];
+
+          if (activityGroupName) {
+            activityGroupNameElement.textContent = "Group: " + activityGroupName;
+            newActivityDiv.appendChild(activityGroupNameElement);
+          }
+
+          // Activity total time from Time Entries
+          const activityTotalTimeElement = document.createElement("p");
+          activityTotalTimeElement.style.fontSize = "18px";
+          activityTotalTimeElement.style.fontWeight = "500";
+          activityTotalTimeElement.style.color = "black";
+          const activityTimes = record.fields["Time Entry Times"];
+
+          let totalTime = 0;
+          if (activityTimes && activityTimes.length > 0) {
+            for (let i = 0; i < activityTimes.length; i++) {
+              // add up the times
+              totalTime += activityTimes[i];
+            }
+
+            const timeEntryHours = Math.floor(totalTime / 3600);
+            const timeEntryMinutes = Math.floor((totalTime % 3600) / 60);
+            const formattedTimeEntryHours = String(timeEntryHours).padStart(2, "0");
+            const formattedTimeEntryMinutes = String(timeEntryMinutes).padStart(2, "0");
+            const finalTimeEntryTime = `${formattedTimeEntryHours}:${formattedTimeEntryMinutes}`;
+
+            activityTotalTimeElement.textContent = "Total Time: " + finalTimeEntryTime;
+            newActivityDiv.appendChild(activityTotalTimeElement);
+
+          } else {
+            // no time entries for this activity
+            //activityTotalTimeElement.textContent = "No Time Entries for this Activity.";
+						activityTotalTimeElement.textContent = "Total Time: 00:00";
+            newActivityDiv.appendChild(activityTotalTimeElement);
+          }
+
+          if (activitiesGrid) {
+            activitiesGrid.appendChild(newActivityDiv);
+          }
+
+        }
+
+        if (homeDisplaySection && mainActivitiesDiv) {
+          mainActivitiesDiv.appendChild(activitiesGrid);
+          homeDisplaySection.appendChild(mainActivitiesDiv);
+        } else {
+          console.error("Section with ID 'home-display-section' not found.");
+        }
+
+        console.log("Activities retrieved successfully.");
+
+      } else {
+
+        // No Activities found
+        noActivitiesDiv.style.display = "flex";
+        console.warn("No Activities found for this user.");
+
+      }
+
+    } catch (error) {
+
+      console.error("Error fetching Time Entries:", error);
+
+    }
+	}
+
+
+  async function fetchCategoriesData(userID) {
+
+    // get all of the User's Categories
+    // display a list of all Categories with associated total time from Time Entries
+    // i.e. Category 1 | Total Time: 21:32
+
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Categories?filterByFormula={Users}="${userID}"`;
+    const noCategoriesDiv = document.querySelector('#no-categories-div');
+    const homeDisplaySection = document.querySelector('#home-display-section');
+
+    try {
+      // Fetch User's Activities from Airtable
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // create div to hold Activity data
+      const mainCategoriesDiv = document.createElement("div");
+      mainCategoriesDiv.classList.add("display-div");
+      mainCategoriesDiv.style.display = "flex";
+      mainCategoriesDiv.style.flexDirection = "column";
+      mainCategoriesDiv.style.gap = "10px";
+      mainCategoriesDiv.style.height = "auto";
+      mainCategoriesDiv.style.padding = "20px";
+      mainCategoriesDiv.style.alignItems = "flex-start";
+
+      // section header
+      const categoriesHeader = document.createElement("h2");
+      categoriesHeader.style.fontSize = "24px";
+      categoriesHeader.style.fontWeight = "700";
+      categoriesHeader.style.color = "black";
+      categoriesHeader.textContent = "Categories Summary:";
+      mainCategoriesDiv.appendChild(categoriesHeader);
+
+      if (data.records && data.records.length > 0) {
+        for (const record of data.records) {
+
+          const newCategoryDiv = document.createElement("div");
+          newCategoryDiv.style.margin = "5px";
+          newCategoryDiv.style.padding = "20px";
+
+          // Category name
+          const categoryNameElement = document.createElement("p");
+          categoryNameElement.style.fontSize = "18px";
+          categoryNameElement.style.fontWeight = "500";
+          categoryNameElement.style.color = "black";
+          const categoryName = record.fields["Name"];
+
+          if (categoryName) {
+            categoryNameElement.textContent = "Category Name: " + categoryName;
+            newCategoryDiv.appendChild(categoryNameElement);
+          }
+
+          // Category total time from Time Entries
+          const categoryTotalTimeElement = document.createElement("p");
+          categoryTotalTimeElement.style.fontSize = "18px";
+          categoryTotalTimeElement.style.fontWeight = "500";
+          categoryTotalTimeElement.style.color = "black";
+          const categoryTimes = record.fields["Time Entry Times"];
+
+          let categoryTotalTime = 0;
+          if (categoryTimes && categoryTimes.length > 0) {
+            for (let i = 0; i < categoryTimes.length; i++) {
+              // add up the times
+              categoryTotalTime += categoryTimes[i];
+            }
+
+            const categoryTimeEntryHours = Math.floor(categoryTotalTime / 3600);
+            const categoryTimeEntryMinutes = Math.floor((categoryTotalTime % 3600) / 60);
+            const categoryFormattedTimeEntryHours = String(categoryTimeEntryHours).padStart(2, "0");
+            const categoryFormattedTimeEntryMinutes = String(categoryTimeEntryMinutes).padStart(2, "0");
+            const categoryFinalTimeEntryTime = `${categoryFormattedTimeEntryHours}:${categoryFormattedTimeEntryMinutes}`;
+
+            categoryTotalTimeElement.textContent = "Total Time: " + categoryFinalTimeEntryTime;
+            newCategoryDiv.appendChild(categoryTotalTimeElement);
+
+          } else {
+            // no time entries for this category
+            //categoryTotalTimeElement.textContent = "No Time Entries for this Activity.";
+            categoryTotalTimeElement.textContent = "Total Time: 00:00";
+            newCategoryDiv.appendChild(categoryTotalTimeElement);
+          }
+
+          if (mainCategoriesDiv) {
+            mainCategoriesDiv.appendChild(newCategoryDiv);
+          }
+
+        }
+
+        if (homeDisplaySection) {
+          homeDisplaySection.appendChild(mainCategoriesDiv);
+        } else {
+          console.error("Section with ID 'home-display-section' not found.");
+        }
+
+        console.log("Categories retrieved successfully.");
+
+      } else {
+
+        // No Categories found
+        noCategoriesDiv.style.display = "flex";
+        console.warn("No Categories found for this user.");
+
+      }
+
+    } catch (error) {
+
+      console.error("Error fetching Time Entries:", error);
+
+    }
+  }
+
+
+  async function fetchTeamMemberData(userID) {
+
+    const airtableApiUrl = `https://api.airtable.com/v0/appOIyXSdFDXsvc4B/Team%20Members?filterByFormula={Users}="${userID}"`;
+		const noTeamMembersDiv = document.querySelector('#no-team-members-div');
+    const homeDisplaySection = document.querySelector('#home-display-section');
+
+    try {
+      // Fetch User's Categories from Airtable
+      const response = await fetch(airtableApiUrl, {
+        headers: {
+          Authorization: "Bearer patSuO07S3t9lyKXO.0f279eed33a5d602727ad92819a9b9cfdf690d4179830edc5213baca03891485",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Airtable API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // create div to hold team member data
+      const mainTeamMemberDiv = document.createElement("div");
+      mainTeamMemberDiv.classList.add("display-div");
+      mainTeamMemberDiv.style.display = "flex";
+      mainTeamMemberDiv.style.flexDirection = "column";
+      mainTeamMemberDiv.style.gap = "10px";
+      mainTeamMemberDiv.style.height = "auto";
+      mainTeamMemberDiv.style.padding = "20px";
+      mainTeamMemberDiv.style.alignItems = "flex-start";
+
+      // section header
+      const teamMemberHeader = document.createElement("h2");
+      teamMemberHeader.style.fontSize = "24px";
+      teamMemberHeader.style.fontWeight = "700";
+      teamMemberHeader.style.color = "black";
+      teamMemberHeader.textContent = "Team Member Summary:";
+      mainTeamMemberDiv.appendChild(teamMemberHeader);
+
+      // Display stuff
+      if (data.records && data.records.length > 0) {
+        for (const record of data.records) {
+
+          // get team members
+          // - name
+          // - total time from all that member's time entries
+
+          const newTeamMemberDiv = document.createElement("div");
+          newTeamMemberDiv.style.marginLeft = "25px";
+          newTeamMemberDiv.style.marginTop = "25px";
+
+          // Full Name
+          const teamMemberNameElement = document.createElement("p");
+          teamMemberNameElement.style.fontSize = "18px";
+          teamMemberNameElement.style.fontWeight = "500";
+          teamMemberNameElement.style.color = "black";
+          const teamMemberName = record.fields["Full Name"];
+
+          if (teamMemberName) {
+            teamMemberNameElement.textContent = "Team Member Name: " + teamMemberName;
+            newTeamMemberDiv.appendChild(teamMemberNameElement);
+          }
+
+          // get the team member's time entries using the 'New Time Entry' field
+          const teamMemberTimeElement = document.createElement("p");
+          teamMemberTimeElement.style.fontSize = "18px";
+          teamMemberTimeElement.style.fontWeight = "500";
+          teamMemberTimeElement.style.color = "black";
+          teamMemberTimeElement.style.paddingTop = "10px";
+          const teamMemberID = record.fields["ID"];
+
+          console.log("team member name");
+          console.log(teamMemberName);
+          console.log("team member ID");
+          console.log(teamMemberID);
+
+          // get the team member's total time etry time in seconds
+          const teamMemberTotalTimeString = await fetchTeamMemberTimeEntries(teamMemberID);
+          console.log("team member total time");
+          console.log(teamMemberTotalTimeString);
+
+          if (teamMemberTotalTimeString) {
+            teamMemberTimeElement.textContent = "Total Time: " + teamMemberTotalTimeString;
+            newTeamMemberDiv.appendChild(teamMemberTimeElement);
+          }
+
+          if (mainTeamMemberDiv) {
+            mainTeamMemberDiv.appendChild(newTeamMemberDiv);
+          }
+
+        }
+
+        if (homeDisplaySection) {
+          homeDisplaySection.appendChild(mainTeamMemberDiv);
+        } else {
+          console.error("Section with ID 'home-display-section' not found.");
+        }
+
+        console.log("Home Team Member data displayed successfully.");
+
+      } else {
+
+        // No Team Members to display - this should never happen
+        noTeamMembersDiv.style.display = "flex";
+        console.warn("No Team Members to display for this user.");
+
+      }
+    } catch (error) {
+
+      console.error("Error fetching data:", error);
+
+    }
+	}
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+{% endblock %}
