@@ -26,7 +26,6 @@ from ta.volume import OnBalanceVolumeIndicator
 from django.utils.timezone import now, make_aware
 
 import joblib
-from scanner.management.commands.one_dataset import add_enhanced_features  # import your actual function
 from sklearn.preprocessing import StandardScaler
 
 
@@ -70,48 +69,14 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 
 
-MODEL_PATH = "enhanced_model.joblib"
-SCALER_PATH = "feature_scaler.joblib"
-FEATURES_PATH = "selected_features.joblib"
-CONFIDENCE_THRESHOLD = 0.70
 
+MODEL_PATH = "two_model.joblib"
+SCALER_PATH = "two_feature_scaler.joblib"
+FEATURES_PATH = "two_selected_features.joblib"
+CONFIDENCE_THRESHOLD = 0.72
 
-FEATURES = [
-    'ema_9', 'ema_21', 'ema_50', 'ema_200', 'rsi_14', 'macd', 'macd_signal',
-    'macd_hist', 'bb_upper', 'bb_lower', 'bb_width', 'obv', 'atr_14',
-    'adx_14', 'ema_dist_50_norm', 'candle_size_norm', 'macd_hist_norm',
-    'rsi_x_vol_change', 'bb_width_x_adx', 'hour', 'day_of_week',
-    'day_of_year', 'month', 'rsi_lag_1', 'close_change_lag_1',
-    'rsi_lag_3', 'close_change_lag_3', 'rsi_lag_6', 'close_change_lag_6',
-    'rsi_lag_12', 'close_change_lag_12', 'rolling_mean_close_12',
-    'rolling_std_close_12', 'rolling_mean_volume_12',
-    'rolling_mean_close_24', 'rolling_std_close_24',
-    'rolling_mean_volume_24', 'rolling_mean_close_144',
-    'rolling_std_close_144', 'rolling_mean_volume_144',
-    'market_avg_change', 'market_avg_rsi', 'coin_ADAUSDT',
-    'coin_AVAXUSDT', 'coin_BTCUSDT', 'coin_DOGEUSDT', 'coin_DOTUSDT',
-    'coin_ETHUSDT', 'coin_LINKUSDT', 'coin_LTCUSDT', 'coin_SHIBUSDT',
-    'coin_SOLUSDT', 'coin_UNIUSDT', 'coin_XLMUSDT', 'coin_XRPUSDT'
-]
+selected_features = joblib.load(FEATURES_PATH)
 
-
-INPUT_COLUMNS = [
-    'ema_9', 'ema_21', 'ema_50', 'ema_200', 'rsi_14', 'macd', 'macd_signal',
-    'macd_hist', 'bb_upper', 'bb_lower', 'bb_width', 'obv', 'atr_14',
-    'adx_14', 'ema_dist_50_norm', 'candle_size_norm', 'macd_hist_norm',
-    'rsi_x_vol_change', 'bb_width_x_adx', 'hour', 'day_of_week',
-    'day_of_year', 'month', 'rsi_lag_1', 'close_change_lag_1',
-    'rsi_lag_3', 'close_change_lag_3', 'rsi_lag_6', 'close_change_lag_6',
-    'rsi_lag_12', 'close_change_lag_12', 'rolling_mean_close_12',
-    'rolling_std_close_12', 'rolling_mean_volume_12',
-    'rolling_mean_close_24', 'rolling_std_close_24',
-    'rolling_mean_volume_24', 'rolling_mean_close_144',
-    'rolling_std_close_144', 'rolling_mean_volume_144',
-    'market_avg_change', 'market_avg_rsi', 'coin_ADAUSDT',
-    'coin_AVAXUSDT', 'coin_BTCUSDT', 'coin_DOGEUSDT', 'coin_DOTUSDT',
-    'coin_ETHUSDT', 'coin_LINKUSDT', 'coin_LTCUSDT', 'coin_SHIBUSDT',
-    'coin_SOLUSDT', 'coin_UNIUSDT', 'coin_XLMUSDT', 'coin_XRPUSDT'
-]
 
 
 
@@ -146,14 +111,6 @@ def send_text(messages):
     return
 
 
-def calculate_trend_slope(prices):
-    if len(prices) < 12:
-        return np.nan
-    x = np.arange(len(prices))
-    slope, _, _, _, _ = linregress(x, prices)
-    return slope
-
-
 
 
 
@@ -181,115 +138,129 @@ def fetch_ohlcv(coin, limit=350):
 
 
 
-def fetch_ohlcv_for_coin(coin_symbol, limit=350):
-    """Fetches historical OHLCV data for a single coin from CoinAPI."""
-    api_symbol = COINAPI_SYMBOL_MAP.get(coin_symbol)
-    if not api_symbol:
-        print(f"Warning: No CoinAPI symbol found for {coin_symbol}")
-        return None
-
-    url = f"https://rest.coinapi.io/v1/ohlcv/{api_symbol}/history"
-
-    # Format the timestamp correctly for the API (no microseconds)
-    time_end = datetime.utcnow().replace(microsecond=0).isoformat()
-
-    params = {
-        'period_id': '5MIN',
-        'limit': limit,
-        'time_end': time_end
-    }
-    headers = {"X-CoinAPI-Key": COINAPI_KEY}
-
-    try:
-        r = requests.get(url, headers=headers, params=params, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        df = pd.DataFrame([{
-            'timestamp': pd.to_datetime(x['time_period_start']),
-            'open': x['price_open'], 'high': x['price_high'],
-            'low': x['price_low'], 'close': x['price_close'],
-            'volume': x['volume_traded']
-        } for x in data])
-        df['coin'] = coin_symbol # Add coin identifier
-        return df.sort_values("timestamp").reset_index(drop=True)
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching data for {coin_symbol}: {e}")
-        return None
 
 
+def add_enhanced_features(df):
+    import numpy as np
+    import pandas as pd
+    from ta.trend import EMAIndicator, SMAIndicator
+    from ta.momentum import RSIIndicator, StochRSIIndicator
+    from ta.volume import OnBalanceVolumeIndicator
+    from ta.volatility import AverageTrueRange, BollingerBands
 
-def one_hot_encode_coin(df, coin):
-    for c in COINS:
-        df[f"coin_{c}"] = 1 if c == coin else 0
-    return df
+    df = df.copy()
+    df.set_index('timestamp', inplace=True)
 
+    close = df['close']
+    high = df['high']
+    low = df['low']
+    volume = df['volume']
+    open_price = df['open']
 
-def add_features(df):
+    # EMAs & SMAs
+    for period in [9, 21, 50, 100, 200]:
+        df[f'ema_{period}'] = EMAIndicator(close, window=period).ema_indicator()
+        df[f'sma_{period}'] = SMAIndicator(close, window=period).sma_indicator()
 
-    df['open'] = df['open']
-    df['high'] = df['high']
-    df['low'] = df['low']
-    df['close'] = df['close']
-    df['volume'] = df['volume']
+    # EMA ratios
+    df['ema_9_21_ratio'] = df['ema_9'] / df['ema_21']
+    df['ema_21_50_ratio'] = df['ema_21'] / df['ema_50']
+    df['ema_50_200_ratio'] = df['ema_50'] / df['ema_200']
+    df['price_above_ema_200'] = (close > df['ema_200']).astype(int)
 
-    df['rsi_14'] = RSIIndicator(df['close']).rsi()
+    # RSI
+    df['rsi_14'] = RSIIndicator(close, window=14).rsi()
+    df['rsi_14_oversold'] = (df['rsi_14'] < 30).astype(int)
 
-    macd = MACD(df['close'])
-    df['macd'] = macd.macd()
-    df['macd_signal'] = macd.macd_signal()
-    df['macd_hist'] = macd.macd_diff()
-    df['macd_hist_slope'] = df['macd_hist'].diff()
+    # MACD
+    macd_line = EMAIndicator(close, window=12).ema_indicator() - EMAIndicator(close, window=26).ema_indicator()
+    macd_signal = macd_line.rolling(9).mean()
+    df['macd'] = macd_line
+    df['macd_signal'] = macd_signal
+    df['macd_histogram'] = macd_line - macd_signal
+    df['macd_bullish'] = (df['macd'] > df['macd_signal']).astype(int)
 
-    from ta.momentum import StochasticOscillator
-    stoch = StochasticOscillator(df['high'], df['low'], df['close'])
-    df['stochastic_k'] = stoch.stoch()
-    df['stochastic_d'] = stoch.stoch_signal()
+    # Stochastic RSI
+    stoch = StochRSIIndicator(close, window=14)
+    df['stoch_k'] = stoch.stochrsi_k()
+    df['stoch_d'] = stoch.stochrsi_d()
+    df['stoch_oversold'] = (df['stoch_k'] < 0.2).astype(int)
+    df['stoch_overbought'] = (df['stoch_k'] > 0.8).astype(int)
 
-    df['atr_14'] = AverageTrueRange(df['high'], df['low'], df['close']).average_true_range()
+    # OBV and volume
+    df['obv'] = OnBalanceVolumeIndicator(close, volume).on_balance_volume()
+    df['volume_sma_20'] = volume.rolling(window=20).mean()
+    df['volume_ratio'] = volume / df['volume_sma_20']
+    df['high_volume'] = (df['volume_ratio'] > 1.5).astype(int)
+    df['volume_trend'] = df['volume_sma_20'].pct_change(5)
 
-    df['obv'] = OnBalanceVolumeIndicator(df['close'], df['volume']).on_balance_volume()
-    df['obv_slope'] = df['obv'].diff()
+    # ATR
+    df['atr_14'] = AverageTrueRange(high, low, close, window=14).average_true_range()
+    df['atr_21'] = AverageTrueRange(high, low, close, window=21).average_true_range()
 
-    df['volume_ma_20'] = df['volume'].rolling(window=20).mean()
-    df['volume_spike'] = (df['volume'] > 1.5 * df['volume_ma_20']).astype(int)
+    # Bollinger Bands
+    bb = BollingerBands(close, window=20, window_dev=2)
+    df['bb_upper'] = bb.bollinger_hband()
+    df['bb_lower'] = bb.bollinger_lband()
+    df['bb_middle'] = bb.bollinger_mavg()
+    df['bb_width'] = (df['bb_upper'] - df['bb_lower']) / df['bb_middle']
+    df['bb_position'] = (close - df['bb_lower']) / (df['bb_upper'] - df['bb_lower'])
+    df['bb_squeeze'] = (df['bb_width'] < df['bb_width'].rolling(20).mean() * 0.8).astype(int)
 
-    df['vwap'] = (df['volume'] * df['close']).cumsum() / df['volume'].cumsum()
-    df['vwap_delta'] = df['close'] - df['vwap']
+    # Returns (abs)
+    for p in [1, 3, 6, 12, 24, 48]:
+        df[f'returns_{p}p'] = close.pct_change(p)
+        df[f'returns_{p}p_abs'] = np.abs(df[f'returns_{p}p'])
 
-    df['price_slope_6'] = df['close'].diff(6)
+    # Candle structure
+    df['body_size'] = np.abs(close - open_price) / open_price
+    df['upper_shadow'] = (high - np.maximum(close, open_price)) / open_price
+    df['lower_shadow'] = (np.minimum(close, open_price) - low) / open_price
+    df['is_green'] = (close > open_price).astype(int)
+    df['high_low_ratio'] = high / low
+    df['close_position'] = (close - low) / (high - low)
 
-    df['hour'] = df['timestamp'].dt.hour
-    df['day_of_week'] = df['timestamp'].dt.dayofweek
+    # Distance from 24h/7d highs and lows
+    df['dist_from_high_24h'] = (close / high.rolling(288).max()) - 1
+    df['dist_from_low_24h'] = (close / low.rolling(288).min()) - 1
+    df['dist_from_high_7d'] = (close / high.rolling(2016).max()) - 1
+    df['dist_from_low_7d'] = (close / low.rolling(2016).min()) - 1
 
+    # Trend slopes
+    for w in [6, 12, 24]:
+        df[f'slope_{w}p'] = close.rolling(w).apply(
+            lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) == w else np.nan,
+            raw=False
+        )
 
+    # Time features
+    df['hour'] = df.index.hour
+    df['day_of_week'] = df.index.dayofweek
+    df['is_weekend'] = (df.index.dayofweek >= 5).astype(int)
+    df['is_us_hours'] = ((df.index.hour >= 13) & (df.index.hour <= 21)).astype(int)
+    df['is_asia_hours'] = ((df.index.hour >= 0) & (df.index.hour <= 8)).astype(int)
 
+    # Lag features
+    for lag in [1, 2, 3, 6]:
+        df[f'close_lag_{lag}'] = close.shift(lag)
+        df[f'volume_lag_{lag}'] = volume.shift(lag)
+        df[f'rsi_14_lag_{lag}'] = df['rsi_14'].shift(lag)
 
-    #df['ema_9'] = EMAIndicator(df['close'], window=9).ema_indicator()
-    #df['ema_21'] = EMAIndicator(df['close'], window=21).ema_indicator()
-    #df['ema_50'] = EMAIndicator(df['close'], window=50).ema_indicator()
-    #df['ema_200'] = EMAIndicator(df['close'], window=200).ema_indicator()
-    #bb = BollingerBands(df['close'])
-    #df['bb_upper'] = bb.bollinger_hband()
-    #df['bb_lower'] = bb.bollinger_lband()
-    #df['bb_width'] = bb.bollinger_wband()
-    #df['adx_14'] = ADXIndicator(df['high'], df['low'], df['close']).adx()
-    #df['day_of_year'] = df['timestamp'].dt.dayofyear
-    #df['month'] = df['timestamp'].dt.month
-
-
-    return df
-
+    df.reset_index(inplace=True)
+    return df.tail(1)  # latest row only
 
 
 def prepare_instance(df):
     row = df.iloc[-1]
-    instance = {col: row[col] for col in INPUT_COLUMNS}
+    instance = {col: row[col] for col in selected_features}
     return instance, row
 
 
 def print_feature_stats(df, coin):
+
     print(f"--- Feature stats for {coin} ---")
-    for feature in FEATURES:
+
+    for feature in selected_features:
         if feature in df.columns:
             series = df[feature]
             print(f"{feature} stats:")
@@ -301,185 +272,12 @@ def print_feature_stats(df, coin):
             print(f"  50%: {series.median()}")
             print(f"  75%: {series.quantile(0.75)}")
             print(f"  max: {series.max()}")
+
         else:
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
 
 
-
-
-
-
-def run_live_pipeline_old(request=None):
-
-    #import django
-    #django.setup()
-
-    long_model = load('gemini_model.joblib')
-
-    # long_model = xgb.Booster()
-    # long_model.load_model("eight_long_xgb_model.bin")
-
-    #short_model = xgb.Booster()
-    #short_model.load_model("seven_short_xgb_model.bin")
-
-    for coin in COINS:
-        try:
-            print(f"Processing {coin}...")
-
-            # df = fetch_ohlcv(coin, limit=350)
-
-            #aligned_now = datetime.utcnow().replace(second=0, microsecond=0)
-            #df = fetch_ohlcv(coin, limit=350, end_time=aligned_now)
-
-
-            df = fetch_ohlcv(coin)
-            if df.empty or len(df) < 200:
-                continue
-
-
-            print("\n📈 LIVE CANDLE:")
-            print(df.tail(5)[['timestamp', 'open', 'high', 'low', 'close', 'volume']])
-
-
-            print(df.tail(10))
-            print(df.describe())
-            print(df.isna().sum())
-            print(f"Fetched {len(df)} rows for {coin}")
-
-            df = add_features(df, coin)
-            latest = df.iloc[-1]
-            row = latest[INPUT_COLUMNS]
-
-            if df.empty or len(df) < 288:
-                print(f"⚠ Skipping {coin} due to insufficient raw data length")
-                continue
-
-            df = add_features(df)
-
-            if df.empty or len(df) < 1:
-                print(f"⚠ Skipping {coin} after feature engineering — no valid rows")
-                continue
-
-            # Verify all features exist in df columns and are not NaN in last row
-            missing_features = [f for f in FEATURES if f not in df.columns]
-            if missing_features:
-                print(f"⚠ Missing features {missing_features} for {coin}, skipping.")
-                continue
-
-            last_row = df.iloc[-1]
-            nan_features = [f for f in FEATURES if pd.isna(last_row[f])]
-            if nan_features:
-                print(f"⚠ Features with NaN in last row: {nan_features} for {coin}, skipping.")
-                continue
-
-            instance, row = prepare_instance(df)
-            feature_df = pd.DataFrame([instance])
-            feature_df = feature_df[INPUT_COLUMNS]
-
-
-            # 🔍 Print input features for investigation
-            #print(f"\n📊 Features sent to model for {coin}:")
-            #for col in INPUT_COLUMNS:
-                #print(f"  {col}: {feature_df.iloc[0][col]}")
-
-
-            dmatrix = xgb.DMatrix(feature_df[INPUT_COLUMNS], feature_names=INPUT_COLUMNS)
-
-            #proba = model.predict(dmatrix)[0]
-
-            # long_proba = long_model.predict(dmatrix)[0]
-            long_proba = float(long_model.predict_proba(X)[0][1])
-
-            #short_proba = short_model.predict(dmatrix)[0]
-
-            print(f"{coin}: Long = {long_proba:.4f}")
-            #print(f"{coin}: Short = {short_proba:.4f}")
-
-
-
-
-
-
-            log_entry = {
-                "timestamp": row["timestamp"].isoformat(),
-                "coin": coin,
-                "predicted_long_prob": float(long_proba),
-                #"predicted_short_prob": float(short_proba),
-                "threshold": CONFIDENCE_THRESHOLD,
-                "decision_long": "LONG" if long_proba >= CONFIDENCE_THRESHOLD else "NO TRADE",
-                #"decision_short": "SHORT" if short_proba >= CONFIDENCE_THRESHOLD else "NO TRADE",
-                "features": {k: float(row[k]) for k in INPUT_COLUMNS}
-            }
-
-            with open("live_predictions_log.jsonl", "a") as f:
-                f.write(json.dumps(log_entry) + "\n")
-
-
-
-
-            db_symbol = COIN_SYMBOL_MAP_DB.get(coin)
-            coin_obj = Coin.objects.get(symbol=db_symbol)
-
-            existing_long_trade = ModelTrade.objects.filter(
-                coin=coin_obj,
-                exit_timestamp__isnull=True,
-                trade_type="long"
-            ).first()
-
-            '''
-            existing_short_trade = ModelTrade.objects.filter(
-                coin=coin_obj,
-                exit_timestamp__isnull=True,
-                trade_type="short"
-            ).first()
-            '''
-
-            if not existing_long_trade:
-                if long_proba >= CONFIDENCE_THRESHOLD:
-                    ModelTrade.objects.create(
-                        coin=coin_obj,
-                        trade_type="long",
-                        entry_timestamp=row["timestamp"],
-                        duration_minutes=0,
-                        entry_price=row["close"],
-                        model_confidence=long_proba,
-                        take_profit_percent=4,
-                        stop_loss_percent=2,
-                        confidence_trade=CONFIDENCE_THRESHOLD
-                    )
-                    print(f"💰 LONG trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
-
-            else:
-                print(f"⚠ Long trade already open for {coin}: {existing_long_trade.trade_type} @ {existing_long_trade.entry_timestamp}")
-
-
-
-
-            '''
-            if not existing_short_trade:
-                if short_proba >= CONFIDENCE_THRESHOLD:
-                    ModelTrade.objects.create(
-                        coin=coin_obj,
-                        trade_type="short",
-                        entry_timestamp=row["timestamp"],
-                        duration_minutes=0,
-                        entry_price=row["close"],
-                        model_confidence=short_proba,
-                        take_profit_percent=4,
-                        stop_loss_percent=2,
-                        confidence_trade=CONFIDENCE_THRESHOLD
-                    )
-                    print(f"🔻 SHORT trade placed for {coin} @ {CONFIDENCE_THRESHOLD}")
-
-            else:
-                print(f"⚠ Short trade already open for {coin}: {existing_short_trade.trade_type} @ {existing_short_trade.entry_timestamp}")
-            '''
-
-
-
-        except Exception as e:
-            print(f"❌ Error processing {coin}: {e}")
 
 
 
@@ -497,7 +295,7 @@ def run_live_pipeline():
                 print(f"⚠️ Skipping {coin} (not enough data)")
                 continue
 
-            df['coin'] = coin  # Ensure 'coin' column exists for cross-coin features
+            df['coin'] = coin
             df = add_enhanced_features(df)
 
             latest = df.sort_values('timestamp').iloc[-1:]
@@ -541,7 +339,6 @@ def run_live_pipeline():
             print(f"❌ Error with {coin}: {e}")
 
     print("✅ Pipeline complete")
-
 
 
 

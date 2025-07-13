@@ -1,6 +1,7 @@
 db.sqlite3
 scanner/model/ml_model.pkl
 venv/
+.env
 *.parquet
 exported_data/
 exported_data_enriched/
@@ -21,7 +22,6 @@ one_predictions.csv
 two_predictions.csv
 two_testing.csv
 two_training.csv
-two_model.joblib
 two_predictions.csv
 two_testing.csv
 two_training.csv
@@ -66,3 +66,16 @@ trendline_charts/
 .DS_Store
 coinapi/
 feature_importance.png
+grok_dataset.py
+
+enhanced_model.joblib
+feature_scaler.joblib
+fou_feature_scaler.joblib
+four_model.joblib
+four_selected_features.joblib
+grok_enhanced_model.joblib
+one_model.joblib
+selected_features.joblib
+three_feature_scaler.joblib
+three_model.joblib
+three_selected_features.joblib
