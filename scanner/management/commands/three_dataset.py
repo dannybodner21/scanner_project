@@ -26,11 +26,13 @@ from pandas.errors import SettingWithCopyWarning
 
 
 
-# Confidece: 
-# TP: 
-# SL: 
-# 
-# 
+# Confidece: 0.33
+# TP: 2%
+# SL: 2%
+# Trades: 78, Wins: 63, Losses: 15, Win %: 80.77%
+# Final Balance: $147,852.69 (Leverage: 15.0x)
+# Max trade duration: 5 hours
+# 3 months of trading
 
 
 warnings.filterwarnings('ignore', category=SettingWithCopyWarning)

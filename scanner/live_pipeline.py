@@ -73,7 +73,7 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 MODEL_PATH = "three_model.joblib"
 SCALER_PATH = "three_feature_scaler.joblib"
 FEATURES_PATH = "three_selected_features.joblib"
-CONFIDENCE_THRESHOLD = 0.33
+CONFIDENCE_THRESHOLD = 0.31
 
 selected_features = joblib.load(FEATURES_PATH)
 
@@ -173,6 +173,10 @@ def add_enhanced_features(df):
     # RSI
     df['rsi_14'] = RSIIndicator(close, window=14).rsi()
     df['rsi_14_oversold'] = (df['rsi_14'] < 30).astype(int)
+    df['rsi_14_overbought'] = (df['rsi_14'] > 70).astype(int)
+
+    df['rsi_21'] = RSIIndicator(close, window=21).rsi()
+    df['rsi_21_overbought'] = (df['rsi_21'] > 70).astype(int)
 
     # MACD
     macd_line = EMAIndicator(close, window=12).ema_indicator() - EMAIndicator(close, window=26).ema_indicator()
