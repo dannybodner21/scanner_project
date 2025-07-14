@@ -70,10 +70,10 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 
 
-MODEL_PATH = "three_model.joblib"
-SCALER_PATH = "three_feature_scaler.joblib"
-FEATURES_PATH = "three_selected_features.joblib"
-CONFIDENCE_THRESHOLD = 0.33
+MODEL_PATH = "two_model.joblib"
+SCALER_PATH = "two_feature_scaler.joblib"
+FEATURES_PATH = "two_selected_features.joblib"
+CONFIDENCE_THRESHOLD = 0.72
 
 selected_features = joblib.load(FEATURES_PATH)
 
@@ -372,9 +372,9 @@ def run_live_pipeline():
             result = True
 
             if trade.trade_type == "long":
-                if price_now >= price_entry * 1.03:
+                if price_now >= price_entry * 1.04:
                     status = "💰 TAKE PROFIT"
-                elif price_now <= price_entry * 0.98:
+                elif price_now <= price_entry * 0.97:
                     status = "🛑 STOP LOSS"
                     result = False
                 else:
