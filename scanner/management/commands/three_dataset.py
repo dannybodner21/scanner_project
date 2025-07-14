@@ -29,7 +29,7 @@ from pandas.errors import SettingWithCopyWarning
 # Confidece: 
 # TP: 
 # SL: 
-# Trades: 
+# 
 # 
 
 
@@ -151,7 +151,7 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
     df.reset_index(inplace=True)
     return df
 
-def get_direction_labels(df: pd.DataFrame, forward_periods: int = 36) -> pd.Series:
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 60) -> pd.Series:
     """
     Simple direction prediction: will price be higher in N periods?
     This is much more learnable than complex TP/SL logic
@@ -160,7 +160,7 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 36) -> pd.Seri
     future_close = df['close'].shift(-forward_periods)
 
     # 1 if price will be higher + 2%, 0 if lower
-    goal_price = current_close * 1.015
+    goal_price = current_close * 1.03
 
     labels = (future_close > goal_price).astype(int)
 
@@ -217,7 +217,7 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=36)
+        parser.add_argument('--forward-periods', type=int, default=60)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
@@ -225,7 +225,7 @@ class Command(BaseCommand):
 
         # COINS = ['LTCUSDT', 'XRPUSDT', 'DOTUSDT', 'LINKUSDT', 'UNIUSDT']
 
-        COINS = ['XRPUSDT','LTCUSDT','SOLUSDT','DOGEUSDT','LINKUSDT','DOTUSDT', 'SHIBUSDT', 'ADAUSDT', 'UNIUSDT', 'AVAXUSDT', 'XLMUSDT']
+        COINS = ['BTCUSDT','ETHUSDT','XRPUSDT','LTCUSDT','SOLUSDT','DOGEUSDT','LINKUSDT','DOTUSDT', 'SHIBUSDT', 'ADAUSDT', 'UNIUSDT', 'AVAXUSDT', 'XLMUSDT']
 
 
         START_DATE = datetime(2022, 1, 1, tzinfo=timezone.utc)
@@ -472,7 +472,7 @@ class Command(BaseCommand):
 
         # Make predictions
         probabilities = model.predict_proba(X_test_scaled)[:, 1]
-        predictions = (probabilities > 0.35).astype(int)
+        predictions = (probabilities > 0.3).astype(int)
 
         # Calculate accuracy on test set
         test_accuracy = accuracy_score(test_df['label'], predictions)

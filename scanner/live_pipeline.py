@@ -288,6 +288,15 @@ def run_live_pipeline():
     scaler = joblib.load(SCALER_PATH)
     selected_features = joblib.load(FEATURES_PATH)
 
+    btc_df = fetch_ohlcv("BTCUSDT")
+    btc_df = add_enhanced_features(btc_df)
+
+    btc_df['btc_bull_trend'] = (btc_df['ema_21'] > btc_df['ema_50']).astype(int)
+    btc_df['btc_strong_trend'] = (btc_df['ema_9'] > btc_df['ema_21']).astype(int)
+
+    btc_bull_trend_value = btc_df.iloc[-1]['btc_bull_trend']
+    btc_strong_trend_value = btc_df.iloc[-1]['btc_strong_trend']
+
     for coin in COINS:
         try:
             df = fetch_ohlcv(coin)
@@ -297,6 +306,10 @@ def run_live_pipeline():
 
             df['coin'] = coin
             df = add_enhanced_features(df)
+
+            df['btc_bull_trend'] = btc_bull_trend_value
+            df['btc_strong_trend'] = btc_strong_trend_value
+            df['id'] = 0
 
             latest = df.sort_values('timestamp').iloc[-1:]
             feature_df = latest[selected_features].copy()

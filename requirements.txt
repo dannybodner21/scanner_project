@@ -57,6 +57,7 @@ keyring==25.6.0
 kiwisolver==1.4.8
 krakenex==2.2.2
 libclang==18.1.1
+lightgbm
 loguru==0.7.3
 Markdown==3.8
 markdown-it-py==3.0.0
