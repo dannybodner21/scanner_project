@@ -298,8 +298,10 @@ def run_live_pipeline():
     btc_strong_trend_value = btc_df.iloc[-1]['btc_strong_trend']
 
     for coin in COINS:
+
         try:
-            df = fetch_ohlcv(coin)
+
+            df = fetch_ohlcv(coin, limit=2100)
             if df is None or len(df) < 288:
                 print(f"⚠️ Skipping {coin} (not enough data)")
                 continue
@@ -310,6 +312,12 @@ def run_live_pipeline():
             df['btc_bull_trend'] = btc_bull_trend_value
             df['btc_strong_trend'] = btc_strong_trend_value
             df['id'] = 0
+
+            # DEBUG: check which features are missing
+            missing = [f for f in selected_features if f not in df.columns or df[f].isnull().any()]
+            if missing:
+                print(f"❌ {coin} is missing features: {missing}")
+                continue
 
             latest = df.sort_values('timestamp').iloc[-1:]
             feature_df = latest[selected_features].copy()
@@ -340,7 +348,7 @@ def run_live_pipeline():
                         entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
                         entry_price=latest['close'].values[0],
                         model_confidence=prob,
-                        take_profit_percent=6.0,
+                        take_profit_percent=4.0,
                         stop_loss_percent=3.0,
                         confidence_trade=CONFIDENCE_THRESHOLD
                     )
