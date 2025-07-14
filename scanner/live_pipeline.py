@@ -78,8 +78,6 @@ CONFIDENCE_THRESHOLD = 0.72
 selected_features = joblib.load(FEATURES_PATH)
 
 
-
-
 def send_text(messages):
 
     if len(messages) > 0:
@@ -111,11 +109,7 @@ def send_text(messages):
     return
 
 
-
-
-
-
-def fetch_ohlcv(coin, limit=350):
+def fetch_ohlcv(coin, limit=2100):
     symbol = COINAPI_SYMBOL_MAP[coin]
     url = f"{BASE_URL}/{symbol}/history"
     params = {
@@ -136,8 +130,16 @@ def fetch_ohlcv(coin, limit=350):
     return df.sort_values("timestamp").reset_index(drop=True)
 
 
-
-
+def fetch_all_ohlcv(coins):
+    all_data = {}
+    for coin in coins:
+        try:
+            df = fetch_ohlcv(coin)
+            if df is not None and len(df) >= 288:
+                all_data[coin] = df
+        except Exception as e:
+            print(f"❌ Error fetching {coin}: {e}")
+    return all_data
 
 
 def add_enhanced_features(df):
@@ -277,10 +279,6 @@ def print_feature_stats(df, coin):
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
 
-
-
-
-
 def run_live_pipeline():
     print("🚀 Running live LightGBM pipeline")
 
@@ -288,8 +286,9 @@ def run_live_pipeline():
     scaler = joblib.load(SCALER_PATH)
     selected_features = joblib.load(FEATURES_PATH)
 
-    btc_df = fetch_ohlcv("BTCUSDT")
-    btc_df = add_enhanced_features(btc_df)
+    all_ohlcv = fetch_all_ohlcv(COINS)
+
+    btc_df = add_enhanced_features(all_ohlcv["BTCUSDT"])
 
     btc_df['btc_bull_trend'] = (btc_df['ema_21'] > btc_df['ema_50']).astype(int)
     btc_df['btc_strong_trend'] = (btc_df['ema_9'] > btc_df['ema_21']).astype(int)
@@ -299,16 +298,12 @@ def run_live_pipeline():
 
     for coin in COINS:
 
+        if coin not in all_ohlcv:
+            continue
+
         try:
 
-            df = fetch_ohlcv(coin, limit=2100)
-            if df is None or len(df) < 288:
-                print(f"⚠️ Skipping {coin} (not enough data)")
-                continue
-
-            df['coin'] = coin
-            df = add_enhanced_features(df)
-
+            df = add_enhanced_features(all_ohlcv[coin])
             df['btc_bull_trend'] = btc_bull_trend_value
             df['btc_strong_trend'] = btc_strong_trend_value
             df['id'] = 0
@@ -359,11 +354,52 @@ def run_live_pipeline():
         except Exception as e:
             print(f"❌ Error with {coin}: {e}")
 
+
+    print("\n🔍 Evaluating open trades...")
+    open_trades = ModelTrade.objects.filter(exit_timestamp__isnull=True)
+
+    for trade in open_trades:
+        try:
+            price_entry = float(trade.entry_price)
+            coin_symbol = trade.coin.symbol + "USDT"
+            df = all_ohlcv.get(coin_symbol)
+
+            if df is None or df.empty:
+                print(f"⚠️ No price data for {coin_symbol}, skipping")
+                continue
+
+            price_now = float(df.iloc[-1]['close'])
+            result = True
+
+            if trade.trade_type == "long":
+                if price_now >= price_entry * 1.04:
+                    status = "💰 TAKE PROFIT"
+                elif price_now <= price_entry * 0.97:
+                    status = "🛑 STOP LOSS"
+                    result = False
+                else:
+                    continue
+            else:
+                if price_now <= price_entry * 0.96:
+                    status = "💰 TAKE PROFIT"
+                elif price_now >= price_entry * 1.03:
+                    status = "🛑 STOP LOSS"
+                    result = False
+                else:
+                    continue
+
+            trade.exit_price = price_now
+            trade.exit_timestamp = now()
+            trade.result = result
+            trade.save()
+
+            print(f"{status} | {trade.trade_type.upper()} {trade.coin.symbol} @ {price_now:.6f}")
+
+        except Exception as e:
+            print(f"❌ Error closing trade for {trade.coin.symbol}: {e}")
+
+
     print("✅ Pipeline complete")
-
-
-
-
     
 
 if __name__ == "__main__":
