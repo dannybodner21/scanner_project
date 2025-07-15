@@ -48,11 +48,12 @@ def extract_zoomex_pairs():
         print("\n🧠 Extracted Content:\n", content)
 
         parsed = parse_coin_list(content)
-        for coin in parsed:
-            print(coin)
 
         browser.close()
 
+        return parsed
+
 
 if __name__ == "__main__":
-    extract_zoomex_pairs()
+    parsed = extract_zoomex_pairs()
+    print(json.dumps(parsed))

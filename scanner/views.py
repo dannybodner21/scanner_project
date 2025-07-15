@@ -707,67 +707,26 @@ def get_model_results(request):
 
 
 from playwright.sync_api import sync_playwright
+import traceback
+import subprocess
 
-def parse_coin_list(raw_text: str):
-    lines = raw_text.strip().split("\n")
-    parsed = []
-
-    # Step through 4 lines at a time
-    for i in range(0, len(lines), 4):
-        try:
-            coin = lines[i].strip()
-            price = float(lines[i + 1].strip())
-            change = float(lines[i + 2].replace('%', '').replace('+', '').strip())
-            volume = lines[i + 3].strip()
-            parsed.append({
-                "coin": coin,
-                "price": price,
-                "change_percent": change,
-                "volume": volume
-            })
-        except Exception as e:
-            print(f"❌ Failed to parse entry starting at line {i}: {e}")
-
-    return parsed
-
-
-def extract_zoomex_pairs():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
-
-        page.goto("https://www.zoomex.finance/trade/usdt/BTCUSDT", timeout=60000)
-        page.wait_for_timeout(5000)
-
-        # Click the trading pair dropdown
-        page.locator("text=BTCUSDT").first.click()
-        page.wait_for_timeout(2000)
-
-        # Switch to "New" tab
-        #page.locator("text=New").first.click()
-        #page.wait_for_timeout(2000)
-
-        # Wait for the box to appear
-        page.wait_for_selector(".book-symbol-table__box", timeout=10000)
-
-        # Extract all the text
-        content = page.locator(".book-symbol-table__box").inner_text()
-
-        parsed = parse_coin_list(content)
-        
-        browser.close()
-
-        return parsed
 
 def zoomex_coin_data(request):
     try:
-        data = extract_zoomex_pairs()
+        result = subprocess.run(
+            ["python3", "/zoomex_dex_scraper.py"],
+            capture_output=True,
+            text=True,
+            timeout=60  # Playwright needs time
+        )
+        if result.returncode != 0:
+            return JsonResponse({'error': result.stderr}, status=500)
+
+        data = json.loads(result.stdout)
         return JsonResponse(data, safe=False)
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-
-
 
 
 
