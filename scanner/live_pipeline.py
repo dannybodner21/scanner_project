@@ -347,7 +347,7 @@ def run_live_pipeline():
                     model_name=MODEL_PATH
                 ).order_by("timestamp").first()
 
-               if ConfidenceHistory.objects.filter(coin=coin_obj, model_name=MODEL_PATH).count() > 12 and oldestLongConfidence:
+                if ConfidenceHistory.objects.filter(coin=coin_obj, model_name=MODEL_PATH).count() > 12 and oldestLongConfidence:
                     oldestLongConfidence.delete()
 
                 if long_prob >= CONFIDENCE_THRESHOLD:
@@ -392,7 +392,7 @@ def run_live_pipeline():
                     model_name=SHORT_MODEL_PATH
                 ).order_by("timestamp").first()
 
-               if ConfidenceHistory.objects.filter(coin=coin_obj, model_name=SHORT_MODEL_PATH).count() > 12 and oldestShortConfidence:
+                if ConfidenceHistory.objects.filter(coin=coin_obj, model_name=SHORT_MODEL_PATH).count() > 12 and oldestShortConfidence:
                     oldestShortConfidence.delete()
 
                 if short_prob >= SHORT_CONFIDENCE_THRESHOLD:
