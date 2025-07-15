@@ -26,6 +26,7 @@ def parse_coin_list(raw_text: str):
 
 def extract_zoomex_pairs():
     with sync_playwright() as p:
+        
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
 
