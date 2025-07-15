@@ -331,6 +331,7 @@ def run_live_pipeline():
             print(f"{coin}: confidence = {prob:.4f}")
 
             if prob >= CONFIDENCE_THRESHOLD:
+
                 coin_symbol = COIN_SYMBOL_MAP_DB[coin]
                 coin_obj = Coin.objects.get(symbol=coin_symbol)
 
@@ -352,6 +353,10 @@ def run_live_pipeline():
                         confidence_trade=CONFIDENCE_THRESHOLD
                     )
                     print(f"✅ LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}")
+
+                    message = [f"LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}"]
+                    send_text(message);
+                    
                 else:
                     print(f"ℹ️ Long trade already open for {coin}")
 

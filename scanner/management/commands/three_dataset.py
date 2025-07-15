@@ -26,11 +26,11 @@ from pandas.errors import SettingWithCopyWarning
 
 
 
-# Confidece: 0.33
-# TP: 2%
+# Confidece: 0.31
+# TP: 5%
 # SL: 2%
-# Trades: 78, Wins: 63, Losses: 15, Win %: 80.77%
-# Final Balance: $147,852.69 (Leverage: 15.0x)
+# Trades: 55, Wins: 35, Losses: 20, Win %: 63.64%
+# Final Balance: $1,177,670.66 (Leverage: 19.0x)
 # Max trade duration: 5 hours
 # 3 months of trading
 
