@@ -14,7 +14,7 @@ import django
 import joblib
 
 from datetime import datetime, timedelta
-from scanner.models import Coin, ModelTrade, RealTrade
+from scanner.models import Coin, ModelTrade, RealTrade, ConfidenceHistory
 from scipy.stats import linregress
 from joblib import load
 
@@ -330,10 +330,21 @@ def run_live_pipeline():
 
             print(f"{coin}: confidence = {prob:.4f}")
 
-            if prob >= CONFIDENCE_THRESHOLD:
+            coin_symbol = COIN_SYMBOL_MAP_DB[coin]
+            coin_obj = Coin.objects.get(symbol=coin_symbol)
 
-                coin_symbol = COIN_SYMBOL_MAP_DB[coin]
-                coin_obj = Coin.objects.get(symbol=coin_symbol)
+            ConfidenceHistory.objects.create(
+                coin=coin_obj,
+                model_name=MODEL_PATH,
+                confidence=prob
+            )
+
+            # keep only latest 12:
+            qs = ConfidenceHistory.objects.filter(coin=coin_obj, model_name=MODEL_PATH)
+            if qs.count() > 12:
+                qs.last().delete()
+
+            if prob >= CONFIDENCE_THRESHOLD:
 
                 exists = ModelTrade.objects.filter(
                     coin=coin_obj,
@@ -356,7 +367,7 @@ def run_live_pipeline():
 
                     message = [f"LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}"]
                     send_text(message);
-                    
+
                 else:
                     print(f"ℹ️ Long trade already open for {coin}")
 
