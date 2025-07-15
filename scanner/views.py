@@ -615,6 +615,7 @@ def get_model_results(request):
     total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
 
     model_name = "three_model.joblib"
+    short_model_name = "short_two_model.joblib"
 
     btc_history = ConfidenceHistory.objects.filter(
         model_name=model_name,
@@ -683,6 +684,73 @@ def get_model_results(request):
     avax_list = list(avax_history.values_list("confidence", flat=True))
     xlm_list = list(xlm_history.values_list("confidence", flat=True))
 
+    short_btc_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="BTC"
+    ).order_by("timestamp")
+    short_eth_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="ETH"
+    ).order_by("timestamp")
+    short_xrp_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="XRP"
+    ).order_by("timestamp")
+    short_ltc_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="LTC"
+    ).order_by("timestamp")
+    short_sol_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="SOL"
+    ).order_by("timestamp")
+    short_doge_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="DOGE"
+    ).order_by("timestamp")
+    short_link_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="LINK"
+    ).order_by("timestamp")
+    short_dot_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="DOT"
+    ).order_by("timestamp")
+    short_shib_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="SHIB"
+    ).order_by("timestamp")
+    short_ada_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="ADA"
+    ).order_by("timestamp")
+    short_uni_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="UNI"
+    ).order_by("timestamp")
+    short_avax_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="AVAX"
+    ).order_by("timestamp")
+    short_xlm_history = ConfidenceHistory.objects.filter(
+        model_name=short_model_name,
+        coin__symbol="XLM"
+    ).order_by("timestamp")
+
+    short_btc_list = list(short_btc_history.values_list("confidence", flat=True))
+    short_eth_list = list(short_eth_history.values_list("confidence", flat=True))
+    short_xrp_list = list(short_xrp_history.values_list("confidence", flat=True))
+    short_ltc_list = list(short_ltc_history.values_list("confidence", flat=True))
+    short_sol_list = list(short_sol_history.values_list("confidence", flat=True))
+    short_doge_list = list(short_doge_history.values_list("confidence", flat=True))
+    short_link_list = list(short_link_history.values_list("confidence", flat=True))
+    short_dot_list = list(short_dot_history.values_list("confidence", flat=True))
+    short_shib_list = list(short_shib_history.values_list("confidence", flat=True))
+    short_ada_list = list(short_ada_history.values_list("confidence", flat=True))
+    short_uni_list = list(short_uni_history.values_list("confidence", flat=True))
+    short_avax_list = list(short_avax_history.values_list("confidence", flat=True))
+    short_xlm_list = list(short_xlm_history.values_list("confidence", flat=True))
+
     return JsonResponse({
         "total_long_trades": total_long_trades,
         "total_short_trades": total_short_trades,
@@ -701,6 +769,19 @@ def get_model_results(request):
         "uni_list": uni_list,
         "avax_list": avax_list,
         "xlm_list": xlm_list,
+        "short_btc_list": short_btc_list,
+        "short_eth_list": short_eth_list,
+        "short_xrp_list": short_xrp_list,
+        "short_ltc_list": short_ltc_list,
+        "short_sol_list": short_sol_list,
+        "short_doge_list": short_doge_list,
+        "short_link_list": short_link_list,
+        "short_dot_list": short_dot_list,
+        "short_shib_list": short_shib_list,
+        "short_ada_list": short_ada_list,
+        "short_uni_list": short_uni_list,
+        "short_avax_list": short_avax_list,
+        "short_xlm_list": short_xlm_list,
     })
 
 
