@@ -326,7 +326,7 @@ def run_live_pipeline():
                 continue
 
             feature_scaled = scaler.transform(feature_df)
-            prob = model.predict_proba(feature_scaled)[0][1]
+            prob = round(model.predict_proba(feature_scaled)[0][1], 2)
 
             print(f"{coin}: confidence = {prob:.4f}")
 
