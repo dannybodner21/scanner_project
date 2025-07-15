@@ -182,6 +182,7 @@ def add_enhanced_features(df):
 
     df['rsi_21'] = RSIIndicator(close, window=21).rsi()
     df['rsi_21_overbought'] = (df['rsi_21'] > 70).astype(int)
+    df['rsi_21_oversold'] = (df['rsi_21'] < 30).astype(int)
 
     # MACD
     macd_line = EMAIndicator(close, window=12).ema_indicator() - EMAIndicator(close, window=26).ema_indicator()
