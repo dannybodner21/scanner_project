@@ -570,7 +570,7 @@ def get_open_trades(request):
             "duration_minutes": trade.duration_minutes,
             "current_price": current_price,
             "current_percentage": current_percentage,
-            "fear_greed": 0,  # You can replace this later if needed
+            "model_name": trade.model_name,
         })
 
     return JsonResponse(data, safe=False)
@@ -614,11 +614,20 @@ def get_model_results(request):
     total_long_wins = ModelTrade.objects.filter(trade_type="long", result=True).count()
     total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
 
+    model_name = "three_model.joblib"
+    coin_symbol = "BTC"
+
+    btc_history = ConfidenceHistory.objects.filter(
+        model_name=model_name,
+        coin__symbol=coin_symbol
+    ).order_by("timestamp")
+
     return JsonResponse({
         "total_long_trades": total_long_trades,
         "total_short_trades": total_short_trades,
         "total_long_wins": total_long_wins,
         "total_short_wins": total_short_wins,
+        "btc_history": btc_history,
     })
 
 
