@@ -274,9 +274,24 @@ class ModelTrade(models.Model):
     duration_minutes = models.IntegerField(null=True, blank=True)
     result = models.BooleanField(null=True, blank=True)
     confidence_trade = models.FloatField(null=True, blank=True)
+    model_name = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return f"{self.coin.symbol} | {self.trade_type.upper()} | {self.entry_timestamp.strftime('%Y-%m-%d %H:%M')}"
+
+
+
+class ConfidenceHistory(models.Model):
+    coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
+    model_name = models.CharField(max_length=100)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    confidence = models.FloatField()
+
+    class Meta:
+        ordering = ['-timestamp']
+
+
+
 
 
 class RealTrade(models.Model):
