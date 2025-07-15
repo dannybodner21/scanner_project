@@ -330,6 +330,7 @@ def run_live_pipeline():
             # -------- LONG MODEL --------
             long_missing = [f for f in long_features if f not in df.columns or df[f].isnull().any()]
             if not long_missing:
+
                 long_feature_df = latest[long_features].copy()
                 long_scaled = long_scaler.transform(long_feature_df)
                 long_prob = round(long_model.predict_proba(long_scaled)[0][1], 2)
@@ -346,10 +347,7 @@ def run_live_pipeline():
                     model_name=MODEL_PATH
                 ).order_by("timestamp").first()
 
-               if ConfidenceHistory.objects.filter(
-                    coin=coin_obj,
-                    model_name=MODEL_PATH
-                ).count() > 12 and oldestLongConfidence:
+               if ConfidenceHistory.objects.filter(coin=coin_obj, model_name=MODEL_PATH).count() > 12 and oldestLongConfidence:
                     oldestLongConfidence.delete()
 
                 if long_prob >= CONFIDENCE_THRESHOLD:
@@ -376,6 +374,7 @@ def run_live_pipeline():
 
             # -------- SHORT MODEL --------
             short_missing = [f for f in short_features if f not in df.columns or df[f].isnull().any()]
+
             if not short_missing:
                 short_feature_df = latest[short_features].copy()
                 short_scaled = short_scaler.transform(short_feature_df)
@@ -393,10 +392,7 @@ def run_live_pipeline():
                     model_name=SHORT_MODEL_PATH
                 ).order_by("timestamp").first()
 
-               if ConfidenceHistory.objects.filter(
-                    coin=coin_obj,
-                    model_name=SHORT_MODEL_PATH
-                ).count() > 12 and oldestShortConfidence:
+               if ConfidenceHistory.objects.filter(coin=coin_obj, model_name=SHORT_MODEL_PATH).count() > 12 and oldestShortConfidence:
                     oldestShortConfidence.delete()
 
                 if short_prob >= SHORT_CONFIDENCE_THRESHOLD:
