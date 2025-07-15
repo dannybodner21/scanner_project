@@ -713,11 +713,13 @@ import subprocess
 
 def zoomex_coin_data(request):
     try:
+        script_path = os.path.join(settings.BASE_DIR, "zoomex_dex_scraper.py")
+
         result = subprocess.run(
-            ["python3", "/zoomex_dex_scraper.py"],
+            ["python3", script_path],
             capture_output=True,
             text=True,
-            timeout=60  # Playwright needs time
+            timeout=60
         )
         if result.returncode != 0:
             return JsonResponse({'error': result.stderr}, status=500)
@@ -727,8 +729,6 @@ def zoomex_coin_data(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-
 
 
 
