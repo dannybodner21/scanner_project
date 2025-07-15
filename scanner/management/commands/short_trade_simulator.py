@@ -45,10 +45,10 @@ class Command(BaseCommand):
 
         parser.add_argument('--position-size', type=float, default=0.25)
 
-        parser.add_argument('--stop-loss', type=float, default=0.03)
-        parser.add_argument('--take-profit', type=float, default=0.04)
+        parser.add_argument('--stop-loss', type=float, default=0.02)
+        parser.add_argument('--take-profit', type=float, default=0.03)
 
-        parser.add_argument('--max-hold-hours', type=int, default=36)
+        parser.add_argument('--max-hold-hours', type=int, default=48)
 
         parser.add_argument('--output-dir', type=str, default='.')
         parser.add_argument('--leverage', type=float, default=15.0)

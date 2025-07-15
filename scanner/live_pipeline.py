@@ -75,6 +75,11 @@ SCALER_PATH = "three_feature_scaler.joblib"
 FEATURES_PATH = "three_selected_features.joblib"
 CONFIDENCE_THRESHOLD = 0.31
 
+SHORT_MODEL_PATH = "short_two_model.joblib"
+SHORT_SCALER_PATH = "short_two_feature_scaler.joblib"
+SHORT_FEATURES_PATH = "short_two_selected_features.joblib"
+SHORT_CONFIDENCE_THRESHOLD = 0.4
+
 selected_features = joblib.load(FEATURES_PATH)
 
 
@@ -284,11 +289,16 @@ def print_feature_stats(df, coin):
 
 
 def run_live_pipeline():
+
     print("🚀 Running live LightGBM pipeline")
 
-    model = joblib.load(MODEL_PATH)
-    scaler = joblib.load(SCALER_PATH)
-    selected_features = joblib.load(FEATURES_PATH)
+    long_model = joblib.load(MODEL_PATH)
+    long_scaler = joblib.load(SCALER_PATH)
+    long_features = joblib.load(FEATURES_PATH)
+
+    short_model = joblib.load(SHORT_MODEL_PATH)
+    short_scaler = joblib.load(SHORT_SCALER_PATH)
+    short_features = joblib.load(SHORT_FEATURES_PATH)
 
     all_ohlcv = fetch_all_ohlcv(COINS)
 
@@ -312,67 +322,109 @@ def run_live_pipeline():
             df['btc_strong_trend'] = btc_strong_trend_value
             df['id'] = 0
 
-            # DEBUG: check which features are missing
-            missing = [f for f in selected_features if f not in df.columns or df[f].isnull().any()]
-            if missing:
-                print(f"❌ {coin} is missing features: {missing}")
-                continue
-
             latest = df.sort_values('timestamp').iloc[-1:]
-            feature_df = latest[selected_features].copy()
-
-            if feature_df.isnull().values.any():
-                print(f"⚠️ Skipping {coin} due to NaN in features")
-                continue
-
-            feature_scaled = scaler.transform(feature_df)
-            prob = round(model.predict_proba(feature_scaled)[0][1], 2)
-
-            print(f"{coin}: confidence = {prob:.4f}")
-
             coin_symbol = COIN_SYMBOL_MAP_DB[coin]
             coin_obj = Coin.objects.get(symbol=coin_symbol)
 
-            ConfidenceHistory.objects.create(
-                coin=coin_obj,
-                model_name=MODEL_PATH,
-                confidence=prob
-            )
 
-            # keep only latest 12:
-            qs = ConfidenceHistory.objects.filter(coin=coin_obj, model_name=MODEL_PATH)
-            if qs.count() > 12:
-                qs.last().delete()
+            # -------- LONG MODEL --------
+            long_missing = [f for f in long_features if f not in df.columns or df[f].isnull().any()]
+            if not long_missing:
+                long_feature_df = latest[long_features].copy()
+                long_scaled = long_scaler.transform(long_feature_df)
+                long_prob = round(long_model.predict_proba(long_scaled)[0][1], 2)
+                print(f"📈 {coin} LONG confidence: {long_prob:.4f}")
 
-            if prob >= CONFIDENCE_THRESHOLD:
-
-                exists = ModelTrade.objects.filter(
+                ConfidenceHistory.objects.create(
                     coin=coin_obj,
-                    exit_timestamp__isnull=True,
-                    trade_type='long'
-                ).exists()
+                    model_name=MODEL_PATH,
+                    confidence=long_prob,
+                )
 
-                if not exists:
-                    ModelTrade.objects.create(
-                        coin=coin_obj,
-                        trade_type='long',
-                        entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
-                        entry_price=latest['close'].values[0],
-                        model_confidence=prob,
-                        take_profit_percent=4.0,
-                        stop_loss_percent=3.0,
-                        confidence_trade=CONFIDENCE_THRESHOLD
-                    )
-                    print(f"✅ LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}")
+                oldestLongConfidence = ConfidenceHistory.objects.filter(
+                    coin=coin_obj,
+                    model_name=MODEL_PATH
+                ).order_by("timestamp").first()
 
-                    message = [f"LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}"]
-                    send_text(message);
+               if ConfidenceHistory.objects.filter(
+                    coin=coin_obj,
+                    model_name=MODEL_PATH
+                ).count() > 12 and oldestLongConfidence:
+                    oldestLongConfidence.delete()
 
-                else:
-                    print(f"ℹ️ Long trade already open for {coin}")
+                if long_prob >= CONFIDENCE_THRESHOLD:
+                    exists = ModelTrade.objects.filter(
+                        coin=coin_obj, exit_timestamp__isnull=True, trade_type='long'
+                    ).exists()
+                    if not exists:
+                        ModelTrade.objects.create(
+                            coin=coin_obj,
+                            trade_type='long',
+                            entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
+                            entry_price=latest['close'].values[0],
+                            model_confidence=long_prob,
+                            take_profit_percent=4.0,
+                            stop_loss_percent=3.0,
+                            confidence_trade=CONFIDENCE_THRESHOLD
+                        )
+                        print(f"✅ LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}")
+                        send_text([f"LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}"])
+                    else:
+                        print(f"ℹ️ Long trade already open for {coin}")
+            else:
+                print(f"❌ {coin} missing LONG features: {long_missing}")
+
+            # -------- SHORT MODEL --------
+            short_missing = [f for f in short_features if f not in df.columns or df[f].isnull().any()]
+            if not short_missing:
+                short_feature_df = latest[short_features].copy()
+                short_scaled = short_scaler.transform(short_feature_df)
+                short_prob = round(short_model.predict_proba(short_scaled)[0][1], 2)
+                print(f"📉 {coin} SHORT confidence: {short_prob:.4f}")
+
+                ConfidenceHistory.objects.create(
+                    coin=coin_obj,
+                    model_name=SHORT_MODEL_PATH,
+                    confidence=short_prob,
+                )
+
+                oldestShortConfidence = ConfidenceHistory.objects.filter(
+                    coin=coin_obj,
+                    model_name=SHORT_MODEL_PATH
+                ).order_by("timestamp").first()
+
+               if ConfidenceHistory.objects.filter(
+                    coin=coin_obj,
+                    model_name=SHORT_MODEL_PATH
+                ).count() > 12 and oldestShortConfidence:
+                    oldestShortConfidence.delete()
+
+                if short_prob >= SHORT_CONFIDENCE_THRESHOLD:
+                    exists = ModelTrade.objects.filter(
+                        coin=coin_obj, exit_timestamp__isnull=True, trade_type='short'
+                    ).exists()
+                    if not exists:
+                        ModelTrade.objects.create(
+                            coin=coin_obj,
+                            trade_type='short',
+                            entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
+                            entry_price=latest['close'].values[0],
+                            model_confidence=short_prob,
+                            take_profit_percent=4.0,
+                            stop_loss_percent=3.0,
+                            confidence_trade=SHORT_CONFIDENCE_THRESHOLD
+                        )
+                        print(f"✅ SHORT trade opened for {coin} @ {latest['close'].values[0]:.4f}")
+                        send_text([f"SHORT trade opened for {coin} @ {latest['close'].values[0]:.4f}"])
+                    else:
+                        print(f"ℹ️ Short trade already open for {coin}")
+            else:
+                print(f"❌ {coin} missing SHORT features: {short_missing}")
 
         except Exception as e:
             print(f"❌ Error with {coin}: {e}")
+
+
 
 
     print("\n🔍 Evaluating open trades...")
