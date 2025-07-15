@@ -709,7 +709,7 @@ def get_model_results(request):
 from playwright.sync_api import sync_playwright
 import traceback
 import subprocess
-
+from django.conf import settings
 
 def zoomex_coin_data(request):
     try:
