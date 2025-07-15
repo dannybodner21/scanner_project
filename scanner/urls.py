@@ -20,7 +20,6 @@ urlpatterns = [
     path("api/ricki/latest/", views.get_hod_movers, name="get-hod-movers"),
     path("short-intervals/", views.short_interval_summary, name="short-intervals"),
 
-
     path('five-min-update/', views.five_min_update, name='five-min-update'),
     path('predict-live-vertex/', views.predict_live_vertex_new, name='predict-live-vertex'),
     path("predict-short-vertex/", views.predict_short_vertex_new, name="predict-short-vertex"),
@@ -32,15 +31,12 @@ urlpatterns = [
     path('update-patterns/', views.run_update_patterns, name='update_patterns'),
     path('api/btc-market-regime/', views.get_btc_market_regime, name='btc-market-regime'),
 
-
     path("api/metrics-health-daily/", views.daily_metrics_health, name="daily-metrics-health"),
-
 
     path("run-live-pipeline/", views.run_live_pipeline_view, name="run_live_pipeline"),
 
     path('trades/', views.open_trades_view, name='open_trades'),
     path('api/live-trades/', views.live_trades, name='live-trades'),
-
-
+    path('api/zoomex-coins/', views.zoomex_coin_data, name='zoomex-coins'),
 
 ]
