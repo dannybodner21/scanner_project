@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import JSONField
 
 
 class Coin(models.Model):
@@ -236,6 +237,11 @@ class RickisMetrics(models.Model):
 
 
 
+
+
+
+
+
 class CoinAPIPrice(models.Model):
     coin = models.CharField(max_length=20)  # e.g. 'BTCUSDT'
     timestamp = models.DateTimeField()  # 5-min candle open time (UTC)
@@ -251,8 +257,6 @@ class CoinAPIPrice(models.Model):
             models.Index(fields=['coin', 'timestamp']),
         ]
         unique_together = ('coin', 'timestamp')
-
-
 
 
 
@@ -275,6 +279,7 @@ class ModelTrade(models.Model):
     result = models.BooleanField(null=True, blank=True)
     confidence_trade = models.FloatField(null=True, blank=True)
     model_name = models.CharField(max_length=100, null=True, blank=True)
+    recent_confidences = JSONField(null=True, blank=True, help_text="Last 6 confidence scores")
 
     def __str__(self):
         return f"{self.coin.symbol} | {self.trade_type.upper()} | {self.entry_timestamp.strftime('%Y-%m-%d %H:%M')}"
@@ -289,7 +294,6 @@ class ConfidenceHistory(models.Model):
 
     class Meta:
         ordering = ['-timestamp']
-
 
 
 
@@ -315,6 +319,17 @@ class RealTrade(models.Model):
 
     def __str__(self):
         return f"{self.coin.symbol} | {self.trade_type.upper()} | {self.entry_timestamp.strftime('%Y-%m-%d %H:%M')}"
+
+
+
+
+
+
+
+
+
+
+
 
 
 class LiveModelMetrics(models.Model):
