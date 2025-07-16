@@ -105,7 +105,7 @@ def get_current_price(symbol):
         snapshot = LivePriceSnapshot.objects.filter(coin=symbol).first()
         return snapshot.close if snapshot else None
 
-    except Coin.DoesNotExist:
+    except:
         return None
 
 
@@ -553,6 +553,7 @@ def get_coinapi_price(symbol):
 
 
 def get_open_trades(request):
+
     open_trades = (
         ModelTrade.objects
         .filter(exit_timestamp__isnull=True)
@@ -561,13 +562,20 @@ def get_open_trades(request):
     )
 
     data = []
+
     for trade in open_trades:
 
         coin_symbol = trade.coin.symbol
         current_price = get_current_price(coin_symbol)
         entry_price = float(trade.entry_price or 0)
         current_percentage = 0
-        if entry_price:
+        
+        print("current price:")
+        print(current_price)
+        print("entry price:")
+        print(entry_price)
+
+        if entry_price and current_price:
             current_percentage = ((current_price - entry_price) / entry_price) * 100
 
         data.append({
