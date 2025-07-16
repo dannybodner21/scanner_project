@@ -94,12 +94,9 @@ def live_trades(request):
 
 
 def get_current_price(symbol):
+
     try:
-        # Ensure symbol includes USDT
-        if not symbol.upper().endswith("USDT"):
-            symbol = symbol.upper() + "USDT"
-        else:
-            symbol = symbol.upper()
+        symbol = symbol.upper()
 
         # Get latest close price from LivePriceSnapshot
         snapshot = LivePriceSnapshot.objects.filter(coin=symbol).first()
@@ -569,7 +566,7 @@ def get_open_trades(request):
         current_price = get_current_price(coin_symbol)
         entry_price = float(trade.entry_price or 0)
         current_percentage = 0
-        
+
         print("current price:")
         print(current_price)
         print("entry price:")
