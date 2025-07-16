@@ -332,11 +332,11 @@ def run_live_pipeline():
             LivePriceSnapshot.objects.update_or_create(
                 coin=coin_symbol,
                 defaults={
-                    "open": latest["open"].iloc[0],
-                    "high": latest["high"].iloc[0],
-                    "low": latest["low"].iloc[0],
-                    "close": latest["close"].iloc[0],
-                    "volume": latest["volume"].iloc[0],
+                    "open": latest["open"].values[0],
+                    "high": latest["high"].values[0],
+                    "low": latest["low"].values[0],
+                    "close": latest["close"].values[0],
+                    "volume": latest["volume"].values[0],
                 }
             )
             
