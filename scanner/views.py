@@ -19,7 +19,7 @@ import google.auth
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, ConfidenceHistory, CoinAPIPrice, RealTrade, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, ConfidenceHistory, LivePriceSnapshot, CoinAPIPrice, RealTrade, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
@@ -92,13 +92,25 @@ def live_trades(request):
 
 
 
+
 def get_current_price(symbol):
     try:
-        coin = Coin.objects.get(symbol=symbol.upper())
-        latest_price = CoinAPIPrice.objects.filter(coin=coin).order_by('-timestamp').first()
-        return latest_price.close if latest_price else None
+        # Ensure symbol includes USDT
+        if not symbol.upper().endswith("USDT"):
+            symbol = symbol.upper() + "USDT"
+        else:
+            symbol = symbol.upper()
+
+        # Confirm it's a valid coin
+        Coin.objects.get(symbol=symbol)
+
+        # Get latest close price from LivePriceSnapshot
+        snapshot = LivePriceSnapshot.objects.filter(coin=symbol).first()
+        return snapshot.close if snapshot else None
+
     except Coin.DoesNotExist:
         return None
+
 
 
 def open_trades_view(request):
@@ -541,6 +553,8 @@ def get_coinapi_price(symbol):
     except:
         return 0
 
+
+
 def get_open_trades(request):
     open_trades = (
         ModelTrade.objects
@@ -553,7 +567,7 @@ def get_open_trades(request):
     for trade in open_trades:
 
         coin_symbol = trade.coin.symbol
-        current_price = get_coinapi_price(coin_symbol)
+        current_price = get_current_price(coin_symbol)
         entry_price = float(trade.entry_price or 0)
         current_percentage = 0
         if entry_price:

@@ -241,7 +241,7 @@ class RickisMetrics(models.Model):
 
 
 
-
+# stores all the historical ohlcv data for each coin
 class CoinAPIPrice(models.Model):
     coin = models.CharField(max_length=20)  # e.g. 'BTCUSDT'
     timestamp = models.DateTimeField()  # 5-min candle open time (UTC)
@@ -258,6 +258,23 @@ class CoinAPIPrice(models.Model):
         ]
         unique_together = ('coin', 'timestamp')
 
+
+# stores only the most recent ohlcv for each coin
+class LivePriceSnapshot(models.Model):
+    coin = models.CharField(max_length=20)  # e.g., 'BTCUSDT'
+    timestamp = models.DateTimeField(auto_now=True)
+
+    open = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    high = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    low = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    close = models.DecimalField(max_digits=20, decimal_places=10, null=True)
+    volume = models.DecimalField(max_digits=30, decimal_places=10, null=True)
+
+    class Meta:
+        unique_together = ("coin",)  # only 1 live snapshot per coin
+
+    def __str__(self):
+        return f"{self.coin} | {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
 
 
 class ModelTrade(models.Model):

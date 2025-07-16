@@ -24,7 +24,7 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import AverageTrueRange, BollingerBands
 from pandas.errors import SettingWithCopyWarning
 
-
+# four
 
 warnings.filterwarnings('ignore', category=SettingWithCopyWarning)
 optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -144,7 +144,7 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
     df.reset_index(inplace=True)
     return df
 
-def get_direction_labels(df: pd.DataFrame, forward_periods: int = 36) -> pd.Series:
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Series:
     """
     Simple direction prediction: will price be lower in N periods?
     This is much more learnable than complex TP/SL logic
@@ -210,7 +210,7 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=24)
+        parser.add_argument('--forward-periods', type=int, default=48)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
@@ -222,18 +222,18 @@ class Command(BaseCommand):
 
 
         START_DATE = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        END_DATE = datetime(2025, 7, 6, tzinfo=timezone.utc)
-        CUTOFF_DATE = datetime(2025, 4, 1, tzinfo=timezone.utc)  # More recent cutoff
+        END_DATE = datetime(2025, 7, 14, tzinfo=timezone.utc)
+        CUTOFF_DATE = datetime(2025, 5, 1, tzinfo=timezone.utc)
 
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
 
-        TRAIN_FILE = 'short_two_training.csv'
-        TEST_FILE = 'short_two_testing.csv'
-        MODEL_FILE = 'short_two_model.joblib'
-        SCALER_FILE = 'short_two_feature_scaler.joblib'
-        FEATURES_FILE = 'short_two_selected_features.joblib'
-        PREDICTION_FILE = 'short_two_enhanced_predictions.csv'
+        TRAIN_FILE = 'short_four_training.csv'
+        TEST_FILE = 'short_four_testing.csv'
+        MODEL_FILE = 'short_four_model.joblib'
+        SCALER_FILE = 'short_four_feature_scaler.joblib'
+        FEATURES_FILE = 'short_four_selected_features.joblib'
+        PREDICTION_FILE = 'short_four_enhanced_predictions.csv'
 
         if not options['skip_generation']:
             self.run_data_generation(COINS, START_DATE, END_DATE, CUTOFF_DATE,

@@ -14,7 +14,7 @@ import django
 import joblib
 
 from datetime import datetime, timedelta
-from scanner.models import Coin, ModelTrade, RealTrade, ConfidenceHistory
+from scanner.models import Coin, ModelTrade, RealTrade, ConfidenceHistory, LivePriceSnapshot
 from scipy.stats import linregress
 from joblib import load
 
@@ -328,6 +328,19 @@ def run_live_pipeline():
             coin_obj = Coin.objects.get(symbol=coin_symbol)
 
 
+            # save latest price data
+            LivePriceSnapshot.objects.update_or_create(
+                coin=coin_symbol,
+                defaults={
+                    "open": latest["price_open"].iloc[0],
+                    "high": latest["price_high"].iloc[0],
+                    "low": latest["price_low"].iloc[0],
+                    "close": latest["price_close"].iloc[0],
+                    "volume": latest["volume_traded"].iloc[0],
+                }
+            )
+            
+
             # -------- LONG MODEL --------
             long_missing = [f for f in long_features if f not in df.columns or df[f].isnull().any()]
             if not long_missing:
@@ -356,6 +369,17 @@ def run_live_pipeline():
                         coin=coin_obj, exit_timestamp__isnull=True, trade_type='long'
                     ).exists()
                     if not exists:
+
+                        recent_confs = list(
+                            ConfidenceHistory.objects
+                            .filter(coin=coin_obj, model_name=MODEL_PATH)
+                            .order_by('-timestamp')
+                            .values_list('confidence', flat=True)[:6]
+                        )[::-1]
+
+                        while len(conf_scores) < 6:
+                            conf_scores.insert(0, None) 
+
                         ModelTrade.objects.create(
                             coin=coin_obj,
                             trade_type='long',
@@ -364,7 +388,8 @@ def run_live_pipeline():
                             model_confidence=long_prob,
                             take_profit_percent=4.0,
                             stop_loss_percent=3.0,
-                            confidence_trade=CONFIDENCE_THRESHOLD
+                            confidence_trade=CONFIDENCE_THRESHOLD,
+                            recent_confidences=recent_confs,
                         )
                         print(f"✅ LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}")
                         send_text([f"LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}"])
@@ -401,6 +426,17 @@ def run_live_pipeline():
                         coin=coin_obj, exit_timestamp__isnull=True, trade_type='short'
                     ).exists()
                     if not exists:
+
+                        recent_confs_short = list(
+                            ConfidenceHistory.objects
+                            .filter(coin=coin_obj, model_name=SHORT_MODEL_PATH)
+                            .order_by('-timestamp')
+                            .values_list('confidence', flat=True)[:6]
+                        )[::-1]
+
+                        while len(recent_confs_short) < 6:
+                            recent_confs_short.insert(0, None)
+
                         ModelTrade.objects.create(
                             coin=coin_obj,
                             trade_type='short',
@@ -409,7 +445,8 @@ def run_live_pipeline():
                             model_confidence=short_prob,
                             take_profit_percent=4.0,
                             stop_loss_percent=3.0,
-                            confidence_trade=SHORT_CONFIDENCE_THRESHOLD
+                            confidence_trade=SHORT_CONFIDENCE_THRESHOLD,
+                            recent_confidences=recent_confs_short,
                         )
                         print(f"✅ SHORT trade opened for {coin} @ {latest['close'].values[0]:.4f}")
                         send_text([f"SHORT trade opened for {coin} @ {latest['close'].values[0]:.4f}"])
