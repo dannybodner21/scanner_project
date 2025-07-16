@@ -614,7 +614,7 @@ def get_model_results(request):
     total_long_wins = ModelTrade.objects.filter(trade_type="long", result=True).count()
     total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
 
-    model_name = "three_model.joblib"
+    model_name = "two_model.joblib"
     short_model_name = "short_two_model.joblib"
 
     btc_history = ConfidenceHistory.objects.filter(
