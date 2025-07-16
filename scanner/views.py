@@ -101,9 +101,6 @@ def get_current_price(symbol):
         else:
             symbol = symbol.upper()
 
-        # Confirm it's a valid coin
-        Coin.objects.get(symbol=symbol)
-
         # Get latest close price from LivePriceSnapshot
         snapshot = LivePriceSnapshot.objects.filter(coin=symbol).first()
         return snapshot.close if snapshot else None
