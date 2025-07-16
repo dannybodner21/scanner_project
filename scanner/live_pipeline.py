@@ -70,10 +70,10 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 
 
-MODEL_PATH = "three_model.joblib"
-SCALER_PATH = "three_feature_scaler.joblib"
-FEATURES_PATH = "three_selected_features.joblib"
-CONFIDENCE_THRESHOLD = 0.31
+MODEL_PATH = "two_model.joblib"
+SCALER_PATH = "two_feature_scaler.joblib"
+FEATURES_PATH = "two_selected_features.joblib"
+CONFIDENCE_THRESHOLD = 0.7
 
 SHORT_MODEL_PATH = "short_two_model.joblib"
 SHORT_SCALER_PATH = "short_two_feature_scaler.joblib"

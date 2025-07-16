@@ -144,7 +144,7 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
     df.reset_index(inplace=True)
     return df
 
-def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Series:
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 12) -> pd.Series:
     """
     Simple direction prediction: will price be lower in N periods?
     This is much more learnable than complex TP/SL logic
@@ -153,7 +153,7 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Seri
     future_close = df['close'].shift(-forward_periods)
 
     # 1 if price will be lower, 0 if higher
-    goal_price = current_close * 0.97
+    goal_price = current_close * 0.99
 
     labels = (future_close < goal_price).astype(int)
 
@@ -210,7 +210,7 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=24)
+        parser.add_argument('--forward-periods', type=int, default=12)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
@@ -223,7 +223,7 @@ class Command(BaseCommand):
 
         START_DATE = datetime(2022, 1, 1, tzinfo=timezone.utc)
         END_DATE = datetime(2025, 7, 6, tzinfo=timezone.utc)
-        CUTOFF_DATE = datetime(2025, 4, 1, tzinfo=timezone.utc)  # More recent cutoff
+        CUTOFF_DATE = datetime(2025, 5, 1, tzinfo=timezone.utc)  # More recent cutoff
 
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
@@ -394,7 +394,8 @@ class Command(BaseCommand):
                 'reg_lambda': trial.suggest_float('reg_lambda', 1e-8, 10.0, log=True),
                 'min_child_samples': trial.suggest_int('min_child_samples', 10, 100),
                 'subsample_freq': 1,
-                'random_state': 42
+                'random_state': 42,
+                'class_weight': 'balanced'
             }
 
             # Time series cross-validation
@@ -432,7 +433,8 @@ class Command(BaseCommand):
             'objective': 'binary',
             'metric': 'binary_logloss',
             'random_state': 42,
-            'n_estimators': 1500  # More trees for final model
+            'n_estimators': 1500,  # More trees for final model
+            'class_weight': 'balanced'
         })
 
         model = lgb.LGBMClassifier(**params)

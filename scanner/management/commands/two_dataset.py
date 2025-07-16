@@ -1,4 +1,4 @@
-# main_app/management/commands/run_pipeline.py
+
 
 import pandas as pd
 import numpy as np
@@ -33,6 +33,12 @@ from pandas.errors import SettingWithCopyWarning
 # 3 months testing time
 # Starting balance: $5,000
 # 3 hour trade limit
+
+
+# starting seven
+
+
+
 
 
 
@@ -163,7 +169,7 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Seri
     future_close = df['close'].shift(-forward_periods)
 
     # 1 if price will be higher + 2%, 0 if lower
-    goal_price = current_close * 1.01
+    goal_price = current_close * 1.025
 
     labels = (future_close > goal_price).astype(int)
 
@@ -213,6 +219,7 @@ def select_best_features(X: pd.DataFrame, y: pd.Series, k: int = 50) -> List[str
 
     return feature_scores.head(k)['feature'].tolist()
 
+
 class Command(BaseCommand):
     help = "Enhanced ML pipeline for crypto direction prediction"
 
@@ -224,52 +231,45 @@ class Command(BaseCommand):
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
-        # Updated coin list with more liquid pairs
-
         COINS = ['BTCUSDT','ETHUSDT','XRPUSDT','LTCUSDT','SOLUSDT','DOGEUSDT','LINKUSDT','DOTUSDT', 'SHIBUSDT', 'ADAUSDT', 'UNIUSDT', 'AVAXUSDT', 'XLMUSDT']
 
-
         START_DATE = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        END_DATE = datetime(2025, 7, 6, tzinfo=timezone.utc)
-        CUTOFF_DATE = datetime(2025, 4, 1, tzinfo=timezone.utc)
+        END_DATE = datetime(2025, 7, 14, tzinfo=timezone.utc)
+        CUTOFF_DATE = datetime(2025, 5, 1, tzinfo=timezone.utc)
 
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
 
-        TRAIN_FILE = 'two_training.csv'
-        TEST_FILE = 'two_testing.csv'
-        MODEL_FILE = 'two_model.joblib'
-        SCALER_FILE = 'two_feature_scaler.joblib'
-        FEATURES_FILE = 'two_selected_features.joblib'
-        PREDICTION_FILE = 'two_enhanced_predictions.csv'
+        TRAIN_FILE = 'seven_training.csv'
+        TEST_FILE = 'seven_testing.csv'
+        MODEL_FILE = 'seven_model.joblib'
+        SCALER_FILE = 'seven_feature_scaler.joblib'
+        FEATURES_FILE = 'seven_selected_features.joblib'
+        PREDICTION_FILE = 'seven_enhanced_predictions.csv'
 
         if not options['skip_generation']:
             self.run_data_generation(COINS, START_DATE, END_DATE, CUTOFF_DATE,
                                    FORWARD_PERIODS, MIN_SAMPLES, TRAIN_FILE, TEST_FILE)
 
-        self.stdout.write("💾 Loading data for training...")
+        self.stdout.write("\U0001F4BE Loading data for training...")
         if not os.path.exists(TRAIN_FILE) or not os.path.exists(TEST_FILE):
             self.stdout.write(self.style.ERROR("Data files not found."))
             return
 
         train_df = pd.read_csv(TRAIN_FILE)
 
-        # Remove non-feature columns
         non_feature_cols = ['timestamp', 'coin', 'open', 'high', 'low', 'close', 'volume', 'label']
         feature_cols = [col for col in train_df.columns if col not in non_feature_cols]
 
         X = train_df[feature_cols]
         y = train_df['label']
 
-        # Handle missing values
         X = X.fillna(X.median())
 
-        # Feature selection
-        self.stdout.write("🔍 Selecting best features...")
+        self.stdout.write("\U0001F50D Selecting best features...")
         selected_features = select_best_features(X, y, k=min(50, len(feature_cols)))
         X_selected = X[selected_features]
 
-        # Scale features
         scaler = StandardScaler()
         X_scaled = pd.DataFrame(
             scaler.fit_transform(X_selected),
@@ -277,11 +277,9 @@ class Command(BaseCommand):
             index=X_selected.index
         )
 
-        # Save preprocessing objects
         joblib.dump(scaler, SCALER_FILE)
         joblib.dump(selected_features, FEATURES_FILE)
 
-        # Time series cross-validation
         tscv = TimeSeriesSplit(n_splits=5)
 
         if not options['skip_tuning']:
@@ -303,14 +301,13 @@ class Command(BaseCommand):
         joblib.dump(final_model, MODEL_FILE)
 
         self.run_predictions(final_model, scaler, selected_features, TEST_FILE, PREDICTION_FILE)
-        self.stdout.write(self.style.SUCCESS("\n🎉 Enhanced pipeline finished successfully!"))
+        self.stdout.write(self.style.SUCCESS("\n\U0001F389 Enhanced pipeline finished successfully!"))
 
     def run_data_generation(self, coins, start, end, cutoff, forward_periods, min_samples, train_path, test_path):
         self.stdout.write(self.style.SUCCESS("\n--- Step 1: Enhanced Data Generation ---"))
 
         coin_dfs = {}
 
-        # First pass: load and process each coin
         for coin in coins:
             self.stdout.write(f"  - Processing {coin}...")
             qs = CoinAPIPrice.objects.filter(
@@ -325,33 +322,26 @@ class Command(BaseCommand):
 
             df = pd.DataFrame.from_records(qs.values())
 
-            # Data cleaning
             for col in ['open', 'high', 'low', 'close', 'volume']:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
             df.dropna(inplace=True)
             df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-            # Skip if insufficient data
             if len(df) < min_samples:
                 self.stdout.write(f"    ⚠️  Insufficient data for {coin}: {len(df)} samples")
                 continue
 
-            # Add features
             df_featured = add_enhanced_features(df)
-
-            # Add direction labels
             df_featured['label'] = get_direction_labels(df_featured, forward_periods)
 
             coin_dfs[coin] = df_featured
             self.stdout.write(f"    ✅ {coin}: {len(df_featured)} samples processed")
 
-        # Second pass: add cross-coin features
         if len(coin_dfs) > 1:
             self.stdout.write("  - Adding cross-coin features...")
             coin_dfs = add_cross_coin_features(coin_dfs)
 
-        # Combine all coins
         all_dfs = []
         for coin, df in coin_dfs.items():
             df['coin'] = coin
@@ -362,25 +352,27 @@ class Command(BaseCommand):
             return
 
         full_df = pd.concat(all_dfs, ignore_index=True)
-
-        # Remove rows with NaN labels
         full_df = full_df.dropna(subset=['label'])
 
-        # Split by time
         train_df = full_df[full_df['timestamp'] < cutoff].copy()
         test_df = full_df[full_df['timestamp'] >= cutoff].copy()
 
         self.stdout.write(f"  - Training samples: {len(train_df)}")
         self.stdout.write(f"  - Testing samples: {len(test_df)}")
 
-        # Check class balance
         train_balance = train_df['label'].value_counts(normalize=True)
-        self.stdout.write(f"  - Training class balance: {train_balance.to_dict()}")
+        self.stdout.write(f"  - Training class balance (before): {train_balance.to_dict()}")
 
-        # Save datasets
+        self.stdout.write("  - Balancing training dataset...")
+        min_class_count = train_df['label'].value_counts().min()
+        df_0 = train_df[train_df['label'] == 0].sample(n=min_class_count, random_state=42)
+        df_1 = train_df[train_df['label'] == 1].sample(n=min_class_count, random_state=42)
+        train_df = pd.concat([df_0, df_1]).sample(frac=1, random_state=42).reset_index(drop=True)
+        self.stdout.write(f"  - Balanced training samples: {len(train_df)}")
+        self.stdout.write(f"  - New class balance: {train_df['label'].value_counts().to_dict()}")
+
         train_df.to_csv(train_path, index=False)
         test_df.to_csv(test_path, index=False)
-
         self.stdout.write(self.style.SUCCESS("✅ Enhanced dataset generation complete."))
 
     def run_hyperparameter_tuning(self, n_trials, X, y, tscv):
@@ -405,7 +397,6 @@ class Command(BaseCommand):
                 'random_state': 42
             }
 
-            # Time series cross-validation
             cv_scores = []
             for train_idx, val_idx in tscv.split(X):
                 X_train_fold, X_val_fold = X.iloc[train_idx], X.iloc[val_idx]
@@ -440,30 +431,27 @@ class Command(BaseCommand):
             'objective': 'binary',
             'metric': 'binary_logloss',
             'random_state': 42,
-            'n_estimators': 1500  # More trees for final model
+            'n_estimators': 1500
         })
 
         model = lgb.LGBMClassifier(**params)
         model.fit(X, y)
 
-        # Print feature importance
         feature_importance = pd.DataFrame({
             'feature': X.columns,
             'importance': model.feature_importances_
         }).sort_values('importance', ascending=False)
 
-        self.stdout.write("📊 Top 10 most important features:")
+        self.stdout.write("\U0001F4CA Top 10 most important features:")
         for _, row in feature_importance.head(10).iterrows():
             self.stdout.write(f"  - {row['feature']}: {row['importance']:.2f}")
 
         return model
 
-    def run_predictions(self, model, scaler, selected_features, test_path, prediction_path):
+    def run_predictions(self, model, scaler, selected_features, test_file, prediction_path):
         self.stdout.write(self.style.SUCCESS("\n--- Step 4: Enhanced Predictions ---"))
 
-        test_df = pd.read_csv(test_path, parse_dates=['timestamp'])
-
-        # Prepare features
+        test_df = pd.read_csv(test_file)
         non_feature_cols = ['timestamp', 'coin', 'open', 'high', 'low', 'close', 'volume', 'label']
         available_features = [col for col in test_df.columns if col not in non_feature_cols]
 
@@ -471,19 +459,16 @@ class Command(BaseCommand):
         X_test_selected = X_test[selected_features]
         X_test_scaled = scaler.transform(X_test_selected)
 
-        # Make predictions
         probabilities = model.predict_proba(X_test_scaled)[:, 1]
         predictions = (probabilities > 0.4).astype(int)
 
-        # Calculate accuracy on test set
         test_accuracy = accuracy_score(test_df['label'], predictions)
         test_auc = roc_auc_score(test_df['label'], probabilities)
 
-        self.stdout.write(f"📈 Test Set Performance:")
+        self.stdout.write(f"\U0001F4C8 Test Set Performance:")
         self.stdout.write(f"  - Accuracy: {test_accuracy:.4f}")
         self.stdout.write(f"  - AUC: {test_auc:.4f}")
 
-        # Save predictions
         output_df = test_df[['timestamp', 'coin', 'open', 'high', 'low', 'close', 'label']].copy()
         output_df['prediction'] = predictions
         output_df['prediction_prob'] = probabilities
@@ -492,8 +477,7 @@ class Command(BaseCommand):
         output_df.to_csv(prediction_path, index=False)
         self.stdout.write(f"✅ Enhanced predictions saved to {prediction_path}")
 
-        # Per-coin performance
-        self.stdout.write("📊 Per-coin performance:")
+        self.stdout.write("\U0001F4CA Per-coin performance:")
         for coin in output_df['coin'].unique():
             coin_data = output_df[output_df['coin'] == coin]
             coin_acc = coin_data['correct'].mean()

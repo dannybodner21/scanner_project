@@ -144,7 +144,7 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
     df.reset_index(inplace=True)
     return df
 
-def get_direction_labels(df: pd.DataFrame, forward_periods: int = 24) -> pd.Series:
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 72) -> pd.Series:
     """
     Simple direction prediction: will price be lower in N periods?
     This is much more learnable than complex TP/SL logic
@@ -153,7 +153,7 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 24) -> pd.Seri
     future_close = df['close'].shift(-forward_periods)
 
     # 1 if price will be lower, 0 if higher
-    goal_price = current_close * 0.98
+    goal_price = current_close * 0.96
 
     labels = (future_close < goal_price).astype(int)
 
@@ -210,7 +210,7 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=24)
+        parser.add_argument('--forward-periods', type=int, default=72)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
@@ -223,7 +223,7 @@ class Command(BaseCommand):
 
         START_DATE = datetime(2022, 1, 1, tzinfo=timezone.utc)
         END_DATE = datetime(2025, 7, 6, tzinfo=timezone.utc)
-        CUTOFF_DATE = datetime(2025, 4, 1, tzinfo=timezone.utc)  # More recent cutoff
+        CUTOFF_DATE = datetime(2025, 5, 1, tzinfo=timezone.utc)  # More recent cutoff
 
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
@@ -465,7 +465,7 @@ class Command(BaseCommand):
 
         # Make predictions
         probabilities = model.predict_proba(X_test_scaled)[:, 1]
-        predictions = (probabilities > 0.4).astype(int)
+        predictions = (probabilities > 0.3).astype(int)
 
         # Calculate accuracy on test set
         test_accuracy = accuracy_score(test_df['label'], predictions)
