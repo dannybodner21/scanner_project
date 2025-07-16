@@ -27,6 +27,7 @@ from django.utils.timezone import now, make_aware
 
 import joblib
 from sklearn.preprocessing import StandardScaler
+from decimal import Decimal, InvalidOperation
 
 
 COINAPI_SYMBOL_MAP = {
@@ -81,6 +82,18 @@ SHORT_FEATURES_PATH = "short_two_selected_features.joblib"
 SHORT_CONFIDENCE_THRESHOLD = 0.4
 
 selected_features = joblib.load(FEATURES_PATH)
+
+
+
+
+
+def safe_decimal(value):
+    try:
+        # Replace curly quotes or weird characters
+        value_str = str(value).replace("“", "").replace("”", "").replace(",", "").strip()
+        return Decimal(value_str)
+    except (InvalidOperation, TypeError, ValueError):
+        return None
 
 
 def send_text(messages):
@@ -332,11 +345,11 @@ def run_live_pipeline():
             LivePriceSnapshot.objects.update_or_create(
                 coin=coin_symbol,
                 defaults={
-                    "open": latest["open"].values[0],
-                    "high": latest["high"].values[0],
-                    "low": latest["low"].values[0],
-                    "close": latest["close"].values[0],
-                    "volume": latest["volume"].values[0],
+                    "open": safe_decimal(latest["open"].values[0]),
+                    "high": safe_decimal(latest["high"].values[0]),
+                    "low": safe_decimal(latest["low"].values[0]),
+                    "close": safe_decimal(latest["close"].values[0]),
+                    "volume": safe_decimal(latest["volume"].values[0]),
                 }
             )
             
@@ -384,7 +397,7 @@ def run_live_pipeline():
                             coin=coin_obj,
                             trade_type='long',
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
-                            entry_price=latest['close'].values[0],
+                            entry_price=safe_decimal(latest['close'].values[0]),
                             model_confidence=long_prob,
                             take_profit_percent=4.0,
                             stop_loss_percent=3.0,
@@ -441,7 +454,7 @@ def run_live_pipeline():
                             coin=coin_obj,
                             trade_type='short',
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
-                            entry_price=latest['close'].values[0],
+                            entry_price=safe_decimal(latest['close'].values[0]),
                             model_confidence=short_prob,
                             take_profit_percent=4.0,
                             stop_loss_percent=3.0,
