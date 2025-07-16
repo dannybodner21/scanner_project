@@ -378,9 +378,11 @@ def run_live_pipeline():
                     oldestLongConfidence.delete()
 
                 if long_prob >= CONFIDENCE_THRESHOLD:
+
                     exists = ModelTrade.objects.filter(
                         coin=coin_obj, exit_timestamp__isnull=True, trade_type='long'
                     ).exists()
+
                     if not exists:
 
                         recent_confs = list(
@@ -390,8 +392,8 @@ def run_live_pipeline():
                             .values_list('confidence', flat=True)[:6]
                         )[::-1]
 
-                        while len(conf_scores) < 6:
-                            conf_scores.insert(0, None) 
+                        while len(recent_confs) < 6:
+                            recent_confs.insert(0, None) 
 
                         ModelTrade.objects.create(
                             coin=coin_obj,
