@@ -563,7 +563,7 @@ def get_open_trades(request):
     for trade in open_trades:
 
         coin_symbol = trade.coin.symbol
-        current_price = get_current_price(coin_symbol)
+        current_price = float(get_current_price(coin_symbol))
         entry_price = float(trade.entry_price or 0)
         current_percentage = 0
 
@@ -574,7 +574,7 @@ def get_open_trades(request):
 
         if entry_price and current_price:
 
-            current_percentage = ((float(current_price) - float(entry_price)) / float(entry_price)) * 100
+            current_percentage = ((current_price - entry_price) / entry_price) * 100
 
         data.append({
             "coin": coin_symbol,
