@@ -35,7 +35,7 @@ from pandas.errors import SettingWithCopyWarning
 # 3 hour trade limit
 
 
-# starting seven
+# starting seven 
 
 
 
@@ -169,7 +169,7 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Seri
     future_close = df['close'].shift(-forward_periods)
 
     # 1 if price will be higher + 2%, 0 if lower
-    goal_price = current_close * 1.025
+    goal_price = current_close * 1.03
 
     labels = (future_close > goal_price).astype(int)
 

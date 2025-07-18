@@ -76,6 +76,11 @@ SCALER_PATH = "two_feature_scaler.joblib"
 FEATURES_PATH = "two_selected_features.joblib"
 CONFIDENCE_THRESHOLD = 0.7
 
+TWO_MODEL_PATH = "seven_model.joblib"
+TWO_SCALER_PATH = "seven_feature_scaler.joblib"
+TWO_FEATURES_PATH = "seven_selected_features.joblib"
+TWO_CONFIDENCE_THRESHOLD = 0.8
+
 SHORT_MODEL_PATH = "short_two_model.joblib"
 SHORT_SCALER_PATH = "short_two_feature_scaler.joblib"
 SHORT_FEATURES_PATH = "short_two_selected_features.joblib"
@@ -310,6 +315,10 @@ def run_live_pipeline():
     long_scaler = joblib.load(SCALER_PATH)
     long_features = joblib.load(FEATURES_PATH)
 
+    two_long_model = joblib.load(TWO_MODEL_PATH)
+    two_long_scaler = joblib.load(TWO_SCALER_PATH)
+    two_long_features = joblib.load(TWO_FEATURES_PATH)
+
     short_model = joblib.load(SHORT_MODEL_PATH)
     short_scaler = joblib.load(SHORT_SCALER_PATH)
     short_features = joblib.load(SHORT_FEATURES_PATH)
@@ -401,8 +410,8 @@ def run_live_pipeline():
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
                             entry_price=safe_decimal(latest['close'].values[0]),
                             model_confidence=long_prob,
-                            take_profit_percent=4.0,
-                            stop_loss_percent=3.0,
+                            take_profit_percent=3.0,
+                            stop_loss_percent=2.0,
                             confidence_trade=CONFIDENCE_THRESHOLD,
                             recent_confidences=recent_confs,
                         )
@@ -469,6 +478,64 @@ def run_live_pipeline():
                         print(f"ℹ️ Short trade already open for {coin}")
             else:
                 print(f"❌ {coin} missing SHORT features: {short_missing}")
+
+
+            # -------- LONG MODEL 2 --------
+            two_missing = [f for f in two_long_features if f not in df.columns or df[f].isnull().any()]
+            if not two_missing:
+                two_feature_df = latest[two_long_features].copy()
+                two_scaled = two_long_scaler.transform(two_feature_df)
+                two_prob = round(two_long_model.predict_proba(two_scaled)[0][1], 2)
+                print(f"📈 {coin} LONG (Model 2) confidence: {two_prob:.4f}")
+
+                ConfidenceHistory.objects.create(
+                    coin=coin_obj,
+                    model_name=TWO_MODEL_PATH,
+                    confidence=two_prob,
+                )
+
+                oldestTwoConfidence = ConfidenceHistory.objects.filter(
+                    coin=coin_obj,
+                    model_name=TWO_MODEL_PATH
+                ).order_by("timestamp").first()
+
+                if ConfidenceHistory.objects.filter(coin=coin_obj, model_name=TWO_MODEL_PATH).count() > 12 and oldestTwoConfidence:
+                    oldestTwoConfidence.delete()
+
+                if two_prob >= TWO_CONFIDENCE_THRESHOLD:
+
+                    exists = ModelTrade.objects.filter(
+                        coin=coin_obj, exit_timestamp__isnull=True, trade_type='long'
+                    ).filter(model_confidence__gte=TWO_CONFIDENCE_THRESHOLD).exists()
+
+                    if not exists:
+                        recent_confs_two = list(
+                            ConfidenceHistory.objects
+                            .filter(coin=coin_obj, model_name=TWO_MODEL_PATH)
+                            .order_by('-timestamp')
+                            .values_list('confidence', flat=True)[:6]
+                        )[::-1]
+
+                        while len(recent_confs_two) < 6:
+                            recent_confs_two.insert(0, None)
+
+                        ModelTrade.objects.create(
+                            coin=coin_obj,
+                            trade_type='long',
+                            entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
+                            entry_price=safe_decimal(latest['close'].values[0]),
+                            model_confidence=two_prob,
+                            take_profit_percent=2.0,
+                            stop_loss_percent=2.0,
+                            confidence_trade=TWO_CONFIDENCE_THRESHOLD,
+                            recent_confidences=recent_confs_two,
+                        )
+                        print(f"✅ LONG (Model 2) trade opened for {coin} @ {latest['close'].values[0]:.4f}")
+                        send_text([f"LONG (Model 2) trade opened for {coin} @ {latest['close'].values[0]:.4f}"])
+                    else:
+                        print(f"ℹ️ Long (Model 2) trade already open for {coin}")
+            else:
+                print(f"❌ {coin} missing LONG Model 2 features: {two_missing}")
 
         except Exception as e:
             print(f"❌ Error with {coin}: {e}")

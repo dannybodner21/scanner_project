@@ -36,7 +36,7 @@ from pandas.errors import SettingWithCopyWarning
 # 3 months of trading
 
 
-# starting eight
+# starting eight 
 
 
 
@@ -161,7 +161,7 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
     df.reset_index(inplace=True)
     return df
 
-def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Series:
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 24) -> pd.Series:
     """
     Simple direction prediction: will price be higher in N periods?
     This is much more learnable than complex TP/SL logic
@@ -170,7 +170,7 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Seri
     future_close = df['close'].shift(-forward_periods)
 
     # 1 if price will be higher + 2%, 0 if lower
-    goal_price = current_close * 1.03
+    goal_price = current_close * 1.02
 
     labels = (future_close > goal_price).astype(int)
 
@@ -228,7 +228,7 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=48)
+        parser.add_argument('--forward-periods', type=int, default=24)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
@@ -241,12 +241,12 @@ class Command(BaseCommand):
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
 
-        TRAIN_FILE = 'eight_training.csv'
-        TEST_FILE = 'eight_testing.csv'
-        MODEL_FILE = 'eight_model.joblib'
-        SCALER_FILE = 'eight_feature_scaler.joblib'
-        FEATURES_FILE = 'eight_selected_features.joblib'
-        PREDICTION_FILE = 'eight_enhanced_predictions.csv'
+        TRAIN_FILE = 'nine_training.csv'
+        TEST_FILE = 'nine_testing.csv'
+        MODEL_FILE = 'nine_model.joblib'
+        SCALER_FILE = 'nine_feature_scaler.joblib'
+        FEATURES_FILE = 'nine_selected_features.joblib'
+        PREDICTION_FILE = 'nine_enhanced_predictions.csv'
 
         if not options['skip_generation']:
             self.run_data_generation(COINS, START_DATE, END_DATE, CUTOFF_DATE,

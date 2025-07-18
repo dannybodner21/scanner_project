@@ -77,4 +77,18 @@ grok_enhanced_model.joblib
 one_model.joblib
 selected_features.joblib
 
-
+eight_feature_scaler.joblib
+eight_model.joblib
+eight_selected_features.joblib
+evaluate_rl_model.py
+nine_feature_scaler.joblib
+nine_model.joblib
+nine_selected_features.joblib
+ppo_logs/
+ppo_trading_agent.zip
+scanner/management/commands/compare_ml_rl.py
+six_feature_scaler.joblib
+six_model.joblib
+six_selected_features.joblib
+trading_env.py
+train_rl_agent.py
