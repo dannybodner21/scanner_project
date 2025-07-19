@@ -71,20 +71,20 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 
 
-MODEL_PATH = "two_model.joblib"
-SCALER_PATH = "two_feature_scaler.joblib"
-FEATURES_PATH = "two_selected_features.joblib"
-CONFIDENCE_THRESHOLD = 0.7
+MODEL_PATH = "ten_model.joblib"
+SCALER_PATH = "ten_feature_scaler.joblib"
+FEATURES_PATH = "ten_selected_features.joblib"
+CONFIDENCE_THRESHOLD = 0.87
 
-TWO_MODEL_PATH = "seven_model.joblib"
-TWO_SCALER_PATH = "seven_feature_scaler.joblib"
-TWO_FEATURES_PATH = "seven_selected_features.joblib"
-TWO_CONFIDENCE_THRESHOLD = 0.8
+#TWO_MODEL_PATH = "seven_model.joblib"
+#TWO_SCALER_PATH = "seven_feature_scaler.joblib"
+#TWO_FEATURES_PATH = "seven_selected_features.joblib"
+#TWO_CONFIDENCE_THRESHOLD = 0.8
 
-SHORT_MODEL_PATH = "short_two_model.joblib"
-SHORT_SCALER_PATH = "short_two_feature_scaler.joblib"
-SHORT_FEATURES_PATH = "short_two_selected_features.joblib"
-SHORT_CONFIDENCE_THRESHOLD = 0.4
+SHORT_MODEL_PATH = "short_four_model.joblib"
+SHORT_SCALER_PATH = "short_four_feature_scaler.joblib"
+SHORT_FEATURES_PATH = "short_four_selected_features.joblib"
+SHORT_CONFIDENCE_THRESHOLD = 0.62
 
 selected_features = joblib.load(FEATURES_PATH)
 
@@ -315,9 +315,9 @@ def run_live_pipeline():
     long_scaler = joblib.load(SCALER_PATH)
     long_features = joblib.load(FEATURES_PATH)
 
-    two_long_model = joblib.load(TWO_MODEL_PATH)
-    two_long_scaler = joblib.load(TWO_SCALER_PATH)
-    two_long_features = joblib.load(TWO_FEATURES_PATH)
+    #two_long_model = joblib.load(TWO_MODEL_PATH)
+    #two_long_scaler = joblib.load(TWO_SCALER_PATH)
+    #two_long_features = joblib.load(TWO_FEATURES_PATH)
 
     short_model = joblib.load(SHORT_MODEL_PATH)
     short_scaler = joblib.load(SHORT_SCALER_PATH)
@@ -410,7 +410,7 @@ def run_live_pipeline():
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
                             entry_price=safe_decimal(latest['close'].values[0]),
                             model_confidence=long_prob,
-                            take_profit_percent=3.0,
+                            take_profit_percent=1.5,
                             stop_loss_percent=2.0,
                             confidence_trade=CONFIDENCE_THRESHOLD,
                             recent_confidences=recent_confs,
@@ -467,8 +467,8 @@ def run_live_pipeline():
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
                             entry_price=safe_decimal(latest['close'].values[0]),
                             model_confidence=short_prob,
-                            take_profit_percent=4.0,
-                            stop_loss_percent=3.0,
+                            take_profit_percent=1.0,
+                            stop_loss_percent=2.0,
                             confidence_trade=SHORT_CONFIDENCE_THRESHOLD,
                             recent_confidences=recent_confs_short,
                         )
@@ -481,6 +481,7 @@ def run_live_pipeline():
 
 
             # -------- LONG MODEL 2 --------
+            '''
             two_missing = [f for f in two_long_features if f not in df.columns or df[f].isnull().any()]
             if not two_missing:
                 two_feature_df = latest[two_long_features].copy()
@@ -536,6 +537,7 @@ def run_live_pipeline():
                         print(f"ℹ️ Long (Model 2) trade already open for {coin}")
             else:
                 print(f"❌ {coin} missing LONG Model 2 features: {two_missing}")
+            '''
 
         except Exception as e:
             print(f"❌ Error with {coin}: {e}")
@@ -560,7 +562,7 @@ def run_live_pipeline():
             result = True
 
             if trade.trade_type == "long":
-                if price_now >= price_entry * 1.03:
+                if price_now >= price_entry * 1.015:
                     status = "💰 TAKE PROFIT"
                 elif price_now <= price_entry * 0.98:
                     status = "🛑 STOP LOSS"
@@ -568,9 +570,9 @@ def run_live_pipeline():
                 else:
                     continue
             else:
-                if price_now <= price_entry * 0.96:
+                if price_now <= price_entry * 0.99:
                     status = "💰 TAKE PROFIT"
-                elif price_now >= price_entry * 1.03:
+                elif price_now >= price_entry * 1.02:
                     status = "🛑 STOP LOSS"
                     result = False
                 else:

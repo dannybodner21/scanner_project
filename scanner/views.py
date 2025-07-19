@@ -567,11 +567,6 @@ def get_open_trades(request):
         entry_price = float(trade.entry_price or 0)
         current_percentage = 0
 
-        print("current price:")
-        print(current_price)
-        print("entry price:")
-        print(entry_price)
-
         if entry_price and current_price:
 
             current_percentage = ((current_price - entry_price) / entry_price) * 100
@@ -631,8 +626,8 @@ def get_model_results(request):
     total_long_wins = ModelTrade.objects.filter(trade_type="long", result=True).count()
     total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
 
-    model_name = "two_model.joblib"
-    short_model_name = "short_two_model.joblib"
+    model_name = "ten_model.joblib"
+    short_model_name = "short_four_model.joblib"
 
     btc_history = ConfidenceHistory.objects.filter(
         model_name=model_name,

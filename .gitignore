@@ -70,9 +70,7 @@ grok_dataset.py
 
 enhanced_model.joblib
 feature_scaler.joblib
-fou_feature_scaler.joblib
-four_model.joblib
-four_selected_features.joblib
+
 grok_enhanced_model.joblib
 one_model.joblib
 selected_features.joblib
@@ -92,3 +90,19 @@ six_model.joblib
 six_selected_features.joblib
 trading_env.py
 train_rl_agent.py
+
+.vscode/
+chart_dataset/
+chart_dataset_generator.py
+chart_grad_cam.py
+chart_model.pth
+eleven_feature_scaler.joblib
+eleven_model.joblib
+eleven_selected_features.joblib
+prepare_rl_data.py
+scanner/management/commands/long_simulator_with_charts.py
+
+train_chart_model.py
+twelve_feature_scaler.joblib
+twelve_model.joblib
+twelve_selected_features.joblib

@@ -1,3 +1,4 @@
+# main_app/management/commands/run_pipeline.py
 
 import pandas as pd
 import numpy as np
@@ -24,19 +25,26 @@ from ta.volatility import AverageTrueRange, BollingerBands
 from pandas.errors import SettingWithCopyWarning
 
 
+# enhanced_model
+# Confidece: 0.58
+# TP: 6%
+# SL: 3%
+# Trades: 13, Wins: 9, Losses: 4, Win %: 69.23%
+# Final Balance: $14,584.61 (Leverage: 15.0x)
+# Max trade duration: 3 hours - I think
 
 
-
-# Confidece: 0.31
-# TP: 5%
-# SL: 2%
-# Trades: 55, Wins: 35, Losses: 20, Win %: 63.64%
-# Final Balance: $1,177,670.66 (Leverage: 19.0x)
-# Max trade duration: 5 hours
+# four_model
+# Confidence: 0.52
+# TP: 15%
+# SL: 3%
+# Trades: 13, Wins: 8, Losses: 5, Win %: 61.54%
+# Final Balance: $24,891.46 (Leverage: 15.0x)
+# Max trade duration: 2 hours
 # 3 months of trading
 
 
-# starting eight 
+# starting twelve 
 
 
 
@@ -161,7 +169,9 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
     df.reset_index(inplace=True)
     return df
 
-def get_direction_labels(df: pd.DataFrame, forward_periods: int = 24) -> pd.Series:
+
+
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 12) -> pd.Series:
     """
     Simple direction prediction: will price be higher in N periods?
     This is much more learnable than complex TP/SL logic
@@ -170,7 +180,7 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 24) -> pd.Seri
     future_close = df['close'].shift(-forward_periods)
 
     # 1 if price will be higher + 2%, 0 if lower
-    goal_price = current_close * 1.02
+    goal_price = current_close * 1.015
 
     labels = (future_close > goal_price).astype(int)
 
@@ -178,6 +188,9 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 24) -> pd.Seri
     labels.iloc[-forward_periods:] = np.nan
 
     return labels
+
+
+
 
 def add_cross_coin_features(coin_dfs: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     """Add features that compare across coins (market regime indicators)"""
@@ -208,6 +221,7 @@ def add_cross_coin_features(coin_dfs: Dict[str, pd.DataFrame]) -> Dict[str, pd.D
 
     return coin_dfs
 
+
 def select_best_features(X: pd.DataFrame, y: pd.Series, k: int = 50) -> List[str]:
     """Select the most predictive features"""
     selector = SelectKBest(score_func=f_classif, k=k)
@@ -228,7 +242,7 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=24)
+        parser.add_argument('--forward-periods', type=int, default=12)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
@@ -241,12 +255,12 @@ class Command(BaseCommand):
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
 
-        TRAIN_FILE = 'nine_training.csv'
-        TEST_FILE = 'nine_testing.csv'
-        MODEL_FILE = 'nine_model.joblib'
-        SCALER_FILE = 'nine_feature_scaler.joblib'
-        FEATURES_FILE = 'nine_selected_features.joblib'
-        PREDICTION_FILE = 'nine_enhanced_predictions.csv'
+        TRAIN_FILE = 'twelve_training.csv'
+        TEST_FILE = 'twelve_testing.csv'
+        MODEL_FILE = 'twelve_model.joblib'
+        SCALER_FILE = 'twelve_feature_scaler.joblib'
+        FEATURES_FILE = 'twelve_selected_features.joblib'
+        PREDICTION_FILE = 'twelve_enhanced_predictions.csv'
 
         if not options['skip_generation']:
             self.run_data_generation(COINS, START_DATE, END_DATE, CUTOFF_DATE,
@@ -336,6 +350,7 @@ class Command(BaseCommand):
             df_featured = add_enhanced_features(df)
             df_featured['label'] = get_direction_labels(df_featured, forward_periods)
 
+
             coin_dfs[coin] = df_featured
             self.stdout.write(f"    ✅ {coin}: {len(df_featured)} samples processed")
 
@@ -357,6 +372,11 @@ class Command(BaseCommand):
 
         train_df = full_df[full_df['timestamp'] < cutoff].copy()
         test_df = full_df[full_df['timestamp'] >= cutoff].copy()
+
+
+        burst_rate = train_df['label'].mean()
+        self.stdout.write(f"  - Burst-positive rate: {burst_rate:.3f} ({burst_rate*100:.1f}%)")
+
 
         self.stdout.write(f"  - Training samples: {len(train_df)}")
         self.stdout.write(f"  - Testing samples: {len(test_df)}")

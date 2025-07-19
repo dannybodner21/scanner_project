@@ -38,15 +38,24 @@ class Command(BaseCommand):
     help = 'Run trading simulation on enhanced_predictions.csv including long and short trades'
 
     def add_arguments(self, parser):
-        parser.add_argument('--predictions-file', type=str, default='short_three_enhanced_predictions.csv')
+
+
+
+        # short_four_enhanced_predictions.csv
+        # 0.62 -> Trades: 327, Wins: 239, Losses: 88, Win %: 73.09%
+        # TP: 1% SL: 2%
+        # Final Balance: $31,091.05 (Leverage: 15.0x)
+
+
+        parser.add_argument('--predictions-file', type=str, default='short_four_enhanced_predictions.csv')
         parser.add_argument('--initial-balance', type=float, default=5000)
 
-        parser.add_argument('--confidence-threshold', type=float, default=0.4)
+        parser.add_argument('--confidence-threshold', type=float, default=0.62)
 
         parser.add_argument('--position-size', type=float, default=0.25)
 
         parser.add_argument('--stop-loss', type=float, default=0.02)
-        parser.add_argument('--take-profit', type=float, default=0.03)
+        parser.add_argument('--take-profit', type=float, default=0.01)
 
         parser.add_argument('--max-hold-hours', type=int, default=48)
 
