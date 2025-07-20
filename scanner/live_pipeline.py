@@ -94,7 +94,6 @@ def load_vision_model(model_path='chart_model.pth'):
     model.load_state_dict(torch.load(model_path, map_location=device))
     return model.to(device).eval()
 
-
 def get_vision_model():
     global _vision_model
     if _vision_model is None:
@@ -102,7 +101,7 @@ def get_vision_model():
     return _vision_model
 
 
-def classify_chart(image_path):
+def classify_chart(image_buf):
     import torch
     from torchvision import transforms
     from PIL import Image
@@ -113,28 +112,26 @@ def classify_chart(image_path):
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
         ])
-        img = Image.open(image_path).convert("RGB")
+        img = Image.open(image_buf).convert("RGB")
         img_tensor = image_transform(img).unsqueeze(0).to(device)
         with torch.no_grad():
             logits = model(img_tensor)
             pred_idx = torch.argmax(logits, dim=1).item()
             return LABELS[pred_idx]
     except Exception as e:
-        print(f"Failed to classify image {image_path}: {e}")
+        print(f"Failed to classify image: {e}")
         return 'neutral'
 
 
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import io
-
 def generate_chart_image(df, coin, timestamp):
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    import io
     import mplfinance as mpf
 
     try:
         df_plot = df.tail(60).copy()
         df_plot.set_index('timestamp', inplace=True)
-
         df_plot['MA20'] = df_plot['close'].rolling(20).mean()
         df_plot['MA50'] = df_plot['close'].rolling(50).mean()
 
@@ -156,16 +153,19 @@ def generate_chart_image(df, coin, timestamp):
             figsize=(6, 4)
         )
 
-        # Save to in-memory buffer
         buf = io.BytesIO()
         fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         buf.seek(0)
-
         plt.close(fig)
-        return buf
+
+        # Run classification on the image buffer
+        chart_label = classify_chart(buf)
+        print(f"🧠 Chart classification for {coin}: {chart_label}")
+        buf.seek(0)  # Rewind buffer for saving
+        return buf, chart_label
     except Exception as e:
         print(f"Chart generation failed for {coin} at {timestamp}: {e}")
-        return None
+        return None, 'neutral'
 
 
 
