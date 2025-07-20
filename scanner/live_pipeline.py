@@ -124,44 +124,49 @@ def classify_chart(image_path):
         return 'neutral'
 
 
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import io
+
 def generate_chart_image(df, coin, timestamp):
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
     import mplfinance as mpf
-    from django.core.files.base import ContentFile
-    from io import BytesIO
 
-    df_plot = df.tail(60)
-    df_plot['MA20'] = df_plot['close'].rolling(20).mean()
-    df_plot['MA50'] = df_plot['close'].rolling(50).mean()
+    try:
+        df_plot = df.tail(60).copy()
+        df_plot.set_index('timestamp', inplace=True)
 
-    addplots = [
-        mpf.make_addplot(df_plot['MA20'], color='orange', width=1.2),
-        mpf.make_addplot(df_plot['MA50'], color='blue', width=1.2)
-    ]
+        df_plot['MA20'] = df_plot['close'].rolling(20).mean()
+        df_plot['MA50'] = df_plot['close'].rolling(50).mean()
 
-    fig, _ = mpf.plot(
-        df_plot,
-        type='candle',
-        volume=False,
-        style='charles',
-        addplot=addplots,
-        returnfig=True
-    )
+        mpf_style = mpf.make_mpf_style(base_mpf_style='nightclouds', rc={'font.size': 6})
+        addplots = [
+            mpf.make_addplot(df_plot['MA20'], color='orange'),
+            mpf.make_addplot(df_plot['MA50'], color='purple')
+        ]
 
-    buffer = BytesIO()
-    fig.savefig(buffer, format='png')
-    buffer.seek(0)
-    filename = f"{coin}.png"
-    image_file = ContentFile(buffer.read(), name=filename)
+        fig, axlist = mpf.plot(
+            df_plot,
+            type='candle',
+            style=mpf_style,
+            title=f"{coin} - {timestamp.strftime('%Y-%m-%d %H:%M')}",
+            ylabel='Price (USDT)',
+            volume=True,
+            addplot=addplots,
+            returnfig=True,
+            figsize=(6, 4)
+        )
 
-    LiveChart.objects.update_or_create(
-        coin=coin,
-        defaults={'timestamp': timestamp, 'image': image_file}
-    )
+        # Save to in-memory buffer
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
 
-    plt.close(fig)
+        plt.close(fig)
+        return buf
+    except Exception as e:
+        print(f"Chart generation failed for {coin} at {timestamp}: {e}")
+        return None
+
 
 
 def safe_decimal(value):
@@ -441,6 +446,9 @@ def run_live_pipeline():
 
                 long_feature_df = latest[long_features].copy()
                 long_scaled = long_scaler.transform(long_feature_df)
+
+                long_scaled_df = pd.DataFrame(long_scaled, columns=long_features)
+
                 long_prob = round(long_model.predict_proba(long_scaled)[0][1], 2)
                 print(f"📈 {coin} LONG confidence: {long_prob:.4f}")
 
