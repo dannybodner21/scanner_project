@@ -14,29 +14,13 @@ import django
 import joblib
 
 from datetime import datetime, timedelta
-from scanner.models import Coin, ModelTrade, RealTrade, ConfidenceHistory, LivePriceSnapshot
+from scanner.models import Coin, ModelTrade, RealTrade, ConfidenceHistory, LivePriceSnapshot, LiveChart
 from scipy.stats import linregress
 from joblib import load
 
-from ta.trend import EMAIndicator, MACD, ADXIndicator
-from ta.momentum import RSIIndicator
-from ta.volatility import BollingerBands, AverageTrueRange
-from ta.volume import OnBalanceVolumeIndicator
-
 from django.utils.timezone import now, make_aware
-
-import joblib
 from sklearn.preprocessing import StandardScaler
 from decimal import Decimal, InvalidOperation
-
-from torchvision import transforms, models
-from PIL import Image
-import torch
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import mplfinance as mpf
-
 
 
 COINAPI_SYMBOL_MAP = {
@@ -98,79 +82,86 @@ selected_features = joblib.load(FEATURES_PATH)
 
 # Chart model setup
 LABELS = ['bearish', 'bullish', 'neutral']
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+_vision_model = None
 
-def load_vision_model(path='chart_model.pth'):
+def load_vision_model(model_path='chart_model.pth'):
+    import torch
+    from torchvision import models
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = models.resnet18(pretrained=False)
-    model.fc = torch.nn.Linear(model.fc.in_features, len(LABELS))
-    model.load_state_dict(torch.load(path, map_location=device))
+    model.fc = torch.nn.Linear(model.fc.in_features, 3)
+    model.load_state_dict(torch.load(model_path, map_location=device))
     return model.to(device).eval()
 
-vision_model = load_vision_model()
-image_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-])
+
+def get_vision_model():
+    global _vision_model
+    if _vision_model is None:
+        _vision_model = load_vision_model()
+    return _vision_model
+
 
 def classify_chart(image_path):
+    import torch
+    from torchvision import transforms
+    from PIL import Image
     try:
+        model = get_vision_model()
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        image_transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+        ])
         img = Image.open(image_path).convert("RGB")
         img_tensor = image_transform(img).unsqueeze(0).to(device)
         with torch.no_grad():
-            logits = vision_model(img_tensor)
+            logits = model(img_tensor)
             pred_idx = torch.argmax(logits, dim=1).item()
             return LABELS[pred_idx]
     except Exception as e:
         print(f"Failed to classify image {image_path}: {e}")
         return 'neutral'
 
+
 def generate_chart_image(df, coin, timestamp):
-    save_path = "/tmp/charts"
-    os.makedirs(save_path, exist_ok=True)
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import mplfinance as mpf
+    from django.core.files.base import ContentFile
+    from io import BytesIO
 
-    # Ensure timestamp is datetime, not np.datetime64
-    if isinstance(timestamp, np.datetime64):
-        timestamp = pd.to_datetime(timestamp)
-
-    # Format filename
-    ts_str = timestamp.strftime('%Y%m%d%H%M')
-    filename = f"{coin}_{ts_str}.png"
-    filepath = os.path.join(save_path, filename)
-
-    # Add moving averages
-    df = df.copy()
-    df['MA20'] = df['close'].rolling(20).mean()
-    df['MA50'] = df['close'].rolling(50).mean()
-
-    df_plot = df.tail(60).dropna(subset=['MA50'])
+    df_plot = df.tail(60)
+    df_plot['MA20'] = df_plot['close'].rolling(20).mean()
+    df_plot['MA50'] = df_plot['close'].rolling(50).mean()
 
     addplots = [
         mpf.make_addplot(df_plot['MA20'], color='orange', width=1.2),
         mpf.make_addplot(df_plot['MA50'], color='blue', width=1.2)
     ]
 
-    # Save and show chart
-    fig, axlist = mpf.plot(
+    fig, _ = mpf.plot(
         df_plot,
         type='candle',
         volume=False,
         style='charles',
         addplot=addplots,
-        savefig=filepath,
         returnfig=True
     )
 
-    print(f"📸 Chart image saved: {filepath}")
-    show_chart = False
-    if show_chart:
-        plt.show()
-    plt.close(fig)  # Close to avoid memory buildup
+    buffer = BytesIO()
+    fig.savefig(buffer, format='png')
+    buffer.seek(0)
+    filename = f"{coin}.png"
+    image_file = ContentFile(buffer.read(), name=filename)
 
-    return filepath
+    LiveChart.objects.update_or_create(
+        coin=coin,
+        defaults={'timestamp': timestamp, 'image': image_file}
+    )
 
-
-
-
+    plt.close(fig)
 
 
 def safe_decimal(value):

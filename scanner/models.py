@@ -277,6 +277,15 @@ class LivePriceSnapshot(models.Model):
         return f"{self.coin} | {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
 
 
+class LiveChart(models.Model):
+    coin = models.CharField(max_length=20, unique=True)  # BTCUSDT, etc.
+    timestamp = models.DateTimeField()
+    image = models.ImageField(upload_to='live_charts/')  # requires MEDIA setup
+
+    def __str__(self):
+        return f"{self.coin} @ {self.timestamp}"
+
+
 class ModelTrade(models.Model):
     TRADE_TYPE_CHOICES = [
         ('long', 'Long'),
