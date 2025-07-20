@@ -32,6 +32,10 @@ from decimal import Decimal, InvalidOperation
 from torchvision import transforms, models
 from PIL import Image
 import torch
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import mplfinance as mpf
 
 
 
@@ -120,9 +124,6 @@ def classify_chart(image_path):
         print(f"Failed to classify image {image_path}: {e}")
         return 'neutral'
 
-import mplfinance as mpf
-import matplotlib.pyplot as plt
-
 def generate_chart_image(df, coin, timestamp):
     save_path = "/tmp/charts"
     os.makedirs(save_path, exist_ok=True)
@@ -160,7 +161,9 @@ def generate_chart_image(df, coin, timestamp):
     )
 
     print(f"📸 Chart image saved: {filepath}")
-    plt.show()  # Display chart
+    show_chart = False
+    if show_chart:
+        plt.show()
     plt.close(fig)  # Close to avoid memory buildup
 
     return filepath
