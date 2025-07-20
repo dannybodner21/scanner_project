@@ -466,7 +466,7 @@ def run_live_pipeline():
 
                     if not exists:
 
-                        image_path = generate_chart_image(df, coin, latest['timestamp'].values[0], '/tmp/charts')
+                        image_path = generate_chart_image(df, coin, latest['timestamp'].values[0])
                         if image_path:
                             chart_prediction = classify_chart(image_path)
                             print(f"🧠 Chart prediction: {chart_prediction} for {coin}")
