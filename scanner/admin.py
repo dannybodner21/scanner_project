@@ -1,6 +1,7 @@
 from django.contrib import admin
 from scanner.models import Coin, RealTrade, LiveChart, LivePriceSnapshot, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from import_export.admin import ExportMixin
+from django.utils.html import format_html
 
 admin.site.register(Coin)
 admin.site.register(HistoricalData)
@@ -13,7 +14,7 @@ admin.site.register(RickisMetrics)
 admin.site.register(ModelTrade)
 admin.site.register(RealTrade)
 admin.site.register(LivePriceSnapshot)
-admin.site.register(LiveChart)
+
 
 @admin.register(BacktestResult)
 class BacktestResultAdmin(admin.ModelAdmin):
@@ -40,3 +41,13 @@ class FiredSignalAdmin(admin.ModelAdmin):
 class SuccessfulMoveAdmin(admin.ModelAdmin):
     list_display = ("coin", "timestamp", "move_type", "entry_price")
     raw_id_fields = ("coin", "entry_metrics")
+
+@admin.register(LiveChart)
+class LiveChartAdmin(admin.ModelAdmin):
+    list_display = ('coin', 'timestamp', 'chart_preview')
+
+    def chart_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="200"/>', obj.image.url)
+        return "-"
+    chart_preview.short_description = "Chart Image"
