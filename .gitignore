@@ -94,8 +94,7 @@ train_rl_agent.py
 .vscode/
 chart_dataset/
 chart_dataset_generator.py
-chart_grad_cam.py
-chart_model.pth
+
 eleven_feature_scaler.joblib
 eleven_model.joblib
 eleven_selected_features.joblib
@@ -106,3 +105,10 @@ train_chart_model.py
 twelve_feature_scaler.joblib
 twelve_model.joblib
 twelve_selected_features.joblib
+
+ppo_checkpoints/
+ppo_trading_agent_final.zip
+rl_feature_scaler.joblib
+rl_selected_features.joblib
+scanner/management/commands/generate_rl_training_file.py
+scanner/management/commands/long_simulator_with_rl.py

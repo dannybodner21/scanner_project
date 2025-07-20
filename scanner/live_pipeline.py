@@ -29,6 +29,11 @@ import joblib
 from sklearn.preprocessing import StandardScaler
 from decimal import Decimal, InvalidOperation
 
+from torchvision import transforms, models
+from PIL import Image
+import torch
+
+
 
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
@@ -68,13 +73,10 @@ COINS = list(COIN_SYMBOL_MAP_DB.keys())
 COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
-
-
-
 MODEL_PATH = "ten_model.joblib"
 SCALER_PATH = "ten_feature_scaler.joblib"
 FEATURES_PATH = "ten_selected_features.joblib"
-CONFIDENCE_THRESHOLD = 0.87
+CONFIDENCE_THRESHOLD = 0.8
 
 #TWO_MODEL_PATH = "seven_model.joblib"
 #TWO_SCALER_PATH = "seven_feature_scaler.joblib"
@@ -87,6 +89,82 @@ SHORT_FEATURES_PATH = "short_four_selected_features.joblib"
 SHORT_CONFIDENCE_THRESHOLD = 0.62
 
 selected_features = joblib.load(FEATURES_PATH)
+
+
+
+# Chart model setup
+LABELS = ['bearish', 'bullish', 'neutral']
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+def load_vision_model(path='chart_model.pth'):
+    model = models.resnet18(pretrained=False)
+    model.fc = torch.nn.Linear(model.fc.in_features, len(LABELS))
+    model.load_state_dict(torch.load(path, map_location=device))
+    return model.to(device).eval()
+
+vision_model = load_vision_model()
+image_transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+])
+
+def classify_chart(image_path):
+    try:
+        img = Image.open(image_path).convert("RGB")
+        img_tensor = image_transform(img).unsqueeze(0).to(device)
+        with torch.no_grad():
+            logits = vision_model(img_tensor)
+            pred_idx = torch.argmax(logits, dim=1).item()
+            return LABELS[pred_idx]
+    except Exception as e:
+        print(f"Failed to classify image {image_path}: {e}")
+        return 'neutral'
+
+import mplfinance as mpf
+import matplotlib.pyplot as plt
+
+def generate_chart_image(df, coin, timestamp):
+    save_path = "/tmp/charts"
+    os.makedirs(save_path, exist_ok=True)
+
+    # Ensure timestamp is datetime, not np.datetime64
+    if isinstance(timestamp, np.datetime64):
+        timestamp = pd.to_datetime(timestamp)
+
+    # Format filename
+    ts_str = timestamp.strftime('%Y%m%d%H%M')
+    filename = f"{coin}_{ts_str}.png"
+    filepath = os.path.join(save_path, filename)
+
+    # Add moving averages
+    df = df.copy()
+    df['MA20'] = df['close'].rolling(20).mean()
+    df['MA50'] = df['close'].rolling(50).mean()
+
+    df_plot = df.tail(60).dropna(subset=['MA50'])
+
+    addplots = [
+        mpf.make_addplot(df_plot['MA20'], color='orange', width=1.2),
+        mpf.make_addplot(df_plot['MA50'], color='blue', width=1.2)
+    ]
+
+    # Save and show chart
+    fig, axlist = mpf.plot(
+        df_plot,
+        type='candle',
+        volume=False,
+        style='charles',
+        addplot=addplots,
+        savefig=filepath,
+        returnfig=True
+    )
+
+    print(f"📸 Chart image saved: {filepath}")
+    plt.show()  # Display chart
+    plt.close(fig)  # Close to avoid memory buildup
+
+    return filepath
+
 
 
 
@@ -393,6 +471,14 @@ def run_live_pipeline():
                     ).exists()
 
                     if not exists:
+
+                        image_path = generate_chart_image(df, coin, latest['timestamp'].values[0], '/tmp/charts')
+                        if image_path:
+                            chart_prediction = classify_chart(image_path)
+                            print(f"🧠 Chart prediction: {chart_prediction} for {coin}")
+                            if chart_prediction != 'bullish':
+                                print(f"🚫 Chart model rejected trade for {coin} (label: {chart_prediction})")
+                                continue
 
                         recent_confs = list(
                             ConfidenceHistory.objects
