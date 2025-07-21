@@ -81,7 +81,6 @@ pillow==11.2.1
 proto-plus==1.26.1
 psycopg2==2.9.10
 psycopg2-binary==2.9.10
-
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pycparser==2.22
@@ -122,5 +121,6 @@ xgboost==3.0.2
 zipp==3.23.0
 zope.interface==7.2
 playwright
-torch
-torchvision
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
