@@ -22,6 +22,9 @@ from django.utils.timezone import now, make_aware
 from sklearn.preprocessing import StandardScaler
 from decimal import Decimal, InvalidOperation
 
+import openai
+from io import BytesIO
+
 
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
@@ -77,6 +80,44 @@ SHORT_FEATURES_PATH = "short_four_selected_features.joblib"
 SHORT_CONFIDENCE_THRESHOLD = 0.62
 
 selected_features = joblib.load(FEATURES_PATH)
+
+
+# ask Chat GPT
+def ask_gpt_brain(chart_buf, coin, confidence):
+    openai.api_key = settings.OPENAI_API_KEY
+
+    img_bytes = chart_buf.getvalue()
+    base64_image = base64.b64encode(img_bytes).decode('utf-8')
+
+    prompt = f"""
+This is a 5-minute candlestick chart for {coin}.
+A machine learning model has predicted a high-confidence long trade with a score of {confidence:.2f}.
+The model was trained to predict a 1.5% move upward in price before a -2% decline in price.
+Based on this chart image and the ML model confidence score, should I take this long trade?
+Reply with just one word: "yes" or "no", and briefly (1 sentence) explain why.
+"""
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}},
+                    ]
+                }
+            ],
+            max_tokens=50,
+            temperature=0.3,
+        )
+        answer = response['choices'][0]['message']['content'].strip().lower()
+        print(f"🧠 GPT response: {answer}")
+        return answer
+    except Exception as e:
+        print(f"❌ GPT call failed: {e}")
+        return "no"
 
 
 
@@ -484,11 +525,17 @@ def run_live_pipeline():
 
                         image_path = generate_chart_image(df, coin, latest['timestamp'].values[0])
                         if image_path:
-                            chart_prediction = classify_chart(image_path)
-                            print(f"🧠 Chart prediction: {chart_prediction} for {coin}")
-                            if chart_prediction == 'bearish':
-                                print(f"🚫 Chart model rejected trade for {coin} (label: {chart_prediction})")
+                            decision = ask_gpt_brain(chart_buf, coin, confidence)
+                            if decision.startswith("no"):
+                                print(f"🚫 Chart model rejected trade for {coin} (label: {decision})")
                                 continue
+
+
+                            #chart_prediction = classify_chart(image_path)
+                            #print(f"🧠 Chart prediction: {chart_prediction} for {coin}")
+                            #if chart_prediction == 'bearish':
+                                #print(f"🚫 Chart model rejected trade for {coin} (label: {chart_prediction})")
+                                #continue
 
                         recent_confs = list(
                             ConfidenceHistory.objects
