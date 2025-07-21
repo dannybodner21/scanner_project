@@ -135,25 +135,18 @@ def generate_chart_image(df, coin, timestamp):
     import traceback
 
     try:
-
-        # Fix timestamp type if needed
-        if isinstance(timestamp, np.datetime64):
-            timestamp = pd.to_datetime(timestamp).to_pydatetime()
-
         df_plot = df.tail(60).copy()
-
-        print(f"🔍 {coin} dataframe shape: {df.shape}")
-        print(df.tail(3))
-        
         df_plot.set_index('timestamp', inplace=True)
         df_plot['MA20'] = df_plot['close'].rolling(20).mean()
         df_plot['MA50'] = df_plot['close'].rolling(50).mean()
 
         mpf_style = mpf.make_mpf_style(base_mpf_style='nightclouds', rc={'font.size': 6})
-        addplots = [
-            mpf.make_addplot(df_plot['MA20'], color='orange'),
-            mpf.make_addplot(df_plot['MA50'], color='purple')
-        ]
+
+        addplots = []
+        if df_plot['MA20'].notna().sum() > 0:
+            addplots.append(mpf.make_addplot(df_plot['MA20'], color='orange'))
+        if df_plot['MA50'].notna().sum() > 0:
+            addplots.append(mpf.make_addplot(df_plot['MA50'], color='purple'))
 
         fig, axlist = mpf.plot(
             df_plot,
@@ -175,14 +168,13 @@ def generate_chart_image(df, coin, timestamp):
         # Run classification on the image buffer
         chart_label = classify_chart(buf)
         print(f"🧠 Chart classification for {coin}: {chart_label}")
-        buf.seek(0)  # Rewind buffer for saving
+        buf.seek(0)
         return buf, chart_label
-    
+
     except Exception as e:
         print(f"❌ Chart generation failed for {coin} at {timestamp}: {e}")
         traceback.print_exc()
         return None, 'neutral'
-
 
 
 def safe_decimal(value):
