@@ -84,18 +84,42 @@ selected_features = joblib.load(FEATURES_PATH)
 
 
 # ask Chat GPT
-def ask_gpt_brain(chart_buf, coin, confidence):
+def ask_gpt_brain(chart_buf, coin, confidence, feature_row):
     openai.api_key = settings.OPENAI_API_KEY
 
     img_bytes = chart_buf.getvalue()
     base64_image = base64.b64encode(img_bytes).decode('utf-8')
 
+    top_features = {
+        "RSI": round(feature_row['rsi_14'], 2),
+        "MACD Histogram": round(feature_row['macd_histogram'], 5),
+        "Volume Ratio": round(feature_row['volume_ratio'], 2),
+        "BB Width": round(feature_row['bb_width'], 5),
+        "Stoch K": round(feature_row['stoch_k'], 2),
+        "Price vs EMA200": "above" if feature_row['price_above_ema_200'] else "below"
+    }
+
+    feature_text = "\n".join([f"- {k}: {v}" for k, v in top_features.items()])
+
+
     prompt = f"""
+You are a professional crypto day trader who has made millions just from analyzing 5-minute candlestick charts.
 This is a 5-minute candlestick chart for {coin}.
 A machine learning model has predicted a high-confidence long trade with a score of {confidence:.2f}.
 The model was trained to predict a 1.5% move upward in price before a -2% decline in price.
-Based on this chart image and the ML model confidence score, should I take this long trade?
-Reply with just one word: "yes" or "no", and briefly (1 sentence) explain why.
+
+Here are key technical features at the trade time for {coin}:
+{feature_text}
+
+Your job is to determine whether the visual trend supports this long trade.
+
+Look at the chart pattern, trend, confidence score, features and recent candles.
+
+Reply only with:
+- "yes" if you would take the long trade based on this chart
+- "no" if the chart does not support a long trade
+
+Also give a **one-sentence reason**. No extra commentary.
 """
 
     try:
@@ -527,7 +551,7 @@ def run_live_pipeline():
                         chart_buf, chart_label = generate_chart_image(df, coin, latest['timestamp'].values[0])
 
                         if chart_buf:
-                            decision = ask_gpt_brain(chart_buf, coin, long_prob)
+                            decision = ask_gpt_brain(chart_buf, coin, long_prob, df.iloc[-1])
                             if decision.strip().lower().startswith("no"):
                                 print(f"🚫 Chart model rejected trade for {coin} (label: {decision})")
                                 continue
