@@ -132,6 +132,7 @@ def generate_chart_image(df, coin, timestamp):
     import matplotlib.dates as mdates
     import io
     import mplfinance as mpf
+    import traceback
 
     try:
 
@@ -140,6 +141,10 @@ def generate_chart_image(df, coin, timestamp):
             timestamp = pd.to_datetime(timestamp).to_pydatetime()
 
         df_plot = df.tail(60).copy()
+
+        print(f"🔍 {coin} dataframe shape: {df.shape}")
+        print(df.tail(3))
+        
         df_plot.set_index('timestamp', inplace=True)
         df_plot['MA20'] = df_plot['close'].rolling(20).mean()
         df_plot['MA50'] = df_plot['close'].rolling(50).mean()
@@ -172,8 +177,10 @@ def generate_chart_image(df, coin, timestamp):
         print(f"🧠 Chart classification for {coin}: {chart_label}")
         buf.seek(0)  # Rewind buffer for saving
         return buf, chart_label
+    
     except Exception as e:
-        print(f"Chart generation failed for {coin} at {timestamp}: {e}")
+        print(f"❌ Chart generation failed for {coin} at {timestamp}: {e}")
+        traceback.print_exc()
         return None, 'neutral'
 
 
