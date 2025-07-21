@@ -130,6 +130,11 @@ def generate_chart_image(df, coin, timestamp):
     import mplfinance as mpf
 
     try:
+        
+        # Fix timestamp type if needed
+        if isinstance(timestamp, np.datetime64):
+            timestamp = pd.to_datetime(timestamp).to_pydatetime()
+
         df_plot = df.tail(60).copy()
         df_plot.set_index('timestamp', inplace=True)
         df_plot['MA20'] = df_plot['close'].rolling(20).mean()
