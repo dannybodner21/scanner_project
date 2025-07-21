@@ -192,7 +192,6 @@ def classify_chart(image_buf):
         return 'neutral'
 
 
-
 def generate_chart_image(df, coin, timestamp):
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
@@ -218,7 +217,7 @@ def generate_chart_image(df, coin, timestamp):
             df_plot,
             type='candle',
             style=mpf_style,
-            title=f"{coin} - {timestamp.strftime('%Y-%m-%d %H:%M')}",
+            title=f"{coin} - {pd.to_datetime(timestamp).strftime('%Y-%m-%d %H:%M')}",
             ylabel='Price (USDT)',
             volume=True,
             addplot=addplots,
