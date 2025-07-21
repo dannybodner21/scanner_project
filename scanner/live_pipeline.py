@@ -24,6 +24,7 @@ from decimal import Decimal, InvalidOperation
 
 import openai
 from io import BytesIO
+from django.conf import settings
 
 
 COINAPI_SYMBOL_MAP = {
@@ -523,10 +524,11 @@ def run_live_pipeline():
 
                     if not exists:
 
-                        image_path = generate_chart_image(df, coin, latest['timestamp'].values[0])
-                        if image_path:
-                            decision = ask_gpt_brain(chart_buf, coin, confidence)
-                            if decision.startswith("no"):
+                        chart_buf, chart_label = generate_chart_image(df, coin, latest['timestamp'].values[0])
+
+                        if chart_buf:
+                            decision = ask_gpt_brain(chart_buf, coin, long_prob)
+                            if decision.strip().lower().startswith("no"):
                                 print(f"🚫 Chart model rejected trade for {coin} (label: {decision})")
                                 continue
 
