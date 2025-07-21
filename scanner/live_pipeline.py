@@ -85,7 +85,7 @@ selected_features = joblib.load(FEATURES_PATH)
 
 
 # ask Chat GPT
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 def ask_gpt_brain(chart_buf, coin, confidence, feature_row):
 
     img_bytes = chart_buf.getvalue()
