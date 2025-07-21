@@ -122,3 +122,5 @@ xgboost==3.0.2
 zipp==3.23.0
 zope.interface==7.2
 playwright
+torch
+torchvision
