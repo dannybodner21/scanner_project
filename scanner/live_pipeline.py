@@ -106,6 +106,9 @@ def classify_chart(image_buf):
     from torchvision import transforms
     from PIL import Image
     try:
+        if isinstance(image_buf, tuple):
+            image_buf = image_buf[0]
+
         model = get_vision_model()
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         image_transform = transforms.Compose([
@@ -123,6 +126,7 @@ def classify_chart(image_buf):
         return 'neutral'
 
 
+
 def generate_chart_image(df, coin, timestamp):
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
@@ -130,7 +134,7 @@ def generate_chart_image(df, coin, timestamp):
     import mplfinance as mpf
 
     try:
-        
+
         # Fix timestamp type if needed
         if isinstance(timestamp, np.datetime64):
             timestamp = pd.to_datetime(timestamp).to_pydatetime()
