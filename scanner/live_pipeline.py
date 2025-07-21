@@ -486,7 +486,7 @@ def run_live_pipeline():
                         if image_path:
                             chart_prediction = classify_chart(image_path)
                             print(f"🧠 Chart prediction: {chart_prediction} for {coin}")
-                            if chart_prediction != 'bullish':
+                            if chart_prediction == 'bearish':
                                 print(f"🚫 Chart model rejected trade for {coin} (label: {chart_prediction})")
                                 continue
 
