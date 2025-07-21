@@ -23,6 +23,7 @@ from sklearn.preprocessing import StandardScaler
 from decimal import Decimal, InvalidOperation
 
 import openai
+from openai import OpenAI
 from io import BytesIO
 from django.conf import settings
 
@@ -84,8 +85,8 @@ selected_features = joblib.load(FEATURES_PATH)
 
 
 # ask Chat GPT
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
 def ask_gpt_brain(chart_buf, coin, confidence, feature_row):
-    openai.api_key = settings.OPENAI_API_KEY
 
     img_bytes = chart_buf.getvalue()
     base64_image = base64.b64encode(img_bytes).decode('utf-8')
@@ -123,7 +124,7 @@ Also give a **one-sentence reason**. No extra commentary.
 """
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
@@ -137,7 +138,7 @@ Also give a **one-sentence reason**. No extra commentary.
             max_tokens=50,
             temperature=0.3,
         )
-        answer = response['choices'][0]['message']['content'].strip().lower()
+        answer = response.choices[0].message.content.strip().lower()
         print(f"🧠 GPT response: {answer}")
         return answer
     except Exception as e:
