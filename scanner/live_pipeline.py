@@ -843,6 +843,7 @@ def run_live_pipeline():
                         )
                         print(f"✅ LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}")
                         send_text([f"LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}"])
+                        
                     else:
                         print(f"ℹ️ Long trade already open for {coin}")
             else:

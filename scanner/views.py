@@ -618,6 +618,26 @@ def get_closed_trades(request):
     return JsonResponse(data, safe=False)
 
 
+# return True if all 2016 recent candles exist for a coin
+def has_2016_recent_candles(coin_symbol):
+    # Get the latest 2016 candles
+    qs = CoinAPIPrice.objects.filter(coin=coin_symbol).order_by('-timestamp')[:2016]
+    if qs.count() < 2016:
+        return False
+
+    timestamps = list(qs.values_list('timestamp', flat=True))
+    timestamps = sorted(timestamps)
+
+    expected_diff = timedelta(minutes=5)
+
+    # Check that all timestamps are 5 minutes apart
+    for i in range(1, len(timestamps)):
+        if timestamps[i] - timestamps[i - 1] != expected_diff:
+            return False
+
+    return True
+
+
 def get_model_results(request):
 
     total_long_trades = ModelTrade.objects.filter(trade_type="long", exit_timestamp__isnull=False).count()
@@ -763,6 +783,21 @@ def get_model_results(request):
     short_avax_list = list(short_avax_history.values_list("confidence", flat=True))
     short_xlm_list = list(short_xlm_history.values_list("confidence", flat=True))
 
+    # Get the latest 2016 candles
+    btc_full_window = has_2016_recent_candles("BTCUSDT")
+    eth_full_window = has_2016_recent_candles("ETHUSDT")
+    xrp_full_window = has_2016_recent_candles("XRPUSDT")
+    ltc_full_window = has_2016_recent_candles("LTCUSDT")
+    sol_full_window = has_2016_recent_candles("SOLUSDT")
+    doge_full_window = has_2016_recent_candles("DOGEUSDT")
+    link_full_window = has_2016_recent_candles("LINKUSDT")
+    dot_full_window = has_2016_recent_candles("DOTUSDT")
+    shib_full_window = has_2016_recent_candles("SHIBUSDT")
+    ada_full_window = has_2016_recent_candles("ADAUSDT")
+    uni_full_window = has_2016_recent_candles("UNIUSDT")
+    avax_full_window = has_2016_recent_candles("AVAXUSDT")
+    xlm_full_window = has_2016_recent_candles("XLMUSDT")
+
     return JsonResponse({
         "total_long_trades": total_long_trades,
         "total_short_trades": total_short_trades,
@@ -794,6 +829,19 @@ def get_model_results(request):
         "short_uni_list": short_uni_list,
         "short_avax_list": short_avax_list,
         "short_xlm_list": short_xlm_list,
+        "btc_full_window": btc_full_window,
+        "eth_full_window": eth_full_window,
+        "xrp_full_window": xrp_full_window,
+        "ltc_full_window": ltc_full_window,
+        "sol_full_window": sol_full_window,
+        "doge_full_window": doge_full_window,
+        "link_full_window": link_full_window,
+        "dot_full_window": dot_full_window,
+        "shib_full_window": shib_full_window,
+        "ada_full_window": ada_full_window,
+        "uni_full_window": uni_full_window,
+        "avax_full_window": avax_full_window,
+        "xlm_full_window": xlm_full_window,
     })
 
 
