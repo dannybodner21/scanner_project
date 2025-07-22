@@ -26,6 +26,7 @@ import openai
 from openai import OpenAI
 from io import BytesIO
 from django.conf import settings
+from django.core.files.base import ContentFile
 
 
 COINAPI_SYMBOL_MAP = {
@@ -584,6 +585,19 @@ def run_live_pipeline():
                         chart_path = generate_chart_image(coin, timestamp, df)
                         if not chart_path:
                             continue
+
+                        # Save to LiveChart model (overwrite existing entry per coin)
+                        with open(chart_path, "rb") as img_file:
+                            chart_bytes = img_file.read()
+                            file_name = os.path.basename(chart_path)
+
+                            LiveChart.objects.update_or_create(
+                                coin=coin,
+                                defaults={
+                                    "timestamp": timestamp,
+                                    "image": ContentFile(chart_bytes, name=file_name),
+                                }
+                            )
 
                         decision = gpt_filter_trade(coin, timestamp, features, chart_path)
 
