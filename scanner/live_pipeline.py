@@ -70,7 +70,7 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 MODEL_PATH = "ten_model.joblib"
 SCALER_PATH = "ten_feature_scaler.joblib"
 FEATURES_PATH = "ten_selected_features.joblib"
-CONFIDENCE_THRESHOLD = 0.8
+CONFIDENCE_THRESHOLD = 0.7
 
 #TWO_MODEL_PATH = "seven_model.joblib"
 #TWO_SCALER_PATH = "seven_feature_scaler.joblib"

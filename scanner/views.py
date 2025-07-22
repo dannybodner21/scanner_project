@@ -1474,13 +1474,23 @@ def predict_short_vertex_new(request):
 
 
 from .live_pipeline import run_live_pipeline
-
+'''
 def run_live_pipeline_view(request):
     try:
         run_live_pipeline()
         return JsonResponse({"status": "success"})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+'''
+def run_live_pipeline_view(request):
+    def run():
+        try:
+            run_live_pipeline()
+        except Exception as e:
+            print(f"❌ Live pipeline error: {e}")
+
+    Thread(target=run).start()
+    return JsonResponse({"status": "pipeline started"}, status=200)
 
 
 
