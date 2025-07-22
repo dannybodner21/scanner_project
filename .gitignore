@@ -112,3 +112,6 @@ rl_feature_scaler.joblib
 rl_selected_features.joblib
 scanner/management/commands/generate_rl_training_file.py
 scanner/management/commands/long_simulator_with_rl.py
+
+chart_images/
+generate_gpt_confidences.py

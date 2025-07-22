@@ -85,65 +85,56 @@ selected_features = joblib.load(FEATURES_PATH)
 
 
 # ask Chat GPT
+from dotenv import load_dotenv
+load_dotenv()
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-def ask_gpt_brain(chart_buf, coin, confidence, feature_row):
-
-    img_bytes = chart_buf.getvalue()
-    base64_image = base64.b64encode(img_bytes).decode('utf-8')
-
-    top_features = {
-        "RSI": round(feature_row['rsi_14'], 2),
-        "MACD Histogram": round(feature_row['macd_histogram'], 5),
-        "Volume Ratio": round(feature_row['volume_ratio'], 2),
-        "BB Width": round(feature_row['bb_width'], 5),
-        "Stoch K": round(feature_row['stoch_k'], 2),
-        "Price vs EMA200": "above" if feature_row['price_above_ema_200'] else "below"
-    }
-
-    feature_text = "\n".join([f"- {k}: {v}" for k, v in top_features.items()])
 
 
-    prompt = f"""
-You are a professional crypto day trader who has made millions just from analyzing 5-minute candlestick charts.
-This is a 5-minute candlestick chart for {coin}.
-A machine learning model has predicted a high-confidence long trade with a score of {confidence:.2f}.
-The model was trained to predict a 1.5% move upward in price before a -2% decline in price.
-
-Here are key technical features at the trade time for {coin}:
-{feature_text}
-
-Your job is to determine whether the visual trend supports this long trade.
-
-Look at the chart pattern, trend, confidence score, features and recent candles.
-
-Reply only with:
-- "yes" if you would take the long trade based on this chart
-- "no" if the chart does not support a long trade
-
-Also give a **one-sentence reason**. No extra commentary.
-"""
-
+def gpt_filter_trade(coin, timestamp, features, chart_path):
     try:
+
+        time.sleep(0.5)
+
+        with open(chart_path, "rb") as f:
+            image_bytes = f.read()
+
+        base64_image = base64.b64encode(image_bytes).decode("utf-8")
+        content = [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{base64_image}"
+                },
+            },
+            {
+                "type": "text",
+                "text": f"Coin: {coin}\nTimestamp: {timestamp}\nFeatures:\n" +
+                        "\n".join([f"{k}: {float(v):.6f}" if isinstance(v, (int, float, np.float32, np.float64)) else f"{k}: {v}" for k, v in features.items()])
+            }
+        ]
+
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}},
-                    ]
-                }
+                {"role": "system", "content": "You are a professional crypto day trader who has made millions just from analyzing 5-minute candlestick charts. Take a look at the recent five min candle chart and the following technical analysis features. We are looking for a 1.5 percent increase in price before a 2 percent decrease in price (or a higher increase, but minimum 1.5 percent). prediction_prob is the confidence score from a trained machine learning model. Take that into consideration and give the trade a score between 0.0 and 1.0, where 1.0 is you are extremely confident it is a winning long trade setup. Have your confidence scores be very precise in increments of 0.01. Respond with only your confidence score."},
+                {"role": "user", "content": content}
             ],
             max_tokens=50,
-            temperature=0.3,
         )
-        answer = response.choices[0].message.content.strip().lower()
-        print(f"🧠 GPT response: {answer}")
-        return answer
+
+        decision = response.choices[0].message.content.lower().strip()
+        gpt_conf = float(decision)
+        print(f"🧠 GPT confidence: {gpt_conf:.2f}")
+        return gpt_conf >= 0.88
+
     except Exception as e:
-        print(f"❌ GPT call failed: {e}")
-        return "no"
+        print(f"❌ GPT filter failed: {e}")
+        return 0.0
+
+
+
+
+
 
 
 
@@ -192,7 +183,7 @@ def classify_chart(image_buf):
         print(f"Failed to classify image: {e}")
         return 'neutral'
 
-
+'''
 def generate_chart_image(df, coin, timestamp):
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
@@ -241,6 +232,43 @@ def generate_chart_image(df, coin, timestamp):
         print(f"❌ Chart generation failed for {coin} at {timestamp}: {e}")
         traceback.print_exc()
         return None, 'neutral'
+
+    '''
+
+
+
+
+
+def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    import io
+    import mplfinance as mpf
+    import traceback
+
+    os.makedirs(output_dir, exist_ok=True)
+    chart_data = df[(df['coin'] == coin) & (df['timestamp'] <= timestamp)].copy()
+    chart_data = chart_data.sort_values('timestamp').tail(60)
+
+    if chart_data.empty:
+        print(f"⚠️ No data to generate chart for {coin} at {timestamp}")
+        return None
+
+    try:
+        fig, ax = plt.subplots(figsize=(6, 3))
+        ax.plot(chart_data['timestamp'], chart_data['close'], linewidth=2)
+        ax.set_title(f"{coin} - {timestamp.strftime('%Y-%m-%d %H:%M')}")
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Price")
+        ax.grid(True)
+
+        image_path = os.path.join(output_dir, f"{coin}_{timestamp.strftime('%Y%m%d_%H%M')}.png")
+        fig.savefig(image_path, bbox_inches='tight')
+        plt.close(fig)
+        return image_path
+    except Exception as e:
+        print(f"❌ Chart generation failed for {coin} at {timestamp}: {e}")
+        return None
 
 
 def safe_decimal(value):
@@ -548,20 +576,19 @@ def run_live_pipeline():
 
                     if not exists:
 
-                        chart_buf, chart_label = generate_chart_image(df, coin, latest['timestamp'].values[0])
 
-                        if chart_buf:
-                            decision = ask_gpt_brain(chart_buf, coin, long_prob, df.iloc[-1])
-                            if decision.strip().lower().startswith("no"):
-                                print(f"🚫 Chart model rejected trade for {coin} (label: {decision})")
-                                continue
+                        features = {col: row[col] for col in row.index if col not in ['timestamp', 'coin', 'prediction']}
 
+                        chart_path = generate_chart_image(coin, timestamp, df)
+                        if not chart_path:
+                            continue
 
-                            #chart_prediction = classify_chart(image_path)
-                            #print(f"🧠 Chart prediction: {chart_prediction} for {coin}")
-                            #if chart_prediction == 'bearish':
-                                #print(f"🚫 Chart model rejected trade for {coin} (label: {chart_prediction})")
-                                #continue
+                        decision = gpt_filter_trade(coin, timestamp, features, chart_path)
+
+                        if decision == False:
+                            print(f"🚫 REJECTED by Chat GPT: trade for {coin}")
+                            continue
+
 
                         recent_confs = list(
                             ConfidenceHistory.objects
