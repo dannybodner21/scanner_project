@@ -338,57 +338,42 @@ def fetch_ohlcv(coin, limit=2100):
 def fetch_ohlcv(coin, limit=2100):
     import time
 
-    end = datetime.utcnow()
+    symbol = f"X:{coin.replace('USDT', '')}-USDT"
+    now_utc = datetime.utcnow()
+    to_ts = int(now_utc.timestamp()) * 1000
 
-    symbol = f"X:{coin.replace('USDT', '')}-USDT"  # e.g., XRPUSDT → X:XRP-USDT
-    agg_url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/5/minute"
+    # Align to most recent CLOSED 5-min candle
+    remainder = to_ts % (5 * 60 * 1000)
+    to_ts -= remainder
 
+    from_ts = to_ts - (limit * 5 * 60 * 1000)
 
-    all_rows = []
-    remaining = limit
+    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/5/minute/{from_ts}/{to_ts}"
+    params = {
+        "adjusted": "true",
+        "sort": "asc",
+        "limit": limit,
+        "apiKey": os.getenv("POLYGON_API_KEY"),
+    }
 
-    while remaining > 0:
-        page_limit = min(500, remaining)
-        url = f"{agg_url}/{(end - timedelta(minutes=5 * page_limit)).strftime('%Y-%m-%d')}/{end.strftime('%Y-%m-%d')}"
-        params = {
-            "adjusted": "true",
-            "sort": "desc",
-            "limit": page_limit,
-            "apiKey": os.getenv("POLYGON_API_KEY"),
-        }
+    r = requests.get(url, params=params)
+    r.raise_for_status()
+    results = r.json().get("results", [])
 
-        r = requests.get(url, params=params)
-        r.raise_for_status()
-        results = r.json().get("results", [])
-
-        if not results:
-            break
-
-        for x in results:
-            all_rows.append({
-                "timestamp": pd.to_datetime(x["t"], unit="ms"),
-                "open": x["o"],
-                "high": x["h"],
-                "low": x["l"],
-                "close": x["c"],
-                "volume": x["v"],
-                "coin": coin
-            })
-
-        # Prepare for next page
-        last_time = results[-1]["t"]
-        end = datetime.utcfromtimestamp(last_time / 1000) - timedelta(milliseconds=1)
-        remaining -= len(results)
-
-        time.sleep(0.25)  # Be nice to the API
-
-    if not all_rows:
+    if not results:
         raise ValueError(f"No data returned from Polygon for {coin}")
 
-    df = pd.DataFrame(all_rows)
+    df = pd.DataFrame([{
+        "timestamp": pd.to_datetime(x["t"], unit="ms"),
+        "open": x["o"],
+        "high": x["h"],
+        "low": x["l"],
+        "close": x["c"],
+        "volume": x["v"],
+        "coin": coin
+    } for x in results])
+
     return df.sort_values("timestamp").reset_index(drop=True)
-
-
 
 
 
