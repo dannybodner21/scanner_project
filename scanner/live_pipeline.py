@@ -576,8 +576,10 @@ def run_live_pipeline():
 
                     if not exists:
 
+                        latest_row = latest.iloc[0]
                         features = {col: latest_row[col] for col in latest_row.index if col not in ['timestamp', 'prediction', 'open']}
 
+                        timestamp = pd.to_datetime(latest['timestamp'].values[0])
                         chart_path = generate_chart_image(coin, timestamp, df)
                         if not chart_path:
                             continue
