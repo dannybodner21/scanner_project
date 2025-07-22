@@ -311,7 +311,7 @@ def send_text(messages):
 
     return
 
-
+'''
 def fetch_ohlcv(coin, limit=2100):
     symbol = COINAPI_SYMBOL_MAP[coin]
     url = f"{BASE_URL}/{symbol}/history"
@@ -331,6 +331,61 @@ def fetch_ohlcv(coin, limit=2100):
         'volume': x['volume_traded'], 'coin': coin
     } for x in data])
     return df.sort_values("timestamp").reset_index(drop=True)
+'''
+
+def fetch_ohlcv(coin, limit=2100):
+    import time
+
+    symbol = coin.replace("USDT", "")  # e.g., BTC
+    end = datetime.utcnow()
+    agg_url = f"https://api.polygon.io/v2/aggs/ticker/X:{symbol}-USD/range/5/minute"
+
+    all_rows = []
+    remaining = limit
+
+    while remaining > 0:
+        page_limit = min(500, remaining)
+        url = f"{agg_url}/{(end - timedelta(minutes=5 * page_limit)).strftime('%Y-%m-%d')}/{end.strftime('%Y-%m-%d')}"
+        params = {
+            "adjusted": "true",
+            "sort": "desc",
+            "limit": page_limit,
+            "apiKey": os.getenv("POLYGON_API_KEY"),
+        }
+
+        r = requests.get(url, params=params)
+        r.raise_for_status()
+        results = r.json().get("results", [])
+
+        if not results:
+            break
+
+        for x in results:
+            all_rows.append({
+                "timestamp": pd.to_datetime(x["t"], unit="ms"),
+                "open": x["o"],
+                "high": x["h"],
+                "low": x["l"],
+                "close": x["c"],
+                "volume": x["v"],
+                "coin": coin
+            })
+
+        # Prepare for next page
+        last_time = results[-1]["t"]
+        end = datetime.utcfromtimestamp(last_time / 1000) - timedelta(milliseconds=1)
+        remaining -= len(results)
+
+        time.sleep(0.25)  # Be nice to the API
+
+    if not all_rows:
+        raise ValueError(f"No data returned from Polygon for {coin}")
+
+    df = pd.DataFrame(all_rows)
+    return df.sort_values("timestamp").reset_index(drop=True)
+
+
+
 
 
 def fetch_all_ohlcv(coins):
