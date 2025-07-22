@@ -338,9 +338,11 @@ def fetch_ohlcv(coin, limit=2100):
 def fetch_ohlcv(coin, limit=2100):
     import time
 
-    symbol = coin.replace("USDT", "")  # e.g., BTC
     end = datetime.utcnow()
-    agg_url = f"https://api.polygon.io/v2/aggs/ticker/X:{symbol}-USD/range/5/minute"
+
+    symbol = f"X:{coin.replace('USDT', '')}-USDT"  # e.g., XRPUSDT → X:XRP-USDT
+    agg_url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/5/minute"
+
 
     all_rows = []
     remaining = limit
