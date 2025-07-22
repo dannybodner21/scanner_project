@@ -248,6 +248,8 @@ def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
     import traceback
 
     os.makedirs(output_dir, exist_ok=True)
+
+    df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
     chart_data = df[(df['coin'] == coin) & (df['timestamp'] <= timestamp)].copy()
     chart_data = chart_data.sort_values('timestamp').tail(60)
 
