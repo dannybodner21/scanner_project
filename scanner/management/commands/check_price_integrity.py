@@ -5,7 +5,7 @@ from django.utils.timezone import make_aware
 
 
 
-# python manage.py check_price_integrity --start 2025-07-05 --end 2025-07-14 --coins BTCUSDT ETHUSDT XRPUSDT LTCUSDT SOLUSDT DOGEUSDT LINKUSDT DOTUSDT SHIBUSDT ADAUSDT UNIUSDT AVAXUSDT XLMUSDT
+# python manage.py check_price_integrity --start 2025-07-05 --end 2025-07-23 --coins BTCUSDT ETHUSDT XRPUSDT LTCUSDT SOLUSDT DOGEUSDT LINKUSDT DOTUSDT SHIBUSDT ADAUSDT UNIUSDT AVAXUSDT XLMUSDT
 
 
 

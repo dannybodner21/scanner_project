@@ -12,9 +12,10 @@ import hashlib
 import urllib.parse
 import django
 import joblib
+import pytz
 
 from datetime import datetime, timedelta
-from scanner.models import Coin, ModelTrade, RealTrade, ConfidenceHistory, LivePriceSnapshot, LiveChart
+from scanner.models import Coin, ModelTrade, RealTrade, ConfidenceHistory, LivePriceSnapshot, LiveChart, CoinAPIPrice
 from scipy.stats import linregress
 from joblib import load
 
@@ -45,7 +46,6 @@ COINAPI_SYMBOL_MAP = {
     "XLMUSDT": "BINANCE_SPOT_XLM_USDT",
 }
 
-
 COIN_SYMBOL_MAP_DB = {
     "BTCUSDT": "BTC",
     "ETHUSDT": "ETH",
@@ -61,7 +61,6 @@ COIN_SYMBOL_MAP_DB = {
     "AVAXUSDT": "AVAX",
     "XLMUSDT": "XLM",
 }
-
 
 COINS = list(COIN_SYMBOL_MAP_DB.keys())
 COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
@@ -83,7 +82,6 @@ SHORT_FEATURES_PATH = "short_four_selected_features.joblib"
 SHORT_CONFIDENCE_THRESHOLD = 0.62
 
 selected_features = joblib.load(FEATURES_PATH)
-
 
 # ask Chat GPT
 from dotenv import load_dotenv
@@ -133,12 +131,6 @@ def gpt_filter_trade(coin, timestamp, features, chart_path):
         return 0.0
 
 
-
-
-
-
-
-
 # Chart model setup
 LABELS = ['bearish', 'bullish', 'neutral']
 _vision_model = None
@@ -152,6 +144,7 @@ def load_vision_model(model_path='chart_model.pth'):
     model.fc = torch.nn.Linear(model.fc.in_features, 3)
     model.load_state_dict(torch.load(model_path, map_location=device))
     return model.to(device).eval()
+
 
 def get_vision_model():
     global _vision_model
@@ -237,9 +230,6 @@ def generate_chart_image(df, coin, timestamp):
     '''
 
 
-
-
-
 def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
@@ -250,7 +240,8 @@ def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
     os.makedirs(output_dir, exist_ok=True)
 
     df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
-    chart_data = df[(df['coin'] == coin) & (df['timestamp'] <= timestamp)].copy()
+
+    chart_data = df.copy()  # you're already passing the 2016-row candle df
     chart_data = chart_data.sort_values('timestamp').tail(60)
 
     if chart_data.empty:
@@ -265,7 +256,8 @@ def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
         ax.set_ylabel("Price")
         ax.grid(True)
 
-        image_path = os.path.join(output_dir, f"{coin}_{timestamp.strftime('%Y%m%d_%H%M')}.png")
+        image_path = os.path.join(output_dir, f"{coin}.png")  # overwrite same file every time
+
         fig.savefig(image_path, bbox_inches='tight')
         plt.close(fig)
         return image_path
@@ -313,80 +305,213 @@ def send_text(messages):
 
     return
 
-'''
-def fetch_ohlcv(coin, limit=2100):
+
+
+
+
+
+
+
+
+
+
+
+def fetch_latest_candle(coin):
+
     symbol = COINAPI_SYMBOL_MAP[coin]
+    now = datetime.utcnow().replace(second=0, microsecond=0)
+    start = now - timedelta(minutes=5)
+
     url = f"{BASE_URL}/{symbol}/history"
     params = {
         'period_id': '5MIN',
-        'limit': limit,
-        'time_end': datetime.utcnow().replace(microsecond=0).isoformat()
+        'time_start': start.isoformat(),
+        'time_end': now.isoformat(),
+        'limit': 1
     }
     headers = {"X-CoinAPI-Key": COINAPI_KEY}
-    r = requests.get(url, headers=headers, params=params)
-    r.raise_for_status()
-    data = r.json()
-    df = pd.DataFrame([{
-        'timestamp': pd.to_datetime(x['time_period_start']),
-        'open': x['price_open'], 'high': x['price_high'],
-        'low': x['price_low'], 'close': x['price_close'],
-        'volume': x['volume_traded'], 'coin': coin
-    } for x in data])
-    return df.sort_values("timestamp").reset_index(drop=True)
-'''
 
-def fetch_ohlcv(coin, limit=2100):
-    import time
+    try:
+        r = requests.get(url, headers=headers, params=params)
+        r.raise_for_status()
+        data = r.json()
+        if not data:
+            print(f"⚠️ No data returned for {coin}")
+            return None
 
-    symbol = f"X:{coin.replace('USDT', '')}-USDT"
-    now_utc = datetime.utcnow()
-    to_ts = int(now_utc.timestamp()) * 1000
+        x = data[0]
+        return {
+            'coin': coin,
+            'timestamp': pd.to_datetime(x['time_period_start']).replace(tzinfo=pytz.UTC),
+            'open': x['price_open'],
+            'high': x['price_high'],
+            'low': x['price_low'],
+            'close': x['price_close'],
+            'volume': x['volume_traded']
+        }
+    except Exception as e:
+        print(f"❌ Error fetching {coin}: {e}")
+        return None
 
-    # Align to most recent CLOSED 5-min candle
-    remainder = to_ts % (5 * 60 * 1000)
-    to_ts -= remainder
 
-    from_ts = to_ts - (limit * 5 * 60 * 1000)
+# -- Save if not already stored --
+def save_candle_if_missing(candle):
 
-    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/5/minute/{from_ts}/{to_ts}"
+    if not candle:
+        return
+
+    exists = CoinAPIPrice.objects.filter(
+        coin=candle['coin'],
+        timestamp=candle['timestamp']
+    ).exists()
+
+    if exists:
+        print(f"⏩ {candle['coin']} @ {candle['timestamp']} already exists")
+        return
+
+    CoinAPIPrice.objects.create(
+        coin=candle['coin'],
+        timestamp=candle['timestamp'],
+        open=candle['open'],
+        high=candle['high'],
+        low=candle['low'],
+        close=candle['close'],
+        volume=candle['volume']
+    )
+    print(f"✅ Saved: {candle['coin']} @ {candle['timestamp']}")
+
+
+def get_latest_saved_timestamp(coin):
+
+    obj = CoinAPIPrice.objects.filter(coin=coin).order_by('-timestamp').first()
+    return obj.timestamp if obj else None
+
+
+def fetch_missing_candles(coin, start_ts, end_ts):
+
+    symbol = COINAPI_SYMBOL_MAP[coin]
+    url = f"{BASE_URL}/{symbol}/history"
+    headers = {"X-CoinAPI-Key": COINAPI_KEY}
+
+    minutes_missing = int((end_ts - start_ts).total_seconds() / 60)
+    candles_needed = max(1, minutes_missing // 5)
+
+    if candles_needed > 1000:
+        candles_needed = 1000  # avoid credit explosion
+
     params = {
-        "adjusted": "true",
-        "sort": "asc",
-        "limit": limit,
-        "apiKey": os.getenv("POLYGON_API_KEY"),
+        'period_id': '5MIN',
+        'time_start': start_ts.isoformat(),
+        'limit': candles_needed
     }
 
-    r = requests.get(url, params=params)
+    r = requests.get(url, headers=headers, params=params)
     r.raise_for_status()
-    results = r.json().get("results", [])
-
-    if not results:
-        raise ValueError(f"No data returned from Polygon for {coin}")
-
-    df = pd.DataFrame([{
-        "timestamp": pd.to_datetime(x["t"], unit="ms"),
-        "open": x["o"],
-        "high": x["h"],
-        "low": x["l"],
-        "close": x["c"],
-        "volume": x["v"],
-        "coin": coin
-    } for x in results])
-
-    return df.sort_values("timestamp").reset_index(drop=True)
+    return r.json()
 
 
+def save_missing_candles(coin):
 
-def fetch_all_ohlcv(coins):
-    all_data = {}
-    for coin in coins:
+    now = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=pytz.UTC)
+    last_saved = get_latest_saved_timestamp(coin)
+
+    if last_saved is None:
+        print(f"⚠️ No candles saved yet for {coin}")
+        return
+
+    next_needed = last_saved + timedelta(minutes=5)
+    if next_needed >= now:
+        print(f"✅ {coin} is already up to date")
+        return
+
+    print(f"🔄 Fetching missing candles for {coin} from {next_needed} to {now}")
+
+    try:
+        candles = fetch_missing_candles(coin, next_needed, now)
+        for x in candles:
+            CoinAPIPrice.objects.update_or_create(
+                coin=coin,
+                timestamp=pd.to_datetime(x['time_period_start']),
+                defaults={
+                    'open': x['price_open'],
+                    'high': x['price_high'],
+                    'low': x['price_low'],
+                    'close': x['price_close'],
+                    'volume': x['volume_traded'],
+                }
+            )
+        print(f"✅ Inserted {len(candles)} candles for {coin}")
+    except Exception as e:
+        print(f"❌ Error backfilling {coin}: {e}")
+
+
+def get_recent_candles(coin, limit=2016):
+
+    qs = (
+        CoinAPIPrice.objects
+        .filter(coin=coin)
+        .order_by('-timestamp')
+        .values('timestamp', 'open', 'high', 'low', 'close', 'volume')
+    )
+    df = pd.DataFrame(list(qs[:limit]))
+    if len(df) < limit:
+        return None
+    return df.sort_values('timestamp').reset_index(drop=True)
+
+
+# used to backfill the last 2016 candles so there are no gaps
+def backfill_recent_candles(coin):
+    print(f"🔁 Backfilling recent candles for {coin}...")
+    symbol = COINAPI_SYMBOL_MAP[coin]
+    headers = {"X-CoinAPI-Key": COINAPI_KEY}
+
+    end = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=pytz.UTC)
+    start = end - timedelta(days=7)
+
+    chunk_minutes = 5 * 100  # 100 candles max
+    current = start
+
+    while current < end:
+        chunk_end = min(current + timedelta(minutes=chunk_minutes), end)
+
+        params = {
+            'period_id': '5MIN',
+            'time_start': current.isoformat(),
+            'time_end': chunk_end.isoformat(),
+            'limit': 100
+        }
+
         try:
-            df = fetch_ohlcv(coin)
-            if df is not None and len(df) >= 288:
-                all_data[coin] = df
+            r = requests.get(f"{BASE_URL}/{symbol}/history", headers=headers, params=params)
+            r.raise_for_status()
+            candles = r.json()
+
+            for x in candles:
+                ts = pd.to_datetime(x['time_period_start']).replace(tzinfo=pytz.UTC)
+                CoinAPIPrice.objects.update_or_create(
+                    coin=coin,
+                    timestamp=ts,
+                    defaults={
+                        'open': x['price_open'],
+                        'high': x['price_high'],
+                        'low': x['price_low'],
+                        'close': x['price_close'],
+                        'volume': x['volume_traded'],
+                    }
+                )
+            print(f"✅ {len(candles)} candles inserted for {coin} from {current} to {chunk_end}")
+
         except Exception as e:
-            print(f"❌ Error fetching {coin}: {e}")
-    return all_data
+            print(f"❌ Error backfilling {coin} from {current} to {chunk_end}: {e}")
+
+        current = chunk_end
+        time.sleep(1)  # avoid rate limits
+
+
+
+
+
+
 
 
 def add_enhanced_features(df):
@@ -547,9 +672,38 @@ def run_live_pipeline():
     short_scaler = joblib.load(SHORT_SCALER_PATH)
     short_features = joblib.load(SHORT_FEATURES_PATH)
 
-    all_ohlcv = fetch_all_ohlcv(COINS)
 
-    btc_df = add_enhanced_features(all_ohlcv["BTCUSDT"])
+
+    # 🛠️ Ensure each coin has at least 2016 candles in DB
+    for coin in COINS:
+        coin_symbol = COIN_SYMBOL_MAP_DB[coin]
+        existing_count = CoinAPIPrice.objects.filter(coin=coin_symbol).count()
+        if existing_count < 2016:
+            print(f"⚠️ {coin} only has {existing_count} candles, backfilling to 7d...")
+            backfill_recent_candles(coin)
+
+
+
+
+    # Pull latest candle per coin and save
+    latest_candles = {}
+    for coin in COINS:
+        candle = fetch_latest_candle(coin)
+        save_candle_if_missing(candle)
+        if candle:
+            latest_candles[coin] = candle
+
+    # Exit early if BTC candle is missing
+    if "BTCUSDT" not in latest_candles:
+        print("❌ BTCUSDT candle missing, cannot proceed")
+        return
+
+    btc_recent = get_recent_candles("BTC", limit=2016)
+    if btc_recent is None:
+        print("❌ Not enough BTCUSDT data for trend indicators")
+        return
+
+    btc_df = add_enhanced_features(btc_recent)
 
     btc_df['btc_bull_trend'] = (btc_df['ema_21'] > btc_df['ema_50']).astype(int)
     btc_df['btc_strong_trend'] = (btc_df['ema_9'] > btc_df['ema_21']).astype(int)
@@ -557,14 +711,30 @@ def run_live_pipeline():
     btc_bull_trend_value = btc_df.iloc[-1]['btc_bull_trend']
     btc_strong_trend_value = btc_df.iloc[-1]['btc_strong_trend']
 
+
+
+
+
+
+
+
+
     for coin in COINS:
 
-        if coin not in all_ohlcv:
+        if coin not in latest_candles:
             continue
 
         try:
+            # Get 2016 most recent candles from DB
+            coin_symbol = COIN_SYMBOL_MAP_DB[coin]
+            recent_df = get_recent_candles(coin_symbol, limit=2016)
 
-            df = add_enhanced_features(all_ohlcv[coin])
+            if recent_df is None:
+                print(f"⏭️ Skipping {coin}, not enough candles in DB")
+                continue
+
+            df = add_enhanced_features(recent_df)
+                        
             df['btc_bull_trend'] = btc_bull_trend_value
             df['btc_strong_trend'] = btc_strong_trend_value
             df['id'] = 0
@@ -806,10 +976,11 @@ def run_live_pipeline():
 
     for trade in open_trades:
         try:
+
             price_entry = float(trade.entry_price)
             coin_symbol = trade.coin.symbol + "USDT"
-            df = all_ohlcv.get(coin_symbol)
 
+            df = get_recent_candles(trade.coin.symbol, limit=1)
             if df is None or df.empty:
                 print(f"⚠️ No price data for {coin_symbol}, skipping")
                 continue
