@@ -337,8 +337,8 @@ class MemoryTrade(models.Model):
     
     # Trade configuration
     leverage = models.FloatField(default=15.0)
-    tp_percent = models.FloatField(default=0.02)  # 2%
-    sl_percent = models.FloatField(default=-0.01)  # -1%
+    tp_percent = models.FloatField(default=2.00)  # 2%
+    sl_percent = models.FloatField(default=1.00)  # 1%
 
     chart_image = models.ImageField(upload_to='memory_charts/', null=True, blank=True)
 

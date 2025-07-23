@@ -138,7 +138,7 @@ def gpt_filter_trade(coin, timestamp, features, chart_path):
         decision = response.choices[0].message.content.lower().strip()
         gpt_conf = float(decision)
         print(f"🧠 GPT confidence: {gpt_conf:.2f}")
-        return gpt_conf >= 0.88
+        return gpt_conf
 
     except Exception as e:
         print(f"❌ GPT filter failed: {e}")
@@ -148,6 +148,7 @@ def gpt_filter_trade(coin, timestamp, features, chart_path):
 # Chart model setup
 LABELS = ['bearish', 'bullish', 'neutral']
 _vision_model = None
+
 
 def load_vision_model(model_path='chart_model.pth'):
     import torch
@@ -191,57 +192,6 @@ def classify_chart(image_buf):
         print(f"Failed to classify image: {e}")
         return 'neutral'
 
-'''
-def generate_chart_image(df, coin, timestamp):
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    import io
-    import mplfinance as mpf
-    import traceback
-
-    try:
-        df_plot = df.tail(60).copy()
-        df_plot.set_index('timestamp', inplace=True)
-        df_plot['MA20'] = df_plot['close'].rolling(20).mean()
-        df_plot['MA50'] = df_plot['close'].rolling(50).mean()
-
-        mpf_style = mpf.make_mpf_style(base_mpf_style='nightclouds', rc={'font.size': 6})
-
-        addplots = []
-        if df_plot['MA20'].notna().sum() > 0:
-            addplots.append(mpf.make_addplot(df_plot['MA20'], color='orange'))
-        if df_plot['MA50'].notna().sum() > 0:
-            addplots.append(mpf.make_addplot(df_plot['MA50'], color='purple'))
-
-        fig, axlist = mpf.plot(
-            df_plot,
-            type='candle',
-            style=mpf_style,
-            title=f"{coin} - {pd.to_datetime(timestamp).strftime('%Y-%m-%d %H:%M')}",
-            ylabel='Price (USDT)',
-            volume=True,
-            addplot=addplots,
-            returnfig=True,
-            figsize=(6, 4)
-        )
-
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
-        buf.seek(0)
-        plt.close(fig)
-
-        # Run classification on the image buffer
-        chart_label = classify_chart(buf)
-        print(f"🧠 Chart classification for {coin}: {chart_label}")
-        buf.seek(0)
-        return buf, chart_label
-
-    except Exception as e:
-        print(f"❌ Chart generation failed for {coin} at {timestamp}: {e}")
-        traceback.print_exc()
-        return None, 'neutral'
-
-    '''
 
 def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
     import os
@@ -303,8 +253,6 @@ def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
         return None
 
 
-
-
 def safe_decimal(value):
     try:
         # Replace curly quotes or weird characters
@@ -343,16 +291,6 @@ def send_text(messages):
                 print(f"Failed to send message: {response.content}")
 
     return
-
-
-
-
-
-
-
-
-
-
 
 
 def fetch_latest_candle(coin):
@@ -484,6 +422,7 @@ def save_missing_candles(coin):
         print(f"❌ Error backfilling {coin}: {e}")
 
 
+# expects coin as BTCUSDT format
 def get_recent_candles(coin, limit=2016):
 
     qs = (
@@ -548,12 +487,6 @@ def backfill_recent_candles(coin):
 
         current = chunk_end
         time.sleep(1)  # avoid rate limits
-
-
-
-
-
-
 
 
 def add_enhanced_features(df):
@@ -747,8 +680,6 @@ def run_live_pipeline():
             backfill_recent_candles(coin_symbol)
 
 
-
-
     # Pull latest candle per coin and save
     latest_candles = {}
     for coin in COINS:
@@ -776,13 +707,6 @@ def run_live_pipeline():
 
     btc_bull_trend_value = btc_df.iloc[-1]['btc_bull_trend']
     btc_strong_trend_value = btc_df.iloc[-1]['btc_strong_trend']
-
-
-
-
-
-
-
 
 
     for coin in COINS:
@@ -882,10 +806,31 @@ def run_live_pipeline():
 
                         decision = gpt_filter_trade(coin, timestamp, features, chart_path)
 
-                        if decision == False:
+
+                        # save memory trade
+                        chart_file = open(chart_path, "rb")
+                        memory_trade = MemoryTrade.objects.create(
+                            coin=coin,
+                            timestamp=timestamp,
+                            trade_type='long',
+                            ml_confidence=long_prob,
+                            gpt_confidence=decision,
+                            leverage=15,
+                            tp_percent=2.00,
+                            sl_percent=1.00,
+                            features=features,  # full feature dict
+                            chart_image=File(chart_file) if chart_file else None,
+                            outcome='open',
+                            entry_price=safe_decimal(latest['close'].values[0]),
+                        )
+
+                        if chart_file:
+                            chart_file.close()
+
+
+                        if decision < 0.87:
                             print(f"🚫 REJECTED by Chat GPT: trade for {coin}")
                             continue
-
 
                         recent_confs = list(
                             ConfidenceHistory.objects
@@ -1038,7 +983,7 @@ def run_live_pipeline():
 
 
 
-
+    # evaluate any open trades executed by ML model and ChatGPT
     print("\n🔍 Evaluating open trades...")
     open_trades = ModelTrade.objects.filter(exit_timestamp__isnull=True)
 
@@ -1053,23 +998,26 @@ def run_live_pipeline():
                 print(f"⚠️ No price data for {coin_symbol}, skipping")
                 continue
 
+            price_high = float(df.iloc[-1]['high'])
+            price_low = float(df.iloc[-1]['low'])
             price_now = float(df.iloc[-1]['close'])
             result = True
 
             if trade.trade_type == "long":
-                if price_now >= price_entry * 1.015:
-                    status = "💰 TAKE PROFIT"
-                elif price_now <= price_entry * 0.98:
+
+                if price_low <= price_entry * 0.99:
                     status = "🛑 STOP LOSS"
                     result = False
+                elif price_high >= price_entry * 1.02:
+                    status = "💰 TAKE PROFIT"
                 else:
                     continue
             else:
-                if price_now <= price_entry * 0.99:
-                    status = "💰 TAKE PROFIT"
-                elif price_now >= price_entry * 1.02:
+                if price_high >= price_entry * 1.01:
                     status = "🛑 STOP LOSS"
                     result = False
+                elif price_low <= price_entry * 0.98:
+                    status = "💰 TAKE PROFIT"
                 else:
                     continue
 
@@ -1082,6 +1030,53 @@ def run_live_pipeline():
 
         except Exception as e:
             print(f"❌ Error closing trade for {trade.coin.symbol}: {e}")
+
+
+    # evaluate trades used for ChatGPT memory
+    print("\n📚 Evaluating memory trades...")
+    memory_trades = MemoryTrade.objects.filter(outcome='open')
+
+    for trade in memory_trades:
+        try:
+            price_entry = float(trade.entry_price)
+            coin_symbol = trade.coin
+
+            df = get_recent_candles(trade.coin, limit=1)
+            if df is None or df.empty:
+                print(f"⚠️ No price data for {coin_symbol}, skipping")
+                continue
+
+            price_now = float(df.iloc[-1]['close'])
+            price_high = float(df.iloc[-1]['high'])
+            price_low = float(df.iloc[-1]['low'])
+
+            if trade.trade_type == "long":
+
+                if price_low <= price_entry * 0.99:
+                    trade.outcome = "loss"
+                elif price_high >= price_entry * 1.02:
+                    trade.outcome = "win"
+                else:
+                    continue
+
+            elif trade.trade_type == "short":
+
+                if price_high >= price_entry * 1.01:
+                    trade.outcome = "loss"
+                elif price_low <= price_entry * 0.98:
+                    trade.outcome = "win"
+                else:
+                    continue
+
+            trade.exit_price = price_now
+            trade.exit_timestamp = now()
+            trade.save()
+
+            print(f"📘 Memory {trade.outcome.upper()} | {trade.trade_type.upper()} {trade.coin} @ {price_now:.6f}")
+
+        except Exception as e:
+            print(f"❌ Error closing memory trade for {trade.coin}: {e}")
+
 
 
     print("✅ Pipeline complete")
