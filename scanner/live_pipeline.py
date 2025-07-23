@@ -1075,7 +1075,7 @@ def run_live_pipeline():
             price_entry = float(trade.entry_price)
             coin_symbol = trade.coin.symbol + "USDT"
 
-            df = get_recent_candles(trade.coin.symbol, limit=1)
+            df = get_recent_candles(coin_symbol, limit=1)
             if df is None or df.empty:
                 print(f"⚠️ No price data for {coin_symbol}, skipping")
                 continue
