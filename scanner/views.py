@@ -620,22 +620,36 @@ def get_closed_trades(request):
 
 # return True if all 2016 recent candles exist for a coin
 def has_2016_recent_candles(coin_symbol):
-    # Get the latest 2016 candles
-    qs = CoinAPIPrice.objects.filter(coin=coin_symbol).order_by('-timestamp')[:2016]
-    if qs.count() < 2016:
+    # Round `now` down to the nearest 5-minute increment
+    current_time = now()
+    rounded_time = current_time - timedelta(
+        minutes=current_time.minute % 5,
+        seconds=current_time.second,
+        microseconds=current_time.microsecond
+    )
+
+    start_time = rounded_time - timedelta(minutes=5 * 2015)  # 2016 candles total
+
+    # Fetch all timestamps in that window
+    qs = CoinAPIPrice.objects.filter(
+        coin=coin_symbol,
+        timestamp__gte=start_time,
+        timestamp__lte=rounded_time
+    ).values_list('timestamp', flat=True)
+
+    if len(qs) != 2016:
         return False
 
-    timestamps = list(qs.values_list('timestamp', flat=True))
-    timestamps = sorted(timestamps)
-
-    expected_diff = timedelta(minutes=5)
-
-    # Check that all timestamps are 5 minutes apart
-    for i in range(1, len(timestamps)):
-        if timestamps[i] - timestamps[i - 1] != expected_diff:
+    # Sort and check for continuous 5-minute intervals
+    timestamps = sorted(qs)
+    expected_time = start_time
+    for ts in timestamps:
+        if ts != expected_time:
             return False
+        expected_time += timedelta(minutes=5)
 
     return True
+
 
 
 def get_model_results(request):

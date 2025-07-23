@@ -463,7 +463,7 @@ def get_recent_candles(coin, limit=2016):
 def backfill_recent_candles(coin):
 
     print(f"🔁 Backfilling recent candles for {coin}...")
-    symbol = coin
+    symbol = COINAPI_SYMBOL_MAP[coin]
     headers = {"X-CoinAPI-Key": COINAPI_KEY}
 
     end = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=pytz.UTC)
