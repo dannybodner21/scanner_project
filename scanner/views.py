@@ -18,8 +18,8 @@ import google.auth
 
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
-from django.http import HttpResponseRedirect
-from scanner.models import Coin, ConfidenceHistory, MemoryTrade, LivePriceSnapshot, CoinAPIPrice, RealTrade, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from django.http import HttpResponseRedirect, HttpResponse, Http404
+from scanner.models import Coin, ConfidenceHistory, LiveChart, MemoryTrade, LivePriceSnapshot, CoinAPIPrice, RealTrade, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
@@ -643,7 +643,16 @@ def get_memory_trades(request):
 
     return JsonResponse(data, safe=False)
 
-# coin - type - ml score - llm score - result
+
+# display charts on Webflow
+def serve_chart_image(request, coin):
+    try:
+        chart = LiveChart.objects.get(coin=coin)
+        if not chart.image:
+            raise Http404("No image found.")
+        return HttpResponse(chart.image.read(), content_type="image/png")
+    except LiveChart.DoesNotExist:
+        raise Http404("Chart not found.")
 
 
 # Return True if all 2016 recent candles exist for a coin

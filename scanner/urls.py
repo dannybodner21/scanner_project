@@ -27,6 +27,7 @@ urlpatterns = [
     path("api/closed-trades/", views.get_closed_trades, name="closed-trades"),
     path("api/model-results/", views.get_model_results, name="model-results"),
     path("api/memory-trades/", views.get_memory_trades, name="memory-trades"),
+    path("chart-image/<str:coin>/", views.serve-chart-image, name="serve-chart-image"),
 
     path("api/patterns/", views.get_patterns, name="patterns"),
     path('update-patterns/', views.run_update_patterns, name='update_patterns'),
