@@ -852,7 +852,11 @@ def run_live_pipeline():
 
                         latest_row = latest.iloc[0]
                         features = {
-                            col: float(latest_row[col]) if isinstance(latest_row[col], Decimal) else latest_row[col]
+                            col: float(latest_row[col])
+                            if isinstance(latest_row[col], (np.float64, np.float32, Decimal))
+                            else int(latest_row[col])
+                            if isinstance(latest_row[col], (np.int64, np.int32))
+                            else latest_row[col]
                             for col in latest_row.index
                             if col not in ['timestamp', 'prediction', 'open']
                         }
