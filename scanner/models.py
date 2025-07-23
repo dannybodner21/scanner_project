@@ -326,7 +326,7 @@ class ConfidenceHistory(models.Model):
 
 # tracking trades to use as memory for chat gpt agent
 class MemoryTrade(models.Model):
-    coin = models.CharField(max_length=20)
+    coin = models.CharField(max_length=20) # BTCUSDT
     timestamp = models.DateTimeField()
     trade_type = models.CharField(max_length=10, choices=[('long', 'Long'), ('short', 'Short')])
     

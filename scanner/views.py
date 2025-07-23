@@ -19,7 +19,7 @@ import google.auth
 from django.shortcuts import render
 from zoneinfo import ZoneInfo
 from django.http import HttpResponseRedirect
-from scanner.models import Coin, ConfidenceHistory, LivePriceSnapshot, CoinAPIPrice, RealTrade, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
+from scanner.models import Coin, ConfidenceHistory, MemoryTrade, LivePriceSnapshot, CoinAPIPrice, RealTrade, ModelTrade, RickisMetrics, BacktestResult, SuccessfulMove, FiredSignal, SupportResistance, Pattern, HighLowData, HistoricalData, ShortIntervalData, Metrics, Trigger
 from datetime import datetime, timedelta, timezone, date
 from django.utils.timezone import now
 from django.http import JsonResponse
@@ -616,6 +616,34 @@ def get_closed_trades(request):
         })
 
     return JsonResponse(data, safe=False)
+
+
+def get_memory_trades(request):
+    memory_trades = (
+        MemoryTrade.objects
+        .order_by("-timestamp")[:1000]
+    )
+
+    data = []
+    for trade in memory_trades:
+
+        trade_result = "open"
+        if trade.outcome == "loss":
+            trade_result = "❌"
+        elif trade.outcome == "win":
+            trade_result = "✅"
+
+        data.append({
+            "coin": trade.coin,
+            "trade_type": trade.trade_type,
+            "ml_confidence": trade.ml_confidence,
+            "gpt_confidence": trade.gpt_confidence or -1,
+            "outcome": trade_result,
+        })
+
+    return JsonResponse(data, safe=False)
+
+# coin - type - ml score - llm score - result
 
 
 # Return True if all 2016 recent candles exist for a coin
