@@ -117,7 +117,10 @@ def gpt_filter_trade(coin, timestamp, features, chart_path):
             {
                 "type": "text",
                 "text": f"Coin: {coin}\nTimestamp: {timestamp}\nFeatures:\n" +
-                        "\n".join([f"{k}: {float(v):.6f}" if isinstance(v, (int, float, np.float32, np.float64)) else f"{k}: {v}" for k, v in features.items()])
+                        "\n".join([
+                            f"{k}: {float(v):.6f}" if isinstance(v, (int, float, np.float32, np.float64, Decimal)) else f"{k}: {v}"
+                            for k, v in features.items()
+                        ])
             }
         ]
 
@@ -266,7 +269,7 @@ def generate_chart_image_30m(coin, timestamp, df_5m):
     df_5m.set_index('timestamp', inplace=True)
 
     # Resample to 30-minute candles
-    df_30m = df_5m.resample('30T').agg({
+    df_30m = df_5m.resample('30min').agg({
         'open': 'first',
         'high': 'max',
         'low': 'min',
@@ -274,12 +277,17 @@ def generate_chart_image_30m(coin, timestamp, df_5m):
         'volume': 'sum'
     }).dropna()
 
-    # Limit to the last 48 candles (~24 hours)
-    df_30m = df_30m.iloc[-48:]
+    for col in ["open", "high", "low", "close", "volume"]:
+        df_30m[col] = pd.to_numeric(df_30m[col], errors="coerce")
+
+    df_30m = df_30m.dropna(subset=["open", "high", "low", "close", "volume"])
 
     # Add moving averages (optional)
     df_30m['ma9'] = df_30m['close'].rolling(window=9).mean()
     df_30m['ma21'] = df_30m['close'].rolling(window=21).mean()
+
+    # Limit to the last 48 candles (~24 hours)
+    df_30m = df_30m.iloc[-48:]
 
     # Build filename and directory
     filename = f"aaa{coin}_30m_{timestamp.strftime('%Y%m%d_%H%M')}.png"
@@ -298,9 +306,6 @@ def generate_chart_image_30m(coin, timestamp, df_5m):
     )
 
     return save_path
-
-
-
 
 
 
