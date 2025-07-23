@@ -618,15 +618,16 @@ def get_closed_trades(request):
     return JsonResponse(data, safe=False)
 
 
-# return True if all 2016 recent candles exist for a coin
+# Return True if all 2016 recent candles exist for a coin
 def has_2016_recent_candles(coin_symbol):
-    # Round `now` down to the nearest 5-minute increment
+    # Get current time rounded DOWN to the last completed 5-minute candle
     current_time = now()
+    # Floor to nearest 5 minutes, then subtract 5 to get last completed candle
     rounded_time = current_time - timedelta(
         minutes=current_time.minute % 5,
         seconds=current_time.second,
         microseconds=current_time.microsecond
-    )
+    ) - timedelta(minutes=5)
 
     start_time = rounded_time - timedelta(minutes=5 * 2015)  # 2016 candles total
 
@@ -640,7 +641,7 @@ def has_2016_recent_candles(coin_symbol):
     if len(qs) != 2016:
         return False
 
-    # Sort and check for continuous 5-minute intervals
+    # Sort and check for exact 5-min spacing
     timestamps = sorted(qs)
     expected_time = start_time
     for ts in timestamps:
@@ -649,6 +650,7 @@ def has_2016_recent_candles(coin_symbol):
         expected_time += timedelta(minutes=5)
 
     return True
+
 
 
 
