@@ -229,20 +229,19 @@ def generate_chart_image(df, coin, timestamp):
 
     '''
 
-
 def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
     import io
-    import mplfinance as mpf
     import traceback
+    import os
 
     os.makedirs(output_dir, exist_ok=True)
 
-    df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
+    # Fix timestamp parsing
+    df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
 
-    chart_data = df.copy()  # you're already passing the 2016-row candle df
-    chart_data = chart_data.sort_values('timestamp').tail(60)
+    chart_data = df.copy().sort_values('timestamp').tail(60)
 
     if chart_data.empty:
         print(f"⚠️ No data to generate chart for {coin} at {timestamp}")
@@ -256,14 +255,19 @@ def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
         ax.set_ylabel("Price")
         ax.grid(True)
 
-        image_path = os.path.join(output_dir, f"{coin}.png")  # overwrite same file every time
+        # Fix X-axis time format
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        fig.autofmt_xdate()
 
+        image_path = os.path.join(output_dir, f"{coin}.png")
         fig.savefig(image_path, bbox_inches='tight')
         plt.close(fig)
         return image_path
+        
     except Exception as e:
         print(f"❌ Chart generation failed for {coin} at {timestamp}: {e}")
         return None
+
 
 
 def safe_decimal(value):
