@@ -230,43 +230,58 @@ def generate_chart_image(df, coin, timestamp):
     '''
 
 def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    import io
-    import traceback
     import os
+    import pandas as pd
+    import mplfinance as mpf
+    from datetime import datetime
 
     os.makedirs(output_dir, exist_ok=True)
 
-    # Fix timestamp parsing
-    df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
-
-    chart_data = df.copy().sort_values('timestamp').tail(60)
-
-    if chart_data.empty:
-        print(f"⚠️ No data to generate chart for {coin} at {timestamp}")
-        return None
-
     try:
-        fig, ax = plt.subplots(figsize=(6, 3))
-        ax.plot(chart_data['timestamp'], chart_data['close'], linewidth=2)
-        ax.set_title(f"{coin} - {timestamp.strftime('%Y-%m-%d %H:%M')}")
-        ax.set_xlabel("Time")
-        ax.set_ylabel("Price")
-        ax.grid(True)
+        # Preprocess
+        df = df.copy()
+        df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+        df.set_index('timestamp', inplace=True)
+        df = df.sort_index()
 
-        # Fix X-axis time format
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-        fig.autofmt_xdate()
+        # Force numeric columns to float
+        numeric_cols = ['open', 'high', 'low', 'close', 'volume']
+        df[numeric_cols] = df[numeric_cols].astype(float)
+
+        # Add moving averages
+        df['MA20'] = df['close'].rolling(20).mean()
+        df['MA50'] = df['close'].rolling(50).mean()
+
+        # Get the last 60 candles
+        chart_data = df.tail(60)
+
+        if chart_data.empty or chart_data[['open', 'high', 'low', 'close']].isna().any().any():
+            print(f"⚠️ Insufficient data to generate chart for {coin} at {timestamp}")
+            return None
+
+        # MA Overlays
+        addplots = [
+            mpf.make_addplot(chart_data['MA20'], color='orange', width=1.2),
+            mpf.make_addplot(chart_data['MA50'], color='blue', width=1.2)
+        ]
 
         image_path = os.path.join(output_dir, f"{coin}.png")
-        fig.savefig(image_path, bbox_inches='tight')
-        plt.close(fig)
+
+        mpf.plot(
+            chart_data,
+            type='candle',
+            style='charles',
+            volume=False,
+            addplot=addplots,
+            title=f"{coin} - {timestamp.strftime('%Y-%m-%d %H:%M')}",
+            savefig=image_path
+        )
         return image_path
-        
+
     except Exception as e:
         print(f"❌ Chart generation failed for {coin} at {timestamp}: {e}")
         return None
+
 
 
 
