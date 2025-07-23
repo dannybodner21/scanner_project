@@ -255,6 +255,12 @@ def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
         # Get the last 60 candles
         chart_data = df.tail(60)
 
+        # Validate data
+        required_cols = ['open', 'high', 'low', 'close', 'MA20', 'MA50']
+        if chart_data[required_cols].isnull().any().any():
+            print(f"⚠️ Chart skipped for {coin} — missing values at {timestamp}")
+            return None
+
         if chart_data.empty or chart_data[['open', 'high', 'low', 'close']].isna().any().any():
             print(f"⚠️ Insufficient data to generate chart for {coin} at {timestamp}")
             return None
@@ -845,12 +851,12 @@ def run_live_pipeline():
                         print(f"🔎 Inspecting {coin} chart data at {timestamp}")
                         print(df.tail(70)[['timestamp', 'open', 'high', 'low', 'close']])
                         print("Null counts:")
-                        print(df[['open', 'high', 'low', 'close', 'MA20', 'MA50']].tail(70).isnull().sum())
+                        #print(df[['open', 'high', 'low', 'close', 'MA20', 'MA50']].tail(70).isnull().sum())
                         print("Data types:")
                         print(df.dtypes)
 
                         chart_path = generate_chart_image(coin, timestamp, df)
-                        
+
                         if not chart_path:
                             continue
 
