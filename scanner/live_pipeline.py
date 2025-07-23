@@ -841,7 +841,16 @@ def run_live_pipeline():
                         
                         timestamp = pd.to_datetime(latest['timestamp'].values[0])
                         timestamp = make_aware(timestamp)
+
+                        print(f"🔎 Inspecting {coin} chart data at {timestamp}")
+                        print(df.tail(70)[['timestamp', 'open', 'high', 'low', 'close']])
+                        print("Null counts:")
+                        print(df[['open', 'high', 'low', 'close', 'MA20', 'MA50']].tail(70).isnull().sum())
+                        print("Data types:")
+                        print(df.dtypes)
+
                         chart_path = generate_chart_image(coin, timestamp, df)
+                        
                         if not chart_path:
                             continue
 
