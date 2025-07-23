@@ -528,11 +528,17 @@ def add_enhanced_features(df):
     df = df.copy()
     df.set_index('timestamp', inplace=True)
 
-    close = df['close']
-    high = df['high']
-    low = df['low']
-    volume = df['volume']
-    open_price = df['open']
+    #close = df['close']
+    #high = df['high']
+    #low = df['low']
+    #volume = df['volume']
+    #open_price = df['open']
+
+    close = df['close'].astype(float)
+    high = df['high'].astype(float)
+    low = df['low'].astype(float)
+    volume = df['volume'].astype(float)
+    open_price = df['open'].astype(float)
 
     # EMAs & SMAs
     for period in [9, 21, 50, 100, 200]:
