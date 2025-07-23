@@ -28,6 +28,7 @@ from openai import OpenAI
 from io import BytesIO
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.core.files import File
 
 
 COINAPI_SYMBOL_MAP = {
@@ -95,12 +96,6 @@ client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 # BTC market context - 24h change, macd crossed, above ema 50
 # could add written context about what the chart pattern shows
 # only send the clean features - don't dilute the data
-'''
-“You are a world-class crypto trader. Review the chart and features below to decide 
-if this is a high-confidence long trade. The goal is a +1.5% price gain before a -2% drop, 
-within the next few hours. Respond only with a confidence score between 0.00 and 1.00. The score 
-represents how likely you believe the trade will hit the target. Do not explain. Just return the number.”
-'''
 # make sure there are no NaN values
 
 def gpt_filter_trade(coin, timestamp, features, chart_path):
@@ -129,7 +124,7 @@ def gpt_filter_trade(coin, timestamp, features, chart_path):
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are a professional crypto day trader who has made millions just from analyzing 5-minute candlestick charts and patterns. Take a look at the recent five min candle chart and the following technical analysis features. We are looking for a 1.5 percent increase in price before a 2 percent decrease in price (or a higher increase, but minimum 1.5 percent). prediction_prob is the confidence score from a trained machine learning model. Take that into consideration and give the trade a score between 0.00 and 1.00, where 1.0 is you are extremely confident it is a winning long trade setup. Have your confidence scores be very precise in increments of 0.01. Respond with only your confidence score. Let me repeat that. RESPOND WITH ONLY YOUR CONFIDENCE SCORE VALUE BETWEEN 0.00 AND 1.00."},
+                {"role": "system", "content": "You are an elite cryptocurrency day trader who has made millions trading 5-minute candlestick chart setups. Your job is to review each setup (chart + features) and predict the probability that the price will increase by at least 2 percent BEFORE decreasing by 1 percent. Use your deep knowledge of candlestick patterns, trend indicators, and ML predictions. A machine learning model has already pre-filtered these trades. We want to approve those with very high-quality signals. Take ML confidence into account but do not over-rely on it. Use the following guidelines to create your score between 0.00 and 1.00: Above 0.95 = extremely likely winner, 0.90 to 0.94 = strong edge, probable winner, 0.85 to 0.89 = decent edge, cautious approval, Below 0.85 = you do not approve. Reject setups that show weakness, sideways chop, or unclear direction — even if ML score is high. You may be shown results of past trades as memory — use them to calibrate your decision-making. Respond with only your confidence score (0.00 to 1.00), rounded to two decimal places."},
                 {"role": "user", "content": content}
             ],
             max_tokens=50,
@@ -251,6 +246,65 @@ def generate_chart_image(coin, timestamp, df, output_dir="chart_images"):
     except Exception as e:
         print(f"❌ Chart generation failed for {coin} at {timestamp}: {e}")
         return None
+
+
+def generate_chart_image_30m(coin, timestamp, df_5m):
+    import matplotlib.pyplot as plt
+    import mplfinance as mpf
+    import pandas as pd
+    from io import BytesIO
+    import os
+
+    """
+    Generate a 30-minute candlestick chart image for the given coin and timestamp.
+    Uses the previous 48 30-min candles (~24 hours of data).
+    """
+
+    # Convert timestamp if needed
+    df_5m = df_5m.copy()
+    df_5m['timestamp'] = pd.to_datetime(df_5m['timestamp'])
+    df_5m.set_index('timestamp', inplace=True)
+
+    # Resample to 30-minute candles
+    df_30m = df_5m.resample('30T').agg({
+        'open': 'first',
+        'high': 'max',
+        'low': 'min',
+        'close': 'last',
+        'volume': 'sum'
+    }).dropna()
+
+    # Limit to the last 48 candles (~24 hours)
+    df_30m = df_30m.iloc[-48:]
+
+    # Add moving averages (optional)
+    df_30m['ma9'] = df_30m['close'].rolling(window=9).mean()
+    df_30m['ma21'] = df_30m['close'].rolling(window=21).mean()
+
+    # Build filename and directory
+    filename = f"aaa{coin}_30m_{timestamp.strftime('%Y%m%d_%H%M')}.png"
+    save_path = os.path.join("chart_images", filename)
+    os.makedirs("chart_images", exist_ok=True)
+
+    # Generate plot
+    mpf.plot(
+        df_30m,
+        type='candle',
+        style='yahoo',
+        mav=(9, 21),
+        volume=True,
+        figsize=(10, 6),
+        savefig=save_path
+    )
+
+    return save_path
+
+
+
+
+
+
+
 
 
 def safe_decimal(value):
