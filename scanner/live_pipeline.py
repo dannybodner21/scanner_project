@@ -459,14 +459,15 @@ def get_recent_candles(coin, limit=2016):
     return df.sort_values('timestamp').reset_index(drop=True)
 
 
-# used to backfill the last 2016 candles so there are no gaps
+# used to backfill the last 72 candles so there are no gaps
 def backfill_recent_candles(coin):
+
     print(f"🔁 Backfilling recent candles for {coin}...")
-    symbol = COINAPI_SYMBOL_MAP[coin]
+    symbol = coin
     headers = {"X-CoinAPI-Key": COINAPI_KEY}
 
     end = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=pytz.UTC)
-    start = end - timedelta(days=7)
+    start = end - timedelta(minutes=60)
 
     chunk_minutes = 5 * 100  # 100 candles max
     current = start
@@ -487,7 +488,9 @@ def backfill_recent_candles(coin):
             candles = r.json()
 
             for x in candles:
-                ts = pd.to_datetime(x['time_period_start']).replace(tzinfo=pytz.UTC)
+
+                ts = pd.Timestamp(x['time_period_start'], tz='UTC')
+
                 CoinAPIPrice.objects.update_or_create(
                     coin=coin,
                     timestamp=ts,
@@ -656,6 +659,22 @@ def print_feature_stats(df, coin):
             print(f"⚠ Feature {feature} missing in dataframe for {coin}")
 
 
+def has_recent_2016_candles(coin):
+
+    candles = CoinAPIPrice.objects.filter(coin=coin).order_by('-timestamp')[:2016]
+    if len(candles) < 2016:
+        return False
+
+    timestamps = sorted([c.timestamp for c in candles])
+    expected_diff = timedelta(minutes=5)
+
+    for i in range(1, len(timestamps)):
+        if timestamps[i] - timestamps[i - 1] != expected_diff:
+            return False
+
+    return True
+
+
 def run_live_pipeline():
 
     print("🚀 Running live LightGBM pipeline")
@@ -676,11 +695,11 @@ def run_live_pipeline():
 
     # 🛠️ Ensure each coin has at least 2016 candles in DB
     for coin in COINS:
-        coin_symbol = COIN_SYMBOL_MAP_DB[coin]
-        existing_count = CoinAPIPrice.objects.filter(coin=coin_symbol).count()
-        if existing_count < 2016:
-            print(f"⚠️ {coin} only has {existing_count} candles, backfilling to 7d...")
-            backfill_recent_candles(coin)
+        coin_symbol = coin
+
+        if not has_recent_2016_candles(coin_symbol):
+            print(f"⚠️ {coin} is fcked -> backfilling to 7d...")
+            backfill_recent_candles(coin_symbol)
 
 
 
@@ -688,8 +707,10 @@ def run_live_pipeline():
     # Pull latest candle per coin and save
     latest_candles = {}
     for coin in COINS:
+
         candle = fetch_latest_candle(coin)
         save_candle_if_missing(candle)
+
         if candle:
             latest_candles[coin] = candle
 
@@ -698,7 +719,7 @@ def run_live_pipeline():
         print("❌ BTCUSDT candle missing, cannot proceed")
         return
 
-    btc_recent = get_recent_candles("BTC", limit=2016)
+    btc_recent = get_recent_candles("BTCUSDT", limit=2016)
     if btc_recent is None:
         print("❌ Not enough BTCUSDT data for trend indicators")
         return
@@ -726,8 +747,7 @@ def run_live_pipeline():
 
         try:
             # Get 2016 most recent candles from DB
-            coin_symbol = COIN_SYMBOL_MAP_DB[coin]
-            recent_df = get_recent_candles(coin_symbol, limit=2016)
+            recent_df = get_recent_candles(coin, limit=2016)
 
             if recent_df is None:
                 print(f"⏭️ Skipping {coin}, not enough candles in DB")
@@ -843,7 +863,7 @@ def run_live_pipeline():
                         )
                         print(f"✅ LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}")
                         send_text([f"LONG trade opened for {coin} @ {latest['close'].values[0]:.4f}"])
-                        
+
                     else:
                         print(f"ℹ️ Long trade already open for {coin}")
             else:
