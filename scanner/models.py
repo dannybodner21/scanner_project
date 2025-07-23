@@ -340,7 +340,8 @@ class MemoryTrade(models.Model):
     tp_percent = models.FloatField(default=2.00)  # 2%
     sl_percent = models.FloatField(default=1.00)  # 1%
 
-    chart_image = models.ImageField(upload_to='memory_charts/', null=True, blank=True)
+    chart_image_5min = models.ImageField(upload_to='memory_charts/', null=True, blank=True)
+    chart_image_30min = models.ImageField(upload_to='memory_charts/', null=True, blank=True)
 
     # Trade outcome
     entry_price = models.FloatField()

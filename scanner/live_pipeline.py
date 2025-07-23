@@ -98,7 +98,7 @@ client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 # only send the clean features - don't dilute the data
 # make sure there are no NaN values
 
-def gpt_filter_trade(coin, timestamp, features, chart_path):
+def gpt_filter_trade(coin, timestamp, features, chart_path, chart_path_30m):
     try:
 
         time.sleep(0.5)
@@ -106,12 +106,23 @@ def gpt_filter_trade(coin, timestamp, features, chart_path):
         with open(chart_path, "rb") as f:
             image_bytes = f.read()
 
+        with open(chart_path_30m, "rb") as f:
+            chart_30m_bytes = f.read()
+
         base64_image = base64.b64encode(image_bytes).decode("utf-8")
+        base64_image_30min = base64.b64encode(chart_30m_bytes).decode("utf-8")
+
         content = [
             {
                 "type": "image_url",
                 "image_url": {
                     "url": f"data:image/png;base64,{base64_image}"
+                },
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{base64_image_30min}"
                 },
             },
             {
@@ -127,7 +138,7 @@ def gpt_filter_trade(coin, timestamp, features, chart_path):
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are an elite cryptocurrency day trader who has made millions trading 5-minute candlestick chart setups. Your job is to review each setup (chart + features) and predict the probability that the price will increase by at least 2 percent BEFORE decreasing by 1 percent. Use your deep knowledge of candlestick patterns, trend indicators, and ML predictions. A machine learning model has already pre-filtered these trades. We want to approve those with very high-quality signals. Take ML confidence into account but do not over-rely on it. Use the following guidelines to create your score between 0.00 and 1.00: Above 0.95 = extremely likely winner, 0.90 to 0.94 = strong edge, probable winner, 0.85 to 0.89 = decent edge, cautious approval, Below 0.85 = you do not approve. Reject setups that show weakness, sideways chop, or unclear direction — even if ML score is high. You may be shown results of past trades as memory — use them to calibrate your decision-making. Respond with only your confidence score (0.00 to 1.00), rounded to two decimal places."},
+                {"role": "system", "content": "You are an elite cryptocurrency day trader who has made millions trading 5-minute candlestick chart setups. Your job is to review each setup (chart + features) and predict the probability that the price will increase by at least 2 percent BEFORE decreasing by 1 percent. There should be both a 5 min chart pattern and a 30 min chart pattern attached. Use your deep knowledge of candlestick patterns, trend indicators, and ML predictions. A machine learning model has already pre-filtered these trades. We want to approve those with very high-quality signals. Take ML confidence into account but do not over-rely on it. Use the following guidelines to create your score between 0.00 and 1.00: Above 0.95 = extremely likely winner, 0.90 to 0.94 = strong edge, probable winner, 0.85 to 0.89 = decent edge, cautious approval, Below 0.85 = you do not approve. Reject setups that show weakness, sideways chop, or unclear direction — even if ML score is high. You may be shown results of past trades as memory — use them to calibrate your decision-making. Respond with only your confidence score (0.00 to 1.00), rounded to two decimal places."},
                 {"role": "user", "content": content}
             ],
             max_tokens=50,
@@ -840,12 +851,18 @@ def run_live_pipeline():
                     if not exists:
 
                         latest_row = latest.iloc[0]
-                        features = {col: latest_row[col] for col in latest_row.index if col not in ['timestamp', 'prediction', 'open']}
+                        features = {
+                            col: float(latest_row[col]) if isinstance(latest_row[col], Decimal) else latest_row[col]
+                            for col in latest_row.index
+                            if col not in ['timestamp', 'prediction', 'open']
+                        }
                         
                         timestamp = pd.to_datetime(latest['timestamp'].values[0])
                         timestamp = make_aware(timestamp)
 
                         chart_path = generate_chart_image(coin, timestamp, recent_df)
+                        chart_path_30m = generate_chart_image_30m(coin, timestamp, recent_df)
+                        chart_file_30m = open(chart_path_30m, "rb") if chart_path_30m else None
 
                         if not chart_path:
                             continue
@@ -863,8 +880,7 @@ def run_live_pipeline():
                                 }
                             )
 
-                        decision = gpt_filter_trade(coin, timestamp, features, chart_path)
-
+                        decision = gpt_filter_trade(coin, timestamp, features, chart_path, chart_path_30m)
 
                         # save memory trade
                         chart_file = open(chart_path, "rb")
@@ -878,13 +894,16 @@ def run_live_pipeline():
                             tp_percent=2.00,
                             sl_percent=1.00,
                             features=features,  # full feature dict
-                            chart_image=File(chart_file) if chart_file else None,
+                            chart_image_5min=File(chart_file) if chart_file else None,
+                            chart_image_30min=File(chart_file_30m) if chart_file_30m else None,
                             outcome='open',
                             entry_price=safe_decimal(latest['close'].values[0]),
                         )
 
                         if chart_file:
                             chart_file.close()
+                        if chart_file_30m:
+                            chart_file_30m.close()
 
 
                         if decision < 0.87:
