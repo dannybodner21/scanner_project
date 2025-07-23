@@ -324,6 +324,41 @@ class ConfidenceHistory(models.Model):
 
 
 
+# tracking trades to use as memory for chat gpt agent
+class MemoryTrade(models.Model):
+    coin = models.CharField(max_length=20)
+    timestamp = models.DateTimeField()
+    trade_type = models.CharField(max_length=10, choices=[('long', 'Long'), ('short', 'Short')])
+    
+    # Trade input
+    features = models.JSONField()  # full feature set used for prediction
+    ml_confidence = models.FloatField()
+    gpt_confidence = models.FloatField(null=True, blank=True)  # may be missing
+    
+    # Trade configuration
+    leverage = models.FloatField(default=15.0)
+    tp_percent = models.FloatField(default=0.02)  # 2%
+    sl_percent = models.FloatField(default=-0.01)  # -1%
+
+    chart_image = models.ImageField(upload_to='memory_charts/', null=True, blank=True)
+
+    # Trade outcome
+    entry_price = models.FloatField()
+    exit_price = models.FloatField(null=True, blank=True)
+    exit_timestamp = models.DateTimeField(null=True, blank=True)
+    outcome = models.CharField(
+        max_length=10,
+        choices=[('win', 'Win'), ('loss', 'Loss'), ('open', 'Open')],
+        default='open'
+    )
+
+    def __str__(self):
+        return f"{self.coin} @ {self.timestamp} — {self.outcome}"
+
+
+
+
+
 class RealTrade(models.Model):
 
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE)

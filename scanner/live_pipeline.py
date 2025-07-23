@@ -15,7 +15,7 @@ import joblib
 import pytz
 
 from datetime import datetime, timedelta
-from scanner.models import Coin, ModelTrade, RealTrade, ConfidenceHistory, LivePriceSnapshot, LiveChart, CoinAPIPrice
+from scanner.models import Coin, MemoryTrade, ModelTrade, RealTrade, ConfidenceHistory, LivePriceSnapshot, LiveChart, CoinAPIPrice
 from scipy.stats import linregress
 from joblib import load
 
@@ -88,6 +88,20 @@ from dotenv import load_dotenv
 load_dotenv()
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
+
+# things that can help improvement
+# add a 1 hour chart image
+# recent trade outcomes - record all trades by the current ml model with confidence from ml and agent
+# BTC market context - 24h change, macd crossed, above ema 50
+# could add written context about what the chart pattern shows
+# only send the clean features - don't dilute the data
+'''
+“You are a world-class crypto trader. Review the chart and features below to decide 
+if this is a high-confidence long trade. The goal is a +1.5% price gain before a -2% drop, 
+within the next few hours. Respond only with a confidence score between 0.00 and 1.00. The score 
+represents how likely you believe the trade will hit the target. Do not explain. Just return the number.”
+'''
+# make sure there are no NaN values
 
 def gpt_filter_trade(coin, timestamp, features, chart_path):
     try:
@@ -848,13 +862,6 @@ def run_live_pipeline():
                         timestamp = pd.to_datetime(latest['timestamp'].values[0])
                         timestamp = make_aware(timestamp)
 
-                        print(f"🔎 Inspecting {coin} chart data at {timestamp}")
-                        print(df.tail(70)[['timestamp', 'open', 'high', 'low', 'close']])
-                        print("Null counts:")
-                        #print(df[['open', 'high', 'low', 'close', 'MA20', 'MA50']].tail(70).isnull().sum())
-                        print("Data types:")
-                        print(df.dtypes)
-
                         chart_path = generate_chart_image(coin, timestamp, recent_df)
 
                         if not chart_path:
@@ -896,8 +903,8 @@ def run_live_pipeline():
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
                             entry_price=safe_decimal(latest['close'].values[0]),
                             model_confidence=long_prob,
-                            take_profit_percent=1.5,
-                            stop_loss_percent=2.0,
+                            take_profit_percent=2.0,
+                            stop_loss_percent=1.0,
                             confidence_trade=CONFIDENCE_THRESHOLD,
                             recent_confidences=recent_confs,
                         )
@@ -954,8 +961,8 @@ def run_live_pipeline():
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
                             entry_price=safe_decimal(latest['close'].values[0]),
                             model_confidence=short_prob,
-                            take_profit_percent=1.0,
-                            stop_loss_percent=2.0,
+                            take_profit_percent=2.0,
+                            stop_loss_percent=1.0,
                             confidence_trade=SHORT_CONFIDENCE_THRESHOLD,
                             recent_confidences=recent_confs_short,
                         )
