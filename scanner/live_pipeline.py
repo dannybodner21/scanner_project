@@ -855,7 +855,7 @@ def run_live_pipeline():
                         print("Data types:")
                         print(df.dtypes)
 
-                        chart_path = generate_chart_image(coin, timestamp, df)
+                        chart_path = generate_chart_image(coin, timestamp, recent_df)
 
                         if not chart_path:
                             continue
