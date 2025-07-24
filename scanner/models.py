@@ -311,7 +311,6 @@ class ModelTrade(models.Model):
         return f"{self.coin.symbol} | {self.trade_type.upper()} | {self.entry_timestamp.strftime('%Y-%m-%d %H:%M')}"
 
 
-
 class ConfidenceHistory(models.Model):
     coin = models.ForeignKey(Coin, on_delete=models.CASCADE)
     model_name = models.CharField(max_length=100)
@@ -320,9 +319,7 @@ class ConfidenceHistory(models.Model):
 
     class Meta:
         ordering = ['-timestamp']
-
-
-
+        
 
 # tracking trades to use as memory for chat gpt agent
 class MemoryTrade(models.Model):

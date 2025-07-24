@@ -90,6 +90,21 @@ load_dotenv()
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 
+# to format all the memory trades before sending to ChatGPT
+def format_trade_memory(trade):
+    feature_summary = ", ".join(
+        f"{k}: {float(v):.3f}" if isinstance(v, (float, int, np.float64, np.float32, Decimal)) else f"{k}: {v}"
+        for k, v in trade.features.items()
+    )
+
+    return (
+        f"Coin: {trade.coin}, Time: {trade.timestamp.strftime('%Y-%m-%d %H:%M')}, "
+        f"ML Confidence: {trade.ml_confidence:.2f}, "
+        f"{'GPT Confidence: {:.2f}'.format(trade.gpt_confidence) if trade.gpt_confidence is not None else 'GPT Confidence: N/A'}, "
+        f"Outcome: {trade.outcome}, Features: [{feature_summary}]"
+    )
+
+
 # things that can help improvement
 # add a 1 hour chart image
 # recent trade outcomes - record all trades by the current ml model with confidence from ml and agent
@@ -111,6 +126,13 @@ def gpt_filter_trade(coin, timestamp, features, chart_path, chart_path_30m):
 
         base64_image = base64.b64encode(image_bytes).decode("utf-8")
         base64_image_30min = base64.b64encode(chart_30m_bytes).decode("utf-8")
+
+        wins = MemoryTrade.objects.filter(outcome="win").order_by('-timestamp')[:50]
+        losses = MemoryTrade.objects.filter(outcome="loss").order_by('-timestamp')[:50]
+        closed_trades = sorted(list(wins) + list(losses), key=lambda t: t.timestamp, reverse=True)
+
+        memory_lines = [format_trade_memory(trade) for trade in closed_trades]
+        memory_text = "\n\n".join(memory_lines)
 
         content = [
             {
@@ -138,7 +160,7 @@ def gpt_filter_trade(coin, timestamp, features, chart_path, chart_path_30m):
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are an elite cryptocurrency day trader who has made millions trading 5-minute candlestick chart setups. Your job is to review each setup (chart + features) and predict the probability that the price will increase by at least 2 percent BEFORE decreasing by 1 percent. There should be both a 5 min chart pattern and a 30 min chart pattern attached. Use your deep knowledge of candlestick patterns, trend indicators, and ML predictions. A machine learning model has already pre-filtered these trades. We want to approve those with very high-quality signals. Take ML confidence into account but do not over-rely on it. Use the following guidelines to create your score between 0.00 and 1.00: Above 0.95 = extremely likely winner, 0.90 to 0.94 = strong edge, probable winner, 0.85 to 0.89 = decent edge, cautious approval, Below 0.85 = you do not approve. Reject setups that show weakness, sideways chop, or unclear direction — even if ML score is high. You may be shown results of past trades as memory — use them to calibrate your decision-making. Respond with only your confidence score (0.00 to 1.00), rounded to two decimal places."},
+                {"role": "system", "content": "You are an elite cryptocurrency day trader who has made millions trading 5-minute candlestick chart setups. Your job is to review each setup (chart + features) and predict the probability that the price will increase by at least 2 percent BEFORE decreasing by 1 percent. There should be both a 5 min chart pattern and a 30 min chart pattern attached. Use your deep knowledge of candlestick patterns, trend indicators, and ML predictions. A machine learning model has already pre-filtered these trades. We want to approve those with very high-quality signals. Take ML confidence into account but do not over-rely on it. Below are 100 recent trades with their inputs and outcomes. Learn from them.\n {memory_text} \n Use the following guidelines to create your score between 0.00 and 1.00: Above 0.95 = extremely likely winner, 0.90 to 0.94 = strong edge, probable winner, 0.85 to 0.89 = decent edge, cautious approval, Below 0.85 = you do not approve. Reject setups that show weakness, sideways chop, or unclear direction — even if ML score is high. You may be shown results of past trades as memory — use them to calibrate your decision-making. Respond with only your confidence score (0.00 to 1.00), rounded to two decimal places."},
                 {"role": "user", "content": content}
             ],
             max_tokens=50,
