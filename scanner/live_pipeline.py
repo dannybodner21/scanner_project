@@ -880,7 +880,8 @@ def run_live_pipeline():
                         # Save to LiveChart model (overwrite existing entry per coin)
                         with open(chart_path, "rb") as img_file:
                             chart_bytes = img_file.read()
-                            file_name = os.path.basename(chart_path)
+                            #file_name = os.path.basename(chart_path)
+                            file_name = f"{coin}.png"
 
                             LiveChart.objects.update_or_create(
                                 coin=coin,
