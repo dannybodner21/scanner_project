@@ -25,26 +25,11 @@ from ta.volatility import AverageTrueRange, BollingerBands
 from pandas.errors import SettingWithCopyWarning
 
 
-# enhanced_model
-# Confidece: 0.58
-# TP: 6%
-# SL: 3%
-# Trades: 13, Wins: 9, Losses: 4, Win %: 69.23%
-# Final Balance: $14,584.61 (Leverage: 15.0x)
-# Max trade duration: 3 hours - I think
 
 
-# four_model
-# Confidence: 0.52
-# TP: 15%
-# SL: 3%
-# Trades: 13, Wins: 8, Losses: 5, Win %: 61.54%
-# Final Balance: $24,891.46 (Leverage: 15.0x)
-# Max trade duration: 2 hours
-# 3 months of trading
 
 
-# starting twelve 
+# starting two 
 
 
 
@@ -171,7 +156,7 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 
-def get_direction_labels(df: pd.DataFrame, forward_periods: int = 12) -> pd.Series:
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Series:
     """
     Simple direction prediction: will price be higher in N periods?
     This is much more learnable than complex TP/SL logic
@@ -180,7 +165,7 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 12) -> pd.Seri
     future_close = df['close'].shift(-forward_periods)
 
     # 1 if price will be higher + 2%, 0 if lower
-    goal_price = current_close * 1.02
+    goal_price = current_close * 1.03
 
     labels = (future_close > goal_price).astype(int)
 
@@ -242,25 +227,25 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=12)
+        parser.add_argument('--forward-periods', type=int, default=48)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
         COINS = ['BTCUSDT','ETHUSDT','XRPUSDT','LTCUSDT','SOLUSDT','DOGEUSDT','LINKUSDT','DOTUSDT', 'SHIBUSDT', 'ADAUSDT', 'UNIUSDT', 'AVAXUSDT', 'XLMUSDT']
 
         START_DATE = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        END_DATE = datetime(2025, 7, 14, tzinfo=timezone.utc)
-        CUTOFF_DATE = datetime(2025, 5, 1, tzinfo=timezone.utc)
+        END_DATE = datetime(2025, 7, 22, tzinfo=timezone.utc)
+        CUTOFF_DATE = datetime(2025, 6, 1, tzinfo=timezone.utc)
 
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
 
-        TRAIN_FILE = 'eleven_training.csv'
-        TEST_FILE = 'eleven_testing.csv'
-        MODEL_FILE = 'eleven_model.joblib'
-        SCALER_FILE = 'eleven_feature_scaler.joblib'
-        FEATURES_FILE = 'eleven_selected_features.joblib'
-        PREDICTION_FILE = 'eleven_enhanced_predictions.csv'
+        TRAIN_FILE = 'two_training.csv'
+        TEST_FILE = 'two_testing.csv'
+        MODEL_FILE = 'two_model.joblib'
+        SCALER_FILE = 'two_feature_scaler.joblib'
+        FEATURES_FILE = 'two_selected_features.joblib'
+        PREDICTION_FILE = 'two_enhanced_predictions.csv'
 
         if not options['skip_generation']:
             self.run_data_generation(COINS, START_DATE, END_DATE, CUTOFF_DATE,

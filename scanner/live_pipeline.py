@@ -930,8 +930,7 @@ def run_live_pipeline():
                             chart_image_5min=File(chart_file) if chart_file else None,
                             chart_image_30min=File(chart_file_30m) if chart_file_30m else None,
                             outcome='open',
-                            entry_price = safe_decimal(latest['close'].values[0] * 1.001),
-
+                            entry_price = safe_decimal(latest['close'].values[0]) * Decimal("1.001"),
                         )
 
                         if chart_file:
@@ -958,7 +957,7 @@ def run_live_pipeline():
                             coin=coin_obj,
                             trade_type='long',
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
-                            entry_price = safe_decimal(latest['close'].values[0] * 1.001),
+                            entry_price = safe_decimal(latest['close'].values[0]) * Decimal("1.001"),
                             model_confidence=long_prob,
                             take_profit_percent=2.0,
                             stop_loss_percent=1.0,
@@ -1016,7 +1015,7 @@ def run_live_pipeline():
                             coin=coin_obj,
                             trade_type='short',
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
-                            entry_price = safe_decimal(latest['close'].values[0] * 0.999),
+                            entry_price = safe_decimal(latest['close'].values[0]) * Decimal("0.999"),
                             model_confidence=short_prob,
                             take_profit_percent=2.0,
                             stop_loss_percent=1.0,
