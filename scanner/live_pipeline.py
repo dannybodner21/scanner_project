@@ -67,10 +67,10 @@ COINS = list(COIN_SYMBOL_MAP_DB.keys())
 COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
-MODEL_PATH = "ten_model.joblib"
-SCALER_PATH = "ten_feature_scaler.joblib"
-FEATURES_PATH = "ten_selected_features.joblib"
-CONFIDENCE_THRESHOLD = 0.7
+MODEL_PATH = "three_model.joblib"
+SCALER_PATH = "three_feature_scaler.joblib"
+FEATURES_PATH = "three_selected_features.joblib"
+CONFIDENCE_THRESHOLD = 0.75
 
 #TWO_MODEL_PATH = "seven_model.joblib"
 #TWO_SCALER_PATH = "seven_feature_scaler.joblib"
@@ -923,9 +923,9 @@ def run_live_pipeline():
                             trade_type='long',
                             ml_confidence=long_prob,
                             gpt_confidence=decision,
-                            leverage=15,
-                            tp_percent=2.00,
-                            sl_percent=1.00,
+                            leverage=10,
+                            tp_percent=2.50,
+                            sl_percent=1.50,
                             features=features,  # full feature dict
                             chart_image_5min=File(chart_file) if chart_file else None,
                             chart_image_30min=File(chart_file_30m) if chart_file_30m else None,
@@ -959,8 +959,8 @@ def run_live_pipeline():
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
                             entry_price = safe_decimal(latest['close'].values[0]) * Decimal("1.001"),
                             model_confidence=long_prob,
-                            take_profit_percent=2.0,
-                            stop_loss_percent=1.0,
+                            take_profit_percent=2.5,
+                            stop_loss_percent=1.5,
                             confidence_trade=CONFIDENCE_THRESHOLD,
                             recent_confidences=recent_confs,
                         )
@@ -1116,10 +1116,10 @@ def run_live_pipeline():
 
             if trade.trade_type == "long":
 
-                if price_low <= price_entry * 0.99:
+                if price_low <= price_entry * 0.985:
                     status = "🛑 STOP LOSS"
                     result = False
-                elif price_high >= price_entry * 1.02:
+                elif price_high >= price_entry * 1.025:
                     status = "💰 TAKE PROFIT"
                 else:
                     continue
@@ -1163,9 +1163,9 @@ def run_live_pipeline():
 
             if trade.trade_type == "long":
 
-                if price_low <= price_entry * 0.99:
+                if price_low <= price_entry * 0.985:
                     trade.outcome = "loss"
-                elif price_high >= price_entry * 1.02:
+                elif price_high >= price_entry * 1.025:
                     trade.outcome = "win"
                 else:
                     continue
