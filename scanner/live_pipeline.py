@@ -871,6 +871,12 @@ def run_live_pipeline():
                         if not chart_path:
                             continue
 
+                        existing = LiveChart.objects.filter(coin=coin).first()
+
+                        # delete old image if it exists, then save the new one
+                        if existing and existing.image:
+                            existing.image.delete(save=False)
+                            
                         # Save to LiveChart model (overwrite existing entry per coin)
                         with open(chart_path, "rb") as img_file:
                             chart_bytes = img_file.read()
