@@ -852,6 +852,9 @@ def add_enhanced_features(df):
     # ATR
     df['atr_14'] = AverageTrueRange(high, low, close, window=14).average_true_range()
     df['atr_21'] = AverageTrueRange(high, low, close, window=21).average_true_range()
+    
+    # ATR as percentage of price
+    df['atr_percent'] = (df['atr_14'] / close) * 100
 
     # Bollinger Bands
     bb = BollingerBands(close, window=20, window_dev=2)
