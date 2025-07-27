@@ -24,7 +24,17 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import AverageTrueRange, BollingerBands
 from pandas.errors import SettingWithCopyWarning
 
-# four
+
+# two
+
+
+
+
+
+
+
+
+
 
 warnings.filterwarnings('ignore', category=SettingWithCopyWarning)
 optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -144,23 +154,48 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
     df.reset_index(inplace=True)
     return df
 
-def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Series:
+
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 24) -> pd.Series:
     """
-    Simple direction prediction: will price be lower in N periods?
-    This is much more learnable than complex TP/SL logic
+    Label short trades as a win (1) if price drops ≥ tp_pct before rising ≥ sl_pct
+    within the next N candles. Otherwise label as loss (0).
     """
-    current_close = df['close']
-    future_close = df['close'].shift(-forward_periods)
+    labels = pd.Series(index=df.index, dtype="float64")
 
-    # 1 if price will be lower, 0 if higher
-    goal_price = current_close * 0.98
+    tp_pct = 0.03
+    sl_pct = 0.02
 
-    labels = (future_close < goal_price).astype(int)
+    for i in range(len(df) - forward_periods):
+        entry_price = df.loc[df.index[i], 'close']
+        tp_price = entry_price * (1 - tp_pct)  # take profit: price drops
+        sl_price = entry_price * (1 + sl_pct)  # stop loss: price rises
 
-    # Remove last N rows where we don't have future data
+        future_highs = df['high'].iloc[i+1:i+1+forward_periods].values
+        future_lows = df['low'].iloc[i+1:i+1+forward_periods].values
+
+        hit_tp = False
+        hit_sl = False
+
+        for high, low in zip(future_highs, future_lows):
+
+            if high >= sl_price:
+                hit_sl = True
+                break
+            if low <= tp_price:
+                hit_tp = True
+                break
+            
+        if hit_tp:
+            labels.iloc[i] = 1  # TP hit first → win
+        elif hit_sl:
+            labels.iloc[i] = 0  # SL hit first → loss
+        else:
+            labels.iloc[i] = 0  # neither hit → count as loss
+
+    # Final forward_periods are NaN due to incomplete future data
     labels.iloc[-forward_periods:] = np.nan
-
     return labels
+
 
 def add_cross_coin_features(coin_dfs: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     """Add features that compare across coins (market regime indicators)"""
@@ -210,30 +245,28 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=48)
+        parser.add_argument('--forward-periods', type=int, default=24)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
         # Updated coin list with more liquid pairs
 
-        # COINS = ['LTCUSDT', 'XRPUSDT', 'DOTUSDT', 'LINKUSDT', 'UNIUSDT']
-
         COINS = ['BTCUSDT','ETHUSDT','XRPUSDT','LTCUSDT','SOLUSDT','DOGEUSDT','LINKUSDT','DOTUSDT', 'SHIBUSDT', 'ADAUSDT', 'UNIUSDT', 'AVAXUSDT', 'XLMUSDT']
 
 
         START_DATE = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        END_DATE = datetime(2025, 7, 14, tzinfo=timezone.utc)
-        CUTOFF_DATE = datetime(2025, 5, 1, tzinfo=timezone.utc)
+        END_DATE = datetime(2025, 7, 23, tzinfo=timezone.utc)
+        CUTOFF_DATE = datetime(2025, 6, 1, tzinfo=timezone.utc)
 
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
 
-        TRAIN_FILE = 'short_four_training.csv'
-        TEST_FILE = 'short_four_testing.csv'
-        MODEL_FILE = 'short_four_model.joblib'
-        SCALER_FILE = 'short_four_feature_scaler.joblib'
-        FEATURES_FILE = 'short_four_selected_features.joblib'
-        PREDICTION_FILE = 'short_four_enhanced_predictions.csv'
+        TRAIN_FILE = 'short_two_training.csv'
+        TEST_FILE = 'short_two_testing.csv'
+        MODEL_FILE = 'short_two_model.joblib'
+        SCALER_FILE = 'short_two_feature_scaler.joblib'
+        FEATURES_FILE = 'short_two_selected_features.joblib'
+        PREDICTION_FILE = 'short_two_enhanced_predictions.csv'
 
         if not options['skip_generation']:
             self.run_data_generation(COINS, START_DATE, END_DATE, CUTOFF_DATE,
@@ -369,6 +402,14 @@ class Command(BaseCommand):
         train_balance = train_df['label'].value_counts(normalize=True)
         self.stdout.write(f"  - Training class balance: {train_balance.to_dict()}")
 
+        self.stdout.write("  - Balancing training dataset...")
+        min_class_count = train_df['label'].value_counts().min()
+        df_0 = train_df[train_df['label'] == 0].sample(n=min_class_count, random_state=42)
+        df_1 = train_df[train_df['label'] == 1].sample(n=min_class_count, random_state=42)
+        train_df = pd.concat([df_0, df_1]).sample(frac=1, random_state=42).reset_index(drop=True)
+        self.stdout.write(f"  - Balanced training samples: {len(train_df)}")
+        self.stdout.write(f"  - New class balance: {train_df['label'].value_counts().to_dict()}")
+
         # Save datasets
         train_df.to_csv(train_path, index=False)
         test_df.to_csv(test_path, index=False)
@@ -465,7 +506,7 @@ class Command(BaseCommand):
 
         # Make predictions
         probabilities = model.predict_proba(X_test_scaled)[:, 1]
-        predictions = (probabilities > 0.4).astype(int)
+        predictions = (probabilities > 0.5).astype(int)
 
         # Calculate accuracy on test set
         test_accuracy = accuracy_score(test_df['label'], predictions)

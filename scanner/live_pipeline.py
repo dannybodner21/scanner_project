@@ -67,20 +67,20 @@ COINS = list(COIN_SYMBOL_MAP_DB.keys())
 COINAPI_KEY = "01293e2a-dcf1-4e81-8310-c6aa9d0cb743"
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
-MODEL_PATH = "three_model.joblib"
-SCALER_PATH = "three_feature_scaler.joblib"
-FEATURES_PATH = "three_selected_features.joblib"
-CONFIDENCE_THRESHOLD = 0.75
+MODEL_PATH = "four_model.joblib"  # UPDATED: Latest LONG model
+SCALER_PATH = "four_feature_scaler.joblib"
+FEATURES_PATH = "four_selected_features.joblib"
+CONFIDENCE_THRESHOLD = 0.80  # OPTIMIZED: Raised for better selectivity
 
 #TWO_MODEL_PATH = "seven_model.joblib"
 #TWO_SCALER_PATH = "seven_feature_scaler.joblib"
 #TWO_FEATURES_PATH = "seven_selected_features.joblib"
 #TWO_CONFIDENCE_THRESHOLD = 0.8
 
-SHORT_MODEL_PATH = "short_four_model.joblib"
-SHORT_SCALER_PATH = "short_four_feature_scaler.joblib"
-SHORT_FEATURES_PATH = "short_four_selected_features.joblib"
-SHORT_CONFIDENCE_THRESHOLD = 0.62
+SHORT_MODEL_PATH = "short_three_model.joblib"  # UPDATED: Latest SHORT model
+SHORT_SCALER_PATH = "short_three_feature_scaler.joblib"
+SHORT_FEATURES_PATH = "short_three_selected_features.joblib"
+SHORT_CONFIDENCE_THRESHOLD = 0.68  # OPTIMIZED: Raised for better selectivity
 
 selected_features = joblib.load(FEATURES_PATH)
 
@@ -88,6 +88,209 @@ selected_features = joblib.load(FEATURES_PATH)
 from dotenv import load_dotenv
 load_dotenv()
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+
+# === ADVANCED PROFITABILITY FILTERS ===
+
+def passes_advanced_long_filters(row, ml_confidence, coin):
+    """
+    Advanced filtering system for LONG trades to maximize profitability
+    Returns True if trade should proceed, False to reject
+    """
+    
+    # FILTER 1: Volume Confirmation
+    volume_ratio = getattr(row, 'volume_ratio', 1.0)
+    if volume_ratio < 1.2:  # Require above-average volume
+        print(f"🚫 {coin} LONG: Low volume ({volume_ratio:.2f})")
+        return False
+    
+    # FILTER 2: Momentum Confluence Check
+    rsi_14 = getattr(row, 'rsi_14', 50)
+    ema_9_21_ratio = getattr(row, 'ema_9_21_ratio', 1.0)
+    macd = getattr(row, 'macd', 0)
+    macd_signal = getattr(row, 'macd_signal', 0)
+    
+    bullish_momentum = (
+        rsi_14 < 35 and  # Oversold condition
+        ema_9_21_ratio > 1.001 and  # Short EMA above long EMA
+        macd > macd_signal  # MACD bullish
+    )
+    
+    if not bullish_momentum and ml_confidence < 0.85:
+        print(f"🚫 {coin} LONG: Weak momentum confluence")
+        return False
+    
+    # FILTER 3: Market Structure Check
+    close = getattr(row, 'close', 0)
+    ema_200 = getattr(row, 'ema_200', close)
+    
+    if close < ema_200 and ml_confidence < 0.80:  # Below major trend
+        print(f"🚫 {coin} LONG: Below 200 EMA trend")
+        return False
+    
+    # FILTER 4: Volatility Regime
+    atr_14 = getattr(row, 'atr_14', 0)
+    if atr_14 == 0:  # Avoid dead markets
+        print(f"🚫 {coin} LONG: No volatility")
+        return False
+    
+    # FILTER 5: Time-based filtering (avoid low-volume hours)
+    current_hour = datetime.utcnow().hour
+    if current_hour in [1, 2, 3, 4, 5, 6] and ml_confidence < 0.80:  # Asian low-volume hours
+        print(f"🚫 {coin} LONG: Low-volume time period")
+        return False
+    
+    # FILTER 6: Anti-correlation with other positions
+    if has_too_many_correlated_positions(coin, 'long'):
+        print(f"🚫 {coin} LONG: Too many correlated positions")
+        return False
+    
+    print(f"✅ {coin} LONG: Passed all advanced filters")
+    return True
+
+
+def passes_advanced_short_filters(row, ml_confidence, coin):
+    """
+    Advanced filtering system for SHORT trades to maximize profitability
+    Returns True if trade should proceed, False to reject
+    """
+    
+    # FILTER 1: Volume Confirmation
+    volume_ratio = getattr(row, 'volume_ratio', 1.0)
+    if volume_ratio < 1.2:  # Require above-average volume
+        print(f"🚫 {coin} SHORT: Low volume ({volume_ratio:.2f})")
+        return False
+    
+    # FILTER 2: Bearish Momentum Confluence
+    rsi_14 = getattr(row, 'rsi_14', 50)
+    ema_9_21_ratio = getattr(row, 'ema_9_21_ratio', 1.0)
+    macd = getattr(row, 'macd', 0)
+    macd_signal = getattr(row, 'macd_signal', 0)
+    
+    bearish_momentum = (
+        rsi_14 > 65 and  # Overbought condition
+        ema_9_21_ratio < 0.999 and  # Short EMA below long EMA
+        macd < macd_signal  # MACD bearish
+    )
+    
+    if not bearish_momentum and ml_confidence < 0.75:
+        print(f"🚫 {coin} SHORT: Weak bearish momentum")
+        return False
+    
+    # FILTER 3: Resistance/Distribution Check
+    close = getattr(row, 'close', 0)
+    high = getattr(row, 'high', close)
+    open_price = getattr(row, 'open', close)
+    
+    # Look for distribution patterns (long upper shadows)
+    upper_shadow = (high - max(close, open_price)) / open_price if open_price > 0 else 0
+    body_size = abs(close - open_price) / open_price if open_price > 0 else 0
+    
+    strong_distribution = (
+        upper_shadow > body_size * 1.5 and  # Long upper shadow
+        close < open_price and  # Red candle
+        volume_ratio > 1.5  # High volume
+    )
+    
+    if not strong_distribution and ml_confidence < 0.70:
+        print(f"🚫 {coin} SHORT: No distribution pattern")
+        return False
+    
+    # FILTER 4: Volatility Expansion Check
+    atr_14 = getattr(row, 'atr_14', 0)
+    if atr_14 == 0:  # Avoid dead markets
+        print(f"🚫 {coin} SHORT: No volatility")
+        return False
+    
+    # FILTER 5: Market Regime Check (prefer range-bound for shorts)
+    bb_position = getattr(row, 'bb_position', 0.5)
+    if bb_position < 0.7 and ml_confidence < 0.70:  # Not near upper BB
+        print(f"🚫 {coin} SHORT: Not overbought enough")
+        return False
+    
+    # FILTER 6: Risk-off sentiment confirmation
+    # In real implementation, this could check BTC trend, VIX equivalent, etc.
+    
+    # FILTER 7: Anti-correlation with other positions
+    if has_too_many_correlated_positions(coin, 'short'):
+        print(f"🚫 {coin} SHORT: Too many correlated positions")
+        return False
+    
+    print(f"✅ {coin} SHORT: Passed all advanced filters")
+    return True
+
+
+def has_too_many_correlated_positions(coin, trade_type):
+    """
+    Prevent over-concentration in correlated assets
+    """
+    # Get current open positions
+    open_positions = ModelTrade.objects.filter(
+        exit_timestamp__isnull=True,
+        trade_type=trade_type
+    ).count()
+    
+    # Limit to maximum 3 positions per direction
+    if open_positions >= 3:
+        return True
+    
+    # Check for highly correlated coins (simplified)
+    correlated_groups = [
+        ['BTCUSDT', 'ETHUSDT'],  # Major cryptos
+        ['DOGEUSDT', 'SHIBUSDT'],  # Meme coins
+        ['ADAUSDT', 'DOTUSDT', 'XLMUSDT'],  # Alt coins
+        ['UNIUSDT', 'LINKUSDT', 'AVAXUSDT']  # DeFi/utility
+    ]
+    
+    for group in correlated_groups:
+        if coin in group:
+            # Check if we already have a position in this group
+            group_positions = ModelTrade.objects.filter(
+                exit_timestamp__isnull=True,
+                trade_type=trade_type,
+                coin__symbol__in=[COIN_SYMBOL_MAP_DB.get(c, c) for c in group]
+            ).count()
+            
+            if group_positions >= 1:  # Already have one in this group
+                return True
+    
+    return False
+
+
+def get_market_regime():
+    """
+    Determine current market regime (trending/ranging/volatile)
+    This affects our filtering thresholds
+    """
+    try:
+        # Get BTC data for market regime
+        btc_data = CoinAPIPrice.objects.filter(
+            coin='BTCUSDT'
+        ).order_by('-timestamp')[:48]  # Last 4 hours
+        
+        if len(btc_data) < 48:
+            return 'unknown'
+        
+        df = pd.DataFrame.from_records(btc_data.values())
+        df['close'] = pd.to_numeric(df['close'])
+        
+        # Calculate volatility
+        returns = df['close'].pct_change().dropna()
+        volatility = returns.std() * 100
+        
+        # Calculate trend strength
+        price_change = (df['close'].iloc[0] - df['close'].iloc[-1]) / df['close'].iloc[-1] * 100
+        
+        if volatility > 2.0:
+            return 'volatile'
+        elif abs(price_change) > 3.0:
+            return 'trending'
+        else:
+            return 'ranging'
+            
+    except Exception as e:
+        print(f"Error determining market regime: {e}")
+        return 'unknown'
 
 
 # to format all the memory trades before sending to ChatGPT
@@ -866,6 +1069,11 @@ def run_live_pipeline():
 
                 if long_prob >= CONFIDENCE_THRESHOLD:
 
+                    # === ENHANCED PROFITABILITY FILTERING ===
+                    if not passes_advanced_long_filters(latest.iloc[0], long_prob, coin):
+                        print(f"🚫 REJECTED by advanced filters: LONG trade for {coin}")
+                        continue
+
                     exists = ModelTrade.objects.filter(
                         coin=coin_obj, exit_timestamp__isnull=True, trade_type='long'
                     ).exists()
@@ -924,8 +1132,8 @@ def run_live_pipeline():
                             ml_confidence=long_prob,
                             gpt_confidence=decision,
                             leverage=10,
-                            tp_percent=2.50,
-                            sl_percent=1.50,
+                            tp_percent=2.00,  # OPTIMIZED: Better risk/reward
+                            sl_percent=1.00,  # OPTIMIZED: Tighter risk control
                             features=features,  # full feature dict
                             chart_image_5min=File(chart_file) if chart_file else None,
                             chart_image_30min=File(chart_file_30m) if chart_file_30m else None,
@@ -939,8 +1147,17 @@ def run_live_pipeline():
                             chart_file_30m.close()
 
 
-                        if decision < 0.87:
-                            print(f"🚫 REJECTED by Chat GPT: trade for {coin}")
+                        # ENHANCED DYNAMIC THRESHOLD based on market regime
+                        market_regime = get_market_regime()
+                        gpt_threshold = {
+                            'volatile': 0.90,   # Higher threshold in volatile markets
+                            'trending': 0.85,   # Standard threshold in trending markets  
+                            'ranging': 0.88,    # Higher threshold in ranging markets
+                            'unknown': 0.87     # Default threshold
+                        }.get(market_regime, 0.87)
+                        
+                        if decision < gpt_threshold:
+                            print(f"🚫 REJECTED by Chat GPT: {coin} ({decision:.2f} < {gpt_threshold:.2f}) [{market_regime} market]")
                             continue
 
                         recent_confs = list(
@@ -996,6 +1213,12 @@ def run_live_pipeline():
                     oldestShortConfidence.delete()
 
                 if short_prob >= SHORT_CONFIDENCE_THRESHOLD:
+                    
+                    # === ENHANCED PROFITABILITY FILTERING ===
+                    if not passes_advanced_short_filters(latest.iloc[0], short_prob, coin):
+                        print(f"🚫 REJECTED by advanced filters: SHORT trade for {coin}")
+                        continue
+                    
                     exists = ModelTrade.objects.filter(
                         coin=coin_obj, exit_timestamp__isnull=True, trade_type='short'
                     ).exists()
@@ -1017,8 +1240,8 @@ def run_live_pipeline():
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
                             entry_price = safe_decimal(latest['close'].values[0]) * Decimal("0.999"),
                             model_confidence=short_prob,
-                            take_profit_percent=2.0,
-                            stop_loss_percent=1.0,
+                            take_profit_percent=2.0,  # OPTIMIZED: 2:1 risk/reward  
+                            stop_loss_percent=1.0,   # OPTIMIZED: Tighter risk control
                             confidence_trade=SHORT_CONFIDENCE_THRESHOLD,
                             recent_confidences=recent_confs_short,
                         )

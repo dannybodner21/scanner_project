@@ -115,3 +115,14 @@ scanner/management/commands/long_simulator_with_rl.py
 
 chart_images/
 generate_gpt_confidences.py
+
+.claude/
+CLAUDE.md
+short_one_feature_scaler.joblib
+short_one_model.joblib
+short_one_selected_features.joblib
+short_two_feature_scaler.joblib
+short_two_model.joblib
+short_two_selected_features.joblib
+test_enhanced_filtering.sh
+view_changes.sh

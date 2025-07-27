@@ -40,7 +40,7 @@ warnings.filterwarnings('ignore', category=SettingWithCopyWarning)
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Enhanced feature engineering with more predictive features"""
+    """NEXT-GENERATION feature engineering for LONG trades profitability"""
     df = df.copy()
     df.set_index('timestamp', inplace=True)
 
@@ -148,6 +148,106 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
         df[f'volume_lag_{lag}'] = volume.shift(lag)
         df[f'rsi_14_lag_{lag}'] = df['rsi_14'].shift(lag)
 
+    # === PROFITABILITY ENHANCEMENT FEATURES FOR LONG TRADES ===
+    
+    # Volume confirmation signals
+    df['volume_spike_3x'] = (df['volume_ratio'] > 3.0).astype(int)
+    df['volume_spike_2x'] = (df['volume_ratio'] > 2.0).astype(int)
+    df['volume_drying_up'] = (df['volume_ratio'] < 0.5).astype(int)
+    
+    # BULLISH momentum confluence (multiple indicators agreeing)
+    df['bullish_momentum_confluence'] = (
+        (df['rsi_14'] < 30) & 
+        (df['stoch_oversold'] == 1) &
+        (df['macd'] > df['macd_signal']) &
+        (df['ema_9_21_ratio'] > 1.001)
+    ).astype(int)
+    
+    # Market structure breakout patterns
+    df['higher_lows'] = ((close > close.shift(12)) & (close.shift(12) > close.shift(24))).astype(int)
+    df['resistance_break'] = (close > high.rolling(48).max().shift(1)).astype(int)
+    df['support_hold'] = ((low < low.rolling(24).min().shift(1)) & (close > open_price)).astype(int)
+    
+    # Volatility expansion (good for breakouts)
+    df['volatility_expansion'] = (df['atr_14'] > df['atr_14'].rolling(24).mean() * 1.5).astype(int)
+    df['volatility_contraction'] = (df['atr_14'] < df['atr_14'].rolling(24).mean() * 0.7).astype(int)
+    
+    # Smart money vs retail patterns
+    df['bullish_engulfing'] = (
+        (open_price < close.shift(1)) & 
+        (close > open_price.shift(1)) &
+        (df['body_size'] > df['body_size'].shift(1) * 1.5)
+    ).astype(int)
+    
+    # Liquidity patterns (spring setups)
+    df['liquidity_sweep_low'] = (low < low.rolling(24).min().shift(1)).astype(int)
+    df['spring_setup'] = (
+        (df['liquidity_sweep_low'] == 1) & 
+        (close > low.rolling(24).min().shift(1))
+    ).astype(int)
+    
+    # Market regime detection
+    df['range_bound_market'] = (
+        (high.rolling(48).max() / low.rolling(48).min() < 1.15) &
+        (df['atr_14'] < df['atr_14'].rolling(96).mean())
+    ).astype(int)
+    
+    df['trending_market'] = (
+        (df['ema_21'] > df['ema_50']) | (df['ema_21'] < df['ema_50'])
+    ).astype(int)
+    
+    # Multi-timeframe confluence
+    df['bullish_5min'] = (close > close.shift(1)).astype(int)
+    df['bullish_15min'] = (close > close.shift(3)).astype(int)
+    df['bullish_1h'] = (close > close.shift(12)).astype(int)
+    df['bullish_4h'] = (close > close.shift(48)).astype(int)
+    
+    df['multi_tf_bullish'] = (
+        df['bullish_5min'] + df['bullish_15min'] + 
+        df['bullish_1h'] + df['bullish_4h']
+    )  # 0-4 scale
+    
+    # Risk-on sentiment (risk appetite)
+    df['risk_on_pattern'] = (
+        (df['volume_ratio'] > 1.5) &
+        (df['rsi_14'] < 35) &
+        (close > df['ema_21'])
+    ).astype(int)
+    
+    # Mean reversion setups
+    df['oversold_bounce_setup'] = (
+        (df['bb_position'] < 0.2) &  # Price near lower BB
+        (df['rsi_14'] < 30) &         # Oversold
+        (df['volume_ratio'] > 1.2)    # Above average volume
+    ).astype(int)
+    
+    # Momentum expansion patterns
+    df['momentum_expansion'] = (
+        (df['rsi_14'] < 25) &
+        (df['rsi_14'] > df['rsi_14'].shift(1)) &  # RSI starting to turn up
+        (df['macd_histogram'] > df['macd_histogram'].shift(1))  # MACD strengthening
+    ).astype(int)
+    
+    # Smart money accumulation patterns  
+    df['accumulation_pattern'] = (
+        (close > open_price) &         # Green candle
+        (df['lower_shadow'] > df['body_size'] * 2) &  # Long lower shadow
+        (df['volume_ratio'] > 1.3)     # High volume
+    ).astype(int)
+    
+    # Breakout confirmation
+    df['breakout_confirmation'] = (
+        (df['resistance_break'] == 1) &
+        (df['volume_ratio'] > 2.0) &
+        (close > open_price)
+    ).astype(int)
+
+    # Add after your existing ATR calculations
+    df['atr_percent'] = (df['atr_14'] / close) * 100
+    df['volatility_regime'] = pd.cut(df['atr_percent'], 
+                                    bins=[0, 2, 4, 8, float('inf')], 
+                                    labels=['low', 'medium', 'high', 'extreme'])
+
     # === Cross-coin features (if we have multiple coins) ===
     # We'll add these in the main processing loop
 
@@ -155,14 +255,14 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-
+'''
 def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Series:
     """
     Simple direction prediction: will price be higher in N periods?
     This is much more learnable than complex TP/SL logic
     """
     current_close = df['close']
-    future_close = df['close'].shift(-forward_periods)
+    future_close = df['high'].shift(-forward_periods)
 
     # 1 if price will be higher + 2%, 0 if lower
     goal_price = current_close * 1.035
@@ -173,6 +273,42 @@ def get_direction_labels(df: pd.DataFrame, forward_periods: int = 48) -> pd.Seri
     labels.iloc[-forward_periods:] = np.nan
 
     return labels
+'''
+
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 18) -> pd.Series:
+    """
+    OPTIMIZED labeling for LONG trades with better risk/reward ratio
+    Predict if we can hit TP before SL within next N periods
+    """
+    current_close = df['close']
+    
+    labels = []
+    for i in range(len(df) - forward_periods):
+        entry_price = current_close.iloc[i]
+        take_profit = entry_price * 1.02   # 2% profit (more achievable)
+        stop_loss = entry_price * 0.99     # 1% loss (tighter risk control)
+        
+        # Look ahead to see what happens first
+        future_highs = df['high'].iloc[i+1:i+forward_periods+1]
+        future_lows = df['low'].iloc[i+1:i+forward_periods+1]
+        
+        # Check if TP hit before SL
+        tp_hit = (future_highs >= take_profit).any()
+        sl_hit = (future_lows <= stop_loss).any()
+        
+        if tp_hit and sl_hit:
+            # Both hit - which came first?
+            tp_idx = (future_highs >= take_profit).idxmax() if tp_hit else float('inf')
+            sl_idx = (future_lows <= stop_loss).idxmax() if sl_hit else float('inf')
+            labels.append(1 if tp_idx < sl_idx else 0)
+        elif tp_hit:
+            labels.append(1)
+        else:
+            labels.append(0)
+    
+    # Pad with NaN for the last periods
+    labels.extend([np.nan] * forward_periods)
+    return pd.Series(labels)
 
 
 
@@ -227,7 +363,7 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=48)
+        parser.add_argument('--forward-periods', type=int, default=18)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
@@ -240,12 +376,12 @@ class Command(BaseCommand):
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
 
-        TRAIN_FILE = 'three_training.csv'
-        TEST_FILE = 'three_testing.csv'
-        MODEL_FILE = 'three_model.joblib'
-        SCALER_FILE = 'three_feature_scaler.joblib'
-        FEATURES_FILE = 'three_selected_features.joblib'
-        PREDICTION_FILE = 'three_enhanced_predictions.csv'
+        TRAIN_FILE = 'four_training.csv'
+        TEST_FILE = 'four_testing.csv'
+        MODEL_FILE = 'four_model.joblib'
+        SCALER_FILE = 'four_feature_scaler.joblib'
+        FEATURES_FILE = 'four_selected_features.joblib'
+        PREDICTION_FILE = 'four_enhanced_predictions.csv'
 
         if not options['skip_generation']:
             self.run_data_generation(COINS, START_DATE, END_DATE, CUTOFF_DATE,
@@ -261,10 +397,19 @@ class Command(BaseCommand):
         non_feature_cols = ['timestamp', 'coin', 'open', 'high', 'low', 'close', 'volume', 'label']
         feature_cols = [col for col in train_df.columns if col not in non_feature_cols]
 
+
+
+
         X = train_df[feature_cols]
+        X = X.select_dtypes(include=[np.number])
+
         y = train_df['label']
 
         X = X.fillna(X.median())
+
+
+
+
 
         self.stdout.write("\U0001F50D Selecting best features...")
         selected_features = select_best_features(X, y, k=min(50, len(feature_cols)))
@@ -461,12 +606,15 @@ class Command(BaseCommand):
         non_feature_cols = ['timestamp', 'coin', 'open', 'high', 'low', 'close', 'volume', 'label']
         available_features = [col for col in test_df.columns if col not in non_feature_cols]
 
-        X_test = test_df[available_features].fillna(test_df[available_features].median())
+        X_test = test_df[available_features]
+        X_test = X_test.select_dtypes(include=[np.number])
+        X_test = X_test.fillna(X_test.median())
+
         X_test_selected = X_test[selected_features]
         X_test_scaled = scaler.transform(X_test_selected)
 
         probabilities = model.predict_proba(X_test_scaled)[:, 1]
-        predictions = (probabilities > 0.4).astype(int)
+        predictions = (probabilities > 0.6).astype(int)
 
         test_accuracy = accuracy_score(test_df['label'], predictions)
         test_auc = roc_auc_score(test_df['label'], probabilities)

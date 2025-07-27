@@ -4,6 +4,156 @@ import numpy as np
 import os
 from datetime import datetime
 
+
+# === ADVANCED PROFITABILITY FILTERS FOR SIMULATION ===
+
+def passes_advanced_short_filters(row, ml_confidence, coin):
+    """
+    Advanced filtering system for SHORT trades to maximize profitability
+    Returns True if trade should proceed, False to reject
+    """
+    
+    # FILTER 1: Volume Confirmation
+    volume_ratio = getattr(row, 'volume_ratio', 1.0)
+    if pd.isna(volume_ratio):
+        volume_ratio = 1.0
+    if volume_ratio < 1.2:  # Require above-average volume
+        return False
+    
+    # FILTER 2: Bearish Momentum Confluence
+    rsi_14 = getattr(row, 'rsi_14', 50)
+    ema_9_21_ratio = getattr(row, 'ema_9_21_ratio', 1.0)
+    macd = getattr(row, 'macd', 0)
+    macd_signal = getattr(row, 'macd_signal', 0)
+    
+    # Handle NaN values
+    if pd.isna(rsi_14):
+        rsi_14 = 50
+    if pd.isna(ema_9_21_ratio):
+        ema_9_21_ratio = 1.0
+    if pd.isna(macd):
+        macd = 0
+    if pd.isna(macd_signal):
+        macd_signal = 0
+    
+    bearish_momentum = (
+        rsi_14 > 65 and  # Overbought condition
+        ema_9_21_ratio < 0.999 and  # Short EMA below long EMA
+        macd < macd_signal  # MACD bearish
+    )
+    
+    if not bearish_momentum and ml_confidence < 0.75:
+        return False
+    
+    # FILTER 3: Resistance/Distribution Check
+    close = getattr(row, 'close', 0)
+    high = getattr(row, 'high', close)
+    open_price = getattr(row, 'open', close)
+    
+    if pd.isna(close) or pd.isna(high) or pd.isna(open_price):
+        return True  # Skip if data missing
+    
+    # Look for distribution patterns (long upper shadows)
+    upper_shadow = (high - max(close, open_price)) / open_price if open_price > 0 else 0
+    body_size = abs(close - open_price) / open_price if open_price > 0 else 0
+    
+    strong_distribution = (
+        upper_shadow > body_size * 1.5 and  # Long upper shadow
+        close < open_price and  # Red candle
+        volume_ratio > 1.5  # High volume
+    )
+    
+    if not strong_distribution and ml_confidence < 0.70:
+        return False
+    
+    # FILTER 4: Volatility Check
+    atr_14 = getattr(row, 'atr_14', 0)
+    if pd.isna(atr_14):
+        atr_14 = 0
+    if atr_14 == 0:  # Avoid dead markets
+        return False
+    
+    # FILTER 5: Overbought Check
+    bb_position = getattr(row, 'bb_position', 0.5)
+    if pd.isna(bb_position):
+        bb_position = 0.5
+    if bb_position < 0.7 and ml_confidence < 0.70:  # Not near upper BB
+        return False
+    
+    # FILTER 6: Time-based filtering (if timestamp available)
+    timestamp = getattr(row, 'timestamp', None)
+    if timestamp and hasattr(timestamp, 'hour'):
+        current_hour = timestamp.hour
+        if current_hour in [1, 2, 3, 4, 5, 6] and ml_confidence < 0.75:  # Asian low-volume hours
+            return False
+    
+    return True
+
+
+def passes_advanced_long_filters(row, ml_confidence, coin):
+    """
+    Advanced filtering system for LONG trades to maximize profitability
+    Returns True if trade should proceed, False to reject
+    """
+    
+    # FILTER 1: Volume Confirmation
+    volume_ratio = getattr(row, 'volume_ratio', 1.0)
+    if pd.isna(volume_ratio):
+        volume_ratio = 1.0
+    if volume_ratio < 1.2:  # Require above-average volume
+        return False
+    
+    # FILTER 2: Bullish Momentum Confluence
+    rsi_14 = getattr(row, 'rsi_14', 50)
+    ema_9_21_ratio = getattr(row, 'ema_9_21_ratio', 1.0)
+    macd = getattr(row, 'macd', 0)
+    macd_signal = getattr(row, 'macd_signal', 0)
+    
+    # Handle NaN values
+    if pd.isna(rsi_14):
+        rsi_14 = 50
+    if pd.isna(ema_9_21_ratio):
+        ema_9_21_ratio = 1.0
+    if pd.isna(macd):
+        macd = 0
+    if pd.isna(macd_signal):
+        macd_signal = 0
+    
+    bullish_momentum = (
+        rsi_14 < 35 and  # Oversold condition
+        ema_9_21_ratio > 1.001 and  # Short EMA above long EMA
+        macd > macd_signal  # MACD bullish
+    )
+    
+    if not bullish_momentum and ml_confidence < 0.85:
+        return False
+    
+    # FILTER 3: Market Structure Check
+    close = getattr(row, 'close', 0)
+    ema_200 = getattr(row, 'ema_200', close)
+    
+    if pd.isna(close) or pd.isna(ema_200):
+        ema_200 = close
+    
+    if close < ema_200 and ml_confidence < 0.80:  # Below major trend
+        return False
+    
+    # FILTER 4: Volatility Check
+    atr_14 = getattr(row, 'atr_14', 0)
+    if pd.isna(atr_14):
+        atr_14 = 0
+    if atr_14 == 0:  # Avoid dead markets
+        return False
+    
+    # FILTER 5: Time-based filtering
+    timestamp = getattr(row, 'timestamp', None)
+    if timestamp and hasattr(timestamp, 'hour'):
+        current_hour = timestamp.hour
+        if current_hour in [1, 2, 3, 4, 5, 6] and ml_confidence < 0.80:  # Asian low-volume hours
+            return False
+    
+    return True
+
 class Trade:
     def __init__(self, coin, entry_time, entry_price, direction, confidence, trade_id, leverage):
         self.coin = coin
@@ -47,20 +197,20 @@ class Command(BaseCommand):
         # Final Balance: $31,091.05 (Leverage: 15.0x)
 
 
-        parser.add_argument('--predictions-file', type=str, default='short_four_enhanced_predictions.csv')
+        parser.add_argument('--predictions-file', type=str, default='short_one_enhanced_predictions.csv')
         parser.add_argument('--initial-balance', type=float, default=5000)
 
-        parser.add_argument('--confidence-threshold', type=float, default=0.62)
+        parser.add_argument('--confidence-threshold', type=float, default=0.95)
 
         parser.add_argument('--position-size', type=float, default=0.25)
 
-        parser.add_argument('--stop-loss', type=float, default=0.02)
-        parser.add_argument('--take-profit', type=float, default=0.01)
+        parser.add_argument('--stop-loss', type=float, default=0.015)
+        parser.add_argument('--take-profit', type=float, default=0.025)
 
         parser.add_argument('--max-hold-hours', type=int, default=48)
 
         parser.add_argument('--output-dir', type=str, default='.')
-        parser.add_argument('--leverage', type=float, default=15.0)
+        parser.add_argument('--leverage', type=float, default=10.0)
         parser.add_argument('--trade-direction', type=str, default='short', choices=['long', 'short'])
 
     def handle(self, *args, **options):
@@ -120,6 +270,11 @@ class Command(BaseCommand):
                 balance += (trade.pnl / 100) * position_size
 
             if pred == 1 and conf >= options['confidence_threshold']:
+                
+                # === ENHANCED PROFITABILITY FILTERING ===
+                if not passes_advanced_short_filters(row, conf, coin):
+                    continue  # Skip this trade
+                
                 already_open = any(t.coin == coin for t in open_trades)
                 if not already_open:
                     trade_id_counter += 1

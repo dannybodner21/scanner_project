@@ -28,11 +28,19 @@ from pandas.errors import SettingWithCopyWarning
 # three
 
 
+
+
+
+
+
+
+
+
 warnings.filterwarnings('ignore', category=SettingWithCopyWarning)
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Enhanced feature engineering with more predictive features"""
+    """NEXT-GENERATION feature engineering for maximum profitability"""
     df = df.copy()
     df.set_index('timestamp', inplace=True)
 
@@ -140,29 +148,142 @@ def add_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
         df[f'volume_lag_{lag}'] = volume.shift(lag)
         df[f'rsi_14_lag_{lag}'] = df['rsi_14'].shift(lag)
 
+    # === PROFITABILITY ENHANCEMENT FEATURES ===
+    
+    # Volume confirmation signals
+    df['volume_spike_3x'] = (df['volume_ratio'] > 3.0).astype(int)
+    df['volume_spike_2x'] = (df['volume_ratio'] > 2.0).astype(int)
+    df['volume_drying_up'] = (df['volume_ratio'] < 0.5).astype(int)
+    
+    # Momentum confluence (multiple indicators agreeing)
+    df['bearish_momentum_confluence'] = (
+        (df['rsi_14'] > 70) & 
+        (df['stoch_overbought'] == 1) &
+        (df['macd'] < df['macd_signal']) &
+        (df['ema_9_21_ratio'] < 0.999)
+    ).astype(int)
+    
+    # Market structure breakdown patterns
+    df['lower_highs'] = ((close < close.shift(12)) & (close.shift(12) < close.shift(24))).astype(int)
+    df['support_break'] = (close < low.rolling(48).min().shift(1)).astype(int)
+    df['resistance_rejection'] = ((high > high.rolling(24).max().shift(1)) & (close < open_price)).astype(int)
+    
+    # Volatility expansion (good for breakouts)
+    df['volatility_expansion'] = (df['atr_14'] > df['atr_14'].rolling(24).mean() * 1.5).astype(int)
+    df['volatility_contraction'] = (df['atr_14'] < df['atr_14'].rolling(24).mean() * 0.7).astype(int)
+    
+    # Smart money vs retail patterns
+    df['bearish_engulfing'] = (
+        (open_price > close.shift(1)) & 
+        (close < open_price.shift(1)) &
+        (df['body_size'] > df['body_size'].shift(1) * 1.5)
+    ).astype(int)
+    
+    # Liquidity patterns (traps and sweeps)
+    df['liquidity_sweep_high'] = (high > high.rolling(24).max().shift(1)).astype(int)
+    df['failed_breakout'] = (
+        (df['liquidity_sweep_high'] == 1) & 
+        (close < high.rolling(24).max().shift(1))
+    ).astype(int)
+    
+    # Market regime detection
+    df['range_bound_market'] = (
+        (high.rolling(48).max() / low.rolling(48).min() < 1.15) &
+        (df['atr_14'] < df['atr_14'].rolling(96).mean())
+    ).astype(int)
+    
+    df['trending_market'] = (
+        (df['ema_21'] > df['ema_50']) | (df['ema_21'] < df['ema_50'])
+    ).astype(int)
+    
+    # Multi-timeframe confluence
+    df['bearish_5min'] = (close < close.shift(1)).astype(int)
+    df['bearish_15min'] = (close < close.shift(3)).astype(int)
+    df['bearish_1h'] = (close < close.shift(12)).astype(int)
+    df['bearish_4h'] = (close < close.shift(48)).astype(int)
+    
+    df['multi_tf_bearish'] = (
+        df['bearish_5min'] + df['bearish_15min'] + 
+        df['bearish_1h'] + df['bearish_4h']
+    )  # 0-4 scale
+    
+    # Risk-off sentiment (flight to quality)
+    df['risk_off_pattern'] = (
+        (df['volume_ratio'] > 1.5) &
+        (df['rsi_14'] > 65) &
+        (close < df['ema_21'])
+    ).astype(int)
+    
+    # Mean reversion setups
+    df['mean_reversion_setup'] = (
+        (df['bb_position'] > 0.8) &  # Price near upper BB
+        (df['rsi_14'] > 70) &         # Overbought
+        (df['volume_ratio'] > 1.2)    # Above average volume
+    ).astype(int)
+    
+    # Momentum exhaustion patterns
+    df['momentum_exhaustion'] = (
+        (df['rsi_14'] > 75) &
+        (df['rsi_14'] < df['rsi_14'].shift(1)) &  # RSI starting to turn down
+        (df['macd_histogram'] < df['macd_histogram'].shift(1))  # MACD weakening
+    ).astype(int)
+    
+    # Smart money distribution patterns  
+    df['distribution_pattern'] = (
+        (close < open_price) &         # Red candle
+        (df['upper_shadow'] > df['body_size'] * 2) &  # Long upper shadow
+        (df['volume_ratio'] > 1.3)     # High volume
+    ).astype(int)
+
     # === Cross-coin features (if we have multiple coins) ===
     # We'll add these in the main processing loop
 
     df.reset_index(inplace=True)
     return df
 
-def get_direction_labels(df: pd.DataFrame, forward_periods: int = 60) -> pd.Series:
+
+def get_direction_labels(df: pd.DataFrame, forward_periods: int = 24) -> pd.Series:
     """
-    Simple direction prediction: will price be lower in N periods?
-    This is much more learnable than complex TP/SL logic
+    OPTIMIZED labeling for SHORT trades with better risk/reward ratio
+    Label as win (1) if price drops ≥ tp_pct before rising ≥ sl_pct
     """
-    current_close = df['close']
-    future_close = df['close'].shift(-forward_periods)
+    labels = pd.Series(index=df.index, dtype="float64")
 
-    # 1 if price will be lower, 0 if higher
-    goal_price = current_close * 0.975
+    # OPTIMIZED parameters for higher profitability
+    tp_pct = 0.02   # 2% take profit (more achievable)
+    sl_pct = 0.01   # 1% stop loss (tighter risk control)
 
-    labels = (future_close < goal_price).astype(int)
+    for i in range(len(df) - forward_periods):
+        entry_price = df.loc[df.index[i], 'close']
+        tp_price = entry_price * (1 - tp_pct)  # take profit: price drops
+        sl_price = entry_price * (1 + sl_pct)  # stop loss: price rises
 
-    # Remove last N rows where we don't have future data
+        future_highs = df['high'].iloc[i+1:i+1+forward_periods].values
+        future_lows = df['low'].iloc[i+1:i+1+forward_periods].values
+
+        hit_tp = False
+        hit_sl = False
+
+        for high, low in zip(future_highs, future_lows):
+
+            if high >= sl_price:
+                hit_sl = True
+                break
+            if low <= tp_price:
+                hit_tp = True
+                break
+            
+        if hit_tp:
+            labels.iloc[i] = 1  # TP hit first → win
+        elif hit_sl:
+            labels.iloc[i] = 0  # SL hit first → loss
+        else:
+            labels.iloc[i] = 0  # neither hit → count as loss
+
+    # Final forward_periods are NaN due to incomplete future data
     labels.iloc[-forward_periods:] = np.nan
-
     return labels
+
 
 def add_cross_coin_features(coin_dfs: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     """Add features that compare across coins (market regime indicators)"""
@@ -212,20 +333,18 @@ class Command(BaseCommand):
         parser.add_argument('--skip-generation', action='store_true')
         parser.add_argument('--skip-tuning', action='store_true')
         parser.add_argument('--n-trials', type=int, default=5)
-        parser.add_argument('--forward-periods', type=int, default=60)
+        parser.add_argument('--forward-periods', type=int, default=24)
         parser.add_argument('--min-samples', type=int, default=10000)
 
     def handle(self, *args, **options):
         # Updated coin list with more liquid pairs
 
-        # COINS = ['LTCUSDT', 'XRPUSDT', 'DOTUSDT', 'LINKUSDT', 'UNIUSDT']
-
         COINS = ['BTCUSDT','ETHUSDT','XRPUSDT','LTCUSDT','SOLUSDT','DOGEUSDT','LINKUSDT','DOTUSDT', 'SHIBUSDT', 'ADAUSDT', 'UNIUSDT', 'AVAXUSDT', 'XLMUSDT']
 
 
         START_DATE = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        END_DATE = datetime(2025, 7, 14, tzinfo=timezone.utc)
-        CUTOFF_DATE = datetime(2025, 5, 1, tzinfo=timezone.utc)
+        END_DATE = datetime(2025, 7, 23, tzinfo=timezone.utc)
+        CUTOFF_DATE = datetime(2025, 6, 1, tzinfo=timezone.utc)
 
         FORWARD_PERIODS = options['forward_periods']
         MIN_SAMPLES = options['min_samples']
@@ -371,6 +490,14 @@ class Command(BaseCommand):
         train_balance = train_df['label'].value_counts(normalize=True)
         self.stdout.write(f"  - Training class balance: {train_balance.to_dict()}")
 
+        self.stdout.write("  - Balancing training dataset...")
+        min_class_count = train_df['label'].value_counts().min()
+        df_0 = train_df[train_df['label'] == 0].sample(n=min_class_count, random_state=42)
+        df_1 = train_df[train_df['label'] == 1].sample(n=min_class_count, random_state=42)
+        train_df = pd.concat([df_0, df_1]).sample(frac=1, random_state=42).reset_index(drop=True)
+        self.stdout.write(f"  - Balanced training samples: {len(train_df)}")
+        self.stdout.write(f"  - New class balance: {train_df['label'].value_counts().to_dict()}")
+
         # Save datasets
         train_df.to_csv(train_path, index=False)
         test_df.to_csv(test_path, index=False)
@@ -396,8 +523,7 @@ class Command(BaseCommand):
                 'reg_lambda': trial.suggest_float('reg_lambda', 1e-8, 10.0, log=True),
                 'min_child_samples': trial.suggest_int('min_child_samples', 10, 100),
                 'subsample_freq': 1,
-                'random_state': 42,
-                'class_weight': 'balanced'
+                'random_state': 42
             }
 
             # Time series cross-validation
@@ -435,8 +561,7 @@ class Command(BaseCommand):
             'objective': 'binary',
             'metric': 'binary_logloss',
             'random_state': 42,
-            'n_estimators': 1500,  # More trees for final model
-            'class_weight': 'balanced'
+            'n_estimators': 1500  # More trees for final model
         })
 
         model = lgb.LGBMClassifier(**params)
@@ -469,7 +594,7 @@ class Command(BaseCommand):
 
         # Make predictions
         probabilities = model.predict_proba(X_test_scaled)[:, 1]
-        predictions = (probabilities > 0.4).astype(int)
+        predictions = (probabilities > 0.5).astype(int)
 
         # Calculate accuracy on test set
         test_accuracy = accuracy_score(test_df['label'], predictions)
