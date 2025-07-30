@@ -47,6 +47,11 @@ COINAPI_SYMBOL_MAP = {
     "XLMUSDT": "BINANCE_SPOT_XLM_USDT",
 }
 
+# Coinbase symbol mapping (use USD pairs, treat as equivalent to USDT)
+COINBASE_SYMBOL_MAP = {
+    "GRTUSDT": "GRT-USD",  # Coinbase has GRT-USD (USD≈USDT for our purposes)
+}
+
 COIN_SYMBOL_MAP_DB = {
     "BTCUSDT": "BTC",
     "ETHUSDT": "ETH",
@@ -61,6 +66,7 @@ COIN_SYMBOL_MAP_DB = {
     "UNIUSDT": "UNI",
     "AVAXUSDT": "AVAX",
     "XLMUSDT": "XLM",
+    "GRTUSDT": "GRT",  # Added GRT from Coinbase
 }
 
 COINS = list(COIN_SYMBOL_MAP_DB.keys())
@@ -80,7 +86,7 @@ CONFIDENCE_THRESHOLD = 0.80  # OPTIMIZED: Raised for better selectivity
 SHORT_MODEL_PATH = "short_three_model.joblib"  # UPDATED: Latest SHORT model
 SHORT_SCALER_PATH = "short_three_feature_scaler.joblib"
 SHORT_FEATURES_PATH = "short_three_selected_features.joblib"
-SHORT_CONFIDENCE_THRESHOLD = 0.68  # OPTIMIZED: Raised for better selectivity
+SHORT_CONFIDENCE_THRESHOLD = 0.80  # FIXED: Match successful LONG model threshold
 
 selected_features = joblib.load(FEATURES_PATH)
 
@@ -151,72 +157,93 @@ def passes_advanced_long_filters(row, ml_confidence, coin):
 
 def passes_advanced_short_filters(row, ml_confidence, coin):
     """
-    Advanced filtering system for SHORT trades to maximize profitability
-    Returns True if trade should proceed, False to reject
+    ULTRA-SELECTIVE filtering for SHORT trades - FIXED for profitability
+    Only trades the absolute best SHORT setups to match LONG model success
     """
     
-    # FILTER 1: Volume Confirmation
-    volume_ratio = getattr(row, 'volume_ratio', 1.0)
-    if volume_ratio < 1.2:  # Require above-average volume
-        print(f"🚫 {coin} SHORT: Low volume ({volume_ratio:.2f})")
+    # ULTRA-HIGH CONFIDENCE REQUIREMENT (like successful LONG model)
+    if ml_confidence < 0.85:
+        print(f"🚫 {coin} SHORT: Low ML confidence ({ml_confidence:.3f} < 0.85)")
         return False
     
-    # FILTER 2: Bearish Momentum Confluence
+    # FILTER 1: PANIC SELLING VOLUME (much higher requirement)
+    volume_ratio = getattr(row, 'volume_ratio', 1.0)
+    if volume_ratio < 2.0:  # FIXED: Require 2x average volume (panic selling)
+        print(f"🚫 {coin} SHORT: Insufficient panic volume ({volume_ratio:.2f} < 2.0)")
+        return False
+    
+    # FILTER 2: EXTREME BEARISH MOMENTUM (much stricter)
     rsi_14 = getattr(row, 'rsi_14', 50)
     ema_9_21_ratio = getattr(row, 'ema_9_21_ratio', 1.0)
     macd = getattr(row, 'macd', 0)
     macd_signal = getattr(row, 'macd_signal', 0)
     
-    bearish_momentum = (
-        rsi_14 > 65 and  # Overbought condition
-        ema_9_21_ratio < 0.999 and  # Short EMA below long EMA
-        macd < macd_signal  # MACD bearish
+    # MUCH STRICTER bearish requirements
+    extreme_bearish = (
+        rsi_14 > 75 and  # FIXED: Very overbought (vs 65)
+        ema_9_21_ratio < 0.995 and  # FIXED: Clear bearish trend (vs 0.999)
+        macd < macd_signal * 1.05  # FIXED: Strong MACD bearish divergence
     )
     
-    if not bearish_momentum and ml_confidence < 0.75:
-        print(f"🚫 {coin} SHORT: Weak bearish momentum")
+    if not extreme_bearish:
+        print(f"🚫 {coin} SHORT: Not extreme bearish (RSI:{rsi_14:.1f}, EMA:{ema_9_21_ratio:.3f})")
         return False
     
-    # FILTER 3: Resistance/Distribution Check
+    # FILTER 3: DISTRIBUTION PATTERN REQUIRED (must have)
     close = getattr(row, 'close', 0)
     high = getattr(row, 'high', close)
     open_price = getattr(row, 'open', close)
     
-    # Look for distribution patterns (long upper shadows)
-    upper_shadow = (high - max(close, open_price)) / open_price if open_price > 0 else 0
-    body_size = abs(close - open_price) / open_price if open_price > 0 else 0
-    
-    strong_distribution = (
-        upper_shadow > body_size * 1.5 and  # Long upper shadow
-        close < open_price and  # Red candle
-        volume_ratio > 1.5  # High volume
-    )
-    
-    if not strong_distribution and ml_confidence < 0.70:
-        print(f"🚫 {coin} SHORT: No distribution pattern")
+    if open_price <= 0:
+        print(f"🚫 {coin} SHORT: Invalid price data")
         return False
     
-    # FILTER 4: Volatility Expansion Check
+    # FIXED: Require strong distribution patterns
+    upper_shadow = (high - max(close, open_price)) / open_price
+    body_size = abs(close - open_price) / open_price
+    
+    strong_distribution = (
+        upper_shadow > body_size * 2.0 and  # FIXED: Very long upper shadow (vs 1.5)
+        close < open_price and  # Red candle required
+        volume_ratio > 2.5 and  # FIXED: Very high volume (vs 1.5)
+        (high - close) / close > 0.008  # FIXED: Significant rejection from high
+    )
+    
+    if not strong_distribution:
+        print(f"🚫 {coin} SHORT: No distribution pattern (shadow:{upper_shadow:.3f}, vol:{volume_ratio:.2f})")
+        return False
+    
+    # FILTER 4: BOLLINGER BAND EXTREME OVERBOUGHT (required)
+    bb_position = getattr(row, 'bb_position', 0.5)
+    if bb_position < 0.85:  # FIXED: Must be very near upper BB (vs 0.7)
+        print(f"🚫 {coin} SHORT: Not extremely overbought (BB:{bb_position:.3f} < 0.85)")
+        return False
+    
+    # FILTER 5: VOLATILITY REQUIREMENT
     atr_14 = getattr(row, 'atr_14', 0)
-    if atr_14 == 0:  # Avoid dead markets
+    if atr_14 <= 0:
         print(f"🚫 {coin} SHORT: No volatility")
         return False
     
-    # FILTER 5: Market Regime Check (prefer range-bound for shorts)
-    bb_position = getattr(row, 'bb_position', 0.5)
-    if bb_position < 0.7 and ml_confidence < 0.70:  # Not near upper BB
-        print(f"🚫 {coin} SHORT: Not overbought enough")
+    # FILTER 6: NO TRADING DURING LOW VOLATILITY HOURS
+    current_hour = datetime.utcnow().hour
+    # FIXED: Avoid many low-volatility hours
+    if current_hour in [0, 1, 2, 3, 4, 5, 6, 7, 22, 23]:  # Extended exclusion
+        print(f"🚫 {coin} SHORT: Low volatility hour ({current_hour})")
         return False
     
-    # FILTER 6: Risk-off sentiment confirmation
-    # In real implementation, this could check BTC trend, VIX equivalent, etc.
+    # FILTER 7: PRICE REJECTION PATTERN (new)
+    price_rejection = (high - close) / open_price
+    if price_rejection < 0.008:  # Must have significant price rejection
+        print(f"🚫 {coin} SHORT: Insufficient price rejection ({price_rejection:.4f})")
+        return False
     
-    # FILTER 7: Anti-correlation with other positions
+    # FILTER 8: Anti-correlation check
     if has_too_many_correlated_positions(coin, 'short'):
         print(f"🚫 {coin} SHORT: Too many correlated positions")
         return False
     
-    print(f"✅ {coin} SHORT: Passed all advanced filters")
+    print(f"✅ {coin} SHORT: ULTRA-SELECTIVE FILTERS PASSED!")
     return True
 
 
@@ -589,7 +616,16 @@ def send_text(messages):
 
 
 def fetch_latest_candle(coin):
-
+    """
+    Fetch latest candle for a coin
+    Uses Coinbase for GRT, CoinAPI for others
+    """
+    
+    # Use Coinbase for GRT (FREE)
+    if coin in COINBASE_SYMBOL_MAP:
+        return fetch_latest_candle_coinbase(coin)
+    
+    # Use CoinAPI for existing coins
     symbol = COINAPI_SYMBOL_MAP[coin]
     now = datetime.utcnow().replace(second=0, microsecond=0)
     start = now - timedelta(minutes=5)
@@ -623,6 +659,51 @@ def fetch_latest_candle(coin):
         }
     except Exception as e:
         print(f"❌ Error fetching {coin}: {e}")
+        return None
+
+
+def fetch_latest_candle_coinbase(coin):
+    """
+    Fetch latest candle from Coinbase (for GRT)
+    Safe implementation with error handling that won't crash the pipeline
+    """
+    try:
+        if coin not in COINBASE_SYMBOL_MAP:
+            print(f"❌ {coin} not in Coinbase symbol map")
+            return None
+        
+        coinbase_symbol = COINBASE_SYMBOL_MAP[coin]
+        
+        # Coinbase API endpoint
+        url = f'https://api.exchange.coinbase.com/products/{coinbase_symbol}/candles'
+        params = {'granularity': 300}  # 5 minutes
+        
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()
+        if not data:
+            print(f"⚠️ No Coinbase data returned for {coin}")
+            return None
+        
+        # Get most recent candle (first in array)
+        latest_candle = data[0]
+        
+        # Convert Coinbase format to our format
+        # Coinbase: [timestamp, low, high, open, close, volume]
+        return {
+            'coin': coin,
+            'timestamp': pd.to_datetime(latest_candle[0], unit='s', utc=True),
+            'open': float(latest_candle[3]),
+            'high': float(latest_candle[2]),
+            'low': float(latest_candle[1]),
+            'close': float(latest_candle[4]),
+            'volume': float(latest_candle[5])
+        }
+        
+    except Exception as e:
+        print(f"❌ Error fetching {coin} from Coinbase: {e}")
+        print(f"   Coinbase integration failed, but pipeline continues...")
         return None
 
 
@@ -719,7 +800,10 @@ def save_missing_candles(coin):
 
 # expects coin as BTCUSDT format
 def get_recent_candles(coin, limit=2016):
-
+    """
+    Get recent candles from database
+    Works for both CoinAPI and Coinbase data (stored in same table)
+    """
     qs = (
         CoinAPIPrice.objects
         .filter(coin=coin)
@@ -728,7 +812,21 @@ def get_recent_candles(coin, limit=2016):
     )
     df = pd.DataFrame(list(qs[:limit]))
     if len(df) < limit:
-        return None
+        # If not enough data in DB and this is a Coinbase coin, try to fetch fresh data
+        if coin in COINBASE_SYMBOL_MAP:
+            print(f"📊 Insufficient DB data for {coin}, fetching from Coinbase...")
+            backfill_coinbase_candles(coin)
+            # Try again after backfill
+            qs = (
+                CoinAPIPrice.objects
+                .filter(coin=coin)
+                .order_by('-timestamp')
+                .values('timestamp', 'open', 'high', 'low', 'close', 'volume')
+            )
+            df = pd.DataFrame(list(qs[:limit]))
+        
+        if len(df) < limit:
+            return None
     return df.sort_values('timestamp').reset_index(drop=True)
 
 
@@ -782,6 +880,95 @@ def backfill_recent_candles(coin):
 
         current = chunk_end
         time.sleep(1)  # avoid rate limits
+
+
+# Coinbase API integration for additional coins
+def fetch_coinbase_candles(coin, limit=100):
+    """
+    Fetch OHLCV data from Coinbase Advanced API (FREE)
+    coin: 'GRTUSDT' format (will be converted to 'GRT-USDT' for Coinbase)
+    Returns: DataFrame with timestamp, open, high, low, close, volume
+    """
+    if coin not in COINBASE_SYMBOL_MAP:
+        print(f"❌ {coin} not found in Coinbase symbol map")
+        return None
+    
+    coinbase_symbol = COINBASE_SYMBOL_MAP[coin]
+    print(f"📊 Fetching {coin} ({coinbase_symbol}) from Coinbase...")
+    
+    try:
+        # Coinbase Advanced API endpoint
+        url = f'https://api.exchange.coinbase.com/products/{coinbase_symbol}/candles'
+        params = {
+            'granularity': 300,  # 5 minutes in seconds
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        if not data:
+            print(f"⚠️ No data returned for {coinbase_symbol}")
+            return None
+        
+        # Coinbase returns: [timestamp, low, high, open, close, volume]
+        # Convert to our standard format
+        df_data = []
+        for candle in data[:limit]:
+            df_data.append({
+                'timestamp': pd.to_datetime(candle[0], unit='s', utc=True),
+                'open': float(candle[3]),
+                'high': float(candle[2]), 
+                'low': float(candle[1]),
+                'close': float(candle[4]),
+                'volume': float(candle[5])
+            })
+        
+        df = pd.DataFrame(df_data)
+        df = df.sort_values('timestamp').reset_index(drop=True)
+        
+        print(f"✅ {coinbase_symbol}: Retrieved {len(df)} candles from Coinbase (FREE)")
+        return df
+        
+    except Exception as e:
+        print(f"❌ Error fetching {coinbase_symbol} from Coinbase: {e}")
+        return None
+
+
+def backfill_coinbase_candles(coin):
+    """
+    Backfill recent OHLCV data from Coinbase and store in database
+    coin: 'GRTUSDT' format
+    """
+    print(f"🔁 Backfilling recent candles for {coin} from Coinbase...")
+    
+    try:
+        # Get recent data from Coinbase
+        df = fetch_coinbase_candles(coin, limit=100)
+        
+        if df is None or df.empty:
+            print(f"❌ No data received for {coin}")
+            return
+        
+        # Store in database (same table as CoinAPI data)
+        for _, row in df.iterrows():
+            CoinAPIPrice.objects.update_or_create(
+                coin=coin,
+                timestamp=row['timestamp'],
+                defaults={
+                    'open': row['open'],
+                    'high': row['high'],
+                    'low': row['low'],
+                    'close': row['close'],
+                    'volume': row['volume'],
+                }
+            )
+        
+        print(f"✅ {len(df)} candles inserted for {coin} from Coinbase")
+        
+    except Exception as e:
+        print(f"❌ Error backfilling {coin} from Coinbase: {e}")
 
 
 def add_enhanced_features(df):
@@ -975,7 +1162,13 @@ def run_live_pipeline():
 
         if not has_recent_2016_candles(coin_symbol):
             print(f"⚠️ {coin} is fcked -> backfilling to 7d...")
-            backfill_recent_candles(coin_symbol)
+            
+            # Use Coinbase for GRT, CoinAPI for others
+            if coin in COINBASE_SYMBOL_MAP:
+                print(f"📊 Using Coinbase API for {coin} (FREE)")
+                backfill_coinbase_candles(coin_symbol)
+            else:
+                backfill_recent_candles(coin_symbol)
 
 
     # Pull latest candle per coin and save
@@ -1243,8 +1436,8 @@ def run_live_pipeline():
                             entry_timestamp=make_aware(latest['timestamp'].values[0].astype('M8[ms]').astype(datetime)),
                             entry_price = safe_decimal(latest['close'].values[0]) * Decimal("0.999"),
                             model_confidence=short_prob,
-                            take_profit_percent=2.0,  # OPTIMIZED: 2:1 risk/reward  
-                            stop_loss_percent=1.0,   # OPTIMIZED: Tighter risk control
+                            take_profit_percent=1.5,  # FIXED: Tighter, faster profits for SHORT
+                            stop_loss_percent=1.0,   # FIXED: Quick exit on wrong trades
                             confidence_trade=SHORT_CONFIDENCE_THRESHOLD,
                             recent_confidences=recent_confs_short,
                         )

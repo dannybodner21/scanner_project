@@ -14,48 +14,53 @@ from collections import defaultdict, deque
 
 def passes_advanced_short_filters(row, ml_confidence, coin):
     """
-    Advanced filtering system for SHORT trades to maximize profitability
-    Returns True if trade should proceed, False to reject
+    PERMISSIVE filtering for SHORT trades - Allow profitable trades to pass
+    Returns True for potentially profitable SHORT setups
     """
     
-    # Start with high-confidence trades to reduce filtering severity
+    # TIER 1: HIGH CONFIDENCE (auto-pass - trust the model)
+    if ml_confidence >= 0.85:
+        return True  # Trust high-confidence predictions
+    
+    # TIER 2: MEDIUM-HIGH CONFIDENCE (very light filtering)
     if ml_confidence >= 0.75:
-        return True
+        # Just check for basic volume activity
+        volume_ratio = getattr(row, 'volume_ratio', 1.0)
+        if pd.isna(volume_ratio): volume_ratio = 1.0
+        return volume_ratio >= 1.0  # Any volume is acceptable
     
-    # For medium confidence trades, apply selective filtering
-    filter_score = 0
-    max_score = 4
+    # TIER 3: MEDIUM CONFIDENCE (light filtering)
+    if ml_confidence >= 0.70:
+        # Allow most trades but check basic conditions
+        filter_score = 0
+        
+        # Basic volume check
+        volume_ratio = getattr(row, 'volume_ratio', 1.0)
+        if pd.isna(volume_ratio): volume_ratio = 1.0
+        if volume_ratio >= 1.1:  # Slight volume increase
+            filter_score += 1
+        
+        # Basic momentum check
+        rsi_14 = getattr(row, 'rsi_14', 50)
+        if pd.isna(rsi_14): rsi_14 = 50
+        if rsi_14 > 55 or rsi_14 < 45:  # Any momentum (not neutral)
+            filter_score += 1
+        
+        return filter_score >= 1  # Very permissive - just need one condition
     
-    # FILTER 1: Volume Confirmation (optional for medium confidence)
-    volume_ratio = getattr(row, 'volume_ratio', 1.0)
-    if pd.isna(volume_ratio):
-        volume_ratio = 1.0
-    if volume_ratio >= 1.1:  # Slightly above average volume
-        filter_score += 1
+    # TIER 4: LOW CONFIDENCE (still allow some trades)
+    if ml_confidence >= 0.65:
+        # Even for lower confidence, allow some trades with basic checks
+        volume_ratio = getattr(row, 'volume_ratio', 1.0)
+        if pd.isna(volume_ratio): volume_ratio = 1.0
+        rsi_14 = getattr(row, 'rsi_14', 50)
+        if pd.isna(rsi_14): rsi_14 = 50
+        
+        # Allow if volume is reasonable and RSI shows some overbought condition
+        return volume_ratio >= 1.0 and rsi_14 > 55
     
-    # FILTER 2: RSI Overbought Check
-    rsi_14 = getattr(row, 'rsi_14', 50)
-    if pd.isna(rsi_14):
-        rsi_14 = 50
-    if rsi_14 > 60:  # Reasonably overbought
-        filter_score += 1
-    
-    # FILTER 3: EMA Trend Check
-    ema_9_21_ratio = getattr(row, 'ema_9_21_ratio', 1.0)
-    if pd.isna(ema_9_21_ratio):
-        ema_9_21_ratio = 1.0
-    if ema_9_21_ratio < 1.0:  # Short EMA below long EMA (bearish)
-        filter_score += 1
-    
-    # FILTER 4: Volatility Check
-    atr_14 = getattr(row, 'atr_14', 0)
-    if pd.isna(atr_14):
-        atr_14 = 0.001  # Small default instead of 0
-    if atr_14 > 0:  # Any volatility is good
-        filter_score += 1
-    
-    # Allow trade if it meets at least 50% of criteria
-    return filter_score >= (max_score * 0.5)
+    # Only reject very low confidence trades
+    return False
 
 
 def passes_advanced_long_filters(row, ml_confidence, coin):
@@ -148,16 +153,16 @@ def run_short_simulator():
     df = pd.read_csv(file_path, parse_dates=['timestamp'])
     df = df.sort_values('timestamp')
     
-    # Enhanced parameters with risk limits
+    # BALANCED SHORT parameters (profitable but reasonable)
     initial_balance = 5000
-    confidence_threshold = 0.70  # Higher threshold for quality
-    position_size_pct = 0.25  # 25% of account balance per trade
-    stop_loss = 0.015  # 1.5% SL 
-    take_profit = 0.020  # 2% TP (better ratio)  
-    max_hold_hours = 48
-    leverage = 10.0  # Conservative leverage
+    confidence_threshold = 0.80  # BALANCED: High but achievable threshold
+    position_size_pct = 0.15  # BALANCED: Moderate position size (15%)
+    stop_loss = 0.010  # BALANCED: 1.0% SL (tight but reasonable)
+    take_profit = 0.015  # BALANCED: 1.5% TP (better risk/reward ratio)
+    max_hold_hours = 12  # BALANCED: Medium hold time (12h)
+    leverage = 8.0  # BALANCED: Good leverage (8x)
     direction = 'short'
-    max_concurrent_trades = 4  # Maximum 4 trades open at once
+    max_concurrent_trades = 2  # BALANCED: Allow 2 concurrent trades
     
     trades = []
     open_trades = []
