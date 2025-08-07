@@ -5,8 +5,26 @@ from django.utils.timezone import make_aware
 
 
 
-# python manage.py check_price_integrity --start 2022-01-01 --end 2025-07-23 --coins BTCUSDT ETHUSDT XRPUSDT LTCUSDT SOLUSDT DOGEUSDT LINKUSDT DOTUSDT SHIBUSDT ADAUSDT UNIUSDT AVAXUSDT XLMUSDT
+# python manage.py check_price_integrity --start 2022-01-01 --end 2025-08-04 --coins BTCUSDT ETHUSDT XRPUSDT LTCUSDT SOLUSDT DOGEUSDT LINKUSDT DOTUSDT SHIBUSDT ADAUSDT UNIUSDT AVAXUSDT XLMUSDT
 
+# python manage.py check_price_integrity --start 2022-01-01 --end 2025-08-04 --coins GRTUSDT
+
+
+
+    # ZRX-USD - done
+    # GRT-USD - done
+    # MATIC-USD - done
+    # ETC-USD - done
+    # EOS-USD - done
+    # XTZ-USD - done
+    # ATOM-USD - done
+    # BAT-USD - done
+    # ALGO-USD - done
+    # AAVE-USD - done
+    # SNX-USD - done
+    # SUSHI-USD - done
+    # FIL-USD - done
+    # HBAR-USD - done
 
 
 class Command(BaseCommand):

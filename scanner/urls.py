@@ -41,4 +41,7 @@ urlpatterns = [
     path('api/live-trades/', views.live_trades, name='live-trades'),
     path('api/zoomex-coins/', views.zoomex_coin_data, name='zoomex-coins'),
 
+    # binance price pull url
+    path("internal/import-candles/", views.import_candles, name="import-candles"),
+
 ]

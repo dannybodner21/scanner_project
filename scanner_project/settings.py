@@ -18,6 +18,11 @@ from datetime import timedelta
 from django.core.management.utils import get_random_secret_key
 
 
+# binance stuff
+INTERNAL_IMPORT_TOKEN = os.environ.get("INTERNAL_IMPORT_TOKEN")
+
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 

@@ -10,8 +10,8 @@ import csv
 import pandas as pd
 import finnhub
 import numpy as np
-import matplotlib.pyplot as plt
-import mplfinance as mpf
+# import matplotlib.pyplot as plt  # Commented out - causing architecture compatibility issues
+# import mplfinance as mpf  # Commented out - causing architecture compatibility issues
 import traceback
 import threading
 import google.auth
@@ -32,7 +32,7 @@ from django.views.decorators.csrf import csrf_exempt
 from scanner.utils import score_metrics
 from scanner.utils import send_telegram_alert
 from scanner.utils import score_metrics, score_metrics_short
-from sklearn.linear_model import LinearRegression
+# from sklearn.linear_model import LinearRegression  # Commented out - causing pyarrow architecture issues
 from collections import defaultdict
 from django.utils.timezone import make_aware, is_naive
 from django.db.models import Sum
@@ -54,6 +54,116 @@ from .serializers import RealTradeLiveSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import RealTrade, Coin, CoinAPIPrice
+
+
+
+
+
+
+
+
+# binance price pull
+# scanner/views_import.py
+import json, math
+from datetime import datetime, timezone
+from django.conf import settings
+from django.db import transaction
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.views.decorators.csrf import csrf_exempt
+from scanner.models import CoinAPIPrice
+
+EPS = 1e-9  # change threshold
+
+def _parse_ts(ts: str):
+    # Expect ISO8601; accept 'Z'
+    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+@csrf_exempt
+def import_candles(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("POST only.")
+
+    if request.headers.get("X-Auth") != getattr(settings, "INTERNAL_IMPORT_TOKEN", None):
+        return HttpResponseForbidden("Bad token.")
+
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+        coin = payload["coin"]
+        rows = payload["rows"]
+        if not isinstance(rows, list):
+            return HttpResponseBadRequest("rows must be a list")
+    except Exception:
+        return HttpResponseBadRequest("Invalid JSON")
+
+    # dedupe by timestamp within this batch
+    parsed = {}
+    for r in rows:
+        try:
+            ts = _parse_ts(r["timestamp"])
+            parsed[ts] = {
+                "o": float(r["o"]),
+                "h": float(r["h"]),
+                "l": float(r["l"]),
+                "c": float(r["c"]),
+                "v": float(r["v"]),
+            }
+        except Exception:
+            return HttpResponseBadRequest("Bad row format")
+
+    ts_list = list(parsed.keys())
+    existing = CoinAPIPrice.objects.filter(coin=coin, timestamp__in=ts_list)
+    existing_map = {e.timestamp: e for e in existing}
+
+    to_create, to_update = [], []
+    for ts, vals in parsed.items():
+        obj = existing_map.get(ts)
+        if obj is None:
+            to_create.append(CoinAPIPrice(
+                coin=coin,
+                timestamp=ts,
+                open=vals["o"], high=vals["h"], low=vals["l"], close=vals["c"], volume=vals["v"]
+            ))
+        else:
+            changed = (
+                not math.isclose(float(obj.open),  vals["o"], abs_tol=EPS) or
+                not math.isclose(float(obj.high),  vals["h"], abs_tol=EPS) or
+                not math.isclose(float(obj.low),   vals["l"], abs_tol=EPS) or
+                not math.isclose(float(obj.close), vals["c"], abs_tol=EPS) or
+                not math.isclose(float(obj.volume),vals["v"], abs_tol=EPS)
+            )
+            if changed:
+                obj.open = vals["o"]
+                obj.high = vals["h"]
+                obj.low  = vals["l"]
+                obj.close= vals["c"]
+                obj.volume = vals["v"]
+                to_update.append(obj)
+
+    with transaction.atomic():
+        if to_create:
+            CoinAPIPrice.objects.bulk_create(to_create, ignore_conflicts=True)
+        if to_update:
+            CoinAPIPrice.objects.bulk_update(to_update, ["open","high","low","close","volume"])
+
+    return JsonResponse({
+        "created": len(to_create),
+        "updated": len(to_update),
+        "received": len(rows),
+        "processed": len(parsed),
+    })
+
+
+
+
+
+
+
+
+
+
 
 @api_view(['GET'])
 def live_trades(request):
@@ -1574,7 +1684,7 @@ def predict_short_vertex_new(request):
 
 
 
-from .live_pipeline import run_live_pipeline
+# from .live_pipeline import run_live_pipeline  # Commented out - causing xgboost architecture issues
 '''
 def run_live_pipeline_view(request):
     try:
@@ -1586,6 +1696,8 @@ def run_live_pipeline_view(request):
 def run_live_pipeline_view(request):
     def run():
         try:
+            # Conditional import to avoid architecture issues
+            from .live_pipeline import run_live_pipeline
             run_live_pipeline()
         except Exception as e:
             print(f"❌ Live pipeline error: {e}")
@@ -1762,8 +1874,16 @@ def calculate_trend_slope_30min(coin, timestamp):
 
         X = np.arange(len(prices)).reshape(-1, 1)
         y = np.array(prices)
-        model = LinearRegression().fit(X, y)
-        return float(model.coef_[0])
+        
+        # Conditional import to avoid architecture issues
+        try:
+            from sklearn.linear_model import LinearRegression
+            model = LinearRegression().fit(X, y)
+            return float(model.coef_[0])
+        except ImportError:
+            # Fallback to numpy polyfit
+            slope = np.polyfit(X.flatten(), y, 1)[0]
+            return float(slope)
 
     except Exception as e:
         print(f"❌ Error calculating slope for {coin.symbol}: {e}")
