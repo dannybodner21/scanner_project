@@ -413,7 +413,7 @@ def serve_chart_image(request, coin):
 
 
 # Return True if all 400 recent candles exist for a coin
-def has_400_recent_candles_db_anchored(coin_symbol: str) -> bool:
+def has_400_recent_candles(coin_symbol: str) -> bool:
     # Grab the latest 400 timestamps and verify contiguous 5-min spacing
     qs = (
         CoinAPIPrice.objects

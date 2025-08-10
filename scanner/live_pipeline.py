@@ -8,6 +8,11 @@ from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
+from joblib import dump
+
 from django.utils.timezone import now, make_aware
 from scanner.models import (
     Coin, ModelTrade, ConfidenceHistory, LivePriceSnapshot, CoinAPIPrice
