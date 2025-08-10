@@ -258,365 +258,10 @@ def open_trades_view(request):
 
 
 
-# FLOW OF THE ML MODEL:
-# run five min update logic -> get new metrics
-# load latest rickismetrics -> load metrics for prediction
-# predict live -> run XGBoost model live and get confidence scores
-# post metrics to bot -> send telegram message on trade opportunity
-# async post to bot -> async HTTP POST to telegram API
-
 @csrf_exempt
 def five_min_update(request):
     Thread(target=run_five_min_update_logic).start()
     return JsonResponse({"status": "started"})
-
-# predict live
-# management command file predict_live.py
-
-
-def predict_live_vertex(request):
-
-    try:
-        access_token = get_google_jwt_token()
-
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
-
-    # Load RickisMetrics
-    cutoff = now() - timedelta(minutes=10)
-    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
-
-    if not metrics.exists():
-        return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
-
-    # Build instances
-    instances = []
-    for metric in metrics:
-        try:
-            instances.append({
-                "price": float(metric.price),
-                "volume": float(metric.volume),
-                "change_5m": float(metric.change_5m),
-                "change_1h": float(metric.change_1h),
-                "change_24h": float(metric.change_24h),
-                "high_24h": float(metric.high_24h),
-                "low_24h": float(metric.low_24h),
-                "avg_volume_1h": float(metric.avg_volume_1h),
-                "relative_volume": float(metric.relative_volume),
-                "sma_5": float(metric.sma_5),
-                "sma_20": float(metric.sma_20),
-                "ema_12": float(metric.ema_12),
-                "ema_26": float(metric.ema_26),
-                "macd": float(metric.macd),
-                "macd_signal": float(metric.macd_signal),
-                "rsi": float(metric.rsi),
-                "stochastic_k": float(metric.stochastic_k),
-                "stochastic_d": float(metric.stochastic_d),
-                "support_level": float(metric.support_level),
-                "resistance_level": float(metric.resistance_level),
-                "stddev_1h": float(metric.stddev_1h),
-                "price_slope_1h": float(metric.price_slope_1h),
-                "atr_1h": float(metric.atr_1h),
-            })
-
-        except Exception as e:
-            continue
-
-    if not instances:
-        return JsonResponse({"status": "error", "message": "No valid metrics to send."}, status=500)
-
-    # Send request to Vertex
-    url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json={"instances": instances})
-        response.raise_for_status()
-        predictions = response.json().get("predictions", [])
-
-        messages = []
-
-        for metric, pred in zip(metrics, predictions):
-
-            try:
-                # Find index of "true" class (sometimes it's index 0, sometimes 1)
-                class_idx = pred["classes"].index("true")
-                confidence = pred["scores"][class_idx]
-                print(f"🔎 {metric.coin.symbol} — Confidence: {confidence:.4f}")
-
-                if confidence > 0.5:
-
-                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-
-            except Exception as e:
-                print(f"❌ Failed to parse prediction for {metric.coin.symbol}: {e}")
-
-        if len(messages) > 0:
-            send_text(messages)
-
-        print("✅ Predictions complete.")
-        return JsonResponse({"status": "done"})
-
-    except Exception as e:
-        return JsonResponse({
-            "status": "error",
-            "message": str(e),
-            "response": getattr(response, "text", "No response")
-        }, status=500)
-
-
-def predict_live_vertex_V1(request):
-    project = 'bodner-main-project'        # <<< your real project id
-    endpoint_id = '298034721336590336'    # <<< your real endpoint id
-    region = 'us-central1'              # <<< example: us-central1
-
-    # Load credentials from environment variable
-    try:
-        service_account_info = json.loads(os.environ['GOOGLE_APPLICATION_CREDENTIALS_JSON'])
-        credentials = service_account.Credentials.from_service_account_info(
-            service_account_info,
-            scopes=["https://www.googleapis.com/auth/cloud-platform"]
-        )
-        credentials.refresh(Request())
-        access_token = credentials.token
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
-
-    # Endpoint URL
-    url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/endpoints/{endpoint_id}:predict"
-
-    # Load latest RickisMetrics
-    cutoff = now() - timedelta(minutes=10)
-    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
-
-    if not metrics.exists():
-        return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
-
-    # Prepare instances
-    instances = []
-    for metric in metrics:
-        instances.append({
-            "id": str(metric.id),
-            "price": float(metric.price),
-            "volume": float(metric.volume),
-            "change_5m": float(metric.change_5m),
-            "change_1h": float(metric.change_1h),
-            "change_24h": float(metric.change_24h),
-            "high_24h": float(metric.high_24h),
-            "low_24h": float(metric.low_24h),
-            "avg_volume_1h": float(metric.avg_volume_1h),
-            "relative_volume": float(metric.relative_volume),
-            "sma_5": float(metric.sma_5),
-            "sma_20": float(metric.sma_20),
-            "ema_12": float(metric.ema_12),
-            "ema_26": float(metric.ema_26),
-            "macd": float(metric.macd),
-            "macd_signal": float(metric.macd_signal),
-            "rsi": float(metric.rsi),
-            "stochastic_k": float(metric.stochastic_k),
-            "stochastic_d": float(metric.stochastic_d),
-            "support_level": float(metric.support_level),
-            "resistance_level": float(metric.resistance_level),
-            "stddev_1h": float(metric.stddev_1h),
-            "price_slope_1h": float(metric.price_slope_1h),
-            "atr_1h": float(metric.atr_1h),
-        })
-
-    payload = {
-        "instances": instances
-    }
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-
-    # POST to Vertex AI
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        predictions = response.json()
-        return JsonResponse({"status": "success", "predictions": predictions})
-
-    except Exception as e:
-        return JsonResponse({"status": "error", "details": str(e), "response": response.text}, status=500)
-
-
-def predict_short_vertex(request):
-    try:
-        access_token = get_vertex_access_token()
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": f"Auth failed: {e}"}, status=500)
-
-    # Query latest metrics
-    cutoff = now() - timedelta(minutes=5)
-    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
-
-    instances = []
-    symbols = []
-
-    for m in metrics:
-        try:
-            instance = {
-                "price": float(m.price),
-                "volume": float(m.volume),
-                "change_1h": float(m.change_1h),
-                "change_24h": float(m.change_24h),
-                "high_24h": float(m.high_24h),
-                "low_24h": float(m.low_24h),
-                "avg_volume_1h": float(m.avg_volume_1h),
-                "relative_volume": float(m.relative_volume),
-                "sma_5": float(m.sma_5),
-                "sma_20": float(m.sma_20),
-                "ema_12": float(m.ema_12),
-                "ema_26": float(m.ema_26),
-                "macd": float(m.macd),
-                "macd_signal": float(m.macd_signal),
-                "rsi": float(m.rsi),
-                "stochastic_k": float(m.stochastic_k),
-                "stochastic_d": float(m.stochastic_d),
-                "support_level": float(m.support_level),
-                "resistance_level": float(m.resistance_level),
-                "stddev_1h": float(m.stddev_1h),
-                "price_slope_1h": float(m.price_slope_1h),
-                "atr_1h": float(m.atr_1h),
-            }
-            instances.append(instance)
-            symbols.append(m.coin.symbol)
-
-        except Exception:
-            continue
-
-    if not instances:
-        return JsonResponse({"status": "error", "message": "No valid instances"}, status=500)
-
-    url = (
-        f"https://{SHORT_REGION}-aiplatform.googleapis.com/v1/"
-        f"projects/{SHORT_PROJECT_ID}/locations/{SHORT_REGION}/endpoints/{SHORT_ENDPOINT_ID}:predict"
-    )
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json={"instances": instances})
-        response.raise_for_status()
-        predictions = response.json()
-
-        messages = []
-
-        # Print SHORT signals
-        for symbol, result in zip(symbols, predictions["predictions"]):
-
-            true_index = result["classes"].index("true")
-            confidence = result["scores"][true_index]
-
-            print(f"🔻 SHORT: {symbol} — Confidence: {confidence:.4f}")
-
-            if confidence > 0.5:
-                messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
-
-        if len(messages) > 0:
-            send_text(messages)
-
-        return JsonResponse({"status": "success", "predictions": predictions})
-
-    except Exception as e:
-        return JsonResponse({
-            "status": "error",
-            "message": str(e),
-            "response": getattr(response, "text", "No response")
-        }, status=500)
-
-
-def predict_live_short(request):
-
-    try:
-        aws_credentials = json.loads(os.environ["AWS_CREDENTIALS_JSON"])
-        session = boto3.Session(
-            aws_access_key_id=aws_credentials["aws_access_key_id"],
-            aws_secret_access_key=aws_credentials["aws_secret_access_key"],
-            region_name="us-east-1"
-        )
-        client = session.client("sagemaker-runtime")
-
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": f"Failed to set up AWS client: {e}"}, status=500)
-
-    # Pull recent metrics
-    cutoff = now() - timedelta(minutes=5)
-    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
-
-    instances = []
-    symbols = []
-
-    for m in metrics:
-        try:
-            instance = {
-                "price": float(m.price),
-                "volume": float(m.volume),
-                "change_1h": float(m.change_1h),
-                "change_24h": float(m.change_24h),
-                "high_24h": float(m.high_24h),
-                "low_24h": float(m.low_24h),
-                "avg_volume_1h": float(m.avg_volume_1h),
-                "relative_volume": float(m.relative_volume),
-                "sma_5": float(m.sma_5),
-                "sma_20": float(m.sma_20),
-                "ema_12": float(m.ema_12),
-                "ema_26": float(m.ema_26),
-                "macd": float(m.macd),
-                "macd_signal": float(m.macd_signal),
-                "rsi": float(m.rsi),
-                "stochastic_k": float(m.stochastic_k),
-                "stochastic_d": float(m.stochastic_d),
-                "support_level": float(m.support_level),
-                "resistance_level": float(m.resistance_level),
-                "stddev_1h": float(m.stddev_1h),
-                "price_slope_1h": float(m.price_slope_1h),
-                "atr_1h": float(m.atr_1h),
-            }
-
-            instances.append(instance)
-            symbols.append(m.coin.symbol)
-
-        except Exception:
-            continue
-
-    if not instances:
-        return JsonResponse({"status": "error", "message": "No valid instances"}, status=500)
-
-    try:
-        payload = {
-            "instances": instances
-        }
-
-        response = client.invoke_endpoint(
-            EndpointName="short-model-endpoint",
-            ContentType="application/json",
-            Body=json.dumps(payload)
-        )
-
-        predictions = json.loads(response["Body"].read())
-
-        # Print results
-        for symbol, result in zip(symbols, predictions["predictions"]):
-
-            confidence = result.get("probabilities", [0])[0]
-            print(f"🔻 SHORT: {symbol} — Confidence: {confidence:.4f}")
-
-            if confidence > 0.5:
-                messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
-
-        return JsonResponse({"status": "success", "predictions": predictions})
-
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
 
@@ -641,7 +286,10 @@ COINAPI_SYMBOL_MAP = {
     "UNI": "BINANCE_SPOT_UNI_USDT",
     "AVAX": "BINANCE_SPOT_AVAX_USDT",
     "XLM": "BINANCE_SPOT_XLM_USDT",
+    "TRX": "BINANCE_SPOT_TRX_USDT",
+    "ATOM": "BINANCE_SPOT_ATOM_USDT",
 }
+
 
 def get_coinapi_price(symbol):
     coinapi_symbol = COINAPI_SYMBOL_MAP.get(symbol)
@@ -656,7 +304,6 @@ def get_coinapi_price(symbol):
         return float(data[0]["price_close"]) if data else 0
     except:
         return 0
-
 
 
 def get_open_trades(request):
@@ -765,40 +412,25 @@ def serve_chart_image(request, coin):
         raise Http404("Chart not found.")
 
 
-# Return True if all 2016 recent candles exist for a coin
-def has_2016_recent_candles(coin_symbol):
-    # Get current time rounded DOWN to the last completed 5-minute candle
-    current_time = now()
-    # Floor to nearest 5 minutes, then subtract 5 to get last completed candle
-    rounded_time = current_time - timedelta(
-        minutes=current_time.minute % 5,
-        seconds=current_time.second,
-        microseconds=current_time.microsecond
-    ) - timedelta(minutes=5)
-
-    start_time = rounded_time - timedelta(minutes=5 * 2015)  # 2016 candles total
-
-    # Fetch all timestamps in that window
-    qs = CoinAPIPrice.objects.filter(
-        coin=coin_symbol,
-        timestamp__gte=start_time,
-        timestamp__lte=rounded_time
-    ).values_list('timestamp', flat=True)
-
-    if len(qs) != 2016:
+# Return True if all 400 recent candles exist for a coin
+def has_400_recent_candles_db_anchored(coin_symbol: str) -> bool:
+    # Grab the latest 400 timestamps and verify contiguous 5-min spacing
+    qs = (
+        CoinAPIPrice.objects
+        .filter(coin=coin_symbol)
+        .order_by('-timestamp')
+        .values_list('timestamp', flat=True)[:400]
+    )
+    ts = list(qs)
+    if len(ts) < 400:
         return False
 
-    # Sort and check for exact 5-min spacing
-    timestamps = sorted(qs)
-    expected_time = start_time
-    for ts in timestamps:
-        if ts != expected_time:
+    ts = sorted(ts)  # ascending
+    step = timedelta(minutes=5)
+    for i in range(1, 400):
+        if ts[i] - ts[i-1] != step:
             return False
-        expected_time += timedelta(minutes=5)
-
     return True
-
-
 
 
 def get_model_results(request):
@@ -809,7 +441,7 @@ def get_model_results(request):
     total_long_wins = ModelTrade.objects.filter(trade_type="long", result=True).count()
     total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
 
-    model_name = "ten_model.joblib"
+    model_name = "two_long_hgb_model.joblib"
     short_model_name = "short_four_model.joblib"
 
     btc_history = ConfidenceHistory.objects.filter(
@@ -864,6 +496,14 @@ def get_model_results(request):
         model_name=model_name,
         coin__symbol="XLM"
     ).order_by("timestamp")
+    trx_history = ConfidenceHistory.objects.filter(
+        model_name=model_name,
+        coin__symbol="TRX"
+    ).order_by("timestamp")
+    atom_history = ConfidenceHistory.objects.filter(
+        model_name=model_name,
+        coin__symbol="ATOM"
+    ).order_by("timestamp")
 
     btc_list = list(btc_history.values_list("confidence", flat=True))
     eth_list = list(eth_history.values_list("confidence", flat=True))
@@ -878,6 +518,8 @@ def get_model_results(request):
     uni_list = list(uni_history.values_list("confidence", flat=True))
     avax_list = list(avax_history.values_list("confidence", flat=True))
     xlm_list = list(xlm_history.values_list("confidence", flat=True))
+    trx_list = list(trx_history.values_list("confidence", flat=True))
+    atom_list = list(atom_history.values_list("confidence", flat=True))
 
     short_btc_history = ConfidenceHistory.objects.filter(
         model_name=short_model_name,
@@ -947,19 +589,21 @@ def get_model_results(request):
     short_xlm_list = list(short_xlm_history.values_list("confidence", flat=True))
 
     # Get the latest 2016 candles
-    btc_full_window = has_2016_recent_candles("BTCUSDT")
-    eth_full_window = has_2016_recent_candles("ETHUSDT")
-    xrp_full_window = has_2016_recent_candles("XRPUSDT")
-    ltc_full_window = has_2016_recent_candles("LTCUSDT")
-    sol_full_window = has_2016_recent_candles("SOLUSDT")
-    doge_full_window = has_2016_recent_candles("DOGEUSDT")
-    link_full_window = has_2016_recent_candles("LINKUSDT")
-    dot_full_window = has_2016_recent_candles("DOTUSDT")
-    shib_full_window = has_2016_recent_candles("SHIBUSDT")
-    ada_full_window = has_2016_recent_candles("ADAUSDT")
-    uni_full_window = has_2016_recent_candles("UNIUSDT")
-    avax_full_window = has_2016_recent_candles("AVAXUSDT")
-    xlm_full_window = has_2016_recent_candles("XLMUSDT")
+    btc_full_window = has_400_recent_candles("BTCUSDT")
+    eth_full_window = has_400_recent_candles("ETHUSDT")
+    xrp_full_window = has_400_recent_candles("XRPUSDT")
+    ltc_full_window = has_400_recent_candles("LTCUSDT")
+    sol_full_window = has_400_recent_candles("SOLUSDT")
+    doge_full_window = has_400_recent_candles("DOGEUSDT")
+    link_full_window = has_400_recent_candles("LINKUSDT")
+    dot_full_window = has_400_recent_candles("DOTUSDT")
+    shib_full_window = has_400_recent_candles("SHIBUSDT")
+    ada_full_window = has_400_recent_candles("ADAUSDT")
+    uni_full_window = has_400_recent_candles("UNIUSDT")
+    avax_full_window = has_400_recent_candles("AVAXUSDT")
+    xlm_full_window = has_400_recent_candles("XLMUSDT")
+    trx_full_window = has_400_recent_candles("TRXUSDT")
+    atom_full_window = has_400_recent_candles("ATOMUSDT")
 
     return JsonResponse({
         "total_long_trades": total_long_trades,
@@ -979,6 +623,8 @@ def get_model_results(request):
         "uni_list": uni_list,
         "avax_list": avax_list,
         "xlm_list": xlm_list,
+        "trx_list": trx_list,
+        "atom_list": atom_list,
         "short_btc_list": short_btc_list,
         "short_eth_list": short_eth_list,
         "short_xrp_list": short_xrp_list,
@@ -1005,39 +651,9 @@ def get_model_results(request):
         "uni_full_window": uni_full_window,
         "avax_full_window": avax_full_window,
         "xlm_full_window": xlm_full_window,
+        "trx_full_window": trx_full_window,
+        "atom_full_window": atom_full_window,
     })
-
-
-
-
-from playwright.sync_api import sync_playwright
-import traceback
-import subprocess
-from django.conf import settings
-
-def zoomex_coin_data(request):
-    try:
-        script_path = os.path.join(settings.BASE_DIR, "zoomex_dex_scraper.py")
-
-        result = subprocess.run(
-            ["python3", script_path],
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
-        if result.returncode != 0:
-            return JsonResponse({'error': result.stderr}, status=500)
-
-        data = json.loads(result.stdout)
-        return JsonResponse(data, safe=False)
-
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
-
-
-
 
 
 
@@ -1169,169 +785,6 @@ def get_btc_market_regime(request):
 
 # new model functions ----------------------------------------------------------
 
-PROJECT_ID = 'healthy-mark-446922-p8'
-ENDPOINT_ID = '1437014418503237632'
-REGION = 'us-central1'
-
-SHORT_PROJECT_ID = 'bodner-main-project'
-SHORT_REGION = 'us-central1'
-SHORT_ENDPOINT_ID = '4260393152864583680'
-
-def get_google_jwt_token():
-
-    audience = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
-
-    try:
-        service_account_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
-        credentials = service_account.Credentials.from_service_account_info(
-            service_account_info,
-            scopes=["https://www.googleapis.com/auth/cloud-platform"]
-        )
-        credentials.refresh(Request())
-        return credentials.token
-
-    except Exception as e:
-        raise RuntimeError(f"Failed to load service account from env: {e}")
-
-
-def get_vertex_access_token():
-    creds = service_account.Credentials.from_service_account_info(
-        json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"]),
-        scopes=["https://www.googleapis.com/auth/cloud-platform"],
-    )
-    creds.refresh(Request())
-    return creds.token
-
-
-def predict_live_vertex_new_old(request):
-
-    try:
-        access_token = get_google_jwt_token()
-
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
-
-    # Load RickisMetrics
-    cutoff = now() - timedelta(minutes=5)
-    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
-
-    if not metrics.exists():
-        return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
-
-    # Build instances
-    instances = []
-    for metric in metrics:
-        try:
-            instances.append({
-                "price": float(metric.price),
-                "high_24h": float(metric.high_24h),
-                "low_24h": float(metric.low_24h),
-                "open": float(metric.open),
-                "close": float(metric.close),
-                "change_5m": float(metric.change_5m),
-                "change_1h": float(metric.change_1h),
-                "change_24h": float(metric.change_24h),
-                "volume": float(metric.volume),
-                "avg_volume_1h": float(metric.avg_volume_1h),
-                "rsi": float(metric.rsi),
-                "macd": float(metric.macd),
-                "macd_signal": float(metric.macd_signal),
-                "stochastic_k": float(metric.stochastic_k),
-                "stochastic_d": float(metric.stochastic_d),
-                "support_level": float(metric.support_level),
-                "resistance_level": float(metric.resistance_level),
-                "relative_volume": float(metric.relative_volume),
-                "sma_5": float(metric.sma_5),
-                "sma_20": float(metric.sma_20),
-                "stddev_1h": float(metric.stddev_1h),
-                "atr_1h": float(metric.atr_1h),
-                "change_since_high": float(metric.change_since_high),
-                "change_since_low": float(metric.change_since_low),
-                "fib_distance_0_236": float(metric.fib_distance_0_236),
-                "fib_distance_0_382": float(metric.fib_distance_0_382),
-                "fib_distance_0_5": float(metric.fib_distance_0_5),
-                "fib_distance_0_618": float(metric.fib_distance_0_618),
-                "fib_distance_0_786": float(metric.fib_distance_0_786),
-                "adx": float(metric.adx),
-                "bollinger_upper": float(metric.bollinger_upper),
-                "bollinger_middle": float(metric.bollinger_middle),
-                "bollinger_lower": float(metric.bollinger_lower),
-            })
-
-        except Exception as e:
-            continue
-
-    if not instances:
-        return JsonResponse({"status": "error", "message": "No valid metrics to send."}, status=500)
-
-    # Send request to Vertex
-    url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json={"instances": instances})
-        response.raise_for_status()
-        predictions = response.json().get("predictions", [])
-
-        messages = []
-        count = 0
-
-        for metric, pred in zip(metrics, predictions):
-
-            try:
-                # Find index of "true" class (sometimes it's index 0, sometimes 1)
-                class_idx = pred["classes"].index("true")
-                confidence = pred["scores"][class_idx]
-                print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-                count += 1
-
-                if confidence > 0.70:
-
-                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-
-                    # only take the trade if that coin is not currently in a trade
-                    if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
-
-                        #print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-
-                        try:
-
-                            # mimic the trade -> add to ModelTrade
-                            ModelTrade.objects.create(
-                                coin=metric.coin,
-                                trade_type="long",
-                                entry_timestamp=metric.timestamp,
-                                duration_minutes=0,
-                                entry_price=metric.price,
-                                model_confidence=confidence,
-                                take_profit_percent=3,
-                                stop_loss_percent=2,
-                            )
-
-                            print("LONG trade created")
-
-                        except Exception as e:
-                            print(f"error creating long trade: {e}")
-
-            except Exception as e:
-                print(f"Failed to parse prediction for {metric.coin.symbol}: {e}")
-
-        if len(messages) > 0:
-            send_text(messages)
-
-        print(f"Total LONG metrics looked at: {count}")
-        print("Predictions complete.")
-        return JsonResponse({"status": "done"})
-
-    except Exception as e:
-        return JsonResponse({
-            "status": "error",
-            "message": str(e),
-        }, status=500)
-
 
 import math
 
@@ -1351,348 +804,10 @@ def is_valid_payload(payload):
     return all(value is not None for value in payload.values())
 
 
-def predict_live_vertex_new(request):
-
-    try:
-        access_token = get_google_jwt_token()
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": f"Failed to load credentials: {e}"}, status=500)
-
-    # Load RickisMetrics
-    cutoff = now() - timedelta(minutes=5)
-    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
-
-    if not metrics.exists():
-        return JsonResponse({"status": "warning", "message": "No recent RickisMetrics found."})
-
-    # Build instances
-    instances = []
-    valid_metrics = []
-    for metric in metrics:
-        instance = {
-            "price": safe_float(metric.price),
-            "high_24h": safe_float(metric.high_24h),
-            "low_24h": safe_float(metric.low_24h),
-            "open": safe_float(metric.open),
-            "close": safe_float(metric.close),
-            "change_5m": safe_float(metric.change_5m),
-            "change_1h": safe_float(metric.change_1h),
-            "change_24h": safe_float(metric.change_24h),
-            "volume": safe_float(metric.volume),
-            "avg_volume_1h": safe_float(metric.avg_volume_1h),
-            "rsi": safe_float(metric.rsi),
-            "macd": safe_float(metric.macd),
-            "macd_signal": safe_float(metric.macd_signal),
-            "stochastic_k": safe_float(metric.stochastic_k),
-            "stochastic_d": safe_float(metric.stochastic_d),
-            "support_level": safe_float(metric.support_level),
-            "resistance_level": safe_float(metric.resistance_level),
-            "relative_volume": safe_float(metric.relative_volume),
-            "sma_5": safe_float(metric.sma_5),
-            "sma_20": safe_float(metric.sma_20),
-            "stddev_1h": safe_float(metric.stddev_1h),
-            "atr_1h": safe_float(metric.atr_1h),
-            "change_since_high": safe_float(metric.change_since_high),
-            "change_since_low": safe_float(metric.change_since_low),
-            "fib_distance_0_236": safe_float(metric.fib_distance_0_236),
-            "fib_distance_0_382": safe_float(metric.fib_distance_0_382),
-            "fib_distance_0_5": safe_float(metric.fib_distance_0_5),
-            "fib_distance_0_618": safe_float(metric.fib_distance_0_618),
-            "fib_distance_0_786": safe_float(metric.fib_distance_0_786),
-            "adx": safe_float(metric.adx),
-            "bollinger_upper": safe_float(metric.bollinger_upper),
-            "bollinger_middle": safe_float(metric.bollinger_middle),
-            "bollinger_lower": safe_float(metric.bollinger_lower),
-        }
-
-        if None not in instance.values():
-            instances.append(instance)
-            valid_metrics.append(metric)
-
-    if not instances:
-        return JsonResponse({"status": "error", "message": "No valid metrics to send."}, status=500)
-
-    # Send request to Vertex
-    url = f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json={"instances": instances})
-        response.raise_for_status()
-        predictions = response.json().get("predictions", [])
-
-        messages = []
-        count = 0
-
-        for metric, pred in zip(valid_metrics, predictions):
-            try:
-                class_idx = pred["classes"].index("true")
-                confidence = pred["scores"][class_idx]
-                print(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-                count += 1
-
-                if confidence > 0.9:
-                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-
-                    if not ModelTrade.objects.filter(
-                        coin=metric.coin,
-                        confidence_trade=0.9,
-                        exit_timestamp__isnull=True,
-                    ).exists():
-                        try:
-                            ModelTrade.objects.create(
-                                coin=metric.coin,
-                                trade_type="long",
-                                entry_timestamp=metric.timestamp,
-                                duration_minutes=0,
-                                entry_price=metric.price,
-                                model_confidence=confidence,
-                                take_profit_percent=3,
-                                stop_loss_percent=2,
-                                confidence_trade=0.9,
-                            )
-                            print("LONG trade created")
-                        except Exception as e:
-                            print(f"error creating long trade: {e}")
-
-                elif confidence > 0.8:
-                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-
-                    if not ModelTrade.objects.filter(
-                        coin=metric.coin,
-                        confidence_trade=0.8,
-                        exit_timestamp__isnull=True,
-                    ).exists():
-                        try:
-                            ModelTrade.objects.create(
-                                coin=metric.coin,
-                                trade_type="long",
-                                entry_timestamp=metric.timestamp,
-                                duration_minutes=0,
-                                entry_price=metric.price,
-                                model_confidence=confidence,
-                                take_profit_percent=3,
-                                stop_loss_percent=2,
-                                confidence_trade=0.8,
-                            )
-                            print("LONG trade created")
-                        except Exception as e:
-                            print(f"error creating long trade: {e}")
-
-
-                elif confidence > 0.7:
-                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-
-                    if not ModelTrade.objects.filter(
-                        coin=metric.coin,
-                        confidence_trade=0.7,
-                        exit_timestamp__isnull=True,
-                    ).exists():
-                        try:
-                            ModelTrade.objects.create(
-                                coin=metric.coin,
-                                trade_type="long",
-                                entry_timestamp=metric.timestamp,
-                                duration_minutes=0,
-                                entry_price=metric.price,
-                                model_confidence=confidence,
-                                take_profit_percent=3,
-                                stop_loss_percent=2,
-                                confidence_trade=0.7,
-                            )
-                            print("LONG trade created")
-                        except Exception as e:
-                            print(f"error creating long trade: {e}")
-
-                elif confidence > 0.6:
-                    messages.append(f"LONG | {metric.coin.symbol} — Confidence: {confidence:.4f}")
-
-                    if not ModelTrade.objects.filter(
-                        coin=metric.coin,
-                        confidence_trade=0.6,
-                        exit_timestamp__isnull=True,
-                    ).exists():
-                        try:
-                            ModelTrade.objects.create(
-                                coin=metric.coin,
-                                trade_type="long",
-                                entry_timestamp=metric.timestamp,
-                                duration_minutes=0,
-                                entry_price=metric.price,
-                                model_confidence=confidence,
-                                take_profit_percent=3,
-                                stop_loss_percent=2,
-                                confidence_trade=0.6,
-                            )
-                            print("LONG trade created")
-                        except Exception as e:
-                            print(f"error creating long trade: {e}")
 
 
 
 
-            except Exception as e:
-                print(f"Failed to parse prediction for {metric.coin.symbol}: {e}")
-
-        if messages:
-            send_text(messages)
-
-        print(f"Total LONG metrics looked at: {count}")
-        print("Predictions complete.")
-        return JsonResponse({"status": "done"})
-
-    except Exception as e:
-        return JsonResponse({
-            "status": "error",
-            "message": str(e),
-            "response": getattr(locals().get('response', None), "text", "No response")
-        }, status=500)
-
-
-def predict_short_vertex_new(request):
-    try:
-        access_token = get_vertex_access_token()
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": f"Auth failed: {e}"}, status=500)
-
-    # get recent Metrics
-    cutoff = now() - timedelta(minutes=5)
-    metrics = RickisMetrics.objects.filter(timestamp__gte=cutoff)
-
-    instances = []
-    symbols = []
-    metrics_list = []
-
-    for metric in metrics:
-
-        try:
-            # gather necessary data
-            instance = {
-                "price": float(metric.price),
-                "volume": float(metric.volume),
-                "change_5m": float(metric.change_5m),
-                "change_1h": float(metric.change_1h),
-                "change_24h": float(metric.change_24h),
-                "high_24h": float(metric.high_24h),
-                "low_24h": float(metric.low_24h),
-                "open": float(metric.open),
-                "close": float(metric.close),
-                "avg_volume_1h": float(metric.avg_volume_1h),
-                "relative_volume": float(metric.relative_volume),
-                "sma_5": float(metric.sma_5),
-                "sma_20": float(metric.sma_20),
-                "macd": float(metric.macd),
-                "macd_signal": float(metric.macd_signal),
-                "rsi": float(metric.rsi),
-                "stochastic_k": float(metric.stochastic_k),
-                "stochastic_d": float(metric.stochastic_d),
-                "support_level": float(metric.support_level),
-                "resistance_level": float(metric.resistance_level),
-                "stddev_1h": float(metric.stddev_1h),
-                "atr_1h": float(metric.atr_1h),
-                "obv": float(metric.obv),
-                "change_since_high": float(metric.change_since_high),
-                "change_since_low": float(metric.change_since_low),
-                "fib_distance_0_236": float(metric.fib_distance_0_236),
-                "fib_distance_0_382": float(metric.fib_distance_0_382),
-                "fib_distance_0_5": float(metric.fib_distance_0_5),
-                "fib_distance_0_618": float(metric.fib_distance_0_618),
-                "fib_distance_0_786": float(metric.fib_distance_0_786),
-            }
-            instances.append(instance)
-            symbols.append(metric.coin.symbol)
-            metrics_list.append(metric)
-
-        except Exception:
-            continue
-
-    if not instances:
-        return JsonResponse({"status": "error", "message": "No valid instances"}, status=500)
-
-    url = (
-        f"https://{SHORT_REGION}-aiplatform.googleapis.com/v1/"
-        f"projects/{SHORT_PROJECT_ID}/locations/{SHORT_REGION}/endpoints/{SHORT_ENDPOINT_ID}:predict"
-    )
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
-
-    try:
-        # send to GCP
-        response = requests.post(url, headers=headers, json={"instances": instances})
-        response.raise_for_status()
-        predictions = response.json()
-        messages = []
-        count = 0
-
-        # print out confidence per coin
-        for symbol, result, metric in zip(symbols, predictions["predictions"], metrics_list):
-            true_index = result["classes"].index("true")
-            confidence = result["scores"][true_index]
-            count += 1
-            print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
-
-            # send message through Telegram if confidence is greater than 0.9
-            if confidence > 0.75:
-                messages.append(f"SHORT | {symbol} — Confidence: {confidence:.4f}")
-
-
-
-                # only take the trade if that coin is not currently in a trade
-                if not ModelTrade.objects.filter(coin=metric.coin, exit_timestamp__isnull=True).exists():
-
-                    #print(f"SHORT: {symbol} — Confidence: {confidence:.4f}")
-
-                    try:
-                        # mimic the trade -> add to ModelTrade
-                        ModelTrade.objects.create(
-                            coin=metric.coin,
-                            trade_type="short",
-                            entry_timestamp=metric.timestamp,
-                            duration_minutes=0,
-                            entry_price=metric.price,
-                            model_confidence=confidence,
-                            take_profit_percent=3,
-                            stop_loss_percent=2,
-                        )
-
-                        print("SHORT trade created")
-
-                    except Exception as e:
-                        print(f"error creating short trade: {e}")
-
-        # telegram alert
-        if len(messages) > 0:
-            send_text(messages)
-
-        print(f"Total SHORT metrics looked at: {count}")
-
-        return JsonResponse({"status": "success", "predictions": predictions})
-
-    except Exception as e:
-        return JsonResponse({
-            "status": "error",
-            "message": str(e),
-            "response": getattr(response, "text", "No response")
-        }, status=500)
-
-
-
-
-
-# from .live_pipeline import run_live_pipeline  # Commented out - causing xgboost architecture issues
-'''
-def run_live_pipeline_view(request):
-    try:
-        run_live_pipeline()
-        return JsonResponse({"status": "success"})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-'''
 def run_live_pipeline_view(request):
     def run():
         try:
@@ -1704,12 +819,6 @@ def run_live_pipeline_view(request):
 
     Thread(target=run).start()
     return JsonResponse({"status": "pipeline started"}, status=200)
-
-
-
-
-
-
 
 
 

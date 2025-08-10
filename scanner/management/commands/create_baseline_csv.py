@@ -10,11 +10,11 @@ class Command(BaseCommand):
         coins = [
             'BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'SOLUSDT',
             'DOGEUSDT', 'LINKUSDT', 'DOTUSDT', 'SHIBUSDT', 'ADAUSDT',
-            'UNIUSDT', 'AVAXUSDT', 'XLMUSDT'
+            'UNIUSDT', 'AVAXUSDT', 'XLMUSDT', 'TRXUSDT', 'ATOMUSDT'
         ]
 
-        start = datetime(2022, 1, 1, tzinfo=timezone.utc)
-        end = datetime(2025, 7, 23, 23, 55, tzinfo=timezone.utc)
+        start = datetime(2023, 1, 1, tzinfo=timezone.utc)
+        end = datetime(2025, 8, 7, 23, 55, tzinfo=timezone.utc)
 
         all_data = []
 

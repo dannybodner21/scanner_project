@@ -1,21 +1,11 @@
 
-    # GRT-USD - done
-    # XTZ-USD - done
-    # AAVE-USD - done
 
-    # ZRX-USD - done
-    # MATIC-USD - done
-    # ETC-USD - done
-    # EOS-USD - done
-    # ATOM-USD - done
-    # BAT-USD - done
-    # ALGO-USD - done
-    # SNX-USD - done
-    # SUSHI-USD - done
-    # FIL-USD - done
-    # HBAR-USD - done
+
+
+
+
     
-# python manage.py clean_prices_with_coinapi GRTUSDT --start 2022-01-01 --end 2025-01-01 --fix-flat
+# python manage.py clean_prices_with_coinapi TRXUSDT --start 2023-01-01 --end 2025-08-08 --fix-flat
 
 from django.core.management.base import BaseCommand
 from scanner.models import CoinAPIPrice
@@ -37,6 +27,7 @@ COINAPI_SYMBOL_MAP = {
     "UNIUSDT": "BINANCE_SPOT_UNI_USDT", "AVAXUSDT": "BINANCE_SPOT_AVAX_USDT",
     "XLMUSDT": "BINANCE_SPOT_XLM_USDT", "GRTUSDT": "KRAKEN_SPOT_GRT_USD",
     "XTZUSDT": "BINANCE_SPOT_XTZ_USDT", "AAVEUSDT": "BINANCE_SPOT_AAVE_USDT",
+    "TRXUSDT": "BINANCE_SPOT_TRX_USDT", "ATOMUSDT": "BINANCE_SPOT_ATOM_USDT",
 }
 
 class Command(BaseCommand):

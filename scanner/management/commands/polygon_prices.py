@@ -38,12 +38,11 @@ class Command(BaseCommand):
     help = 'Fetch GRT-USD OHLCV data from Polygon and save to CoinAPIPrice'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write("⚠️  Deleting existing data...")
+        
+        #self.stdout.write("⚠️  Deleting existing data...")
+        #CoinAPIPrice.objects.filter(coin=DB_COIN).delete()
 
-
-        CoinAPIPrice.objects.filter(coin=DB_COIN).delete()
-
-        start_date = datetime(2022, 1, 1)
+        start_date = datetime(2023, 1, 1)
         end_date = datetime.utcnow()
         delta = timedelta(days=BATCH_DAYS)
         total_inserted = 0
