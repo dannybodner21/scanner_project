@@ -18,6 +18,8 @@ from scanner.models import (
     Coin, ModelTrade, ConfidenceHistory, LivePriceSnapshot, CoinAPIPrice
 )
 
+from skops.io import load as skops_load
+
 # --------------------------------
 # Maps / Config
 # --------------------------------
@@ -50,7 +52,8 @@ COINAPI_KEY = os.environ.get("COINAPI_KEY", "01293e2a-dcf1-4e81-8310-c6aa9d0cb74
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 # Model artifacts
-MODEL_PATH    = "two_long_hgb_model.joblib"
+# MODEL_PATH    = "two_long_hgb_model.joblib"
+MODEL_PATH = "two_long_model.skops"
 SCALER_PATH   = "two_feature_scaler.joblib"
 FEATURES_PATH = "two_feature_list.json"
 CONFIDENCE_THRESHOLD = 0.85
