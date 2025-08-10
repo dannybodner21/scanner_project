@@ -18,7 +18,7 @@ from scanner.models import (
     Coin, ModelTrade, ConfidenceHistory, LivePriceSnapshot, CoinAPIPrice
 )
 
-from skops.io import load as skops_load
+from skops.io import load as skops_load, get_untrusted_types
 
 # --------------------------------
 # Maps / Config
@@ -54,6 +54,7 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 # Model artifacts
 # MODEL_PATH    = "two_long_hgb_model.joblib"
 MODEL_PATH = "two_long_model.skops"
+trusted_types = get_untrusted_types(MODEL_PATH)
 SCALER_PATH   = "two_feature_scaler.joblib"
 FEATURES_PATH = "two_feature_list.json"
 CONFIDENCE_THRESHOLD = 0.85
@@ -291,7 +292,7 @@ def run_live_pipeline():
 
     # Load artifacts
     # long_model = joblib.load(MODEL_PATH)
-    long_model = skops_load(MODEL_PATH, trusted=True)
+    long_model = skops_load(MODEL_PATH, trusted=trusted_types)
     long_scaler = joblib.load(SCALER_PATH)
     with open(FEATURES_PATH, "r") as f:
         long_features = json.load(f)
