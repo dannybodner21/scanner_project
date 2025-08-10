@@ -290,7 +290,8 @@ def run_live_pipeline():
     print("🚀 Running live HGB long pipeline (Telegram alerts + auto-closer, 1-per-coin)")
 
     # Load artifacts
-    long_model = joblib.load(MODEL_PATH)
+    # long_model = joblib.load(MODEL_PATH)
+    long_model = skops_load(MODEL_PATH, trusted=True)
     long_scaler = joblib.load(SCALER_PATH)
     with open(FEATURES_PATH, "r") as f:
         long_features = json.load(f)
