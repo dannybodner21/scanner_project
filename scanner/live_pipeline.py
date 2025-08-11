@@ -13,7 +13,6 @@ from scanner.models import (
     Coin, ModelTrade, ConfidenceHistory, LivePriceSnapshot, CoinAPIPrice
 )
 
-
 # ---- NumPy RNG pickle compatibility shim (for joblib pickle RNG) ----
 def _patch_numpy_rng_compat():
     import sys, types, numpy as np
@@ -25,7 +24,6 @@ def _patch_numpy_rng_compat():
         setattr(mod, name, cls)
         sys.modules[mod.__name__] = mod
 _patch_numpy_rng_compat()
-
 
 # --------------------------------
 # Maps / Config
@@ -60,9 +58,6 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 # Model artifacts
 MODEL_PATH    = "two_long_hgb_model.joblib"
-# MODEL_PATH = "two_long_model.skops"
-# trusted_types = get_untrusted_types(file=MODEL_PATH)
-
 SCALER_PATH   = "two_feature_scaler.joblib"
 FEATURES_PATH = "two_feature_list.json"
 CONFIDENCE_THRESHOLD = 0.85
@@ -82,7 +77,6 @@ LOCAL_TZ = ZoneInfo("America/Los_Angeles")  # for nice timestamps in Telegram al
 def send_text(messages):
     if not messages:
         return
-    # Your existing constants (swap to env if you prefer)
     bot_token = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
     chat_ids = ['1077594551']
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
@@ -284,7 +278,7 @@ def add_features_live(df):
 
     last = g.tail(1).copy()
 
-    # Price sanity (avoid zero/negatives and malformed bars)
+    # Price sanity
     p_open  = float(last["open"].values[0])
     p_high  = float(last["high"].values[0])
     p_low   = float(last["low"].values[0])
@@ -300,46 +294,27 @@ def add_features_live(df):
 def run_live_pipeline():
     print("🚀 Running live HGB long pipeline (Telegram alerts + auto-closer, 1-per-coin)")
 
-    # Load artifacts
-    long_model = joblib.load(MODEL_PATH)
-    # long_model = skops_load(file=MODEL_PATH, trusted=trusted_types)
+    # --- Load artifacts
+    long_model  = joblib.load(MODEL_PATH)
     long_scaler = joblib.load(SCALER_PATH)
 
     with open(FEATURES_PATH, "r") as f:
-        long_features = json.load(f)
+        file_features = json.load(f)  # full list saved at train time
 
-    # Resolve the *authoritative* feature order: prefer scaler’s fitted names if available
+    # Authoritative feature order = model's training columns
+    model_features = list(getattr(long_model, "feature_names_in_", []))
+    if not model_features:
+        model_features = file_features
+
+    # Scaler feature names (subset or same set)
     scaler_features = list(getattr(long_scaler, "feature_names_in_", []))
+
+    print(f"Model expects {len(model_features)} features: first 5 -> {model_features[:5]}")
     if scaler_features:
-        USED_FEATURES = scaler_features
-    else:
-        USED_FEATURES = file_features  # fall back to your JSON list
-
-    # Hard guard: lengths must match what the scaler expects
-    if hasattr(long_scaler, "n_features_in_") and long_scaler.n_features_in_ != len(USED_FEATURES):
-        # Try to reconcile by intersecting (preserve scaler order if present)
-        if scaler_features and file_features:
-            file_set = set(file_features)
-            reconciled = [f for f in scaler_features if f in file_set]
-            if len(reconciled) == long_scaler.n_features_in_:
-                USED_FEATURES = reconciled
-            else:
-                raise RuntimeError(
-                    f"Feature mismatch: scaler expects {long_scaler.n_features_in_} but we resolved {len(USED_FEATURES)}. "
-                    f"Check that MODEL_PATH, SCALER_PATH, and FEATURES_PATH are from the same training run."
-                )
-        else:
-            raise RuntimeError(
-                f"Feature mismatch: scaler expects {long_scaler.n_features_in_} but we resolved {len(USED_FEATURES)}. "
-                f"Add feature_names_in_ to the scaler at train time or use matching artifacts."
-            )
-
-    print(f"Using {len(USED_FEATURES)} features: first 5 -> {USED_FEATURES[:5]}")
-
+        print(f"Scaler knows {len(scaler_features)} features: first 5 -> {scaler_features[:5]}")
 
     # Ensure each coin has at least 400 contiguous recent candles; refresh if stale
     for coin in COINS:
-
         if not has_recent_400_candles(coin):
             ensure_recent_candles(coin, required_bars=400)
         last = get_latest_saved_timestamp(coin)
@@ -372,28 +347,32 @@ def run_live_pipeline():
                 print(f"⏭️ {coin}: insufficient/invalid features")
                 continue
 
-
-
-           # Must include all model features; values must be finite
-            missing = [c for c in USED_FEATURES if c not in feats_df.columns]
+            # Must include all model features; values must be finite
+            missing = [c for c in model_features if c not in feats_df.columns]
             if missing:
                 print(f"❌ {coin}: missing model features {missing[:5]}{'...' if len(missing)>5 else ''}")
                 continue
 
-            # Use a DataFrame (not .values) so feature names align with the scaler; this avoids the warning
-            X_df = feats_df[USED_FEATURES].astype("float32")
-
-            # Safety: ensure finite
+            X_df = feats_df[model_features].astype("float32")
             if not np.isfinite(X_df.to_numpy()).all():
                 print(f"⚠️ {coin}: non-finite feature values, skipping")
                 continue
 
-            X_scaled = long_scaler.transform(X_df)  # returns ndarray aligned to USED_FEATURES order
-            prob = float(long_model.predict_proba(X_scaled)[0][1])
+            # --- Apply scaler to its subset (if present), then merge back to full 30 in model order
+            if scaler_features:
+                # Require scaler features to be a subset of model features
+                if not set(scaler_features).issubset(set(model_features)):
+                    print(f"⚠️ {coin}: scaler features not subset of model features; skipping scaling")
+                    X_in = X_df
+                else:
+                    X_scaled_part = long_scaler.transform(X_df[scaler_features])   # ndarray
+                    scaled_df = pd.DataFrame(X_scaled_part, columns=scaler_features, index=X_df.index)
+                    X_in = X_df.copy()
+                    X_in[scaler_features] = scaled_df  # replace the scaled columns in place
+            else:
+                X_in = X_df  # no scaler features → use raw
 
-
-
-
+            prob = float(long_model.predict_proba(X_in)[0][1])
 
             ConfidenceHistory.objects.create(
                 coin=coin_obj,
@@ -448,8 +427,6 @@ def run_live_pipeline():
             )
             print(f"✅ LONG opened: {coin} @ {entry_price:.6f} (ts={entry_ts})")
 
-            # Do NOT break; we allow multiple coins to enter on the same run
-
         except Exception as e:
             print(f"❌ Error on {coin}: {e}")
 
@@ -468,7 +445,6 @@ def run_live_pipeline():
                 print(f"⚠️ No price data for {coin_symbol}, skipping")
                 continue
 
-            # Snapshot (optional)
             LivePriceSnapshot.objects.update_or_create(
                 coin=trade.coin.symbol,
                 defaults={
@@ -507,14 +483,14 @@ def run_live_pipeline():
                 trade.exit_price = safe_decimal(last_close)
                 trade.exit_timestamp = now()
                 try:
-                    trade.result = result_bool  # if your ModelTrade has this field
+                    trade.result = result_bool
                 except Exception:
                     pass
                 trade.save()
 
                 pnl_pct = (last_close / entry_price - 1.0) * 100.0
                 send_text([
-                    f"📤 *Closed* {trade.trade_type.upper()} {trade.coin.symbol} — {close_reason}\n",
+                    f"📤 *Closed* {trade.trade_type.UPPER()} {trade.coin.symbol} — {close_reason}\n",
                     f"Entry: {entry_price:.6f} | Exit: {last_close:.6f} | Δ={pnl_pct:.2f}%"
                 ])
                 print(f"{close_reason} | {trade.trade_type.upper()} {trade.coin.symbol} @ {last_close:.6f}")
