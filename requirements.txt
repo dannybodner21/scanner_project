@@ -72,7 +72,6 @@ okx==2.1.2
 opt_einsum==3.4.0
 optree==0.16.0
 packaging==25.0
-pandas==2.3.0
 paux==1.0.14
 pendulum==3.1.0
 pillow==11.2.1
@@ -123,8 +122,10 @@ openai>=1.0.0
 python-dotenv
 tvdatafeed @ git+https://github.com/rongardF/tvdatafeed.git
 
-numpy==2.3.2
+
+numpy==2.2.2
 scipy==1.14.1
+scikit-learn==1.6.1
 joblib==1.5.1
 threadpoolctl==3.5.0
-scikit-learn==1.6.1
+pandas==2.2.2
