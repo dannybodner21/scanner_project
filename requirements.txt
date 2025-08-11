@@ -127,4 +127,4 @@ torchvision==0.16.0+cpu
 openai>=1.0.0
 python-dotenv
 tvdatafeed @ git+https://github.com/rongardF/tvdatafeed.git
-skops
+skops==0.10.0

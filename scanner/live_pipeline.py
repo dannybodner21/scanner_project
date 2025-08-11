@@ -62,7 +62,8 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 # Model artifacts
 # MODEL_PATH    = "two_long_hgb_model.joblib"
 MODEL_PATH = "two_long_model.skops"
-trusted_types = _trusted_list(MODEL_PATH)
+trusted_types = get_untrusted_types(file=MODEL_PATH)
+
 SCALER_PATH   = "two_feature_scaler.joblib"
 FEATURES_PATH = "two_feature_list.json"
 CONFIDENCE_THRESHOLD = 0.85
@@ -300,7 +301,7 @@ def run_live_pipeline():
 
     # Load artifacts
     # long_model = joblib.load(MODEL_PATH)
-    long_model = skops_load(MODEL_PATH, trusted=trusted_types)
+    long_model = skops_load(file=MODEL_PATH, trusted=trusted_types)
     long_scaler = joblib.load(SCALER_PATH)
     with open(FEATURES_PATH, "r") as f:
         long_features = json.load(f)
