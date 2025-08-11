@@ -28,6 +28,20 @@ def _trusted_list(path):
         # skops < 0.10 signature (no args)
         return get_untrusted_types()
 
+
+# ---- NumPy RNG pickle compatibility shim (for joblib pickle RNG) ----
+def _patch_numpy_rng_compat():
+    import sys, types, numpy as np
+    for name in ("PCG64", "MT19937", "Philox", "SFC64"):
+        cls = getattr(np.random, name, None)
+        if cls is None:
+            continue
+        mod = types.ModuleType(f"numpy.random._{name.lower()}")
+        setattr(mod, name, cls)
+        sys.modules[mod.__name__] = mod
+_patch_numpy_rng_compat()
+
+
 # --------------------------------
 # Maps / Config
 # --------------------------------
@@ -60,9 +74,9 @@ COINAPI_KEY = os.environ.get("COINAPI_KEY", "01293e2a-dcf1-4e81-8310-c6aa9d0cb74
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 # Model artifacts
-# MODEL_PATH    = "two_long_hgb_model.joblib"
-MODEL_PATH = "two_long_model.skops"
-trusted_types = get_untrusted_types(file=MODEL_PATH)
+MODEL_PATH    = "two_long_hgb_model.joblib"
+# MODEL_PATH = "two_long_model.skops"
+# trusted_types = get_untrusted_types(file=MODEL_PATH)
 
 SCALER_PATH   = "two_feature_scaler.joblib"
 FEATURES_PATH = "two_feature_list.json"
@@ -300,8 +314,8 @@ def run_live_pipeline():
     print("🚀 Running live HGB long pipeline (Telegram alerts + auto-closer, 1-per-coin)")
 
     # Load artifacts
-    # long_model = joblib.load(MODEL_PATH)
-    long_model = skops_load(file=MODEL_PATH, trusted=trusted_types)
+    long_model = joblib.load(MODEL_PATH)
+    # long_model = skops_load(file=MODEL_PATH, trusted=trusted_types)
     long_scaler = joblib.load(SCALER_PATH)
     with open(FEATURES_PATH, "r") as f:
         long_features = json.load(f)
