@@ -20,6 +20,14 @@ from scanner.models import (
 
 from skops.io import load as skops_load, get_untrusted_types
 
+def _trusted_list(path):
+    try:
+        # skops >= 0.10
+        return get_untrusted_types(path)
+    except TypeError:
+        # skops < 0.10 signature (no args)
+        return get_untrusted_types()
+
 # --------------------------------
 # Maps / Config
 # --------------------------------
@@ -54,7 +62,7 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 # Model artifacts
 # MODEL_PATH    = "two_long_hgb_model.joblib"
 MODEL_PATH = "two_long_model.skops"
-trusted_types = get_untrusted_types(MODEL_PATH)
+trusted_types = _trusted_list(MODEL_PATH)
 SCALER_PATH   = "two_feature_scaler.joblib"
 FEATURES_PATH = "two_feature_list.json"
 CONFIDENCE_THRESHOLD = 0.85
