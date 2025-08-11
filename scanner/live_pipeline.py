@@ -8,10 +8,11 @@ from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from django.utils.timezone import now, make_aware
+from django.utils.timezone import now
 from scanner.models import (
     Coin, ModelTrade, ConfidenceHistory, LivePriceSnapshot, CoinAPIPrice
 )
+
 
 # ---- NumPy RNG pickle compatibility shim (for joblib pickle RNG) ----
 def _patch_numpy_rng_compat():
@@ -69,7 +70,11 @@ LEVERAGE        = 10.0
 MAX_HOLD_HOURS  = 3
 ENTRY_LAG_BARS  = 1
 
-LOCAL_TZ = ZoneInfo("America/Los_Angeles")  # for nice timestamps in Telegram alerts
+LOCAL_TZ = ZoneInfo("America/Los_Angeles")  # for Telegram timestamps
+
+# Slippage applied to entry to simulate fill latency (0.001 = +0.10%)
+ENTRY_SLIPPAGE_PCT = float(os.environ.get("ENTRY_SLIPPAGE_PCT", "0.001"))
+
 
 # --------------------------------
 # Telegram
@@ -77,8 +82,8 @@ LOCAL_TZ = ZoneInfo("America/Los_Angeles")  # for nice timestamps in Telegram al
 def send_text(messages):
     if not messages:
         return
-    bot_token = '7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE'
-    chat_ids = ['1077594551']
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE")
+    chat_ids = [os.environ.get("TELEGRAM_CHAT_ID", "1077594551")]
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     message = " ".join(messages)
     for chat_id in chat_ids:
@@ -126,7 +131,7 @@ def fetch_chunk(symbol, start_ts, end_ts, limit=1000):
     return r.json()
 
 def ensure_recent_candles(coin, required_bars=400, buffer_bars=60):
-    """Ensure we have at least `required_bars` most recent 5-min candles (contiguous-ish)."""
+    """Ensure at least `required_bars` recent 5-min candles are in DB (no gaps)."""
     symbol = COINAPI_SYMBOL_MAP[coin]
     end = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
     start = end - timedelta(minutes=5 * (required_bars + buffer_bars))
@@ -184,6 +189,33 @@ def get_recent_candles(coin, limit=600):
     df = df.dropna(subset=["open","high","low","close","volume"])
     return df.sort_values('timestamp').reset_index(drop=True)
 
+
+def get_entry_price_or_fallback(coin: str, entry_ts, recent_df: pd.DataFrame, slippage_pct: float):
+    """
+    Try to use the next-bar open; if missing, fall back to the latest close.
+    Always apply +slippage_pct to simulate execution latency.
+    Returns (entry_price_float, source_str).
+    """
+    row = (
+        CoinAPIPrice.objects
+        .filter(coin=coin, timestamp=entry_ts)
+        .values("open")
+        .first()
+    )
+    if row and row["open"] is not None and float(row["open"]) > 0:
+        base = float(row["open"])
+        src = "next_bar_open"
+    else:
+        # Fallback: last known close from the recent df we just computed features on
+        if recent_df is None or recent_df.empty:
+            raise RuntimeError("No recent candles available for fallback close.")
+        base = float(recent_df.iloc[-1]["close"])
+        src = "fallback_last_close"
+
+    price = base * (1.0 + slippage_pct)
+    return price, src
+
+
 # --------------------------------
 # Feature Engineering (match training)
 # --------------------------------
@@ -225,7 +257,7 @@ def atr(h, l, c, period=14):
     return tr.ewm(alpha=1/period, adjust=False).mean()
 
 def obv(close, volume):
-    # direction of price change; carry forward last non-zero; zeros -> use previous; start at 0
+    # direction of price change; carry forward last non-zero; zeros -> previous; start at 0
     dirn = np.sign(close.diff())
     dirn = dirn.where(dirn != 0).ffill().fillna(0)
     return (volume * dirn).cumsum()
@@ -289,31 +321,75 @@ def add_features_live(df):
     return last
 
 # --------------------------------
+# EXACT FEATURE ENFORCEMENT
+# --------------------------------
+BINARY_FLAGS = {
+    "close_above_ema_9",
+    "close_above_ema_21",
+    "close_above_ema_50",
+    "close_above_ema_200",
+    "above_bb_mid",
+}
+
+def load_artifacts_strict():
+    """Load model/scaler and verify scaler columns == model's non-binary columns."""
+    m = joblib.load(MODEL_PATH)
+    s = joblib.load(SCALER_PATH)
+    with open(FEATURES_PATH) as f:
+        json_feats = json.load(f)
+
+    model_feats = list(getattr(m, "feature_names_in_", [])) or list(json_feats)
+    if len(model_feats) != 30:
+        raise RuntimeError(f"Model has {len(model_feats)} features, expected 30.")
+
+    scaler_feats = list(getattr(s, "feature_names_in_", []))
+    if not scaler_feats:
+        raise RuntimeError("Scaler missing feature_names_in_. Refit scaler with DataFrame so names persist.")
+
+    expected_scaled = [f for f in model_feats if f not in BINARY_FLAGS]
+    missing = sorted(set(expected_scaled) - set(scaler_feats))
+    extra   = sorted(set(scaler_feats) - set(expected_scaled))
+    if missing or extra:
+        raise RuntimeError(
+            "Scaler features != model's continuous set.\n"
+            f"missing_from_scaler: {missing}\nextra_in_scaler: {extra}"
+        )
+    return m, s, model_feats, scaler_feats
+
+def build_X_strict(feats_df: pd.DataFrame, model_feats, scaler, scaler_feats):
+    """Return numpy array with exact model feature order; scale only scaler_feats."""
+    missing = [c for c in model_feats if c not in feats_df.columns]
+    if missing:
+        raise RuntimeError(f"Feature columns missing from live features: {missing}")
+
+    X_df = feats_df[model_feats].astype("float32").copy()
+
+    # Flags must be 0/1 (as trained)
+    for f in BINARY_FLAGS:
+        vals = pd.unique(X_df[f])
+        if not np.isin(vals, [0, 1]).all():
+            raise RuntimeError(f"Binary flag {f} contains non 0/1 values: {vals[:5]}")
+
+    # Scale the continuous subset in place
+    scaled = scaler.transform(X_df[scaler_feats])
+    X_df.loc[:, scaler_feats] = scaled
+
+    X = X_df[model_feats].to_numpy(dtype=np.float32)
+    if not np.isfinite(X).all():
+        raise RuntimeError("Non-finite values in X after scaling.")
+    return X
+
+# --------------------------------
 # Live pipeline
 # --------------------------------
 def run_live_pipeline():
-    print("🚀 Running live HGB long pipeline (Telegram alerts + auto-closer, 1-per-coin)")
+    print("🚀 Running live HGB long pipeline (exact features, 1-per-coin)")
 
-    # --- Load artifacts
-    long_model  = joblib.load(MODEL_PATH)
-    long_scaler = joblib.load(SCALER_PATH)
+    # Load artifacts (strict)
+    long_model, long_scaler, MODEL_FEATS, SCALER_FEATS = load_artifacts_strict()
+    print(f"Model expects {len(MODEL_FEATS)} features; scaler has {len(SCALER_FEATS)} (continuous only).")
 
-    with open(FEATURES_PATH, "r") as f:
-        file_features = json.load(f)  # full list saved at train time
-
-    # Authoritative feature order = model's training columns
-    model_features = list(getattr(long_model, "feature_names_in_", []))
-    if not model_features:
-        model_features = file_features
-
-    # Scaler feature names (subset or same set)
-    scaler_features = list(getattr(long_scaler, "feature_names_in_", []))
-
-    print(f"Model expects {len(model_features)} features: first 5 -> {model_features[:5]}")
-    if scaler_features:
-        print(f"Scaler knows {len(scaler_features)} features: first 5 -> {scaler_features[:5]}")
-
-    # Ensure each coin has at least 400 contiguous recent candles; refresh if stale
+    # Ensure data coverage per coin
     for coin in COINS:
         if not has_recent_400_candles(coin):
             ensure_recent_candles(coin, required_bars=400)
@@ -324,8 +400,7 @@ def run_live_pipeline():
     # Determine signal bar (latest closed) and entry bar (next)
     utc_now = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
     signal_ts = utc_now if utc_now.minute % 5 == 0 else utc_now.replace(minute=(utc_now.minute // 5) * 5)
-    entry_ts = signal_ts + timedelta(minutes=5 * ENTRY_LAG_BARS)
-    entry_ts_naive = entry_ts.replace(tzinfo=None)
+    entry_ts = signal_ts + timedelta(minutes=5 * ENTRY_LAG_BARS)  # aware UTC
 
     # Evaluate each coin independently; allow multiple concurrent trades (1 per coin)
     for coin in COINS:
@@ -347,32 +422,13 @@ def run_live_pipeline():
                 print(f"⏭️ {coin}: insufficient/invalid features")
                 continue
 
-            # Must include all model features; values must be finite
-            missing = [c for c in model_features if c not in feats_df.columns]
-            if missing:
-                print(f"❌ {coin}: missing model features {missing[:5]}{'...' if len(missing)>5 else ''}")
+            try:
+                X = build_X_strict(feats_df, MODEL_FEATS, long_scaler, SCALER_FEATS)
+            except Exception as e:
+                print(f"⏭️ {coin}: {e}")
                 continue
 
-            X_df = feats_df[model_features].astype("float32")
-            if not np.isfinite(X_df.to_numpy()).all():
-                print(f"⚠️ {coin}: non-finite feature values, skipping")
-                continue
-
-            # --- Apply scaler to its subset (if present), then merge back to full 30 in model order
-            if scaler_features:
-                # Require scaler features to be a subset of model features
-                if not set(scaler_features).issubset(set(model_features)):
-                    print(f"⚠️ {coin}: scaler features not subset of model features; skipping scaling")
-                    X_in = X_df
-                else:
-                    X_scaled_part = long_scaler.transform(X_df[scaler_features])   # ndarray
-                    scaled_df = pd.DataFrame(X_scaled_part, columns=scaler_features, index=X_df.index)
-                    X_in = X_df.copy()
-                    X_in[scaler_features] = scaled_df  # replace the scaled columns in place
-            else:
-                X_in = X_df  # no scaler features → use raw
-
-            prob = float(long_model.predict_proba(X_in)[0][1])
+            prob = float(long_model.predict_proba(X)[0][1])
 
             ConfidenceHistory.objects.create(
                 coin=coin_obj,
@@ -390,34 +446,29 @@ def run_live_pipeline():
             if prob < CONFIDENCE_THRESHOLD:
                 continue
 
-            # Entry bar open price (enter next bar)
-            base_row = (
-                CoinAPIPrice.objects
-                .filter(coin=coin, timestamp=entry_ts)
-                .values("open")
-                .first()
-            )
-            if not base_row:
-                print(f"⏭️ {coin}: missing entry bar {entry_ts} for open price")
-                continue
 
-            entry_price = float(base_row["open"])
+            # Compute entry price with fallback + slippage
+            try:
+                entry_price, entry_src = get_entry_price_or_fallback(coin, entry_ts, recent, ENTRY_SLIPPAGE_PCT)
+            except Exception as e:
+                print(f"⏭️ {coin}: failed to resolve entry price ({e})")
+                continue
 
             # Telegram alert
             local_entry = entry_ts.astimezone(LOCAL_TZ)
             send_text([
                 f"📥 *LONG signal* {coin} | prob={prob:.3f}\n",
-                f"Entry (next bar open): {entry_price:.6f}\n",
+                f"Entry (next bar {entry_src}): {entry_price:.6f} (+{ENTRY_SLIPPAGE_PCT*100:.2f}% slippage)\n",
                 f"TP={TAKE_PROFIT*100:.1f}% | SL={STOP_LOSS*100:.1f}% | Lev={LEVERAGE:.0f}x\n",
                 f"TS (UTC): {entry_ts.strftime('%Y-%m-%d %H:%M')} | ",
                 f"TS (PT): {local_entry.strftime('%Y-%m-%d %H:%M')}"
             ])
 
-            # Open trade for this coin
+            # Open trade
             ModelTrade.objects.create(
                 coin=coin_obj,
                 trade_type='long',
-                entry_timestamp=make_aware(entry_ts_naive),
+                entry_timestamp=entry_ts,  # aware UTC
                 entry_price=safe_decimal(entry_price),
                 model_confidence=round(prob, 4),
                 take_profit_percent=TAKE_PROFIT * 100.0,
@@ -425,7 +476,9 @@ def run_live_pipeline():
                 confidence_trade=CONFIDENCE_THRESHOLD,
                 recent_confidences=[],
             )
-            print(f"✅ LONG opened: {coin} @ {entry_price:.6f} (ts={entry_ts})")
+            print(f"✅ LONG opened: {coin} @ {entry_price:.6f} ({entry_src}, ts={entry_ts})")
+
+
 
         except Exception as e:
             print(f"❌ Error on {coin}: {e}")
@@ -445,6 +498,7 @@ def run_live_pipeline():
                 print(f"⚠️ No price data for {coin_symbol}, skipping")
                 continue
 
+            # Snapshot (optional)
             LivePriceSnapshot.objects.update_or_create(
                 coin=trade.coin.symbol,
                 defaults={
@@ -460,40 +514,53 @@ def run_live_pipeline():
             low  = float(df.iloc[-1]['low'])
             last_close = float(df.iloc[-1]['close'])
 
-            tp_hit = high >= entry_price * (1.0 + TAKE_PROFIT)
-            sl_hit = low  <= entry_price * (1.0 - STOP_LOSS)
+            # Boundary targets (match simulator fills)
+            tp_px = entry_price * (1.0 + TAKE_PROFIT)
+            sl_px = entry_price * (1.0 - STOP_LOSS)
+
+            tp_hit = high >= tp_px
+            sl_hit = low  <= sl_px
 
             close_reason = None
             result_bool = None
+            exit_px = last_close  # fallback
 
-            if tp_hit:
+            if tp_hit and sl_hit:
+                # If both happen in same bar, default to SL-first or TP-first logic; choose SL-first to be conservative
+                close_reason = "BOTH_HIT_SAME_BAR_SL_FIRST"
+                result_bool = False
+                exit_px = sl_px
+            elif tp_hit:
                 close_reason = "TAKE_PROFIT"
                 result_bool = True
+                exit_px = tp_px
             elif sl_hit:
                 close_reason = "STOP_LOSS"
                 result_bool = False
+                exit_px = sl_px
             else:
                 if trade.entry_timestamp:
                     age = now() - trade.entry_timestamp
                     if age >= timedelta(hours=MAX_HOLD_HOURS):
                         close_reason = "MAX_HOLD"
                         result_bool = last_close > entry_price
+                        exit_px = last_close
 
             if close_reason:
-                trade.exit_price = safe_decimal(last_close)
+                trade.exit_price = safe_decimal(exit_px if np.isfinite(exit_px) else last_close)
                 trade.exit_timestamp = now()
                 try:
-                    trade.result = result_bool
+                    trade.result = result_bool  # if your ModelTrade has this field
                 except Exception:
                     pass
                 trade.save()
 
-                pnl_pct = (last_close / entry_price - 1.0) * 100.0
+                pnl_pct = (float(trade.exit_price) / entry_price - 1.0) * 100.0
                 send_text([
-                    f"📤 *Closed* {trade.trade_type.UPPER()} {trade.coin.symbol} — {close_reason}\n",
-                    f"Entry: {entry_price:.6f} | Exit: {last_close:.6f} | Δ={pnl_pct:.2f}%"
+                    f"📤 *Closed* {trade.trade_type.upper()} {trade.coin.symbol} — {close_reason}\n",
+                    f"Entry: {entry_price:.6f} | Exit: {float(trade.exit_price):.6f} | Δ={pnl_pct:.2f}%"
                 ])
-                print(f"{close_reason} | {trade.trade_type.upper()} {trade.coin.symbol} @ {last_close:.6f}")
+                print(f"{close_reason} | {trade.trade_type.upper()} {trade.coin.symbol} @ {float(trade.exit_price):.6f}")
 
         except Exception as e:
             print(f"❌ Error closing trade for {trade.coin.symbol}: {e}")
