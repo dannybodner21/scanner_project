@@ -231,8 +231,10 @@ def atr(h, l, c, period=14):
     return tr.ewm(alpha=1/period, adjust=False).mean()
 
 def obv(close, volume):
-    dirn = np.sign(close.diff().fillna(0))
-    return (volume * dirn.replace(0, method="ffill").fillna(0)).cumsum()
+    # direction of price change; carry forward last non-zero; zeros -> use previous; start at 0
+    dirn = np.sign(close.diff())
+    dirn = dirn.where(dirn != 0).ffill().fillna(0)
+    return (volume * dirn).cumsum()
 
 def vwap(close, high, low, volume, window=20):
     tp = (high + low + close)/3.0
@@ -302,11 +304,42 @@ def run_live_pipeline():
     long_model = joblib.load(MODEL_PATH)
     # long_model = skops_load(file=MODEL_PATH, trusted=trusted_types)
     long_scaler = joblib.load(SCALER_PATH)
+
     with open(FEATURES_PATH, "r") as f:
         long_features = json.load(f)
 
+    # Resolve the *authoritative* feature order: prefer scaler’s fitted names if available
+    scaler_features = list(getattr(long_scaler, "feature_names_in_", []))
+    if scaler_features:
+        USED_FEATURES = scaler_features
+    else:
+        USED_FEATURES = file_features  # fall back to your JSON list
+
+    # Hard guard: lengths must match what the scaler expects
+    if hasattr(long_scaler, "n_features_in_") and long_scaler.n_features_in_ != len(USED_FEATURES):
+        # Try to reconcile by intersecting (preserve scaler order if present)
+        if scaler_features and file_features:
+            file_set = set(file_features)
+            reconciled = [f for f in scaler_features if f in file_set]
+            if len(reconciled) == long_scaler.n_features_in_:
+                USED_FEATURES = reconciled
+            else:
+                raise RuntimeError(
+                    f"Feature mismatch: scaler expects {long_scaler.n_features_in_} but we resolved {len(USED_FEATURES)}. "
+                    f"Check that MODEL_PATH, SCALER_PATH, and FEATURES_PATH are from the same training run."
+                )
+        else:
+            raise RuntimeError(
+                f"Feature mismatch: scaler expects {long_scaler.n_features_in_} but we resolved {len(USED_FEATURES)}. "
+                f"Add feature_names_in_ to the scaler at train time or use matching artifacts."
+            )
+
+    print(f"Using {len(USED_FEATURES)} features: first 5 -> {USED_FEATURES[:5]}")
+
+
     # Ensure each coin has at least 400 contiguous recent candles; refresh if stale
     for coin in COINS:
+
         if not has_recent_400_candles(coin):
             ensure_recent_candles(coin, required_bars=400)
         last = get_latest_saved_timestamp(coin)
@@ -339,19 +372,28 @@ def run_live_pipeline():
                 print(f"⏭️ {coin}: insufficient/invalid features")
                 continue
 
-            # Must include all model features; values must be finite
-            missing = [c for c in long_features if c not in feats_df.columns]
+
+
+           # Must include all model features; values must be finite
+            missing = [c for c in USED_FEATURES if c not in feats_df.columns]
             if missing:
                 print(f"❌ {coin}: missing model features {missing[:5]}{'...' if len(missing)>5 else ''}")
                 continue
 
-            X = feats_df[long_features].astype("float32").values
-            if not np.isfinite(X).all():
+            # Use a DataFrame (not .values) so feature names align with the scaler; this avoids the warning
+            X_df = feats_df[USED_FEATURES].astype("float32")
+
+            # Safety: ensure finite
+            if not np.isfinite(X_df.to_numpy()).all():
                 print(f"⚠️ {coin}: non-finite feature values, skipping")
                 continue
 
-            X_scaled = long_scaler.transform(X)
+            X_scaled = long_scaler.transform(X_df)  # returns ndarray aligned to USED_FEATURES order
             prob = float(long_model.predict_proba(X_scaled)[0][1])
+
+
+
+
 
             ConfidenceHistory.objects.create(
                 coin=coin_obj,
