@@ -605,7 +605,38 @@ def get_model_results(request):
     trx_full_window = has_400_recent_candles("TRXUSDT")
     atom_full_window = has_400_recent_candles("ATOMUSDT")
 
+    # Get recent coin prices
+    btc_price = get_current_price("BTCUSDT") or 0
+    eth_price = get_current_price("ETHUSDT") or 0
+    xrp_price = get_current_price("XRPUSDT") or 0
+    dot_price = get_current_price("DOTUSDT") or 0
+    sol_price = get_current_price("SOLUSDT") or 0
+    trx_price = get_current_price("TRXUSDT") or 0
+    shib_price = get_current_price("SHIBUSDT") or 0
+    link_price = get_current_price("LINKUSDT") or 0
+
+    # don't have saved prices here
+    grt_price = get_current_price("GRTUSDT") or 0
+    xtz_price = get_current_price("XTZUSDT") or 0
+    matic_price = get_current_price("MATICUSDT") or 0
+    stx_price = get_current_price("STXUSDT") or 0
+
+
     return JsonResponse({
+        
+        "btc_price": btc_price,
+        "eth_price": eth_price,
+        "xrp_price": xrp_price,
+        "dot_price": dot_price,
+        "sol_price": sol_price,
+        "trx_price": trx_price,
+        "shib_price": shib_price,
+        "link_price": link_price,
+        "grt_price": grt_price,
+        "xtz_price": xtz_price,
+        "matic_price": matic_price,
+        "stx_price": stx_price,
+
         "total_long_trades": total_long_trades,
         "total_short_trades": total_short_trades,
         "total_long_wins": total_long_wins,
