@@ -606,20 +606,20 @@ def get_model_results(request):
     atom_full_window = has_400_recent_candles("ATOMUSDT")
 
     # Get recent coin prices
-    btc_price = CoinAPIPrice.objects.filter(coin="BTCUSDT").order_by("-timestamp").first() or 0
-    eth_price = CoinAPIPrice.objects.filter(coin="ETHUSDT").order_by("-timestamp").first() or 0
-    xrp_price = CoinAPIPrice.objects.filter(coin="XRPUSDT").order_by("-timestamp").first() or 0
-    dot_price = CoinAPIPrice.objects.filter(coin="DOTUSDT").order_by("-timestamp").first() or 0
-    sol_price = CoinAPIPrice.objects.filter(coin="SOLUSDT").order_by("-timestamp").first() or 0
-    trx_price = CoinAPIPrice.objects.filter(coin="TRXUSDT").order_by("-timestamp").first() or 0
-    shib_price = CoinAPIPrice.objects.filter(coin="SHIBUSDT").order_by("-timestamp").first() or 0
-    link_price = CoinAPIPrice.objects.filter(coin="LINKUSDT").order_by("-timestamp").first() or 0
+    btc_price = CoinAPIPrice.objects.filter(coin="BTCUSDT").order_by("-timestamp").first().close or 0
+    eth_price = CoinAPIPrice.objects.filter(coin="ETHUSDT").order_by("-timestamp").first().close or 0
+    xrp_price = CoinAPIPrice.objects.filter(coin="XRPUSDT").order_by("-timestamp").first().close or 0
+    dot_price = CoinAPIPrice.objects.filter(coin="DOTUSDT").order_by("-timestamp").first().close or 0
+    sol_price = CoinAPIPrice.objects.filter(coin="SOLUSDT").order_by("-timestamp").first().close or 0
+    trx_price = CoinAPIPrice.objects.filter(coin="TRXUSDT").order_by("-timestamp").first().close or 0
+    shib_price = CoinAPIPrice.objects.filter(coin="SHIBUSDT").order_by("-timestamp").first().close or 0
+    link_price = CoinAPIPrice.objects.filter(coin="LINKUSDT").order_by("-timestamp").first().close or 0
 
     # don't have saved prices here
-    grt_price = CoinAPIPrice.objects.filter(coin="GRTUSDT").order_by("-timestamp").first() or 0.10
-    xtz_price = CoinAPIPrice.objects.filter(coin="XTZUSDT").order_by("-timestamp").first() or 0.87
-    matic_price = CoinAPIPrice.objects.filter(coin="MATICUSDT").order_by("-timestamp").first() or 0.25
-    stx_price = CoinAPIPrice.objects.filter(coin="STXUSDT").order_by("-timestamp").first() or 0.79
+    grt_price = CoinAPIPrice.objects.filter(coin="GRTUSDT").order_by("-timestamp").first().close or 0.10
+    xtz_price = CoinAPIPrice.objects.filter(coin="XTZUSDT").order_by("-timestamp").first().close or 0.87
+    matic_price = CoinAPIPrice.objects.filter(coin="MATICUSDT").order_by("-timestamp").first().close or 0.25
+    stx_price = CoinAPIPrice.objects.filter(coin="STXUSDT").order_by("-timestamp").first().close or 0.79
 
 
     return JsonResponse({
