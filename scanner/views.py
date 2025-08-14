@@ -616,10 +616,10 @@ def get_model_results(request):
     link_price = CoinAPIPrice.objects.filter(coin="LINKUSDT").order_by("-timestamp").first().close or 0
 
     # don't have saved prices here
-    grt_price = CoinAPIPrice.objects.filter(coin="GRTUSDT").order_by("-timestamp").first().close or 0.10
-    xtz_price = CoinAPIPrice.objects.filter(coin="XTZUSDT").order_by("-timestamp").first().close or 0.87
-    matic_price = CoinAPIPrice.objects.filter(coin="MATICUSDT").order_by("-timestamp").first().close or 0.25
-    stx_price = CoinAPIPrice.objects.filter(coin="STXUSDT").order_by("-timestamp").first().close or 0.79
+    grt_price = 0.10
+    xtz_price = 0.87
+    matic_price = 0.25
+    stx_price = 0.79
 
 
     return JsonResponse({
