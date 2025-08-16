@@ -600,6 +600,9 @@ def load_artifacts_strict():
     if not scaler_feats:
         raise RuntimeError("Scaler missing feature_names_in_. Refit scaler with DataFrame so names persist.")
 
+    # Filter scaler to only include features the model expects
+    scaler_feats = [f for f in scaler_feats if f in model_feats]
+    
     expected_scaled = [f for f in model_feats if f not in BINARY_FLAGS]
     missing = sorted(set(expected_scaled) - set(scaler_feats))
     extra   = sorted(set(scaler_feats) - set(expected_scaled))
