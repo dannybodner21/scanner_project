@@ -61,13 +61,13 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 MODEL_PATH    = "three_long_hgb_model.joblib"
 SCALER_PATH   = "three_feature_scaler.joblib"
 FEATURES_PATH = "three_feature_list.json"
-CONFIDENCE_THRESHOLD = 0.70  # Updated threshold from new model
+CONFIDENCE_THRESHOLD = 0.78  # Updated threshold from new model
 
 # Trade config
 TAKE_PROFIT     = 0.03
 STOP_LOSS       = 0.02
 LEVERAGE        = 10.0
-MAX_HOLD_HOURS  = 3
+MAX_HOLD_HOURS  = 2
 ENTRY_LAG_BARS  = 1
 
 LOCAL_TZ = ZoneInfo("America/Los_Angeles")  # for Telegram timestamps
