@@ -291,13 +291,59 @@ def add_features_live(df):
         features[f'volatility_{period}_squared'] = features[f'volatility_{period}'] ** 2
 
     # Enhanced EMAs with slopes - MUST match training features exactly
-    for span in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
+    for span in [3, 5, 8, 9, 13, 21, 34, 50, 55, 89, 144, 200, 233]:
         e = ema(g["close"], span)
         features[f'ema_{span}'] = e
         features[f'ema_{span}_slope'] = e.diff()
         features[f'ema_{span}_slope_3'] = e.diff(3)
         features[f'ema_{span}_slope_5'] = e.diff(5)
         features[f'close_vs_ema_{span}'] = (g["close"] - e) / e
+        features[f'close_above_ema_{span}'] = (g["close"] > e).astype(int)
+    
+    # Add ALL missing features that the model expects
+    # SMA features
+    for period in [5, 10, 20, 50]:
+        features[f'sma_{period}'] = g['close'].rolling(period).mean()
+        features[f'close_vs_sma_{period}'] = (g['close'] - features[f'sma_{period}']) / features[f'sma_{period}']
+    
+    # Additional momentum features
+    features['momentum_5'] = g['close'] / g['close'].shift(5) - 1
+    features['momentum_10'] = g['close'] / g['close'].shift(10) - 1
+    features['momentum_20'] = g['close'] / g['close'].shift(20) - 1
+    features['momentum_50'] = g['close'] / g['close'].shift(50) - 1
+    
+    # ROC features
+    features['roc_5'] = g['close'].pct_change(5)
+    features['roc_10'] = g['close'].pct_change(10)
+    features['roc_20'] = g['close'].pct_change(20)
+    features['roc_50'] = g['close'].pct_change(50)
+    
+    # Trend strength features
+    for period in [10, 20, 50]:
+        sma_short = g["close"].rolling(period//2).mean()
+        sma_long = g["close"].rolling(period).mean()
+        features[f'trend_strength_{period}'] = (sma_short - sma_long) / sma_long
+    
+    # Price pattern features
+    features['upper_shadow'] = (g["high"] - g[["open", "close"]].max(axis=1)) / g["close"]
+    features['lower_shadow'] = (g[["open", "close"]].min(axis=1) - g["low"]) / g["close"]
+    
+    # Hour features
+    features['hour'] = g['timestamp'].dt.hour
+    features['hour_sin'] = np.sin(2 * np.pi * features['hour'] / 24)
+    features['hour_cos'] = np.cos(2 * np.pi * features['hour'] / 24)
+    
+    # Additional volume features
+    for period in [5, 10, 20, 50]:
+        features[f'vol_spike_{period}'] = g['volume'] / (features[f'vol_med_{period}'] + 1e-12)
+    
+    # Additional support/resistance features
+    for period in [20, 50, 100]:
+        features[f'resistance_distance_{period}'] = (features[f'resistance_{period}'] - g["close"]) / g["close"]
+    
+    # Additional interaction features
+    features['rsi_bb_interaction'] = features['rsi_14'] * features['bb_z']
+    features['macd_volume_interaction'] = features['macd_hist'] * features['rel_vol_20']
 
     # Enhanced MACD
     macd_line, macd_sig, macd_hist = macd(g["close"])
@@ -328,6 +374,7 @@ def add_features_live(df):
     features["bb_z"] = (g["close"] - bb_m) / (g["close"].rolling(20).std() + 1e-12)
     features["bb_squeeze"] = bb_w / (g["close"].rolling(20).mean() + 1e-12)
     features["bb_position"] = (g["close"] - bb_l) / (bb_u - bb_l + 1e-12)
+    features["above_bb_mid"] = (g["close"] > bb_m).astype(int)
 
     # Stochastic and Williams %R
     lowest_low = g["low"].rolling(14).min()
@@ -423,14 +470,19 @@ def add_features_live(df):
     features['price_range'] = (g['high'] - g['low']) / g['close']
     features['body_size'] = abs(g['close'] - g['open']) / g['close']
     
+    # Price patterns
+    features['doji'] = (abs(g['close'] - g['open']) <= (g['high'] - g['low']) * 0.1).astype(int)
+    features['hammer'] = ((g['close'] - g['open']) > 0) & ((g['low'] - g[['open', 'close']].min(axis=1)) > abs(g['close'] - g['open']) * 2).astype(int)
+    features['shooting_star'] = ((g['open'] - g['close']) > 0) & ((g['high'] - g[['open', 'close']].max(axis=1)) > abs(g['close'] - g['open']) * 2).astype(int)
+    
     # Clean up infinite values
     for key in features:
         if hasattr(features[key], 'replace'):
             features[key] = features[key].replace([np.inf, -np.inf], np.nan)
     
-    # Add all features to the DataFrame at once (prevents fragmentation)
-    for key, value in features.items():
-        g[key] = value
+    # Add all features to the DataFrame at once using pd.concat (prevents fragmentation)
+    features_df = pd.DataFrame(features, index=g.index)
+    g = pd.concat([g, features_df], axis=1)
     
     # Require core warmups; keep last row
     g = g.dropna(subset=["ema_233","bb_width","rsi_14","atr_14","obv","vwap_20","macd","stoch_k"])
