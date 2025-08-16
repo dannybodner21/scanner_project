@@ -1,0 +1,24 @@
+{
+  "coin": "DOTUSDT",
+  "train_window": {
+    "start": "2023-01-01 00:00:00+00:00",
+    "end": "2025-06-30 23:55:00+00:00"
+  },
+  "test_window": {
+    "start": "2025-07-01 00:00:00+00:00",
+    "end": "2025-08-08 23:55:00+00:00"
+  },
+  "min_move_pct": 0.03,
+  "horizon_bars": 12,
+  "threshold": 0.8,
+  "test_metrics": {
+    "acc": 0.9992,
+    "prec": 0.9643,
+    "rec": 0.7714,
+    "f1": 0.9992,
+    "auc": 0.9985
+  },
+  "cv_score": 0.9701,
+  "n_features": 150,
+  "model_type": "HistGradientBoostingClassifier"
+}

@@ -1,4 +1,5 @@
 {
+  "coin": "DOTUSDT",
   "train_window": {
     "start": "2023-01-01 00:00:00+00:00",
     "end": "2025-06-30 23:55:00+00:00"
@@ -7,34 +8,17 @@
     "start": "2025-07-01 00:00:00+00:00",
     "end": "2025-08-08 23:55:00+00:00"
   },
-  "tp": 0.03,
-  "sl": 0.02,
-  "horizon_bars": 36,
-  "threshold": 0.5,
-  "suggested_leverage_x": 10.0,
-  "suggested_position_fraction": 0.5,
-  "expectancy_per_trade_pct": 1.362,
+  "min_move_pct": 0.01,
+  "horizon_bars": 24,
+  "threshold": 0.6,
   "test_metrics": {
-    "acc": 0.6724,
-    "prec": 0.0986,
-    "rec": 0.6765,
-    "auc": 0.7533
+    "acc": 0.6696,
+    "prec": 0.4586,
+    "rec": 0.389,
+    "f1": 0.6615,
+    "auc": 0.6696
   },
-  "per_coin_accuracy": {
-    "ADAUSDT": 0.5552876027152555,
-    "ATOMUSDT": 0.6980171489817792,
-    "AVAXUSDT": 0.5122365130403715,
-    "BTCUSDT": 0.9979456948910325,
-    "DOGEUSDT": 0.4702572347266881,
-    "DOTUSDT": 0.7249910682386567,
-    "ETHUSDT": 0.9031797070382279,
-    "LINKUSDT": 0.5424258663808503,
-    "LTCUSDT": 0.7862629510539478,
-    "SHIBUSDT": 0.617363344051447,
-    "SOLUSDT": 0.7741157556270096,
-    "TRXUSDT": 0.9895489057615007,
-    "UNIUSDT": 0.41639871382636656,
-    "XLMUSDT": 0.4878528045730618,
-    "XRPUSDT": 0.6094140764558771
-  }
+  "cv_score": 0.6428,
+  "n_features": 150,
+  "model_type": "RandomForestClassifier"
 }
