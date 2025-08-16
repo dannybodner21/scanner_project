@@ -13,7 +13,6 @@ from scanner.models import (
     Coin, ModelTrade, ConfidenceHistory, LivePriceSnapshot, CoinAPIPrice
 )
 
-
 # ---- NumPy RNG pickle compatibility shim (for joblib pickle RNG) ----
 def _patch_numpy_rng_compat():
     import sys, types, numpy as np
@@ -61,6 +60,7 @@ BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 MODEL_PATH    = "three_long_hgb_model.joblib"
 SCALER_PATH   = "three_feature_scaler.joblib"
 FEATURES_PATH = "three_feature_list.json"
+
 CONFIDENCE_THRESHOLD = 0.78  # Updated threshold from new model
 
 # Trade config
@@ -206,7 +206,6 @@ def get_entry_price_or_fallback(coin: str, entry_ts, recent_df: pd.DataFrame, sl
         base = float(row["open"])
         src = "next_bar_open"
     else:
-        # Fallback: last known close from the recent df we just computed features on
         if recent_df is None or recent_df.empty:
             raise RuntimeError("No recent candles available for fallback close.")
         base = float(recent_df.iloc[-1]["close"])
@@ -219,7 +218,11 @@ def get_entry_price_or_fallback(coin: str, entry_ts, recent_df: pd.DataFrame, sl
 # --------------------------------
 # Feature Engineering (match training)
 # --------------------------------
-def ema(s, span): return s.ewm(span=span, adjust=False).mean()
+def ema(s, span): 
+    return s.ewm(span=span, adjust=False).mean()
+
+def sma(s, span):
+    return s.rolling(span).mean()
 
 def rsi(close, period=14):
     d = close.diff()
@@ -257,159 +260,212 @@ def atr(h, l, c, period=14):
     return tr.ewm(alpha=1/period, adjust=False).mean()
 
 def obv(close, volume):
-    # direction of price change; carry forward last non-zero; zeros -> previous; start at 0
     dirn = np.sign(close.diff())
     dirn = dirn.where(dirn != 0).ffill().fillna(0)
     return (volume * dirn).cumsum()
-
-def sma(s, span):
-    return s.rolling(span).mean()
 
 def vwap(close, high, low, volume, window=20):
     tp = (high + low + close)/3.0
     pv = tp * volume
     return pv.rolling(window).sum() / (volume.rolling(window).sum() + 1e-12)
 
+def williams_r(high, low, close, period=14):
+    highest_high = high.rolling(period).max()
+    lowest_low = low.rolling(period).min()
+    return -100 * ((highest_high - close) / (highest_high - lowest_low + 1e-12))
+
+def cci(high, low, close, period=20):
+    tp = (high + low + close) / 3
+    sma_tp = tp.rolling(period).mean()
+    mad = tp.rolling(period).apply(lambda x: np.abs(x - x.mean()).mean())
+    return (tp - sma_tp) / (0.015 * mad + 1e-12)
+
+def money_flow_index(high, low, close, volume, period=14):
+    mf = ((close - low) - (high - close)) / (high - low + 1e-12)
+    mf = mf * volume
+    pos = mf.where(mf > 0, 0).rolling(period).sum()
+    neg = mf.where(mf < 0, 0).rolling(period).sum()
+    return 100 - (100 / (1 + pos / (neg + 1e-12)))
+
 def add_features_live(df):
-    """Generate ALL 150 features that the model expects"""
+    """Generate features matching training names; return last row (DataFrame with 1 row)."""
     g = df.copy()
-    g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True).dt.tz_convert(None)
+    g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)  # keep UTC like training
     g = g.sort_values('timestamp').reset_index(drop=True)
 
-    # Create all features in a dictionary first to avoid fragmentation
     features = {}
-    
-    # 1. Price action features
+
+    # ---- Price action
     features['price_range'] = (g['high'] - g['low']) / g['close']
-    features['body_size'] = abs(g['close'] - g['open']) / g['close']
-    
-    # 2. Returns (Fibonacci sequence)
+    features['body_size'] = (g['close'] - g['open']).abs() / g['close']
+    features['upper_shadow'] = (g['high'] - g[['open','close']].max(axis=1)) / g['close']
+    features['lower_shadow'] = (g[['open','close']].min(axis=1) - g['low']) / g['close']
+
+    # ---- Returns (Fibo)
     for n in [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]:
-        features[f'ret_{n}'] = g['close'].pct_change(n)
-        features[f'ret_{n}_abs'] = features[f'ret_{n}'].abs()
-        features[f'ret_{n}_squared'] = features[f'ret_{n}'] ** 2
-    
-    # 3. Volatility features
+        r = g['close'].pct_change(n)
+        features[f'ret_{n}'] = r
+        features[f'ret_{n}_abs'] = r.abs()
+        features[f'ret_{n}_squared'] = r ** 2
+
+    # ---- Volatility
     for period in [5, 10, 20, 50]:
-        features[f'volatility_{period}'] = g['close'].pct_change().rolling(period).std()
-        features[f'volatility_{period}_squared'] = features[f'volatility_{period}'] ** 2
-    
-    # 4. EMA features (all periods with slopes)
+        v = g['close'].pct_change().rolling(period).std()
+        features[f'volatility_{period}'] = v
+        features[f'volatility_{period}_squared'] = v ** 2
+
+    # ---- EMAs + slopes + price vs EMA
     for span in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
         e = ema(g["close"], span)
         features[f'ema_{span}_slope'] = e.diff()
         features[f'ema_{span}_slope_3'] = e.diff(3)
         features[f'ema_{span}_slope_5'] = e.diff(5)
-    
-    # 5. EMA close vs features
     for span in [5, 8, 13, 21, 34, 55, 89, 144, 233]:
         e = ema(g["close"], span)
         features[f'close_vs_ema_{span}'] = (g["close"] - e) / e
-    
-    # 6. EMA values (only specific ones)
     for span in [34, 55, 89, 144, 233]:
         features[f'ema_{span}'] = ema(g["close"], span)
-    
-    # 7. MACD features
+
+    # ---- MACD (+ slopes, crosses)
     macd_line, macd_sig, macd_hist = macd(g["close"])
     features["macd"] = macd_line
     features["macd_signal"] = macd_sig
     features["macd_hist"] = macd_hist
-    
-    # 8. Bollinger Bands
+    features["macd_hist_slope"]   = macd_hist.diff()
+    features["macd_hist_slope_3"] = macd_hist.diff(3)
+    features["macd_hist_slope_5"] = macd_hist.diff(5)
+    features["macd_cross_above"] = ((macd_line > macd_sig) & (macd_line.shift(1) <= macd_sig.shift(1))).astype(int)
+    features["macd_cross_below"] = ((macd_line < macd_sig) & (macd_line.shift(1) >= macd_sig.shift(1))).astype(int)
+
+    # ---- RSI (7,14,21,34) + slopes + OB/OS flags
+    for period in [7, 14, 21, 34]:
+        r = rsi(g["close"], period)
+        features[f"rsi_{period}"] = r
+        features[f"rsi_{period}_slope"] = r.diff()
+        features[f"rsi_{period}_slope_3"] = r.diff(3)
+        features[f"rsi_{period}_overbought"] = (r > 70).astype(int)
+        features[f"rsi_{period}_oversold"]  = (r < 30).astype(int)
+
+    # ---- Bollinger (+ middle, z, squeeze, position)
     bb_u, bb_m, bb_l, bb_w = bollinger(g["close"], 20, 2.0)
-    features["bb_upper"] = bb_u
-    features["bb_lower"] = bb_l
-    features["bb_width"] = bb_w
+    features["bb_upper"]  = bb_u
+    features["bb_middle"] = bb_m
+    features["bb_lower"]  = bb_l
+    features["bb_width"]  = bb_w
+    bb_std = g["close"].rolling(20).std(ddof=0)
+    features["bb_z"] = (g["close"] - bb_m) / (bb_std + 1e-12)
     features["bb_squeeze"] = bb_w / (g["close"].rolling(20).mean() + 1e-12)
-    
-    # 9. Stochastic crossovers
+    features["bb_position"] = (g["close"] - bb_l) / (bb_u - bb_l + 1e-12)
+
+    # ---- Stochastic (%K/%D + crosses)
     lowest_low = g["low"].rolling(14).min()
     highest_high = g["high"].rolling(14).max()
     stoch_k = 100 * ((g["close"] - lowest_low) / (highest_high - lowest_low + 1e-12))
     stoch_d = stoch_k.rolling(3).mean()
+    features["stoch_k"] = stoch_k
+    features["stoch_d"] = stoch_d
     features["stoch_cross_above"] = ((stoch_k > stoch_d) & (stoch_k.shift(1) <= stoch_d.shift(1))).astype(int)
     features["stoch_cross_below"] = ((stoch_k < stoch_d) & (stoch_k.shift(1) >= stoch_d.shift(1))).astype(int)
-    
-    # 10. ATR features
+
+    # ---- Williams %R, CCI, MFI (+ slopes where relevant)
+    wr = williams_r(g["high"], g["low"], g["close"])
+    features["williams_r"] = wr
+    features["williams_r_slope"] = wr.diff()
+    cci_v = cci(g["high"], g["low"], g["close"])
+    features["cci"] = cci_v
+    features["cci_slope"] = cci_v.diff()
+    mfi_v = money_flow_index(g["high"], g["low"], g["close"], g["volume"])
+    features["mfi"] = mfi_v
+    features["mfi_slope"] = mfi_v.diff()
+
+    # ---- ATR + TR + pct
     features["atr_14"] = atr(g["high"], g["low"], g["close"], 14)
     features["atr_21"] = atr(g["high"], g["low"], g["close"], 21)
-    
-    # 11. True Range
-    features["tr"] = true_range(g["high"], g["low"], g["close"])
-    features["tr_pct"] = features["tr"] / (g["close"].shift(1) + 1e-12)
-    
-    # 12. VWAP features
+    tr = true_range(g["high"], g["low"], g["close"])
+    features["tr"] = tr
+    features["tr_pct"] = tr / (g["close"].shift(1) + 1e-12)
+
+    # ---- VWAP (base + dev + pct) for 20 & 50
     for window in [20, 50]:
         v = vwap(g["close"], g["high"], g["low"], g["volume"], window)
-        if window == 20:
-            features[f'vwap_{window}_dev'] = (g["close"] - v) / v
-            features[f'vwap_{window}_dev_pct'] = features[f'vwap_{window}_dev'] * 100
-        if window == 50:
-            features[f'vwap_{window}'] = v
-            features[f'vwap_{window}_dev'] = (g["close"] - v) / v
-            features[f'vwap_{window}_dev_pct'] = features[f'vwap_{window}_dev'] * 100
-    
-    # 13. Volume features
+        features[f'vwap_{window}'] = v
+        features[f'vwap_{window}_dev'] = (g["close"] - v) / v
+        features[f'vwap_{window}_dev_pct'] = features[f'vwap_{window}_dev'] * 100
+
+    # ---- Volume analytics + rel vol (so interactions match)
     for period in [5, 10, 20, 50]:
-        features[f'vol_sma_{period}'] = g['volume'].rolling(period).mean()
+        sma_v = g['volume'].rolling(period).mean()
+        features[f'vol_sma_{period}'] = sma_v
         features[f'vol_med_{period}'] = g['volume'].rolling(period).median()
-    
-    # 14. OBV slopes
+        features[f'rel_vol_{period}'] = g['volume'] / (sma_v + 1e-12)
+
+    # ---- OBV (base + slopes)
     obv_val = obv(g['close'], g['volume'])
+    features['obv'] = obv_val
     features['obv_slope'] = obv_val.diff()
     features['obv_slope_3'] = obv_val.diff(3)
     features['obv_slope_5'] = obv_val.diff(5)
-    
-    # 15. Support/Resistance
+
+    # ---- Support / Resistance (+ distances relative to close)
     for period in [20, 50, 100]:
-        features[f'resistance_{period}'] = g['high'].rolling(period).max()
-        features[f'support_{period}'] = g['low'].rolling(period).min()
-        features[f'support_distance_{period}'] = (g['close'] - features[f'support_{period}']) / features[f'support_{period}']
-    
-    # 16. Momentum and ROC
+        res = g['high'].rolling(period).max()
+        sup = g['low'].rolling(period).min()
+        features[f'resistance_{period}'] = res
+        features[f'support_{period}'] = sup
+        features[f'resistance_distance_{period}'] = (res - g['close']) / g['close']
+        features[f'support_distance_{period}'] = (g['close'] - sup) / g['close']
+
+    # ---- Momentum & ROC
     for period in [5, 10, 20, 50]:
         features[f'momentum_{period}'] = g['close'] / g['close'].shift(period) - 1
         features[f'roc_{period}'] = g['close'].pct_change(period)
-    
-    # 17. Time features
-    features['dow'] = g['timestamp'].dt.dayofweek
-    features['month'] = g['timestamp'].dt.month
-    features['dow_sin'] = np.sin(2 * np.pi * features['dow'] / 7)
-    features['dow_cos'] = np.cos(2 * np.pi * features['dow'] / 7)
-    features['month_sin'] = np.sin(2 * np.pi * features['month'] / 12)
-    features['month_cos'] = np.cos(2 * np.pi * features['month'] / 12)
-    
-    # 18. Market sessions
-    features['is_us_hours'] = ((g['timestamp'].dt.hour >= 8) & (g['timestamp'].dt.hour < 16)).astype(int)
-    features['is_asia_hours'] = ((g['timestamp'].dt.hour >= 0) & (g['timestamp'].dt.hour < 8)).astype(int)
-    features['is_europe_hours'] = ((g['timestamp'].dt.hour >= 2) & (g['timestamp'].dt.hour < 10)).astype(int)
-    
-    # 19. Volume lags
-    for lag in [1, 2, 3, 5, 8]:
-        features[f'volume_lag_{lag}'] = g['volume'].shift(lag)
-    
-    # 20. VWAP lag
-    features['vwap_20_dev_lag_1'] = features['vwap_20_dev'].shift(1)
-    
-    # 21. ATR lags
-    for lag in [1, 2, 3, 5, 8]:
-        features[f'atr_14_lag_{lag}'] = features['atr_14'].shift(lag)
-    
-    # 22. Final interaction
+
+    # ---- Time features (UTC like training)
+    hour = g['timestamp'].dt.hour
+    dow = g['timestamp'].dt.dayofweek
+    month = g['timestamp'].dt.month
+    features['hour'] = hour
+    features['dow'] = dow
+    features['month'] = month
+    features['hour_sin'] = np.sin(2*np.pi*hour/24)
+    features['hour_cos'] = np.cos(2*np.pi*hour/24)
+    features['dow_sin'] = np.sin(2*np.pi*dow/7)
+    features['dow_cos'] = np.cos(2*np.pi*dow/7)
+    features['month_sin'] = np.sin(2*np.pi*month/12)
+    features['month_cos'] = np.cos(2*np.pi*month/12)
+
+    # ---- Market sessions (UTC ranges to match training)
+    features['is_us_hours'] = ((hour >= 13) & (hour <= 21)).astype(int)
+    features['is_asia_hours'] = ((hour >= 0) & (hour <= 8)).astype(int)
+    features['is_europe_hours'] = ((hour >= 7) & (hour <= 15)).astype(int)
+
+    # ---- Lags (match training lag set)
+    lag_features = ['close', 'volume', 'rsi_14', 'macd_hist', 'bb_z', 'vwap_20_dev', 'atr_14']
+    for feat in lag_features:
+        # ensure exists before lagging
+        src = features.get(feat, g.get(feat))
+        if src is None and feat in g.columns:
+            src = g[feat]
+        if src is not None:
+            for lag in [1, 2, 3, 5, 8]:
+                features[f'{feat}_lag_{lag}'] = src.shift(lag)
+
+    # ---- Interactions (match training)
+    features['rsi_bb_interaction'] = features['rsi_14'] * features['bb_z']
+    features['macd_volume_interaction'] = features['macd_hist'] * features.get('rel_vol_20', pd.Series(index=g.index, dtype='float64'))
     features['momentum_volatility_interaction'] = features['momentum_20'] * features['volatility_20']
-    
-    # Clean up infinite values
-    for key in features:
-        if hasattr(features[key], 'replace'):
-            features[key] = features[key].replace([np.inf, -np.inf], np.nan)
-    
-    # Add all features to the DataFrame at once using pd.concat (prevents fragmentation)
+
+    # ---- Clean & materialize
+    for k, v in list(features.items()):
+        if hasattr(v, "replace"):
+            features[k] = v.replace([np.inf, -np.inf], np.nan)
+
     features_df = pd.DataFrame(features, index=g.index)
     g = pd.concat([g, features_df], axis=1)
-    
-    # Require core warmups; keep last row
-    g = g.dropna(subset=["ema_233","bb_width","rsi_14","atr_14","obv","vwap_20","macd","stoch_k"])
+
+    # ---- Warmup gate (now all exist)
+    required = ["ema_233","bb_width","rsi_14","atr_14","obv","vwap_20","macd","stoch_k"]
+    g = g.dropna(subset=[c for c in required if c in g.columns])
     if g.empty:
         return None
 
@@ -462,7 +518,7 @@ def load_artifacts_strict():
         json_feats = json.load(f)
 
     model_feats = list(getattr(m, "feature_names_in_", [])) or list(json_feats)
-    if len(model_feats) < 100:  # New model has ~150 features
+    if len(model_feats) < 100:
         raise RuntimeError(f"Model has {len(model_feats)} features, expected at least 100.")
 
     scaler_feats = list(getattr(s, "feature_names_in_", []))
@@ -471,20 +527,15 @@ def load_artifacts_strict():
 
     # Filter scaler to only include features the model expects
     scaler_feats = [f for f in scaler_feats if f in model_feats]
-    
-    # Create a new scaler with only the features the model needs
+
+    # Build a filtered RobustScaler with copied params
     from sklearn.preprocessing import RobustScaler
     new_scaler = RobustScaler()
-    
-    # Get indices of features we want to keep
     keep_indices = [i for i, f in enumerate(s.feature_names_in_) if f in scaler_feats]
-    
-    # Copy the fitted parameters for only the features we need
     new_scaler.center_ = s.center_[keep_indices]
     new_scaler.scale_ = s.scale_[keep_indices]
     new_scaler.feature_names_in_ = np.array(scaler_feats)
-    
-    # Skip the error check since we've already filtered the scaler
+
     print(f"Model expects {len(model_feats)} features, scaler filtered to {len(scaler_feats)} features")
     return m, new_scaler, model_feats, scaler_feats
 
@@ -496,13 +547,14 @@ def build_X_strict(feats_df: pd.DataFrame, model_feats, scaler, scaler_feats):
 
     X_df = feats_df[model_feats].astype("float32").copy()
 
-    # Flags must be 0/1 (as trained)
+    # Validate binary flags when present
     for f in BINARY_FLAGS:
-        vals = pd.unique(X_df[f])
-        if not np.isin(vals, [0, 1]).all():
-            raise RuntimeError(f"Binary flag {f} contains non 0/1 values: {vals[:5]}")
+        if f in X_df.columns:
+            vals = pd.unique(X_df[f])
+            if not np.isin(vals, [0, 1]).all():
+                raise RuntimeError(f"Binary flag {f} contains non 0/1 values: {vals[:5]}")
 
-    # Scale the continuous subset in place
+    # Scale the continuous subset
     scaled = scaler.transform(X_df[scaler_feats])
     X_df.loc[:, scaler_feats] = scaled
 
@@ -532,7 +584,7 @@ def run_live_pipeline():
     # Determine signal bar (latest closed) and entry bar (next)
     utc_now = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
     signal_ts = utc_now if utc_now.minute % 5 == 0 else utc_now.replace(minute=(utc_now.minute // 5) * 5)
-    entry_ts = signal_ts + timedelta(minutes=5 * ENTRY_LAG_BARS)  # aware UTC
+    entry_ts = signal_ts + timedelta(minutes=5 * ENTRY_LAG_BARS)
 
     # Focus on DOTUSDT only for the new model
     for coin in ["DOTUSDT"]:
@@ -553,6 +605,15 @@ def run_live_pipeline():
             if feats_df is None or feats_df.empty:
                 print(f"⏭️ {coin}: insufficient/invalid features")
                 continue
+
+            # Quick diagnostics if anything goes off the rails later
+            need = set(MODEL_FEATS)
+            have = set(feats_df.columns)
+            missing = sorted(need - have)
+            nan_last = sorted([c for c in need if c in feats_df.columns and pd.isna(feats_df[c].iloc[-1])])
+            if missing or nan_last:
+                print("MISSING (first 50):", missing[:50])
+                print("NaN in last row (first 50):", nan_last[:50])
 
             try:
                 X = build_X_strict(feats_df, MODEL_FEATS, long_scaler, SCALER_FEATS)
@@ -578,7 +639,6 @@ def run_live_pipeline():
             if prob < CONFIDENCE_THRESHOLD:
                 continue
 
-
             # Compute entry price with fallback + slippage
             try:
                 entry_price, entry_src = get_entry_price_or_fallback(coin, entry_ts, recent, ENTRY_SLIPPAGE_PCT)
@@ -600,7 +660,7 @@ def run_live_pipeline():
             ModelTrade.objects.create(
                 coin=coin_obj,
                 trade_type='long',
-                entry_timestamp=entry_ts,  # aware UTC
+                entry_timestamp=entry_ts,
                 entry_price=safe_decimal(entry_price),
                 model_confidence=round(prob, 4),
                 take_profit_percent=TAKE_PROFIT * 100.0,
@@ -609,8 +669,6 @@ def run_live_pipeline():
                 recent_confidences=[],
             )
             print(f"✅ LONG opened: {coin} @ {entry_price:.6f} ({entry_src}, ts={entry_ts})")
-
-
 
         except Exception as e:
             print(f"❌ Error on {coin}: {e}")
@@ -625,8 +683,8 @@ def run_live_pipeline():
         try:
             entry_price = float(trade.entry_price)
             coin_symbol = f"{trade.coin.symbol}USDT"
-            df = get_recent_candles(coin_symbol, limit=1)
-            if df is None or df.empty:
+            dfp = get_recent_candles(coin_symbol, limit=1)
+            if dfp is None or dfp.empty:
                 print(f"⚠️ No price data for {coin_symbol}, skipping")
                 continue
 
@@ -634,19 +692,18 @@ def run_live_pipeline():
             LivePriceSnapshot.objects.update_or_create(
                 coin=trade.coin.symbol,
                 defaults={
-                    "open":  safe_decimal(df.iloc[-1]['open']),
-                    "high":  safe_decimal(df.iloc[-1]['high']),
-                    "low":   safe_decimal(df.iloc[-1]['low']),
-                    "close": safe_decimal(df.iloc[-1]['close']),
-                    "volume": safe_decimal(df.iloc[-1]['volume']),
+                    "open":  safe_decimal(dfp.iloc[-1]['open']),
+                    "high":  safe_decimal(dfp.iloc[-1]['high']),
+                    "low":   safe_decimal(dfp.iloc[-1]['low']),
+                    "close": safe_decimal(dfp.iloc[-1]['close']),
+                    "volume": safe_decimal(dfp.iloc[-1]['volume']),
                 }
             )
 
-            high = float(df.iloc[-1]['high'])
-            low  = float(df.iloc[-1]['low'])
-            last_close = float(df.iloc[-1]['close'])
+            high = float(dfp.iloc[-1]['high'])
+            low  = float(dfp.iloc[-1]['low'])
+            last_close = float(dfp.iloc[-1]['close'])
 
-            # Boundary targets (match simulator fills)
             tp_px = entry_price * (1.0 + TAKE_PROFIT)
             sl_px = entry_price * (1.0 - STOP_LOSS)
 
@@ -658,7 +715,6 @@ def run_live_pipeline():
             exit_px = last_close  # fallback
 
             if tp_hit and sl_hit:
-                # If both happen in same bar, default to SL-first or TP-first logic; choose SL-first to be conservative
                 close_reason = "BOTH_HIT_SAME_BAR_SL_FIRST"
                 result_bool = False
                 exit_px = sl_px
@@ -682,7 +738,7 @@ def run_live_pipeline():
                 trade.exit_price = safe_decimal(exit_px if np.isfinite(exit_px) else last_close)
                 trade.exit_timestamp = now()
                 try:
-                    trade.result = result_bool  # if your ModelTrade has this field
+                    trade.result = result_bool
                 except Exception:
                     pass
                 trade.save()
@@ -692,7 +748,7 @@ def run_live_pipeline():
                     f"📤 *Closed* {trade.trade_type.upper()} {trade.coin.symbol} — {close_reason}\n",
                     f"Entry: {entry_price:.6f} | Exit: {float(trade.exit_price):.6f} | Δ={pnl_pct:.2f}%"
                 ])
-                print(f"{close_reason} | {trade.trade_type.upper()} {trade.coin.symbol} @ {float(trade.exit_price):.6f}")
+                print(f"{close_reason} | {trade.trade_type.UPPER()} {trade.coin.symbol} @ {float(trade.exit_price):.6f}")
 
         except Exception as e:
             print(f"❌ Error closing trade for {trade.coin.symbol}: {e}")
