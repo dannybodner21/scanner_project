@@ -603,6 +603,13 @@ def load_artifacts_strict():
     # Filter scaler to only include features the model expects
     scaler_feats = [f for f in scaler_feats if f in model_feats]
     
+    # Create a new scaler with only the features the model needs
+    from sklearn.preprocessing import StandardScaler
+    new_scaler = StandardScaler()
+    new_scaler.mean_ = s.mean_[np.array([f in scaler_feats for f in s.feature_names_in_])]
+    new_scaler.scale_ = s.scale_[np.array([f in scaler_feats for f in s.feature_names_in_])]
+    new_scaler.feature_names_in_ = np.array(scaler_feats)
+    
     expected_scaled = [f for f in model_feats if f not in BINARY_FLAGS]
     missing = sorted(set(expected_scaled) - set(scaler_feats))
     extra   = sorted(set(scaler_feats) - set(expected_scaled))
@@ -611,7 +618,7 @@ def load_artifacts_strict():
             "Scaler features != model's continuous set.\n"
             f"missing_from_scaler: {missing}\nextra_in_scaler: {extra}"
         )
-    return m, s, model_feats, scaler_feats
+    return m, new_scaler, model_feats, scaler_feats
 
 def build_X_strict(feats_df: pd.DataFrame, model_feats, scaler, scaler_feats):
     """Return numpy array with exact model feature order; scale only scaler_feats."""
