@@ -271,7 +271,7 @@ def vwap(close, high, low, volume, window=20):
     return pv.rolling(window).sum() / (volume.rolling(window).sum() + 1e-12)
 
 def add_features_live(df):
-    """Enhanced feature engineering to match the new three_long_hgb_model"""
+    """Generate ALL 150 features that the model expects"""
     g = df.copy()
     g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True).dt.tz_convert(None)
     g = g.sort_values('timestamp').reset_index(drop=True)
@@ -279,167 +279,100 @@ def add_features_live(df):
     # Create all features in a dictionary first to avoid fragmentation
     features = {}
     
-    # Enhanced returns with Fibonacci sequence - MUST match training exactly
+    # 1. Price action features
+    features['price_range'] = (g['high'] - g['low']) / g['close']
+    features['body_size'] = abs(g['close'] - g['open']) / g['close']
+    
+    # 2. Returns (Fibonacci sequence)
     for n in [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]:
         features[f'ret_{n}'] = g['close'].pct_change(n)
         features[f'ret_{n}_abs'] = features[f'ret_{n}'].abs()
         features[f'ret_{n}_squared'] = features[f'ret_{n}'] ** 2
-
-    # Volatility features
+    
+    # 3. Volatility features
     for period in [5, 10, 20, 50]:
         features[f'volatility_{period}'] = g['close'].pct_change().rolling(period).std()
         features[f'volatility_{period}_squared'] = features[f'volatility_{period}'] ** 2
-
-    # Enhanced EMAs with slopes - MUST match training features exactly
-    for span in [3, 5, 8, 9, 13, 21, 34, 50, 55, 89, 144, 200, 233]:
+    
+    # 4. EMA features (all periods with slopes)
+    for span in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
         e = ema(g["close"], span)
-        features[f'ema_{span}'] = e
         features[f'ema_{span}_slope'] = e.diff()
         features[f'ema_{span}_slope_3'] = e.diff(3)
         features[f'ema_{span}_slope_5'] = e.diff(5)
+    
+    # 5. EMA close vs features
+    for span in [5, 8, 13, 21, 34, 55, 89, 144, 233]:
+        e = ema(g["close"], span)
         features[f'close_vs_ema_{span}'] = (g["close"] - e) / e
-        features[f'close_above_ema_{span}'] = (g["close"] > e).astype(int)
     
-    # Add ALL missing features that the model expects
-    # SMA features
-    for period in [5, 10, 20, 50]:
-        features[f'sma_{period}'] = g['close'].rolling(period).mean()
-        features[f'close_vs_sma_{period}'] = (g['close'] - features[f'sma_{period}']) / features[f'sma_{period}']
+    # 6. EMA values (only specific ones)
+    for span in [34, 55, 89, 144, 233]:
+        features[f'ema_{span}'] = ema(g["close"], span)
     
-    # Additional momentum features
-    features['momentum_5'] = g['close'] / g['close'].shift(5) - 1
-    features['momentum_10'] = g['close'] / g['close'].shift(10) - 1
-    features['momentum_20'] = g['close'] / g['close'].shift(20) - 1
-    features['momentum_50'] = g['close'] / g['close'].shift(50) - 1
-    
-    # ROC features
-    features['roc_5'] = g['close'].pct_change(5)
-    features['roc_10'] = g['close'].pct_change(10)
-    features['roc_20'] = g['close'].pct_change(20)
-    features['roc_50'] = g['close'].pct_change(50)
-    
-    # Trend strength features
-    for period in [10, 20, 50]:
-        sma_short = g["close"].rolling(period//2).mean()
-        sma_long = g["close"].rolling(period).mean()
-        features[f'trend_strength_{period}'] = (sma_short - sma_long) / sma_long
-    
-    # Price pattern features
-    features['upper_shadow'] = (g["high"] - g[["open", "close"]].max(axis=1)) / g["close"]
-    features['lower_shadow'] = (g[["open", "close"]].min(axis=1) - g["low"]) / g["close"]
-    
-    # Hour features
-    features['hour'] = g['timestamp'].dt.hour
-    features['hour_sin'] = np.sin(2 * np.pi * features['hour'] / 24)
-    features['hour_cos'] = np.cos(2 * np.pi * features['hour'] / 24)
-    
-    # Additional volume features
-    for period in [5, 10, 20, 50]:
-        features[f'vol_spike_{period}'] = g['volume'] / (features[f'vol_med_{period}'] + 1e-12)
-    
-    # Additional support/resistance features
-    for period in [20, 50, 100]:
-        features[f'resistance_distance_{period}'] = (features[f'resistance_{period}'] - g["close"]) / g["close"]
-    
-    # Additional interaction features
-    features['rsi_bb_interaction'] = features['rsi_14'] * features['bb_z']
-    features['macd_volume_interaction'] = features['macd_hist'] * features['rel_vol_20']
-
-    # Enhanced MACD
+    # 7. MACD features
     macd_line, macd_sig, macd_hist = macd(g["close"])
     features["macd"] = macd_line
     features["macd_signal"] = macd_sig
     features["macd_hist"] = macd_hist
-    features["macd_hist_slope"] = features["macd_hist"].diff()
-    features["macd_hist_slope_3"] = features["macd_hist"].diff(3)
-    features["macd_hist_slope_5"] = features["macd_hist"].diff(5)
-    features["macd_cross_above"] = ((features["macd"] > features["macd_signal"]) & (features["macd"].shift(1) <= features["macd_signal"].shift(1))).astype(int)
-    features["macd_cross_below"] = ((features["macd"] < features["macd_signal"]) & (features["macd"].shift(1) >= features["macd_signal"].shift(1))).astype(int)
-
-    # Enhanced RSI
-    for period in [7, 14, 21, 34]:
-        r = rsi(g["close"], period)
-        features[f'rsi_{period}'] = r
-        features[f'rsi_{period}_slope'] = r.diff()
-        features[f'rsi_{period}_slope_3'] = r.diff(3)
-        features[f'rsi_{period}_overbought'] = (r > 70).astype(int)
-        features[f'rsi_{period}_oversold'] = (r < 30).astype(int)
-
-    # Enhanced Bollinger Bands
+    
+    # 8. Bollinger Bands
     bb_u, bb_m, bb_l, bb_w = bollinger(g["close"], 20, 2.0)
     features["bb_upper"] = bb_u
-    features["bb_middle"] = bb_m
     features["bb_lower"] = bb_l
     features["bb_width"] = bb_w
-    features["bb_z"] = (g["close"] - bb_m) / (g["close"].rolling(20).std() + 1e-12)
     features["bb_squeeze"] = bb_w / (g["close"].rolling(20).mean() + 1e-12)
-    features["bb_position"] = (g["close"] - bb_l) / (bb_u - bb_l + 1e-12)
-    features["above_bb_mid"] = (g["close"] > bb_m).astype(int)
-
-    # Stochastic and Williams %R
+    
+    # 9. Stochastic crossovers
     lowest_low = g["low"].rolling(14).min()
     highest_high = g["high"].rolling(14).max()
-    features["stoch_k"] = 100 * ((g["close"] - lowest_low) / (highest_high - lowest_low + 1e-12))
-    features["stoch_d"] = features["stoch_k"].rolling(3).mean()
-    features["stoch_cross_above"] = ((features["stoch_k"] > features["stoch_d"]) & (features["stoch_k"].shift(1) <= features["stoch_d"].shift(1))).astype(int)
-    features["stoch_cross_below"] = ((features["stoch_k"] < features["stoch_d"]) & (features["stoch_k"].shift(1) >= features["stoch_d"].shift(1))).astype(int)
-
-    # Williams %R
-    features["williams_r"] = -100 * ((highest_high - g["close"]) / (highest_high - lowest_low + 1e-12))
-    features["williams_r_slope"] = features["williams_r"].diff()
-
-    # CCI
-    tp = (g["high"] + g["low"] + g["close"]) / 3
-    sma_tp = tp.rolling(20).mean()
-    mad = tp.rolling(20).apply(lambda x: np.abs(x - x.mean()).mean())
-    features["cci"] = (tp - sma_tp) / (0.015 * mad + 1e-12)
-    features["cci_slope"] = features["cci"].diff()
-
-    # MFI
-    mf = ((g["close"] - g["low"]) - (g["high"] - g["close"])) / (g["high"] - g["low"] + 1e-12)
-    mf = mf * g["volume"]
-    positive_flow = mf.where(mf > 0, 0).rolling(14).sum()
-    negative_flow = mf.where(mf < 0, 0).rolling(14).sum()
-    features["mfi"] = 100 - (100 / (1 + positive_flow / (negative_flow + 1e-12)))
-    features["mfi_slope"] = features["mfi"].diff()
-
-    # Enhanced ATR and True Range
+    stoch_k = 100 * ((g["close"] - lowest_low) / (highest_high - lowest_low + 1e-12))
+    stoch_d = stoch_k.rolling(3).mean()
+    features["stoch_cross_above"] = ((stoch_k > stoch_d) & (stoch_k.shift(1) <= stoch_d.shift(1))).astype(int)
+    features["stoch_cross_below"] = ((stoch_k < stoch_d) & (stoch_k.shift(1) >= stoch_d.shift(1))).astype(int)
+    
+    # 10. ATR features
     features["atr_14"] = atr(g["high"], g["low"], g["close"], 14)
     features["atr_21"] = atr(g["high"], g["low"], g["close"], 21)
+    
+    # 11. True Range
     features["tr"] = true_range(g["high"], g["low"], g["close"])
     features["tr_pct"] = features["tr"] / (g["close"].shift(1) + 1e-12)
-
-    # Enhanced VWAP
-    for window in [10, 20, 50]:
-        v = vwap(g["close"], g["high"], g["low"], g["volume"], window)
-        features[f'vwap_{window}'] = v
-        features[f'vwap_{window}_dev'] = (g["close"] - v) / v
-        features[f'vwap_{window}_dev_pct'] = features[f'vwap_{window}_dev'] * 100
     
-    # Volume features
+    # 12. VWAP features
+    for window in [20, 50]:
+        v = vwap(g["close"], g["high"], g["low"], g["volume"], window)
+        if window == 20:
+            features[f'vwap_{window}_dev'] = (g["close"] - v) / v
+            features[f'vwap_{window}_dev_pct'] = features[f'vwap_{window}_dev'] * 100
+        if window == 50:
+            features[f'vwap_{window}'] = v
+            features[f'vwap_{window}_dev'] = (g["close"] - v) / v
+            features[f'vwap_{window}_dev_pct'] = features[f'vwap_{window}_dev'] * 100
+    
+    # 13. Volume features
     for period in [5, 10, 20, 50]:
         features[f'vol_sma_{period}'] = g['volume'].rolling(period).mean()
         features[f'vol_med_{period}'] = g['volume'].rolling(period).median()
-        features[f'rel_vol_{period}'] = g['volume'] / (features[f'vol_sma_{period}'] + 1e-12)
     
-    # OBV and slopes
-    features['obv'] = obv(g['close'], g['volume'])
-    features['obv_slope'] = features['obv'].diff()
-    features['obv_slope_3'] = features['obv'].diff(3)
-    features['obv_slope_5'] = features['obv'].diff(5)
+    # 14. OBV slopes
+    obv_val = obv(g['close'], g['volume'])
+    features['obv_slope'] = obv_val.diff()
+    features['obv_slope_3'] = obv_val.diff(3)
+    features['obv_slope_5'] = obv_val.diff(5)
     
-    # Support/Resistance levels
+    # 15. Support/Resistance
     for period in [20, 50, 100]:
         features[f'resistance_{period}'] = g['high'].rolling(period).max()
         features[f'support_{period}'] = g['low'].rolling(period).min()
         features[f'support_distance_{period}'] = (g['close'] - features[f'support_{period}']) / features[f'support_{period}']
     
-    # Momentum and ROC
+    # 16. Momentum and ROC
     for period in [5, 10, 20, 50]:
         features[f'momentum_{period}'] = g['close'] / g['close'].shift(period) - 1
         features[f'roc_{period}'] = g['close'].pct_change(period)
     
-    # Time-based features
+    # 17. Time features
     features['dow'] = g['timestamp'].dt.dayofweek
     features['month'] = g['timestamp'].dt.month
     features['dow_sin'] = np.sin(2 * np.pi * features['dow'] / 7)
@@ -447,33 +380,24 @@ def add_features_live(df):
     features['month_sin'] = np.sin(2 * np.pi * features['month'] / 12)
     features['month_cos'] = np.cos(2 * np.pi * features['month'] / 12)
     
-    # Market session indicators
+    # 18. Market sessions
     features['is_us_hours'] = ((g['timestamp'].dt.hour >= 8) & (g['timestamp'].dt.hour < 16)).astype(int)
     features['is_asia_hours'] = ((g['timestamp'].dt.hour >= 0) & (g['timestamp'].dt.hour < 8)).astype(int)
     features['is_europe_hours'] = ((g['timestamp'].dt.hour >= 2) & (g['timestamp'].dt.hour < 10)).astype(int)
     
-    # Lagged features
+    # 19. Volume lags
     for lag in [1, 2, 3, 5, 8]:
         features[f'volume_lag_{lag}'] = g['volume'].shift(lag)
     
+    # 20. VWAP lag
     features['vwap_20_dev_lag_1'] = features['vwap_20_dev'].shift(1)
     
+    # 21. ATR lags
     for lag in [1, 2, 3, 5, 8]:
         features[f'atr_14_lag_{lag}'] = features['atr_14'].shift(lag)
     
-    # Feature interactions
+    # 22. Final interaction
     features['momentum_volatility_interaction'] = features['momentum_20'] * features['volatility_20']
-    features['rsi_bb_interaction'] = features['rsi_14'] * features['bb_z']
-    features['macd_volume_interaction'] = features['macd_hist'] * features['rel_vol_20']
-    
-    # Price action features
-    features['price_range'] = (g['high'] - g['low']) / g['close']
-    features['body_size'] = abs(g['close'] - g['open']) / g['close']
-    
-    # Price patterns
-    features['doji'] = (abs(g['close'] - g['open']) <= (g['high'] - g['low']) * 0.1).astype(int)
-    features['hammer'] = ((g['close'] - g['open']) > 0) & ((g['low'] - g[['open', 'close']].min(axis=1)) > abs(g['close'] - g['open']) * 2).astype(int)
-    features['shooting_star'] = ((g['open'] - g['close']) > 0) & ((g['high'] - g[['open', 'close']].max(axis=1)) > abs(g['close'] - g['open']) * 2).astype(int)
     
     # Clean up infinite values
     for key in features:
