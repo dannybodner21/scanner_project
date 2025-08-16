@@ -315,6 +315,16 @@ def add_features_live(df):
         g[f'rsi_{period}_slope_3'] = r.diff(3)
         g[f'rsi_{period}_overbought'] = (r > 70).astype(int)
         g[f'rsi_{period}_oversold'] = (r < 30).astype(int)
+    
+    # Ensure all RSI features exist
+    g['rsi_7_overbought'] = g['rsi_7_overbought']
+    g['rsi_7_oversold'] = g['rsi_7_oversold']
+    g['rsi_14_overbought'] = g['rsi_14_overbought']
+    g['rsi_14_oversold'] = g['rsi_14_oversold']
+    g['rsi_21_overbought'] = g['rsi_21_overbought']
+    g['rsi_21_oversold'] = g['rsi_21_oversold']
+    g['rsi_34_overbought'] = g['rsi_34_overbought']
+    g['rsi_34_oversold'] = g['rsi_34_oversold']
 
     # Enhanced Bollinger Bands
     bb_u, bb_m, bb_l, bb_w = bollinger(g["close"], 20, 2.0)
