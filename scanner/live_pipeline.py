@@ -369,163 +369,60 @@ def add_features_live(df):
         features[f'vwap_{window}_dev'] = (g["close"] - v) / v
         features[f'vwap_{window}_dev_pct'] = features[f'vwap_{window}_dev'] * 100
     
-    # Add missing VWAP features that model expects
-    g["vwap_20_dev_pct"] = g["vwap_20_dev_pct"]
-
-    # Volume analysis
-    vol = pd.to_numeric(g["volume"], errors="coerce").fillna(0.0)
+    # Volume features
     for period in [5, 10, 20, 50]:
-        g[f'vol_sma_{period}'] = vol.rolling(period).mean()
-        g[f'vol_med_{period}'] = vol.rolling(period).median()
-        g[f'rel_vol_{period}'] = vol / (g[f'vol_sma_{period}'] + 1e-12)
-        g[f'vol_spike_{period}'] = vol / (g[f'vol_med_{period}'] + 1e-12)
+        features[f'vol_sma_{period}'] = g['volume'].rolling(period).mean()
+        features[f'vol_med_{period}'] = g['volume'].rolling(period).median()
+        features[f'rel_vol_{period}'] = g['volume'] / (features[f'vol_sma_{period}'] + 1e-12)
     
-    # Add missing volume features that model expects
-    g["vol_sma_5"] = g["vol_sma_5"]
-    g["vol_med_5"] = g["vol_med_5"]
-    g["vol_sma_10"] = g["vol_sma_10"]
-    g["vol_med_10"] = g["vol_med_10"]
-    g["vol_sma_20"] = g["vol_sma_20"]
-    g["vol_med_20"] = g["vol_med_20"]
-    g["vol_sma_50"] = g["vol_sma_50"]
-    g["vol_med_50"] = g["vol_med_50"]
-
-    # OBV and volume flow
-    dirn = np.sign(g["close"].diff())
-    dirn = dirn.replace(0, np.nan).ffill().fillna(0)
-    g["obv"] = (vol * dirn).cumsum()
-    g["obv_slope"] = g["obv"].diff()
-    g["obv_slope_3"] = g["obv"].diff(3)
-    g["obv_slope_5"] = g["obv"].diff(5)
+    # OBV and slopes
+    features['obv'] = obv(g['close'], g['volume'])
+    features['obv_slope'] = features['obv'].diff()
+    features['obv_slope_3'] = features['obv'].diff(3)
+    features['obv_slope_5'] = features['obv'].diff(5)
     
-    # Add missing OBV features that model expects
-    g["obv_slope"] = g["obv_slope"]
-    g["obv_slope_3"] = g["obv_slope_3"]
-    g["obv_slope_5"] = g["obv_slope_5"]
-
-    # Support and resistance levels
+    # Support/Resistance levels
     for period in [20, 50, 100]:
-        g[f'resistance_{period}'] = g["high"].rolling(period).max()
-        g[f'support_{period}'] = g["low"].rolling(period).min()
-        g[f'resistance_distance_{period}'] = (g[f'resistance_{period}'] - g["close"]) / g["close"]
-        g[f'support_distance_{period}'] = (g["close"] - g[f'support_{period}']) / g["close"]
+        features[f'resistance_{period}'] = g['high'].rolling(period).max()
+        features[f'support_{period}'] = g['low'].rolling(period).min()
+        features[f'support_distance_{period}'] = (g['close'] - features[f'support_{period}']) / features[f'support_{period}']
     
-    # Add missing support/resistance features that model expects
-    g["resistance_20"] = g["resistance_20"]
-    g["support_20"] = g["support_20"]
-    g["support_distance_20"] = g["support_distance_20"]
-    g["resistance_50"] = g["resistance_50"]
-    g["support_50"] = g["support_50"]
-    g["support_distance_50"] = g["support_distance_50"]
-    g["resistance_100"] = g["resistance_100"]
-    g["support_100"] = g["support_100"]
-    g["support_distance_100"] = g["support_distance_100"]
-
-    # Momentum indicators
+    # Momentum and ROC
     for period in [5, 10, 20, 50]:
-        g[f'momentum_{period}'] = g["close"] / g["close"].shift(period) - 1
-        g[f'roc_{period}'] = g["close"].pct_change(period) * 100
+        features[f'momentum_{period}'] = g['close'] / g['close'].shift(period) - 1
+        features[f'roc_{period}'] = g['close'].pct_change(period)
     
-    # Add missing momentum features that model expects
-    g["momentum_5"] = g["momentum_5"]
-    g["roc_5"] = g["roc_5"]
-    g["momentum_10"] = g["momentum_10"]
-    g["roc_10"] = g["roc_10"]
-    g["momentum_20"] = g["momentum_20"]
-    g["roc_20"] = g["roc_20"]
-    g["momentum_50"] = g["momentum_50"]
-    g["roc_50"] = g["roc_50"]
-
-    # Trend strength
-    for period in [10, 20, 50]:
-        sma_short = g["close"].rolling(period//2).mean()
-        sma_long = g["close"].rolling(period).mean()
-        g[f'trend_strength_{period}'] = (sma_short - sma_long) / sma_long
-
-    # Price patterns
-    g['price_range'] = (g["high"] - g["low"]) / g["close"]
-    g['body_size'] = abs(g["close"] - g["open"]) / g["close"]
-    g['upper_shadow'] = (g["high"] - g[["open", "close"]].max(axis=1)) / g["close"]
-    g['lower_shadow'] = (g[["open", "close"]].min(axis=1) - g["low"]) / g["close"]
-    g['doji'] = (abs(g["close"] - g["open"]) <= (g["high"] - g["low"]) * 0.1).astype(int)
-    g['hammer'] = ((g["close"] - g["open"]) > 0) & (g['lower_shadow'] > g['body_size'] * 2).astype(int)
-    g['shooting_star'] = ((g["open"] - g["close"]) > 0) & (g['upper_shadow'] > g['body_size'] * 2).astype(int)
-
     # Time-based features
-    g['hour'] = pd.to_datetime(g["timestamp"]).dt.hour
-    g['dow'] = pd.to_datetime(g["timestamp"]).dt.dayofweek
-    g['month'] = pd.to_datetime(g["timestamp"]).dt.month
-    g['hour_sin'] = np.sin(2*np.pi*g['hour']/24)
-    g['hour_cos'] = np.cos(2*np.pi*g['hour']/24)
-    g['dow_sin'] = np.sin(2*np.pi*g['dow']/7)
-    g['dow_cos'] = np.cos(2*np.pi*g['dow']/7)
-    g['month_sin'] = np.sin(2*np.pi*g['month']/12)
-    g['month_cos'] = np.cos(2*np.pi*g['month']/12)
+    features['dow'] = g['timestamp'].dt.dayofweek
+    features['month'] = g['timestamp'].dt.month
+    features['dow_sin'] = np.sin(2 * np.pi * features['dow'] / 7)
+    features['dow_cos'] = np.cos(2 * np.pi * features['dow'] / 7)
+    features['month_sin'] = np.sin(2 * np.pi * features['month'] / 12)
+    features['month_cos'] = np.cos(2 * np.pi * features['month'] / 12)
     
-    # Add missing time features that model expects
-    g['dow'] = g['dow']  # Ensure this exists
-    g['month'] = g['month']  # Ensure this exists
-    
-    # Add missing time features that model expects
-    g['dow_sin'] = g['dow_sin']
-    g['dow_cos'] = g['dow_cos']
-    g['month_sin'] = g['month_sin']
-    g['month_cos'] = g['month_cos']
-
     # Market session indicators
-    g['is_us_hours'] = ((g['hour'] >= 13) & (g['hour'] <= 21)).astype(int)
-    g['is_asia_hours'] = ((g['hour'] >= 0) & (g['hour'] <= 8)).astype(int)
-    g['is_europe_hours'] = ((g['hour'] >= 7) & (g['hour'] <= 15)).astype(int)
+    features['is_us_hours'] = ((g['timestamp'].dt.hour >= 8) & (g['timestamp'].dt.hour < 16)).astype(int)
+    features['is_asia_hours'] = ((g['timestamp'].dt.hour >= 0) & (g['timestamp'].dt.hour < 8)).astype(int)
+    features['is_europe_hours'] = ((g['timestamp'].dt.hour >= 2) & (g['timestamp'].dt.hour < 10)).astype(int)
     
-    # Add missing market session features that model expects
-    g['is_us_hours'] = g['is_us_hours']
-    g['is_asia_hours'] = g['is_asia_hours']
-    g['is_europe_hours'] = g['is_europe_hours']
-
-    # Lagged features for temporal dependencies
-    lag_features = ['close', 'volume', 'rsi_14', 'macd_hist', 'bb_z', 'vwap_20_dev', 'atr_14']
-    for feat in lag_features:
-        if feat in g.columns:
-            for lag in [1, 2, 3, 5, 8]:
-                g[f'{feat}_lag_{lag}'] = g[feat].shift(lag)
+    # Lagged features
+    for lag in [1, 2, 3, 5, 8]:
+        features[f'volume_lag_{lag}'] = g['volume'].shift(lag)
     
-    # Add specific lagged features that model expects
-    g["volume_lag_1"] = g["volume"].shift(1)
-    g["volume_lag_2"] = g["volume"].shift(2)
-    g["volume_lag_3"] = g["volume"].shift(3)
-    g["volume_lag_5"] = g["volume"].shift(5)
-    g["volume_lag_8"] = g["volume"].shift(8)
-    g["vwap_20_dev_lag_1"] = g["vwap_20_dev"].shift(1)
-    g["atr_14_lag_1"] = g["atr_14"].shift(1)
-    g["atr_14_lag_2"] = g["atr_14"].shift(2)
-    g["atr_14_lag_3"] = g["atr_14"].shift(3)
-    g["atr_14_lag_5"] = g["atr_14"].shift(5)
-    g["atr_14_lag_8"] = g["atr_14"].shift(8)
+    features['vwap_20_dev_lag_1'] = features['vwap_20_dev'].shift(1)
     
-    # Add missing lagged features that model expects
-    g["volume_lag_1"] = g["volume_lag_1"]
-    g["volume_lag_2"] = g["volume_lag_2"]
-    g["volume_lag_3"] = g["volume_lag_3"]
-    g["volume_lag_5"] = g["volume_lag_5"]
-    g["volume_lag_8"] = g["volume_lag_8"]
-    g["vwap_20_dev_lag_1"] = g["vwap_20_dev_lag_1"]
-    g["atr_14_lag_1"] = g["atr_14_lag_1"]
-    g["atr_14_lag_2"] = g["atr_14_lag_2"]
-    g["atr_14_lag_3"] = g["atr_14_lag_3"]
-    g["atr_14_lag_5"] = g["atr_14_lag_5"]
-    g["atr_14_lag_8"] = g["atr_14_lag_8"]
-
+    for lag in [1, 2, 3, 5, 8]:
+        features[f'atr_14_lag_{lag}'] = features['atr_14'].shift(lag)
+    
     # Feature interactions
-    g['rsi_bb_interaction'] = g['rsi_14'] * g['bb_z']
-    g['macd_volume_interaction'] = g['macd_hist'] * g['rel_vol_20']
-    g['momentum_volatility_interaction'] = g['momentum_20'] * g['volatility_20']
+    features['momentum_volatility_interaction'] = features['momentum_20'] * features['volatility_20']
+    features['rsi_bb_interaction'] = features['rsi_14'] * features['bb_z']
+    features['macd_volume_interaction'] = features['macd_hist'] * features['rel_vol_20']
     
-    # Add missing interaction feature that model expects
-    g['momentum_volatility_interaction'] = g['momentum_20'] * g['volatility_20']
+    # Price action features
+    features['price_range'] = (g['high'] - g['low']) / g['close']
+    features['body_size'] = abs(g['close'] - g['open']) / g['close']
     
-    # Ensure all required features exist
-    g['momentum_volatility_interaction'] = g['momentum_volatility_interaction']
-
     # Clean up infinite values
     for key in features:
         if hasattr(features[key], 'replace'):
