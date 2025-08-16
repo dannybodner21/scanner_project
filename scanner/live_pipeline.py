@@ -276,118 +276,98 @@ def add_features_live(df):
     g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True).dt.tz_convert(None)
     g = g.sort_values('timestamp').reset_index(drop=True)
 
+    # Create all features in a dictionary first to avoid fragmentation
+    features = {}
+    
     # Enhanced returns with Fibonacci sequence - MUST match training exactly
     for n in [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]:
-        g[f'ret_{n}'] = g['close'].pct_change(n)
-        g[f'ret_{n}_abs'] = g[f'ret_{n}'].abs()
-        g[f'ret_{n}_squared'] = g[f'ret_{n}'] ** 2
+        features[f'ret_{n}'] = g['close'].pct_change(n)
+        features[f'ret_{n}_abs'] = features[f'ret_{n}'].abs()
+        features[f'ret_{n}_squared'] = features[f'ret_{n}'] ** 2
 
     # Volatility features
     for period in [5, 10, 20, 50]:
-        g[f'volatility_{period}'] = g['close'].pct_change().rolling(period).std()
-        g[f'volatility_{period}_squared'] = g[f'volatility_{period}'] ** 2
+        features[f'volatility_{period}'] = g['close'].pct_change().rolling(period).std()
+        features[f'volatility_{period}_squared'] = features[f'volatility_{period}'] ** 2
 
     # Enhanced EMAs with slopes - MUST match training features exactly
     for span in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
         e = ema(g["close"], span)
-        g[f'ema_{span}'] = e
-        g[f'ema_{span}_slope'] = e.diff()
-        g[f'ema_{span}_slope_3'] = e.diff(3)
-        g[f'ema_{span}_slope_5'] = e.diff(5)
-        g[f'close_vs_ema_{span}'] = (g["close"] - e) / e
+        features[f'ema_{span}'] = e
+        features[f'ema_{span}_slope'] = e.diff()
+        features[f'ema_{span}_slope_3'] = e.diff(3)
+        features[f'ema_{span}_slope_5'] = e.diff(5)
+        features[f'close_vs_ema_{span}'] = (g["close"] - e) / e
 
     # Enhanced MACD
     macd_line, macd_sig, macd_hist = macd(g["close"])
-    g["macd"] = macd_line
-    g["macd_signal"] = macd_sig
-    g["macd_hist"] = macd_hist
-    g["macd_hist_slope"] = g["macd_hist"].diff()
-    g["macd_hist_slope_3"] = g["macd_hist"].diff(3)
-    g["macd_hist_slope_5"] = g["macd_hist"].diff(5)
-    g["macd_cross_above"] = ((g["macd"] > g["macd_signal"]) & (g["macd"].shift(1) <= g["macd_signal"].shift(1))).astype(int)
-    g["macd_cross_below"] = ((g["macd"] < g["macd_signal"]) & (g["macd"].shift(1) >= g["macd_signal"].shift(1))).astype(int)
+    features["macd"] = macd_line
+    features["macd_signal"] = macd_sig
+    features["macd_hist"] = macd_hist
+    features["macd_hist_slope"] = features["macd_hist"].diff()
+    features["macd_hist_slope_3"] = features["macd_hist"].diff(3)
+    features["macd_hist_slope_5"] = features["macd_hist"].diff(5)
+    features["macd_cross_above"] = ((features["macd"] > features["macd_signal"]) & (features["macd"].shift(1) <= features["macd_signal"].shift(1))).astype(int)
+    features["macd_cross_below"] = ((features["macd"] < features["macd_signal"]) & (features["macd"].shift(1) >= features["macd_signal"].shift(1))).astype(int)
 
     # Enhanced RSI
     for period in [7, 14, 21, 34]:
         r = rsi(g["close"], period)
-        g[f'rsi_{period}'] = r
-        g[f'rsi_{period}_slope'] = r.diff()
-        g[f'rsi_{period}_slope_3'] = r.diff(3)
-        g[f'rsi_{period}_overbought'] = (r > 70).astype(int)
-        g[f'rsi_{period}_oversold'] = (r < 30).astype(int)
-    
-    # Ensure all RSI features exist
-    g['rsi_7_overbought'] = g['rsi_7_overbought']
-    g['rsi_7_oversold'] = g['rsi_7_oversold']
-    g['rsi_14_overbought'] = g['rsi_14_overbought']
-    g['rsi_14_oversold'] = g['rsi_14_oversold']
-    g['rsi_21_overbought'] = g['rsi_21_overbought']
-    g['rsi_21_oversold'] = g['rsi_21_oversold']
-    g['rsi_34_overbought'] = g['rsi_34_overbought']
-    g['rsi_34_oversold'] = g['rsi_34_oversold']
+        features[f'rsi_{period}'] = r
+        features[f'rsi_{period}_slope'] = r.diff()
+        features[f'rsi_{period}_slope_3'] = r.diff(3)
+        features[f'rsi_{period}_overbought'] = (r > 70).astype(int)
+        features[f'rsi_{period}_oversold'] = (r < 30).astype(int)
 
     # Enhanced Bollinger Bands
     bb_u, bb_m, bb_l, bb_w = bollinger(g["close"], 20, 2.0)
-    g["bb_upper"] = bb_u
-    g["bb_middle"] = bb_m
-    g["bb_lower"] = bb_l
-    g["bb_width"] = bb_w
-    g["bb_z"] = (g["close"] - bb_m) / (g["close"].rolling(20).std() + 1e-12)
-    g["bb_squeeze"] = bb_w / (g["close"].rolling(20).mean() + 1e-12)
-    g["bb_position"] = (g["close"] - bb_l) / (bb_u - bb_l + 1e-12)
-    
-    # Add missing BB features that model expects
-    g["bb_z"] = (g["close"] - bb_m) / (g["close"].rolling(20).std() + 1e-12)
-    
-    # Add missing features that model expects
-    g["bb_upper"] = bb_u
-    g["bb_lower"] = bb_l
+    features["bb_upper"] = bb_u
+    features["bb_middle"] = bb_m
+    features["bb_lower"] = bb_l
+    features["bb_width"] = bb_w
+    features["bb_z"] = (g["close"] - bb_m) / (g["close"].rolling(20).std() + 1e-12)
+    features["bb_squeeze"] = bb_w / (g["close"].rolling(20).mean() + 1e-12)
+    features["bb_position"] = (g["close"] - bb_l) / (bb_u - bb_l + 1e-12)
 
     # Stochastic and Williams %R
     lowest_low = g["low"].rolling(14).min()
     highest_high = g["high"].rolling(14).max()
-    g["stoch_k"] = 100 * ((g["close"] - lowest_low) / (highest_high - lowest_low + 1e-12))
-    g["stoch_d"] = g["stoch_k"].rolling(3).mean()
-    g["stoch_cross_above"] = ((g["stoch_k"] > g["stoch_d"]) & (g["stoch_k"].shift(1) <= g["stoch_d"].shift(1))).astype(int)
-    g["stoch_cross_below"] = ((g["stoch_k"] < g["stoch_d"]) & (g["stoch_k"].shift(1) >= g["stoch_d"].shift(1))).astype(int)
+    features["stoch_k"] = 100 * ((g["close"] - lowest_low) / (highest_high - lowest_low + 1e-12))
+    features["stoch_d"] = features["stoch_k"].rolling(3).mean()
+    features["stoch_cross_above"] = ((features["stoch_k"] > features["stoch_d"]) & (features["stoch_k"].shift(1) <= features["stoch_d"].shift(1))).astype(int)
+    features["stoch_cross_below"] = ((features["stoch_k"] < features["stoch_d"]) & (features["stoch_k"].shift(1) >= features["stoch_d"].shift(1))).astype(int)
 
     # Williams %R
-    g["williams_r"] = -100 * ((highest_high - g["close"]) / (highest_high - lowest_low + 1e-12))
-    g["williams_r_slope"] = g["williams_r"].diff()
+    features["williams_r"] = -100 * ((highest_high - g["close"]) / (highest_high - lowest_low + 1e-12))
+    features["williams_r_slope"] = features["williams_r"].diff()
 
     # CCI
     tp = (g["high"] + g["low"] + g["close"]) / 3
     sma_tp = tp.rolling(20).mean()
     mad = tp.rolling(20).apply(lambda x: np.abs(x - x.mean()).mean())
-    g["cci"] = (tp - sma_tp) / (0.015 * mad + 1e-12)
-    g["cci_slope"] = g["cci"].diff()
+    features["cci"] = (tp - sma_tp) / (0.015 * mad + 1e-12)
+    features["cci_slope"] = features["cci"].diff()
 
     # MFI
     mf = ((g["close"] - g["low"]) - (g["high"] - g["close"])) / (g["high"] - g["low"] + 1e-12)
     mf = mf * g["volume"]
     positive_flow = mf.where(mf > 0, 0).rolling(14).sum()
     negative_flow = mf.where(mf < 0, 0).rolling(14).sum()
-    g["mfi"] = 100 - (100 / (1 + positive_flow / (negative_flow + 1e-12)))
-    g["mfi_slope"] = g["mfi"].diff()
+    features["mfi"] = 100 - (100 / (1 + positive_flow / (negative_flow + 1e-12)))
+    features["mfi_slope"] = features["mfi"].diff()
 
     # Enhanced ATR and True Range
-    g["atr_14"] = atr(g["high"], g["low"], g["close"], 14)
-    g["atr_21"] = atr(g["high"], g["low"], g["close"], 21)
-    g["tr"] = true_range(g["high"], g["low"], g["close"])
-    g["tr_pct"] = g["tr"] / (g["close"].shift(1) + 1e-12)
+    features["atr_14"] = atr(g["high"], g["low"], g["close"], 14)
+    features["atr_21"] = atr(g["high"], g["low"], g["close"], 21)
+    features["tr"] = true_range(g["high"], g["low"], g["close"])
+    features["tr_pct"] = features["tr"] / (g["close"].shift(1) + 1e-12)
 
     # Enhanced VWAP
     for window in [10, 20, 50]:
         v = vwap(g["close"], g["high"], g["low"], g["volume"], window)
-        g[f'vwap_{window}'] = v
-        g[f'vwap_{window}_dev'] = (g["close"] - v) / v
-        g[f'vwap_{window}_dev_pct'] = g[f'vwap_{window}_dev'] * 100
-    
-    # Add missing VWAP features that model expects
-    g["vwap_20_dev"] = g["vwap_20_dev"]
-    g["vwap_50"] = g["vwap_50"]
-    g["vwap_50_dev"] = g["vwap_50_dev"]
-    g["vwap_50_dev_pct"] = g["vwap_50_dev_pct"]
+        features[f'vwap_{window}'] = v
+        features[f'vwap_{window}_dev'] = (g["close"] - v) / v
+        features[f'vwap_{window}_dev_pct'] = features[f'vwap_{window}_dev'] * 100
     
     # Add missing VWAP features that model expects
     g["vwap_20_dev_pct"] = g["vwap_20_dev_pct"]
@@ -547,8 +527,14 @@ def add_features_live(df):
     g['momentum_volatility_interaction'] = g['momentum_volatility_interaction']
 
     # Clean up infinite values
-    g.replace([np.inf, -np.inf], np.nan, inplace=True)
-
+    for key in features:
+        if hasattr(features[key], 'replace'):
+            features[key] = features[key].replace([np.inf, -np.inf], np.nan)
+    
+    # Add all features to the DataFrame at once (prevents fragmentation)
+    for key, value in features.items():
+        g[key] = value
+    
     # Require core warmups; keep last row
     g = g.dropna(subset=["ema_233","bb_width","rsi_14","atr_14","obv","vwap_20","macd","stoch_k"])
     if g.empty:
