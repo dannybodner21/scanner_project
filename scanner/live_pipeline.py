@@ -434,9 +434,9 @@ def add_features_live(df):
 
     # Candles
     F['doji'] = ((g['close'] - g['open']).abs() <= (g['high'] - g['low']) * 0.1).astype(int)
-    F['hammer'] = (((g['close'] - g['open']) > 0) & ((F['lower_shadow']) > F['body_size'] * 2)).astype(int)
-    F['shooting_star'] = (((g['open'] - g['close']) > 0) & ((F['upper_shadow']) > F['body_size'] * 2)).astype(int)
-
+    F['hammer'] = ((g['close'] - g['open']) > 0) & (F['lower_shadow'] > F['body_size'] * 2).astype(int)
+    F['shooting_star'] = ((g['open'] - g['close']) > 0) & (F['upper_shadow'] > F['body_size'] * 2).astype(int)
+    
     # Time features (UTC)
     hour = g['timestamp'].dt.hour
     dow = g['timestamp'].dt.dayofweek
