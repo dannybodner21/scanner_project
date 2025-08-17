@@ -1,318 +1,443 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 import pandas as pd
 import numpy as np
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from datetime import timezone
 
-
-# === ADVANCED PROFITABILITY FILTERS FOR SIMULATION ===
-
-def passes_advanced_short_filters(row, ml_confidence, coin):
-    """
-    Advanced filtering system for SHORT trades to maximize profitability
-    Returns True if trade should proceed, False to reject
-    """
-    
-    # FILTER 1: Volume Confirmation
-    volume_ratio = getattr(row, 'volume_ratio', 1.0)
-    if pd.isna(volume_ratio):
-        volume_ratio = 1.0
-    if volume_ratio < 1.2:  # Require above-average volume
-        return False
-    
-    # FILTER 2: Bearish Momentum Confluence
-    rsi_14 = getattr(row, 'rsi_14', 50)
-    ema_9_21_ratio = getattr(row, 'ema_9_21_ratio', 1.0)
-    macd = getattr(row, 'macd', 0)
-    macd_signal = getattr(row, 'macd_signal', 0)
-    
-    # Handle NaN values
-    if pd.isna(rsi_14):
-        rsi_14 = 50
-    if pd.isna(ema_9_21_ratio):
-        ema_9_21_ratio = 1.0
-    if pd.isna(macd):
-        macd = 0
-    if pd.isna(macd_signal):
-        macd_signal = 0
-    
-    bearish_momentum = (
-        rsi_14 > 65 and  # Overbought condition
-        ema_9_21_ratio < 0.999 and  # Short EMA below long EMA
-        macd < macd_signal  # MACD bearish
-    )
-    
-    if not bearish_momentum and ml_confidence < 0.75:
-        return False
-    
-    # FILTER 3: Resistance/Distribution Check
-    close = getattr(row, 'close', 0)
-    high = getattr(row, 'high', close)
-    open_price = getattr(row, 'open', close)
-    
-    if pd.isna(close) or pd.isna(high) or pd.isna(open_price):
-        return True  # Skip if data missing
-    
-    # Look for distribution patterns (long upper shadows)
-    upper_shadow = (high - max(close, open_price)) / open_price if open_price > 0 else 0
-    body_size = abs(close - open_price) / open_price if open_price > 0 else 0
-    
-    strong_distribution = (
-        upper_shadow > body_size * 1.5 and  # Long upper shadow
-        close < open_price and  # Red candle
-        volume_ratio > 1.5  # High volume
-    )
-    
-    if not strong_distribution and ml_confidence < 0.70:
-        return False
-    
-    # FILTER 4: Volatility Check
-    atr_14 = getattr(row, 'atr_14', 0)
-    if pd.isna(atr_14):
-        atr_14 = 0
-    if atr_14 == 0:  # Avoid dead markets
-        return False
-    
-    # FILTER 5: Overbought Check
-    bb_position = getattr(row, 'bb_position', 0.5)
-    if pd.isna(bb_position):
-        bb_position = 0.5
-    if bb_position < 0.7 and ml_confidence < 0.70:  # Not near upper BB
-        return False
-    
-    # FILTER 6: Time-based filtering (if timestamp available)
-    timestamp = getattr(row, 'timestamp', None)
-    if timestamp and hasattr(timestamp, 'hour'):
-        current_hour = timestamp.hour
-        if current_hour in [1, 2, 3, 4, 5, 6] and ml_confidence < 0.75:  # Asian low-volume hours
-            return False
-    
-    return True
-
-
-def passes_advanced_long_filters(row, ml_confidence, coin):
-    """
-    Advanced filtering system for LONG trades to maximize profitability
-    Returns True if trade should proceed, False to reject
-    """
-    
-    # FILTER 1: Volume Confirmation
-    volume_ratio = getattr(row, 'volume_ratio', 1.0)
-    if pd.isna(volume_ratio):
-        volume_ratio = 1.0
-    if volume_ratio < 1.2:  # Require above-average volume
-        return False
-    
-    # FILTER 2: Bullish Momentum Confluence
-    rsi_14 = getattr(row, 'rsi_14', 50)
-    ema_9_21_ratio = getattr(row, 'ema_9_21_ratio', 1.0)
-    macd = getattr(row, 'macd', 0)
-    macd_signal = getattr(row, 'macd_signal', 0)
-    
-    # Handle NaN values
-    if pd.isna(rsi_14):
-        rsi_14 = 50
-    if pd.isna(ema_9_21_ratio):
-        ema_9_21_ratio = 1.0
-    if pd.isna(macd):
-        macd = 0
-    if pd.isna(macd_signal):
-        macd_signal = 0
-    
-    bullish_momentum = (
-        rsi_14 < 35 and  # Oversold condition
-        ema_9_21_ratio > 1.001 and  # Short EMA above long EMA
-        macd > macd_signal  # MACD bullish
-    )
-    
-    if not bullish_momentum and ml_confidence < 0.85:
-        return False
-    
-    # FILTER 3: Market Structure Check
-    close = getattr(row, 'close', 0)
-    ema_200 = getattr(row, 'ema_200', close)
-    
-    if pd.isna(close) or pd.isna(ema_200):
-        ema_200 = close
-    
-    if close < ema_200 and ml_confidence < 0.80:  # Below major trend
-        return False
-    
-    # FILTER 4: Volatility Check
-    atr_14 = getattr(row, 'atr_14', 0)
-    if pd.isna(atr_14):
-        atr_14 = 0
-    if atr_14 == 0:  # Avoid dead markets
-        return False
-    
-    # FILTER 5: Time-based filtering
-    timestamp = getattr(row, 'timestamp', None)
-    if timestamp and hasattr(timestamp, 'hour'):
-        current_hour = timestamp.hour
-        if current_hour in [1, 2, 3, 4, 5, 6] and ml_confidence < 0.80:  # Asian low-volume hours
-            return False
-    
-    return True
 
 class Trade:
-    def __init__(self, coin, entry_time, entry_price, direction, confidence, trade_id, leverage):
+    """
+    Supports LONG and SHORT with margin sizing (position_size_usd = margin at entry).
+
+    PnL math:
+      notional = margin * lev
+      LONG : gross_pl_usd = notional * (exit/entry - 1)
+      SHORT: gross_pl_usd = notional * (entry/exit - 1)
+      Fees (bps) charged on notional both sides.
+    """
+    def __init__(self, coin, entry_time, entry_price, leverage, position_size_usd, conf, trade_id, side='short'):
         self.coin = coin
-        self.entry_time = entry_time
-        self.entry_price = entry_price
-        self.direction = direction
-        self.confidence = confidence
-        self.trade_id = trade_id
-        self.leverage = leverage
+        self.side = side.lower()  # 'long' or 'short'
+        self.entry_time = entry_time            # naive UTC
+        self.entry_price = float(entry_price)
+        self.leverage = float(leverage)
+        self.position_size_usd = float(position_size_usd)  # margin reserved at entry
+        self.confidence = float(conf)
+        self.trade_id = int(trade_id)
 
         self.exit_time = None
         self.exit_price = None
         self.exit_reason = None
-        self.pnl_pct = 0.0
-        self.pnl = 0.0
-        self.duration_minutes = 0
 
-    def close_trade(self, exit_time, exit_price, reason):
-        self.exit_time = exit_time
-        self.exit_price = exit_price
-        self.exit_reason = reason
-        self.duration_minutes = (exit_time - self.entry_time).total_seconds() / 60
+        self.gross_return = 0.0
+        self.gross_pl_usd = 0.0
+        self.fee_usd = 0.0
+        self.net_pl_usd = 0.0
 
-        if self.direction == 'long':
-            self.pnl_pct = (exit_price - self.entry_price) / self.entry_price
+        # dynamic/protective stop state
+        self.sl_armed = False
+        self.dynamic_sl = None  # long: entry*(1+lock); short: entry*(1-lock)
+
+    def maybe_arm_profit_stop(self, bar_high, bar_low, arm_thr=0.02, lock_gain=0.01):
+        """
+        Arm a profit-stop:
+          LONG : arm when bar_high >= entry*(1+arm_thr) -> dynamic_sl = entry*(1+lock_gain)
+          SHORT: arm when bar_low  <= entry*(1-arm_thr) -> dynamic_sl = entry*(1-lock_gain)
+        """
+        if self.sl_armed:
+            return
+        if self.side == 'long':
+            if bar_high >= self.entry_price * (1.0 + arm_thr):
+                self.sl_armed = True
+                self.dynamic_sl = self.entry_price * (1.0 + lock_gain)
+        else:  # short
+            if bar_low <= self.entry_price * (1.0 - arm_thr):
+                self.sl_armed = True
+                self.dynamic_sl = self.entry_price * (1.0 - lock_gain)
+
+    def current_sl_price(self, sl):
+        """
+        Return the active stop price:
+          LONG  base SL = entry*(1 - sl)
+          SHORT base SL = entry*(1 + sl)
+          If profit-stop armed, return dynamic_sl instead.
+        """
+        if self.sl_armed and self.dynamic_sl is not None:
+            return self.dynamic_sl
+        if self.side == 'long':
+            return self.entry_price * (1.0 - sl)
         else:
-            self.pnl_pct = (self.entry_price - exit_price) / self.entry_price
+            return self.entry_price * (1.0 + sl)
 
-        self.pnl = self.pnl_pct * self.leverage * 100  # Leverage applied here
+    def close(self, exit_time, exit_price, reason, entry_fee_bps, exit_fee_bps):
+        self.exit_time = exit_time
+        self.exit_price = float(exit_price)
+        self.exit_reason = reason
+
+        notional = self.position_size_usd * self.leverage
+        if self.side == 'long':
+            # leveraged return on margin
+            self.gross_return = (self.exit_price / self.entry_price - 1.0) * self.leverage
+            self.gross_pl_usd = notional * (self.exit_price / self.entry_price - 1.0)
+        else:
+            # short: profit when price falls
+            self.gross_return = (self.entry_price / self.exit_price - 1.0) * self.leverage
+            self.gross_pl_usd = notional * (self.entry_price / self.exit_price - 1.0)
+
+        fee_rate = (entry_fee_bps + exit_fee_bps) / 10000.0
+        self.fee_usd = notional * fee_rate
+        self.net_pl_usd = self.gross_pl_usd - self.fee_usd
+
+        # Optional consistency check:
+        # qty = notional / self.entry_price
+        # if self.side == 'long':
+        #     alt = qty * (self.exit_price - self.entry_price)
+        # else:
+        #     alt = qty * (self.entry_price - self.exit_price)
+        # assert abs(alt - self.gross_pl_usd) < 1e-6, "PnL mismatch"
+
 
 class Command(BaseCommand):
-    help = 'Run trading simulation on enhanced_predictions.csv including long and short trades'
+    help = 'Simulate trading from predictions and OHLCV with TP/SL first-hit exits + profit-lock stop. Supports LONG/SHORT (default SHORT). Compounding ON.'
 
     def add_arguments(self, parser):
+        parser.add_argument('--predictions-file', type=str, default='uni_short_predictions.csv')
+        parser.add_argument('--baseline-file', type=str, default='baseline_ohlcv.csv')
 
+        parser.add_argument('--side', type=str, default='short', choices=['long','short'],
+                            help='Trade direction (default short). For short, pred_prob is interpreted as P(short).')
 
+        parser.add_argument('--initial-balance', type=float, default=1000.0)
+        parser.add_argument('--position-size', type=float, default=1.00,
+                            help='Fraction of AVAILABLE balance per new trade (e.g., 0.25 = 25%)')
+        parser.add_argument('--leverage', type=float, default=15.0)
 
-        # short_four_enhanced_predictions.csv
-        # 0.62 -> Trades: 327, Wins: 239, Losses: 88, Win %: 73.09%
-        # TP: 1% SL: 2%
-        # Final Balance: $31,091.05 (Leverage: 15.0x)
+        parser.add_argument('--confidence-threshold', type=float, default=0.85)
+        parser.add_argument('--take-profit', type=float, default=0.02, help='3% move in your favor (down for SHORT)')
+        parser.add_argument('--stop-loss', type=float, default=0.02, help='2% move against you (up for SHORT)')
+        parser.add_argument('--max-hold-hours', type=int, default=2, help='Max hold in hours')
 
+        parser.add_argument('--entry-fee-bps', type=float, default=0.0)
+        parser.add_argument('--exit-fee-bps', type=float, default=0.0)
 
-        parser.add_argument('--predictions-file', type=str, default='short_one_enhanced_predictions.csv')
-        parser.add_argument('--initial-balance', type=float, default=5000)
-
-        parser.add_argument('--confidence-threshold', type=float, default=0.95)
-
-        parser.add_argument('--position-size', type=float, default=0.25)
-
-        parser.add_argument('--stop-loss', type=float, default=0.015)
-        parser.add_argument('--take-profit', type=float, default=0.025)
-
-        parser.add_argument('--max-hold-hours', type=int, default=48)
-
+        parser.add_argument('--max-concurrent-trades', type=int, default=1)
         parser.add_argument('--output-dir', type=str, default='.')
-        parser.add_argument('--leverage', type=float, default=10.0)
-        parser.add_argument('--trade-direction', type=str, default='short', choices=['long', 'short'])
 
-    def handle(self, *args, **options):
-        file_path = options['predictions_file']
-        if not os.path.exists(file_path):
-            raise CommandError(f"File not found: {file_path}")
+        parser.add_argument('--same-bar-policy', type=str, default='sl-first', choices=['sl-first', 'tp-first'])
+        parser.add_argument('--entry-lag-bars', type=int, default=1,
+                            help='Bars to delay entry after signal (0=same bar open, 1=next bar open)')
 
-        df = pd.read_csv(file_path, parse_dates=['timestamp'])
-        df = df.sort_values('timestamp')
+        # Profit-lock config (arm at 2%, lock 1% by default)
+        parser.add_argument('--profit-arm-threshold', type=float, default=0.07,
+                            help='Arm profit stop when unrealized gain >= this (abs).')
+        parser.add_argument('--profit-stop-level', type=float, default=0.01,
+                            help='Once armed, stop sits at this gain relative to entry (fixed, not trailing).')
 
-        trades = []
+        parser.add_argument('--entry-local-tz', type=str, default='America/Los_Angeles', help='Timezone for entry window checks')
+        parser.add_argument('--entry-start-hour', type=int, default=8, help='Earliest local hour (inclusive) to allow new entries')
+        parser.add_argument('--entry-end-hour', type=int, default=23, help='Latest local hour (exclusive) to allow new entries')
+
+    # ---- Utility methods ----
+    def _in_entry_window(self, ts_utc_naive, tz: ZoneInfo, start_hour: int, end_hour: int) -> bool:
+        """True if ts (naive UTC) falls within [start_hour, end_hour) local time."""
+        aware_utc = ts_utc_naive.replace(tzinfo=timezone.utc)
+        local = aware_utc.astimezone(tz)
+        return (start_hour <= local.hour < end_hour)
+
+    @staticmethod
+    def _normalize_timestamps(df: pd.DataFrame, col: str) -> pd.DataFrame:
+        if pd.api.types.is_datetime64tz_dtype(df[col]):
+            df[col] = df[col].dt.tz_convert('UTC').dt.tz_localize(None)
+        else:
+            df[col] = pd.to_datetime(df[col], utc=True).dt.tz_localize(None)
+        return df
+
+    def handle(self, *args, **opt):
+        pred_path = opt['predictions_file']
+        base_path = opt['baseline_file']
+
+        if not os.path.exists(pred_path) or not os.path.exists(base_path):
+            self.stderr.write("❌ Missing required files.")
+            return
+
+        predictions = pd.read_csv(pred_path)
+        baseline = pd.read_csv(base_path)
+
+        # Required columns sanity
+        for c in ['coin', 'timestamp', 'pred_prob']:
+            if c not in predictions.columns:
+                self.stderr.write(f"❌ Predictions file missing '{c}' column.")
+                return
+        for c in ['coin', 'timestamp', 'open', 'high', 'low', 'close']:
+            if c not in baseline.columns:
+                self.stderr.write(f"❌ Baseline file missing '{c}' column.")
+                return
+
+        # Normalize timestamps to naive UTC
+        predictions = self._normalize_timestamps(predictions, 'timestamp')
+        baseline = self._normalize_timestamps(baseline, 'timestamp')
+
+        # Sort
+        predictions.sort_values(['timestamp', 'coin'], inplace=True, kind='mergesort')
+        baseline.sort_values(['coin', 'timestamp'], inplace=True, kind='mergesort')
+
+        # Enforce unique (coin,timestamp) index for baseline
+        baseline.set_index(['coin', 'timestamp'], inplace=True)
+        if not baseline.index.is_unique:
+            dups = baseline.reset_index().duplicated(subset=['coin', 'timestamp'], keep=False).sum()
+            raise RuntimeError(f"Baseline OHLCV has {dups} duplicate (coin,timestamp) rows. Fix your baseline file.")
+
+        # Market timeline from baseline
+        market_ts = (
+            pd.Index(baseline.index.get_level_values('timestamp'))
+            .unique()
+            .sort_values()
+            .tolist()
+        )
+
+        # ---- Sim config ----
+        side = opt['side'].lower()
+        balance = float(opt['initial_balance'])              # equity, compounded
+        position_frac = float(opt['position_size'])          # fraction of AVAILABLE equity per trade
+        leverage = float(opt['leverage'])
+        conf_thr = float(opt['confidence_threshold'])
+        tp = float(opt['take_profit'])
+        sl = float(opt['stop_loss'])
+        max_hold_minutes = int(opt['max_hold_hours']) * 60
+        entry_fee_bps = float(opt['entry_fee_bps'])
+        exit_fee_bps  = float(opt['exit_fee_bps'])
+        max_concurrent = int(opt['max_concurrent_trades'])
+        same_bar_policy = opt['same_bar_policy']
+        entry_lag = max(0, int(opt['entry_lag_bars']))
+
+        arm_thr = float(opt['profit_arm_threshold'])     # e.g., 0.02
+        lock_gain = float(opt['profit_stop_level'])      # e.g., 0.01
+
+        entry_tz = ZoneInfo(opt['entry_local_tz'])
+        entry_start_hour = int(opt['entry_start_hour'])
+        entry_end_hour = int(opt['entry_end_hour'])
+
         open_trades = []
+        closed_trades = []
         trade_id_counter = 0
-        balance = options['initial_balance']
 
-        position_size_pct = options['position_size']
-        stop_loss = options['stop_loss']
-        take_profit = options['take_profit']
-        max_hold_minutes = options['max_hold_hours'] * 60
-        leverage = options['leverage']
-        direction = options['trade_direction']
+        reserved_margin = 0.0
 
-        for i, row in df.iterrows():
-            timestamp = row['timestamp']
-            coin = row['coin']
-            pred = row['prediction']
-            conf = row['prediction_prob']
-            open_price = row['open']
-            high = row['high']
-            low = row['low']
-            close = row['close']
+        # Precompute map from timestamp -> index
+        ts_to_index = {ts: i for i, ts in enumerate(market_ts)}
 
-            for trade in open_trades[:]:
-                if trade.coin != coin:
+        # Keep only necessary prediction columns
+        predictions = predictions[['coin', 'timestamp', 'pred_prob']]
+
+        # Track equity over time (on every close)
+        equity_points = []
+
+        for ts in market_ts:
+            # ===== EXITS =====
+            still_open = []
+            for t in open_trades:
+                if ts < t.entry_time:
+                    still_open.append(t)
                     continue
 
-                duration = (timestamp - trade.entry_time).total_seconds() / 60
-                sl_price = trade.entry_price * (1 + stop_loss) if trade.direction == 'short' else trade.entry_price * (1 - stop_loss)
-                tp_price = trade.entry_price * (1 - take_profit) if trade.direction == 'short' else trade.entry_price * (1 + take_profit)
+                key = (t.coin, ts)
+                if key not in baseline.index:
+                    still_open.append(t)
+                    continue
 
-                hit_tp = low <= tp_price if trade.direction == 'short' else high >= tp_price
-                hit_sl = high >= sl_price if trade.direction == 'short' else low <= sl_price
+                brow = baseline.loc[key]
+                high = float(brow['high'])
+                low  = float(brow['low'])
+                close = float(brow['close'])
+
+                # Arm profit stop (symmetric)
+                t.maybe_arm_profit_stop(
+                    bar_high=high,
+                    bar_low=low,
+                    arm_thr=arm_thr,
+                    lock_gain=lock_gain,
+                )
+
+                # Price levels
+                if t.side == 'long':
+                    tp_price = t.entry_price * (1.0 + tp)
+                    sl_price = t.current_sl_price(sl)
+                    hit_tp = (high >= tp_price)
+                    hit_sl = (low  <= sl_price)
+                else:  # short
+                    tp_price = t.entry_price * (1.0 - tp)
+                    sl_price = t.current_sl_price(sl)  # base is entry*(1+sl) unless locked to entry*(1-lock)
+                    hit_tp = (low  <= tp_price)
+                    hit_sl = (high >= sl_price)
+
+                def _close_and_update(reason, px):
+                    nonlocal reserved_margin, balance
+                    t.close(ts, px, reason, entry_fee_bps, exit_fee_bps)
+                    closed_trades.append(t)
+                    reserved_margin -= t.position_size_usd
+                    balance += t.net_pl_usd
+                    equity_points.append({'timestamp': ts, 'equity': balance})
+
+                if hit_tp and hit_sl:
+                    if same_bar_policy == 'sl-first':
+                        _close_and_update('both_hit_same_bar_sl_first', sl_price)
+                    else:
+                        _close_and_update('both_hit_same_bar_tp_first', tp_price)
+                    continue
 
                 if hit_tp:
-                    trade.close_trade(timestamp, tp_price, 'take_profit')
-                elif hit_sl:
-                    trade.close_trade(timestamp, sl_price, 'stop_loss')
-                elif duration >= max_hold_minutes:
-                    trade.close_trade(timestamp, close, 'max_hold')
-                else:
+                    _close_and_update('take_profit', tp_price)
                     continue
 
-                trades.append(trade)
-                open_trades.remove(trade)
+                if hit_sl:
+                    _close_and_update('stop_loss_locked' if t.sl_armed else 'stop_loss', sl_price)
+                    continue
 
-                position_size = balance * position_size_pct
-                balance += (trade.pnl / 100) * position_size
+                # Max hold
+                dur_min = (ts - t.entry_time).total_seconds() / 60.0
+                if dur_min >= max_hold_minutes:
+                    _close_and_update('max_hold', close)
+                else:
+                    still_open.append(t)
 
-            if pred == 1 and conf >= options['confidence_threshold']:
-                
-                # === ENHANCED PROFITABILITY FILTERING ===
-                if not passes_advanced_short_filters(row, conf, coin):
-                    continue  # Skip this trade
-                
-                already_open = any(t.coin == coin for t in open_trades)
-                if not already_open:
+            open_trades = still_open
+
+            # ===== ENTRIES =====
+            if len(open_trades) < max_concurrent:
+                idx = ts_to_index.get(ts, None)
+                if idx is None:
+                    continue
+
+                entry_idx = idx + entry_lag
+                if entry_idx >= len(market_ts):
+                    continue
+
+                entry_ts = market_ts[entry_idx]
+
+                if not self._in_entry_window(entry_ts, entry_tz, entry_start_hour, entry_end_hour):
+                    continue
+
+                sig_rows = predictions[predictions['timestamp'] == ts]
+                if sig_rows.empty:
+                    continue
+
+                # Highest prob first
+                sig_rows = sig_rows.sort_values('pred_prob', ascending=False)
+                for _, row in sig_rows.iterrows():
+                    if len(open_trades) >= max_concurrent:
+                        break
+
+                    prob = float(row['pred_prob'])
+                    # For SHORT side, pred_prob is P(short); for LONG, P(long)
+                    if prob < conf_thr:
+                        continue
+
+                    coin = row['coin']
+                    if any(ot.coin == coin for ot in open_trades):
+                        continue
+
+                    key = (coin, entry_ts)
+                    if key not in baseline.index:
+                        continue
+
+                    available = balance - reserved_margin
+                    if available <= 0:
+                        continue
+
+                    position_size_usd = available * position_frac
+                    if position_size_usd <= 0:
+                        continue
+
+                    brow = baseline.loc[key]
+                    entry_price = float(brow['open'])
+
                     trade_id_counter += 1
-                    entry_price = open_price
-                    trade = Trade(coin, timestamp, entry_price, direction, conf, trade_id_counter, leverage)
-                    open_trades.append(trade)
+                    t = Trade(
+                        coin=coin,
+                        entry_time=entry_ts,
+                        entry_price=entry_price,
+                        leverage=leverage,
+                        position_size_usd=position_size_usd,
+                        conf=prob,
+                        trade_id=trade_id_counter,
+                        side=side
+                    )
+                    open_trades.append(t)
+                    reserved_margin += position_size_usd
 
-        if not df.empty:
-            last_time = df['timestamp'].iloc[-1]
-            for trade in open_trades:
-                last_close = df[df['coin'] == trade.coin]['close'].iloc[-1]
-                trade.close_trade(last_time, last_close, 'end_of_data')
-                trades.append(trade)
+        # Force-close leftovers at last available close per coin
+        if len(open_trades) > 0:
+            base_reset = baseline.reset_index()
+            last_by_coin = base_reset.groupby('coin')['timestamp'].max().to_dict()
 
-        results = pd.DataFrame([{
+            for t in open_trades:
+                last_ts = last_by_coin.get(t.coin)
+                if last_ts is None:
+                    continue
+                key = (t.coin, last_ts)
+                if key in baseline.index:
+                    brow = baseline.loc[key]
+                    last_close = float(brow['close'])
+                    t.close(last_ts, last_close, 'end_of_data', entry_fee_bps, exit_fee_bps)
+                    closed_trades.append(t)
+                    reserved_margin -= t.position_size_usd
+                    balance += t.net_pl_usd
+                    equity_points.append({'timestamp': last_ts, 'equity': balance})
+
+        closed_trades.sort(key=lambda x: x.exit_time or datetime.min)
+
+        # Output CSVs (suffix with _short/_long to avoid clobbering)
+        os.makedirs(opt['output_dir'], exist_ok=True)
+        suffix = side
+        out_csv = os.path.join(opt['output_dir'], f'trading_results_{suffix}.csv')
+        out_df = pd.DataFrame([{
             'trade_id': t.trade_id,
+            'side': t.side,
             'coin': t.coin,
             'entry_time': t.entry_time,
             'exit_time': t.exit_time,
             'entry_price': t.entry_price,
             'exit_price': t.exit_price,
-            'pnl_pct': t.pnl_pct,
-            'pnl': t.pnl,
-            'exit_reason': t.exit_reason,
             'confidence': t.confidence,
+            'position_size_usd': t.position_size_usd,
             'leverage': t.leverage,
-            'direction': t.direction
-        } for t in trades])
+            'exit_reason': t.exit_reason,
+            'gross_return': t.gross_return,
+            'gross_pl_usd': t.gross_pl_usd,
+            'fee_usd': t.fee_usd,
+            'net_pl_usd': t.net_pl_usd,
+            'sl_armed': t.sl_armed,
+            'dynamic_sl': t.dynamic_sl
+        } for t in closed_trades])
+        out_df.to_csv(out_csv, index=False)
 
-        os.makedirs(options['output_dir'], exist_ok=True)
-        out_path = os.path.join(options['output_dir'], 'trading_results.csv')
-        results.to_csv(out_path, index=False)
+        eq_csv = os.path.join(opt['output_dir'], f'equity_curve_{suffix}.csv')
+        if equity_points:
+            pd.DataFrame(equity_points).sort_values('timestamp').to_csv(eq_csv, index=False)
 
-        total_trades = len(trades)
-        wins = sum(1 for t in trades if t.pnl > 0)
-        losses = sum(1 for t in trades if t.pnl <= 0)
-        win_pct = (wins / total_trades) * 100 if total_trades > 0 else 0
+        # Print trade log & summary
+        for t in closed_trades:
+            result = "WIN" if t.net_pl_usd > 0 else "LOSS"
+            self.stdout.write(
+                f"[{t.exit_time}] {t.side.upper()} {t.coin} | "
+                f"Entry: {t.entry_price:.6f} @ {t.entry_time} | "
+                f"Exit: {t.exit_price:.6f} ({t.exit_reason}) | "
+                f"Conf: {t.confidence:.3f} | "
+                f"{result} | Net PnL: ${t.net_pl_usd:,.2f}"
+            )
 
-        self.stdout.write(self.style.SUCCESS(f"✅ Simulation complete. Results saved to {out_path}"))
-        self.stdout.write(self.style.SUCCESS(f"📊 Trades: {total_trades}, Wins: {wins}, Losses: {losses}, Win %: {win_pct:.2f}%"))
-        self.stdout.write(self.style.SUCCESS(f"💰 Final Balance: ${balance:,.2f} (Leverage: {leverage}x)"))
+        total = len(closed_trades)
+        wins = sum(1 for t in closed_trades if t.net_pl_usd > 0)
+        losses = total - wins
+        win_pct = (wins / total * 100.0) if total > 0 else 0.0
+        total_net = sum(t.net_pl_usd for t in closed_trades)
+
+        self.stdout.write(self.style.SUCCESS(f"\n✅ Simulation complete. Saved: {out_csv}"))
+        if equity_points:
+            self.stdout.write(self.style.SUCCESS(f"📈 Equity curve: {eq_csv}"))
+        self.stdout.write(self.style.SUCCESS(
+            f"📊 Trades: {total}, Wins: {wins}, Losses: {losses}, Win %: {win_pct:.2f}%"))
+        self.stdout.write(self.style.SUCCESS(
+            f"💰 End Balance: ${balance:,.2f}  (Net: ${total_net:,.2f} from start ${opt['initial_balance']:,.2f})"))

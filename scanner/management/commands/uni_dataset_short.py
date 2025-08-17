@@ -21,13 +21,13 @@ warnings.filterwarnings("ignore")
 pd.set_option("display.max_columns", 200)
 
 
-# --- optimal threshold from training: 0.59 ---
+# --- optimal threshold from training: 0.00 ---
 
 
 # -------------------------
 # Scope & fixed dates
 # -------------------------
-COIN = "SOLUSDT"
+COIN = "UNIUSDT"
 
 TRAIN_START = "2023-01-01 00:00:00+00:00"
 TRAIN_END   = "2025-06-30 23:55:00+00:00"
@@ -276,77 +276,66 @@ def add_advanced_features(df):
     return out
 
 # -------------------------
-# Improved Labeling Strategy
+# Improved Labeling Strategy (SHORT = class 1)
 # -------------------------
 def create_smart_labels(df, min_move_pct=0.005, max_horizon=48):
     """
-    Create labels based on actual price movements, not just TP/SL hits.
-    This focuses on identifying when the market is about to make a significant move.
+    Create labels for SHORT trades:
+      1.0 -> Bearish move (down >= min_move_pct first)
+      0.0 -> Bullish move (up >= min_move_pct first) or no significant move
     """
     close = df['close'].values
     high = df['high'].values
     low = df['low'].values
     n = len(close)
     
-    # Use float64 to handle NaN values properly
     labels = np.zeros(n, dtype=np.float64)
     
     for i in range(n - max_horizon):
         current_price = close[i]
         min_move = current_price * min_move_pct
         
-        # Look ahead to find the next significant move
         for j in range(1, max_horizon + 1):
             future_high = high[i + j]
             future_low = low[i + j]
             
-            # Check if we hit a significant move in either direction
             if (future_high >= current_price + min_move) or (future_low <= current_price - min_move):
-                # Determine direction of the move
                 high_move = (future_high - current_price) / current_price
                 low_move = (current_price - future_low) / current_price
-                
-                if high_move > low_move and high_move >= min_move_pct:
-                    labels[i] = 1.0  # Bullish move
-                elif low_move > high_move and low_move >= min_move_pct:
-                    labels[i] = 0.0  # Bearish move (or no significant move)
+
+                # *** Inverted vs long-model: SHORT is positive class (1) ***
+                if low_move > high_move and low_move >= min_move_pct:
+                    labels[i] = 1.0  # Bearish move -> short
+                elif high_move > low_move and high_move >= min_move_pct:
+                    labels[i] = 0.0  # Bullish move
                 break
     
-    # Set last max_horizon rows to NaN since we can't see their future
     labels[-max_horizon:] = np.nan
-    
     return pd.Series(labels, index=df.index, dtype="float32")
 
 def create_volatility_breakout_labels(df, volatility_threshold=0.02, horizon=24):
     """
     Alternative labeling strategy focusing on volatility breakouts
+    (unchanged; not used in main path)
     """
     close = df['close'].values
     n = len(close)
     
-    # Calculate rolling volatility
     returns = np.diff(close) / close[:-1]
     volatility = pd.Series(returns).rolling(20).std().values
     
-    # Use float64 to handle NaN values properly
     labels = np.zeros(n, dtype=np.float64)
     
     for i in range(20, n - horizon):
         current_vol = volatility[i]
         avg_vol = np.mean(volatility[max(0, i-20):i])
         
-        # Check if current volatility is significantly higher than average
         if current_vol > avg_vol * 1.5 and current_vol > volatility_threshold:
-            # Look ahead to see if this leads to a significant price move
             future_prices = close[i:i+horizon]
             price_change = abs(future_prices[-1] - close[i]) / close[i]
-            
-            if price_change > volatility_threshold:
-                labels[i] = 1.0  # Volatility breakout led to price move
-            else:
-                labels[i] = 0.0  # False breakout
+            labels[i] = 1.0 if price_change > volatility_threshold else 0.0
         else:
-            labels[i] = 0.0  # Normal volatility
+            labels[i] = 0.0
     
     labels[-horizon:] = np.nan
     return pd.Series(labels, index=df.index, dtype="float32")
@@ -355,9 +344,6 @@ def create_volatility_breakout_labels(df, volatility_threshold=0.02, horizon=24)
 # Feature Selection
 # -------------------------
 def select_best_features(X, y, method='mutual_info', k=100):
-    """
-    Select the most predictive features using various methods
-    """
     if method == 'mutual_info':
         selector = SelectKBest(score_func=mutual_info_classif, k=min(k, X.shape[1]))
     elif method == 'f_classif':
@@ -365,18 +351,14 @@ def select_best_features(X, y, method='mutual_info', k=100):
     else:
         return X.columns.tolist()
     
-    X_selected = selector.fit_transform(X.fillna(0), y)
+    _ = selector.fit_transform(X.fillna(0), y)
     selected_features = X.columns[selector.get_support()].tolist()
-    
     return selected_features
 
 # -------------------------
 # Enhanced Model Training
 # -------------------------
 def create_ensemble_model():
-    """
-    Create an ensemble of models for better prediction
-    """
     models = {
         'hgb': HistGradientBoostingClassifier(
             max_depth=6,
@@ -405,33 +387,25 @@ def create_ensemble_model():
     return models
 
 def train_ensemble(X_train, y_train, X_val, y_val):
-    """
-    Train ensemble of models and return the best one
-    """
     models = create_ensemble_model()
     best_model = None
     best_score = -1
     
     for name, model in models.items():
-        # Handle class imbalance
         if name == 'hgb':
-            # HGB handles imbalance well with sample weights
             sample_weights = compute_sample_weights(y_train)
             model.fit(X_train.fillna(0), y_train, sample_weight=sample_weights)
         else:
-            # For other models, use SMOTE
             smote = SMOTE(random_state=42, k_neighbors=5)
             X_resampled, y_resampled = smote.fit_resample(X_train.fillna(0), y_train)
             model.fit(X_resampled, y_resampled)
         
-        # Predict on validation set
         if hasattr(model, 'predict_proba'):
             y_pred_proba = model.predict_proba(X_val.fillna(0))[:, 1]
             y_pred = (y_pred_proba > 0.5).astype(int)
         else:
             y_pred = model.predict(X_val.fillna(0))
         
-        # Calculate F1 score (better for imbalanced data)
         score = f1_score(y_val, y_pred, average='weighted')
         
         if score > best_score:
@@ -441,9 +415,6 @@ def train_ensemble(X_train, y_train, X_val, y_val):
     return best_model, best_score
 
 def compute_sample_weights(y):
-    """
-    Compute sample weights to handle class imbalance
-    """
     from sklearn.utils.class_weight import compute_class_weight
     class_weights = compute_class_weight('balanced', classes=np.unique(y), y=y)
     sample_weights = np.ones(len(y))
@@ -455,7 +426,7 @@ def compute_sample_weights(y):
 # Main Command
 # -------------------------
 class Command(BaseCommand):
-    help = "Enhanced DOTUSDT model training with advanced features and improved labeling for 60%+ accuracy"
+    help = "UNIUSDT SHORT model training with advanced features and improved labeling"
 
     def add_arguments(self, parser):
         parser.add_argument("--export_dir", type=str, default="./", help="Where to write outputs")
@@ -472,7 +443,7 @@ class Command(BaseCommand):
         os.makedirs(export_dir, exist_ok=True)
 
         # 1) Load data
-        self.stdout.write("▶ Loading DOTUSDT OHLCV data...")
+        self.stdout.write(f"▶ Loading {COIN} OHLCV data...")
         qs = (CoinAPIPrice.objects
               .filter(coin=COIN, timestamp__gte=TRAIN_START, timestamp__lte=TEST_END)
               .values("coin","timestamp","open","high","low","close","volume")
@@ -483,39 +454,32 @@ class Command(BaseCommand):
             self.stderr.write("No data returned for the requested window.")
             return
 
-        # Data preprocessing
         for c in ["open","high","low","close","volume"]:
             df[c] = pd.to_numeric(df[c], errors="coerce")
         df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
         df = df.dropna(subset=["open","high","low","close","volume"]).reset_index(drop=True)
 
-        # 2) Enhanced feature engineering
+        # 2) Features
         self.stdout.write("▶ Engineering advanced features...")
         df_features = add_advanced_features(df)
         
-        # Remove rows with too many NaN values
         min_non_null = df_features.shape[1] * 0.8
         df_features = df_features.dropna(thresh=min_non_null).reset_index(drop=True)
         
-        # 3) Create labels using improved strategy
-        self.stdout.write("▶ Creating smart labels...")
+        # 3) SHORT labels
+        self.stdout.write("▶ Creating SHORT labels...")
         labels = create_smart_labels(df_features, min_move_pct, horizon)
         df_features['label'] = labels
         
-        # Remove rows without labels
         df_features = df_features.dropna(subset=['label']).reset_index(drop=True)
         df_features['label'] = df_features['label'].astype(int)
         
-        # Check class distribution
         label_counts = df_features['label'].value_counts()
         self.stdout.write(f"Label distribution: {label_counts.to_dict()}")
         
         # 4) Prepare features
-        # Remove non-feature columns
         exclude_cols = ['coin', 'timestamp', 'label', 'open', 'high', 'low', 'close', 'volume']
         feature_cols = [col for col in df_features.columns if col not in exclude_cols]
-        
-        # Remove columns with too many NaN values
         feature_cols = [col for col in feature_cols if df_features[col].notna().sum() > len(df_features) * 0.9]
         
         X = df_features[feature_cols].astype("float32")
@@ -540,16 +504,13 @@ class Command(BaseCommand):
             X_train, X_val = X_selected.iloc[train_idx], X_selected.iloc[val_idx]
             y_train, y_val = y[train_idx], y[val_idx]
             
-            # Skip if not enough samples
             if len(y_train) < 1000 or len(y_val) < 200:
                 continue
             
-            # Scale features
             scaler = RobustScaler()
             X_train_scaled = scaler.fit_transform(X_train.fillna(0))
             X_val_scaled = scaler.transform(X_val.fillna(0))
             
-            # Train ensemble
             model, score = train_ensemble(
                 pd.DataFrame(X_train_scaled, columns=selected_features),
                 y_train,
@@ -574,17 +535,13 @@ class Command(BaseCommand):
         
         # 7) Final training on full dataset
         self.stdout.write("▶ Training final model on full dataset...")
-        
-        # Scale full dataset
         X_full_scaled = best_scaler.fit_transform(X_selected.fillna(0))
         
-        # Train final model
         if hasattr(best_model, 'fit'):
             if isinstance(best_model, HistGradientBoostingClassifier):
                 sample_weights = compute_sample_weights(y)
                 best_model.fit(X_full_scaled, y, sample_weight=sample_weights)
             else:
-                # For other models, use SMOTE
                 smote = SMOTE(random_state=42, k_neighbors=5)
                 X_resampled, y_resampled = smote.fit_resample(X_full_scaled, y)
                 best_model.fit(X_resampled, y_resampled)
@@ -602,18 +559,15 @@ class Command(BaseCommand):
             train_data = df_features.iloc[:split_idx].copy()
             test_data = df_features.iloc[split_idx:].copy()
         
-        # Prepare test data
         X_test = test_data[selected_features].astype("float32")
         y_test = test_data['label'].values.astype(int)
         X_test_scaled = best_scaler.transform(X_test.fillna(0))
         
-        # Make predictions
         if hasattr(best_model, 'predict_proba'):
-            y_pred_proba = best_model.predict_proba(X_test_scaled)[:, 1]
+            y_pred_proba = best_model.predict_proba(X_test_scaled)[:, 1]  # class 1 == SHORT
         else:
             y_pred_proba = best_model.predict(X_test_scaled).astype(float)
         
-        # Find optimal threshold
         thresholds = np.linspace(0.1, 0.9, 81)
         best_threshold = 0.5
         best_f1 = -1
@@ -625,10 +579,9 @@ class Command(BaseCommand):
                 best_f1 = f1
                 best_threshold = thresh
         
-        # Final evaluation
         y_pred_final = (y_pred_proba >= best_threshold).astype(int)
         accuracy = accuracy_score(y_test, y_pred_final)
-        precision = precision_score(y_test, y_pred_final, zero_division=0)
+        precision = precision_score(y_test, y_pred_final, zero_division=0)  # pos=1 => SHORT
         recall = recall_score(y_test, y_pred_final, zero_division=0)
         f1 = f1_score(y_test, y_pred_final, average='weighted')
         
@@ -639,41 +592,36 @@ class Command(BaseCommand):
         
         self.stdout.write(f"Test Set Performance:")
         self.stdout.write(f"  Accuracy: {accuracy:.4f}")
-        self.stdout.write(f"  Precision: {precision:.4f}")
-        self.stdout.write(f"  Recall: {recall:.4f}")
+        self.stdout.write(f"  Precision (SHORT=1): {precision:.4f}")
+        self.stdout.write(f"  Recall (SHORT=1): {recall:.4f}")
         self.stdout.write(f"  F1 Score: {f1:.4f}")
         self.stdout.write(f"  AUC: {auc:.4f}")
-        self.stdout.write(f"  Optimal Threshold: {best_threshold:.3f}")
+        self.stdout.write(f"  Optimal Threshold (SHORT prob): {best_threshold:.3f}")
         
-        # 9) Save artifacts
+        # 9) Save artifacts (SHORT-specific names to avoid clobbering long)
         self.stdout.write("▶ Saving model artifacts...")
         
-        # Save datasets
-        train_csv = os.path.join(export_dir, "sol_train_dataset.csv")
-        test_csv = os.path.join(export_dir, "sol_test_dataset.csv")
-        preds_csv = os.path.join(export_dir, "sol_predictions.csv")
+        train_csv = os.path.join(export_dir, "uni_short_train_dataset.csv")
+        test_csv = os.path.join(export_dir, "uni_short_test_dataset.csv")
+        preds_csv = os.path.join(export_dir, "uni_short_predictions.csv")
         
-        # Add coin column back
         train_data = train_data.assign(coin=COIN)
         test_data = test_data.assign(coin=COIN)
         
-        # Save with all features
         export_cols = ['coin', 'timestamp', 'open', 'high', 'low', 'close', 'volume', 'label'] + selected_features
         train_data[export_cols].to_csv(train_csv, index=False)
         test_data[export_cols].to_csv(test_csv, index=False)
         
-        # Save predictions
         predictions_df = test_data[['coin', 'timestamp']].copy()
         predictions_df['label'] = y_test
         predictions_df['pred_prob'] = y_pred_proba
         predictions_df['pred_at_thr'] = y_pred_final
         predictions_df.to_csv(preds_csv, index=False)
         
-        # Save model and scaler
-        model_path = os.path.join(export_dir, "sol_long_hgb_model.joblib")
-        scaler_path = os.path.join(export_dir, "sol_feature_scaler.joblib")
-        features_path = os.path.join(export_dir, "sol_feature_list.json")
-        config_path = os.path.join(export_dir, "sol_trade_config.json")
+        model_path = os.path.join(export_dir, "uni_short_hgb_model.joblib")
+        scaler_path = os.path.join(export_dir, "uni_short_feature_scaler.joblib")
+        features_path = os.path.join(export_dir, "uni_short_feature_list.json")
+        config_path = os.path.join(export_dir, "uni_short_trade_config.json")
         
         dump(best_model, model_path)
         dump(best_scaler, scaler_path)
@@ -681,7 +629,6 @@ class Command(BaseCommand):
         with open(features_path, 'w') as f:
             json.dump(selected_features, f, indent=2)
         
-        # Create config
         config = {
             "coin": COIN,
             "train_window": {"start": TRAIN_START, "end": TRAIN_END},
@@ -705,7 +652,7 @@ class Command(BaseCommand):
             json.dump(config, f, indent=2)
         
         self.stdout.write(self.style.SUCCESS(
-            f"Model training completed successfully!\n"
+            f"SHORT model training completed successfully!\n"
             f"Final Test Accuracy: {accuracy:.4f}\n"
             f"Files saved to: {export_dir}"
         ))
