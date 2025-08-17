@@ -222,7 +222,7 @@ def get_entry_price_or_fallback(coin: str, entry_ts, recent_df: pd.DataFrame, sl
 # --------------------------------
 # Feature Engineering (exact parity with training two_dataset.py)
 # --------------------------------
-def ema(s, span): 
+def ema(s, span):
     return s.ewm(span=span, adjust=False).mean()
 
 def sma(s, span):
@@ -251,7 +251,7 @@ def bollinger(close, period=20, mult=2.0):
     u = m + mult*s
     l = m - mult*s
     w = (u - l) / (m + 1e-12)
-    return u, m, l, w, s
+    return u, m, l, w, s  # MUST return 5 values (train parity)
 
 def true_range(h, l, c):
     pc = c.shift(1)
@@ -292,174 +292,215 @@ def money_flow_index(high, low, close, volume, period=14):
 
 def add_features_live(df):
     """
-    Generate the exact same features as training (two_dataset.py).
+    Generate the exact same features as training (two_dataset.py) and return the last row.
     - ROC features scaled by 100
-    - Session flags use UTC windows (13–21, 0–8, 7–15)
+    - Session flags use UTC windows (13–21, 0–8, 7–15) inclusive
     - Includes vwap_10, ema_13/21, trend_strength_10, raw obv
-    Returns the last row with all features (after core warmup) or None.
+    - Batches assignments to avoid fragmentation warnings
     """
     g = df.copy()
     g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)  # keep UTC-aware
     g = g.sort_values('timestamp').reset_index(drop=True)
 
+    F = {}
+
     # Price action
-    g['price_range'] = (g['high'] - g['low']) / g['close']
-    g['body_size'] = (g['close'] - g['open']).abs() / g['close']
-    g['upper_shadow'] = (g['high'] - g[['open', 'close']].max(axis=1)) / g['close']
-    g['lower_shadow'] = (g[['open', 'close']].min(axis=1) - g['low']) / g['close']
+    F['price_range'] = (g['high'] - g['low']) / g['close']
+    F['body_size'] = (g['close'] - g['open']).abs() / g['close']
+    F['upper_shadow'] = (g['high'] - g[['open', 'close']].max(axis=1)) / g['close']
+    F['lower_shadow'] = (g[['open', 'close']].min(axis=1) - g['low']) / g['close']
 
     # Returns (Fibonacci)
     for n in [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]:
-        g[f'ret_{n}'] = g['close'].pct_change(n)
-        g[f'ret_{n}_abs'] = g[f'ret_{n}'].abs()
-        g[f'ret_{n}_squared'] = g[f'ret_{n}'] ** 2
+        r = g['close'].pct_change(n)
+        F[f'ret_{n}'] = r
+        F[f'ret_{n}_abs'] = r.abs()
+        F[f'ret_{n}_squared'] = r ** 2
 
     # Volatility
     for period in [5, 10, 20, 50]:
-        g[f'volatility_{period}'] = g['close'].pct_change().rolling(period).std()
-        g[f'volatility_{period}_squared'] = g[f'volatility_{period}'] ** 2
+        vol = g['close'].pct_change().rolling(period).std()
+        F[f'volatility_{period}'] = vol
+        F[f'volatility_{period}_squared'] = vol ** 2
 
     # EMAs (values, slopes, close_vs)
     for span in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
         e = ema(g['close'], span)
-        g[f'ema_{span}'] = e
-        g[f'ema_{span}_slope'] = e.diff()
-        g[f'ema_{span}_slope_3'] = e.diff(3)
-        g[f'ema_{span}_slope_5'] = e.diff(5)
-        g[f'close_vs_ema_{span}'] = (g['close'] - e) / (e + 1e-12)
+        F[f'ema_{span}'] = e
+        F[f'ema_{span}_slope'] = e.diff()
+        F[f'ema_{span}_slope_3'] = e.diff(3)
+        F[f'ema_{span}_slope_5'] = e.diff(5)
+        F[f'close_vs_ema_{span}'] = (g['close'] - e) / (e + 1e-12)
 
     # MACD (+ slopes + crosses)
     macd_line, macd_sig, macd_hist = macd(g['close'])
-    g['macd'] = macd_line
-    g['macd_signal'] = macd_sig
-    g['macd_hist'] = macd_hist
-    g['macd_hist_slope'] = g['macd_hist'].diff()
-    g['macd_hist_slope_3'] = g['macd_hist'].diff(3)
-    g['macd_hist_slope_5'] = g['macd_hist'].diff(5)
-    g['macd_cross_above'] = ((g['macd'] > g['macd_signal']) & (g['macd'].shift(1) <= g['macd_signal'].shift(1))).astype(int)
-    g['macd_cross_below'] = ((g['macd'] < g['macd_signal']) & (g['macd'].shift(1) >= g['macd_signal'].shift(1))).astype(int)
+    F['macd'] = macd_line
+    F['macd_signal'] = macd_sig
+    F['macd_hist'] = macd_hist
+    F['macd_hist_slope'] = macd_hist.diff()
+    F['macd_hist_slope_3'] = macd_hist.diff(3)
+    F['macd_hist_slope_5'] = macd_hist.diff(5)
+
+    # We'll set crosses after we create a DF
 
     # RSI + flags
     for period in [7, 14, 21, 34]:
         r = rsi(g['close'], period)
-        g[f'rsi_{period}'] = r
-        g[f'rsi_{period}_slope'] = r.diff()
-        g[f'rsi_{period}_slope_3'] = r.diff(3)
-        g[f'rsi_{period}_overbought'] = (r > 70).astype(int)
-        g[f'rsi_{period}_oversold'] = (r < 30).astype(int)
+        F[f'rsi_{period}'] = r
+        F[f'rsi_{period}_slope'] = r.diff()
+        F[f'rsi_{period}_slope_3'] = r.diff(3)
+        F[f'rsi_{period}_overbought'] = (r > 70).astype(int)
+        F[f'rsi_{period}_oversold'] = (r < 30).astype(int)
 
     # Bollinger (5 outputs in training)
     bb_u, bb_m, bb_l, bb_w, bb_std = bollinger(g['close'], 20, 2.0)
-    g['bb_upper'] = bb_u
-    g['bb_middle'] = bb_m
-    g['bb_lower'] = bb_l
-    g['bb_width'] = bb_w
-    g['bb_z'] = (g['close'] - bb_m) / (bb_std + 1e-12)
-    g['bb_squeeze'] = bb_w / (g['close'].rolling(20).mean() + 1e-12)
-    g['bb_position'] = (g['close'] - bb_l) / (bb_u - bb_l + 1e-12)
+    F['bb_upper'] = bb_u
+    F['bb_middle'] = bb_m
+    F['bb_lower'] = bb_l
+    F['bb_width'] = bb_w
+    F['bb_z'] = (g['close'] - bb_m) / (bb_std + 1e-12)
+    F['bb_squeeze'] = bb_w / (g['close'].rolling(20).mean() + 1e-12)
+    F['bb_position'] = (g['close'] - bb_l) / (bb_u - bb_l + 1e-12)
 
-    # Stochastic + crosses
+    # Stochastic
     lowest_low = g['low'].rolling(14).min()
     highest_high = g['high'].rolling(14).max()
     stoch_k = 100 * ((g['close'] - lowest_low) / (highest_high - lowest_low + 1e-12))
     stoch_d = stoch_k.rolling(3).mean()
-    g['stoch_k'] = stoch_k
-    g['stoch_d'] = stoch_d
-    g['stoch_cross_above'] = ((stoch_k > stoch_d) & (stoch_k.shift(1) <= stoch_d.shift(1))).astype(int)
-    g['stoch_cross_below'] = ((stoch_k < stoch_d) & (stoch_k.shift(1) >= stoch_d.shift(1))).astype(int)
+    F['stoch_k'] = stoch_k
+    F['stoch_d'] = stoch_d
 
     # Williams %R + slope
-    g['williams_r'] = williams_r(g['high'], g['low'], g['close'])
-    g['williams_r_slope'] = g['williams_r'].diff()
+    wr = williams_r(g['high'], g['low'], g['close'])
+    F['williams_r'] = wr
+    F['williams_r_slope'] = wr.diff()
 
     # CCI + slope
-    g['cci'] = cci(g['high'], g['low'], g['close'])
-    g['cci_slope'] = g['cci'].diff()
+    cci_val = cci(g['high'], g['low'], g['close'])
+    F['cci'] = cci_val
+    F['cci_slope'] = cci_val.diff()
 
     # MFI + slope
-    g['mfi'] = money_flow_index(g['high'], g['low'], g['close'], g['volume'])
-    g['mfi_slope'] = g['mfi'].diff()
+    mfi_val = money_flow_index(g['high'], g['low'], g['close'], g['volume'])
+    F['mfi'] = mfi_val
+    F['mfi_slope'] = mfi_val.diff()
 
     # ATR/TR
-    g['atr_14'] = atr(g['high'], g['low'], g['close'], 14)
-    g['atr_21'] = atr(g['high'], g['low'], g['close'], 21)
-    g['tr'] = true_range(g['high'], g['low'], g['close'])
-    g['tr_pct'] = g['tr'] / (g['close'].shift(1) + 1e-12)
+    atr14 = atr(g['high'], g['low'], g['close'], 14)
+    atr21 = atr(g['high'], g['low'], g['close'], 21)
+    tr = true_range(g['high'], g['low'], g['close'])
+    F['atr_14'] = atr14
+    F['atr_21'] = atr21
+    F['tr'] = tr
+    F['tr_pct'] = tr / (g['close'].shift(1) + 1e-12)
 
     # VWAP 10/20/50 (+ dev/%)
     for window in [10, 20, 50]:
         v = vwap(g['close'], g['high'], g['low'], g['volume'], window)
-        g[f'vwap_{window}'] = v
-        g[f'vwap_{window}_dev'] = (g['close'] - v) / (v + 1e-12)
-        g[f'vwap_{window}_dev_pct'] = g[f'vwap_{window}_dev'] * 100.0
+        F[f'vwap_{window}'] = v
+        dev = (g['close'] - v) / (v + 1e-12)
+        F[f'vwap_{window}_dev'] = dev
+        F[f'vwap_{window}_dev_pct'] = dev * 100.0
 
     # Volume analysis (+ rel/spike)
     vol = pd.to_numeric(g['volume'], errors='coerce').fillna(0.0)
     for period in [5, 10, 20, 50]:
-        g[f'vol_sma_{period}'] = vol.rolling(period).mean()
-        g[f'vol_med_{period}'] = vol.rolling(period).median()
-        g[f'rel_vol_{period}'] = vol / (g[f'vol_sma_{period}'] + 1e-12)
-        g[f'vol_spike_{period}'] = vol / (g[f'vol_med_{period}'] + 1e-12)
+        sma_vol = vol.rolling(period).mean()
+        med_vol = vol.rolling(period).median()
+        F[f'vol_sma_{period}'] = sma_vol
+        F[f'vol_med_{period}'] = med_vol
+        F[f'rel_vol_{period}'] = vol / (sma_vol + 1e-12)
+        F[f'vol_spike_{period}'] = vol / (med_vol + 1e-12)
 
     # OBV + slopes (keep raw obv)
     dirn = np.sign(g['close'].diff())
     dirn = dirn.replace(0, np.nan).ffill().fillna(0)
-    g['obv'] = (vol * dirn).cumsum()
-    g['obv_slope'] = g['obv'].diff()
-    g['obv_slope_3'] = g['obv'].diff(3)
-    g['obv_slope_5'] = g['obv'].diff(5)
+    obv_val = (vol * dirn).cumsum()
+    F['obv'] = obv_val
+    F['obv_slope'] = obv_val.diff()
+    F['obv_slope_3'] = obv_val.diff(3)
+    F['obv_slope_5'] = obv_val.diff(5)
 
     # Support/Resistance (+ distances) — denominator = close (as in training)
     for period in [20, 50, 100]:
-        g[f'resistance_{period}'] = g['high'].rolling(period).max()
-        g[f'support_{period}'] = g['low'].rolling(period).min()
-        g[f'resistance_distance_{period}'] = (g[f'resistance_{period}'] - g['close']) / (g['close'] + 1e-12)
-        g[f'support_distance_{period}'] = (g['close'] - g[f'support_{period}']) / (g['close'] + 1e-12)
+        res = g['high'].rolling(period).max()
+        sup = g['low'].rolling(period).min()
+        F[f'resistance_{period}'] = res
+        F[f'support_{period}'] = sup
+        F[f'resistance_distance_{period}'] = (res - g['close']) / (g['close'] + 1e-12)
+        F[f'support_distance_{period}'] = (g['close'] - sup) / (g['close'] + 1e-12)
 
     # Momentum & ROC (scale match)
     for period in [5, 10, 20, 50]:
-        g[f'momentum_{period}'] = g['close'] / g['close'].shift(period) - 1
-        g[f'roc_{period}'] = g['close'].pct_change(period) * 100.0
+        F[f'momentum_{period}'] = g['close'] / g['close'].shift(period) - 1
+        F[f'roc_{period}'] = g['close'].pct_change(period) * 100.0
 
     # Trend strength (includes 10)
     for period in [10, 20, 50]:
         sma_short = sma(g['close'], period//2)
         sma_long = sma(g['close'], period)
-        g[f'trend_strength_{period}'] = (sma_short - sma_long) / (sma_long + 1e-12)
+        F[f'trend_strength_{period}'] = (sma_short - sma_long) / (sma_long + 1e-12)
 
-    # Candles — match training operator precedence exactly
-    g['doji'] = ( (g['close'] - g['open']).abs() <= (g['high'] - g['low']) * 0.1 ).astype(int)
-    g['hammer'] = ((g['close'] - g['open']) > 0) & (g['lower_shadow'] > g['body_size'] * 2).astype(int)
-    g['shooting_star'] = ((g['open'] - g['close']) > 0) & (g['upper_shadow'] > g['body_size'] * 2).astype(int)
+    # Candles
+    F['doji'] = ((g['close'] - g['open']).abs() <= (g['high'] - g['low']) * 0.1).astype(int)
+    F['hammer'] = (((g['close'] - g['open']) > 0) & (F['lower_shadow'] > F['body_size'] * 2)).astype(int)
+    F['shooting_star'] = (((g['open'] - g['close']) > 0) & (F['upper_shadow'] > F['body_size'] * 2)).astype(int)
 
     # Time features (UTC)
-    g['hour'] = g['timestamp'].dt.hour
-    g['dow'] = g['timestamp'].dt.dayofweek
-    g['month'] = g['timestamp'].dt.month
-    g['hour_sin'] = np.sin(2*np.pi*g['hour']/24)
-    g['hour_cos'] = np.cos(2*np.pi*g['hour']/24)
-    g['dow_sin'] = np.sin(2*np.pi*g['dow']/7)
-    g['dow_cos'] = np.cos(2*np.pi*g['dow']/7)
-    g['month_sin'] = np.sin(2*np.pi*g['month']/12)
-    g['month_cos'] = np.cos(2*np.pi*g['month']/12)
+    hour = g['timestamp'].dt.hour
+    dow = g['timestamp'].dt.dayofweek
+    month = g['timestamp'].dt.month
+    F['hour'] = hour
+    F['dow'] = dow
+    F['month'] = month
+    F['hour_sin'] = np.sin(2*np.pi*hour/24)
+    F['hour_cos'] = np.cos(2*np.pi*hour/24)
+    F['dow_sin'] = np.sin(2*np.pi*dow/7)
+    F['dow_cos'] = np.cos(2*np.pi*dow/7)
+    F['month_sin'] = np.sin(2*np.pi*month/12)
+    F['month_cos'] = np.cos(2*np.pi*month/12)
 
-    # Session flags — UTC windows (training)
-    g['is_us_hours'] = ((g['hour'] >= 13) & (g['hour'] <= 21)).astype(int)
-    g['is_asia_hours'] = ((g['hour'] >= 0) & (g['hour'] <= 8)).astype(int)
-    g['is_europe_hours'] = ((g['hour'] >= 7) & (g['hour'] <= 15)).astype(int)
+    # Session flags — UTC windows (training, inclusive)
+    F['is_us_hours'] = ((hour >= 13) & (hour <= 21)).astype(int)
+    F['is_asia_hours'] = ((hour >= 0) & (hour <= 8)).astype(int)
+    F['is_europe_hours'] = ((hour >= 7) & (hour <= 15)).astype(int)
 
-    # Lags
-    lag_features = ['close', 'volume', 'rsi_14', 'macd_hist', 'bb_z', 'vwap_20_dev', 'atr_14']
-    for feat in lag_features:
-        if feat in g.columns:
-            for lag in [1, 2, 3, 5, 8]:
-                g[f'{feat}_lag_{lag}'] = g[feat].shift(lag)
+    # Build features DF once to avoid fragmentation
+    feat_df = pd.DataFrame(F, index=g.index)
+
+    # Crosses (need both series in the same frame)
+    feat_df['macd_cross_above'] = ((feat_df['macd'] > feat_df['macd_signal']) &
+                                   (feat_df['macd'].shift(1) <= feat_df['macd_signal'].shift(1))).astype(int)
+    feat_df['macd_cross_below'] = ((feat_df['macd'] < feat_df['macd_signal']) &
+                                   (feat_df['macd'].shift(1) >= feat_df['macd_signal'].shift(1))).astype(int)
+    feat_df['stoch_cross_above'] = ((feat_df['stoch_k'] > feat_df['stoch_d']) &
+                                    (feat_df['stoch_k'].shift(1) <= feat_df['stoch_d'].shift(1))).astype(int)
+    feat_df['stoch_cross_below'] = ((feat_df['stoch_k'] < feat_df['stoch_d']) &
+                                    (feat_df['stoch_k'].shift(1) >= feat_df['stoch_d'].shift(1))).astype(int)
+
+    # Lags for selected features
+    lag_sources = {
+        'close': g['close'],
+        'volume': g['volume'],
+        'rsi_14': feat_df['rsi_14'],
+        'macd_hist': feat_df['macd_hist'],
+        'bb_z': feat_df['bb_z'],
+        'vwap_20_dev': feat_df['vwap_20_dev'],
+        'atr_14': feat_df['atr_14'],
+    }
+    for name, s in lag_sources.items():
+        for lag in [1, 2, 3, 5, 8]:
+            feat_df[f'{name}_lag_{lag}'] = s.shift(lag)
 
     # Interactions
-    g['rsi_bb_interaction'] = g['rsi_14'] * g['bb_z']
-    g['macd_volume_interaction'] = g['macd_hist'] * g['rel_vol_20']
-    g['momentum_volatility_interaction'] = g['momentum_20'] * g['volatility_20']
+    feat_df['rsi_bb_interaction'] = feat_df['rsi_14'] * feat_df['bb_z']
+    feat_df['macd_volume_interaction'] = feat_df['macd_hist'] * feat_df['rel_vol_20']
+    feat_df['momentum_volatility_interaction'] = feat_df['momentum_20'] * feat_df['volatility_20']
 
+    # Merge back to g (original columns + features)
+    g = pd.concat([g, feat_df], axis=1)
+
+    # Clean inf -> NaN
     g.replace([np.inf, -np.inf], np.nan, inplace=True)
 
     # Core warmup requirement identical to training
@@ -473,32 +514,6 @@ def add_features_live(df):
 # --------------------------------
 # EXACT FEATURE ENFORCEMENT / ARTIFACT LOADING
 # --------------------------------
-BINARY_FLAGS = {
-    "close_above_ema_9",           # keep if present
-    "close_above_ema_21",
-    "close_above_ema_50",
-    "close_above_ema_200",
-    "above_bb_mid",
-    "is_us_hours",
-    "is_asia_hours",
-    "is_europe_hours",
-    "doji",
-    "hammer",
-    "shooting_star",
-    "macd_cross_above",
-    "macd_cross_below",
-    "stoch_cross_above",
-    "stoch_cross_below",
-    "rsi_7_overbought",
-    "rsi_7_oversold",
-    "rsi_14_overbought",
-    "rsi_14_oversold",
-    "rsi_21_overbought",
-    "rsi_21_oversold",
-    "rsi_34_overbought",
-    "rsi_34_oversold",
-}
-
 def load_artifacts_strict(model_path, scaler_path, features_path):
     m = joblib.load(model_path)
     s = joblib.load(scaler_path)
