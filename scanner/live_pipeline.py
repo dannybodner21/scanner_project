@@ -55,10 +55,10 @@ COIN_SYMBOL_MAP_DB = {
 # Only trade coins we have dedicated models for
 MODELS = {
     "DOTUSDT": {
-        "model": "three_long_hgb_model.joblib",
-        "scaler": "three_feature_scaler.joblib",
-        "features": "three_feature_list.json",
-        "threshold": 0.75,
+        "model": "dot_long_hgb_model.joblib",
+        "scaler": "dot_feature_scaler.joblib",
+        "features": "dot_feature_list.json",
+        "threshold": 0.72,
     },
     "LTCUSDT": {
         "model": "ltc_long_hgb_model.joblib",
@@ -515,19 +515,19 @@ def load_artifacts_strict(model_path, scaler_path, features_path):
     model_feats = list(getattr(m, "feature_names_in_", []))
 
     if not model_feats:
-    raise RuntimeError(
-        f"{os.path.basename(model_path)} was saved without feature_names_in_. "
-        f"Re-export the model with column names preserved (e.g., fit on a DataFrame or set feature_names_in_)."
-    )
+        raise RuntimeError(
+            f"{os.path.basename(model_path)} was saved without feature_names_in_. "
+            f"Re-export the model with column names preserved (e.g., fit on a DataFrame or set feature_names_in_)."
+        )
 
     # Scaler features
     scaler_feats = list(getattr(s, "feature_names_in_", []))
 
     if not scaler_feats:
-    raise RuntimeError(
-        f"{os.path.basename(scaler_path)} was saved without feature_names_in_. "
-        f"Re-export the scaler with feature_names_in_ matching the training DataFrame column order."
-    )
+        raise RuntimeError(
+            f"{os.path.basename(scaler_path)} was saved without feature_names_in_. "
+            f"Re-export the scaler with feature_names_in_ matching the training DataFrame column order."
+        )
 
     # Final sanity checks
     if len(model_feats) != len(json_feats):
