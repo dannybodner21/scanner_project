@@ -26,33 +26,8 @@ def _patch_numpy_rng_compat():
 _patch_numpy_rng_compat()
 
 # --------------------------------
-# Target coins & artifacts
+# Maps / Config
 # --------------------------------
-# Default threshold can be overridden per-coin via env, see MODELS below
-DEFAULT_CONFIDENCE_THRESHOLD = float(os.environ.get("DEFAULT_CONFIDENCE_THRESHOLD", "0.78"))
-
-# If your scaler/feature json filenames differ, change them here.
-MODELS = {
-    "DOTUSDT": {
-        "model":    os.environ.get("DOT_MODEL_PATH",    "three_long_hgb_model.joblib"),
-        "scaler":   os.environ.get("DOT_SCALER_PATH",   "three_feature_scaler.joblib"),
-        "features": os.environ.get("DOT_FEATURES_PATH", "three_feature_list.json"),
-        "threshold": 0.75,
-    },
-    "LTCUSDT": {
-        "model":    os.environ.get("LTC_MODEL_PATH",    "ltc_long_hgb_model.joblib"),
-        "scaler":   os.environ.get("LTC_SCALER_PATH",   "ltc_feature_scaler.joblib"),
-        "features": os.environ.get("LTC_FEATURES_PATH", "ltc_feature_list.json"),
-        "threshold": 0.85,
-    },
-    "UNIUSDT": {
-        "model":    os.environ.get("UNI_MODEL_PATH",    "uni_long_hgb_model.joblib"),
-        "scaler":   os.environ.get("UNI_SCALER_PATH",   "uni_feature_scaler.joblib"),
-        "features": os.environ.get("UNI_FEATURES_PATH", "uni_feature_list.json"),
-        "threshold": 0.75,
-    },
-}
-
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
     "ETHUSDT": "BINANCE_SPOT_ETH_USDT",
@@ -77,6 +52,28 @@ COIN_SYMBOL_MAP_DB = {
     "XLMUSDT": "XLM","TRXUSDT": "TRX","ATOMUSDT": "ATOM",
 }
 
+# Only trade coins we have dedicated models for
+MODELS = {
+    "DOTUSDT": {
+        "model": "three_long_hgb_model.joblib",
+        "scaler": "three_feature_scaler.joblib",
+        "features": "three_feature_list.json",
+        "threshold": 0.75,
+    },
+    "LTCUSDT": {
+        "model": "ltc_long_hgb_model.joblib",
+        "scaler": "ltc_feature_scaler.joblib",
+        "features": "ltc_feature_list.json",
+        "threshold": 0.85,
+    },
+    "UNIUSDT": {
+        "model": "uni_long_hgb_model.joblib",
+        "scaler": "uni_feature_scaler.joblib",
+        "features": "uni_feature_list.json",
+        "threshold": 0.75,
+    },
+}
+
 COINAPI_KEY = os.environ.get("COINAPI_KEY", "01293e2a-dcf1-4e81-8310-c6aa9d0cb743")
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
@@ -86,9 +83,8 @@ STOP_LOSS       = 0.02
 LEVERAGE        = 10.0
 MAX_HOLD_HOURS  = 2
 ENTRY_LAG_BARS  = 1
-
-LOCAL_TZ = ZoneInfo("America/Los_Angeles")
 ENTRY_SLIPPAGE_PCT = float(os.environ.get("ENTRY_SLIPPAGE_PCT", "0.001"))
+LOCAL_TZ = ZoneInfo("America/Los_Angeles")
 
 # --------------------------------
 # Telegram
@@ -109,7 +105,7 @@ def send_text(messages):
             print(f"Telegram error: {e}")
 
 # --------------------------------
-# Chart stubs
+# Chart stubs (kept but unused)
 # --------------------------------
 def generate_chart_image(*args, **kwargs): return None
 def generate_chart_image_30m(*args, **kwargs): return None
@@ -131,12 +127,18 @@ def get_latest_saved_timestamp(coin):
 def fetch_chunk(symbol, start_ts, end_ts, limit=1000):
     url = f"{BASE_URL}/{symbol}/history"
     headers = {"X-CoinAPI-Key": COINAPI_KEY}
-    params = {'period_id': '5MIN','time_start': start_ts.isoformat(),'time_end': end_ts.isoformat(),'limit': limit}
+    params = {
+        'period_id': '5MIN',
+        'time_start': start_ts.isoformat(),
+        'time_end': end_ts.isoformat(),
+        'limit': limit
+    }
     r = requests.get(url, headers=headers, params=params, timeout=30)
     r.raise_for_status()
     return r.json()
 
 def ensure_recent_candles(coin, required_bars=400, buffer_bars=60):
+    """Ensure at least `required_bars` recent 5-min candles are in DB (no gaps)."""
     symbol = COINAPI_SYMBOL_MAP[coin]
     end = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
     start = end - timedelta(minutes=5 * (required_bars + buffer_bars))
@@ -146,9 +148,15 @@ def ensure_recent_candles(coin, required_bars=400, buffer_bars=60):
         for x in data:
             ts = pd.Timestamp(x['time_period_start'], tz='UTC')
             _, created = CoinAPIPrice.objects.update_or_create(
-                coin=coin, timestamp=ts,
-                defaults={'open': x['price_open'],'high': x['price_high'],'low': x['price_low'],
-                          'close': x['price_close'],'volume': x['volume_traded']}
+                coin=coin,
+                timestamp=ts,
+                defaults={
+                    'open':   x['price_open'],
+                    'high':   x['price_high'],
+                    'low':    x['price_low'],
+                    'close':  x['price_close'],
+                    'volume': x['volume_traded'],
+                }
             )
             if created:
                 inserted += 1
@@ -159,7 +167,10 @@ def ensure_recent_candles(coin, required_bars=400, buffer_bars=60):
 
 def has_recent_400_candles(coin):
     ts_list = list(
-        CoinAPIPrice.objects.filter(coin=coin).order_by('-timestamp').values_list('timestamp', flat=True)[:400]
+        CoinAPIPrice.objects
+        .filter(coin=coin)
+        .order_by('-timestamp')
+        .values_list('timestamp', flat=True)[:400]
     )
     if len(ts_list) < 400:
         return False
@@ -172,8 +183,10 @@ def has_recent_400_candles(coin):
 
 def get_recent_candles(coin, limit=600):
     qs = (
-        CoinAPIPrice.objects.filter(coin=coin)
-        .order_by('-timestamp').values('timestamp','open','high','low','close','volume')
+        CoinAPIPrice.objects
+        .filter(coin=coin)
+        .order_by('-timestamp')
+        .values('timestamp','open','high','low','close','volume')
     )
     df = pd.DataFrame(list(qs[:limit]))
     if df.empty:
@@ -184,105 +197,129 @@ def get_recent_candles(coin, limit=600):
     return df.sort_values('timestamp').reset_index(drop=True)
 
 def get_entry_price_or_fallback(coin: str, entry_ts, recent_df: pd.DataFrame, slippage_pct: float):
-    row = CoinAPIPrice.objects.filter(coin=coin, timestamp=entry_ts).values("open").first()
+    """
+    Try to use the next-bar open; if missing, fall back to the latest close.
+    Always apply +slippage_pct to simulate execution latency.
+    Returns (entry_price_float, source_str).
+    """
+    row = (
+        CoinAPIPrice.objects
+        .filter(coin=coin, timestamp=entry_ts)
+        .values("open")
+        .first()
+    )
     if row and row["open"] is not None and float(row["open"]) > 0:
-        base, src = float(row["open"]), "next_bar_open"
+        base = float(row["open"])
+        src = "next_bar_open"
     else:
         if recent_df is None or recent_df.empty:
             raise RuntimeError("No recent candles available for fallback close.")
-        base, src = float(recent_df.iloc[-1]["close"]), "fallback_last_close"
-    return base * (1.0 + slippage_pct), src
+        base = float(recent_df.iloc[-1]["close"])
+        src = "fallback_last_close"
+    price = base * (1.0 + slippage_pct)
+    return price, src
 
 # --------------------------------
-# Feature Engineering (match training)
+# Feature Engineering (exact parity with training two_dataset.py)
 # --------------------------------
-def ema(s, span): return s.ewm(span=span, adjust=False).mean()
-def sma(s, span): return s.rolling(span).mean()
+def ema(s, span): 
+    return s.ewm(span=span, adjust=False).mean()
+
+def sma(s, span):
+    return s.rolling(span).mean()
 
 def rsi(close, period=14):
-    d = close.diff(); up = d.clip(lower=0.0); dn = -d.clip(upper=0.0)
+    d = close.diff()
+    up = d.clip(lower=0.0)
+    dn = -d.clip(upper=0.0)
     ru = up.ewm(alpha=1/period, adjust=False).mean()
     rd = dn.ewm(alpha=1/period, adjust=False).mean()
     rs = ru / (rd + 1e-12)
     return 100.0 - (100.0 / (1.0 + rs))
 
 def macd(close, fast=12, slow=26, signal=9):
-    ef = ema(close, fast); es = ema(close, slow)
-    line = ef - es; sig = ema(line, signal); hist = line - sig
+    ef = ema(close, fast)
+    es = ema(close, slow)
+    line = ef - es
+    sig = ema(line, signal)
+    hist = line - sig
     return line, sig, hist
 
 def bollinger(close, period=20, mult=2.0):
     m = close.rolling(period).mean()
     s = close.rolling(period).std(ddof=0)
-    u = m + mult*s; l = m - mult*s; w = (u - l) / (m + 1e-12)
-    return u, m, l, w
+    u = m + mult*s
+    l = m - mult*s
+    w = (u - l) / (m + 1e-12)
+    return u, m, l, w, s
 
 def true_range(h, l, c):
-    pc = c.shift(1); a = h - l; b = (h - pc).abs(); d = (l - pc).abs()
+    pc = c.shift(1)
+    a = (h - l)
+    b = (h - pc).abs()
+    d = (l - pc).abs()
     return pd.concat([a,b,d], axis=1).max(axis=1)
 
 def atr(h, l, c, period=14):
     tr = true_range(h,l,c)
     return tr.ewm(alpha=1/period, adjust=False).mean()
 
-def obv(close, volume):
-    dirn = np.sign(close.diff()); dirn = dirn.where(dirn != 0).ffill().fillna(0)
-    return (volume * dirn).cumsum()
-
 def vwap(close, high, low, volume, window=20):
-    tp = (high + low + close)/3.0; pv = tp * volume
+    tp = (high + low + close)/3.0
+    pv = tp * volume
     return pv.rolling(window).sum() / (volume.rolling(window).sum() + 1e-12)
 
 def williams_r(high, low, close, period=14):
     highest_high = high.rolling(period).max()
     lowest_low = low.rolling(period).min()
-    return -100 * ((highest_high - close) / (highest_high - lowest_low + 1e-12))
+    wr = -100 * ((highest_high - close) / (highest_high - lowest_low + 1e-12))
+    return wr
 
 def cci(high, low, close, period=20):
     tp = (high + low + close) / 3
     sma_tp = tp.rolling(period).mean()
     mad = tp.rolling(period).apply(lambda x: np.abs(x - x.mean()).mean())
-    return (tp - sma_tp) / (0.015 * mad + 1e-12)
+    cci_val = (tp - sma_tp) / (0.015 * mad + 1e-12)
+    return cci_val
 
 def money_flow_index(high, low, close, volume, period=14):
     mf = ((close - low) - (high - close)) / (high - low + 1e-12)
     mf = mf * volume
-    pos = mf.where(mf > 0, 0).rolling(period).sum()
-    neg = mf.where(mf < 0, 0).rolling(period).sum()
-    return 100 - (100 / (1 + pos / (neg + 1e-12)))
+    positive_flow = mf.where(mf > 0, 0).rolling(period).sum()
+    negative_flow = mf.where(mf < 0, 0).rolling(period).sum()
+    mfi = 100 - (100 / (1 + positive_flow / (negative_flow + 1e-12)))
+    return mfi
 
 def add_features_live(df):
     """
     Generate the exact same features as training (two_dataset.py).
-    IMPORTANT:
-      - All time features use UTC (not local).
-      - ROC features are pct_change * 100 (scale match).
-      - Session flags match training hour windows in UTC.
-    Returns the last row with all features (NaN-free for core warmups) or None.
+    - ROC features scaled by 100
+    - Session flags use UTC windows (13–21, 0–8, 7–15)
+    - Includes vwap_10, ema_13/21, trend_strength_10, raw obv
+    Returns the last row with all features (after core warmup) or None.
     """
     g = df.copy()
-    # Ensure UTC-aware timestamps like training
-    g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)
+    g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)  # keep UTC-aware
     g = g.sort_values('timestamp').reset_index(drop=True)
 
-    # ---- Price action
+    # Price action
     g['price_range'] = (g['high'] - g['low']) / g['close']
     g['body_size'] = (g['close'] - g['open']).abs() / g['close']
-    g['upper_shadow'] = (g['high'] - g[['open','close']].max(axis=1)) / g['close']
-    g['lower_shadow'] = (g[['open','close']].min(axis=1) - g['low']) / g['close']
+    g['upper_shadow'] = (g['high'] - g[['open', 'close']].max(axis=1)) / g['close']
+    g['lower_shadow'] = (g[['open', 'close']].min(axis=1) - g['low']) / g['close']
 
-    # ---- Returns (Fibonacci)
+    # Returns (Fibonacci)
     for n in [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]:
         g[f'ret_{n}'] = g['close'].pct_change(n)
         g[f'ret_{n}_abs'] = g[f'ret_{n}'].abs()
         g[f'ret_{n}_squared'] = g[f'ret_{n}'] ** 2
 
-    # ---- Volatility
+    # Volatility
     for period in [5, 10, 20, 50]:
         g[f'volatility_{period}'] = g['close'].pct_change().rolling(period).std()
         g[f'volatility_{period}_squared'] = g[f'volatility_{period}'] ** 2
 
-    # ---- EMA (values, slopes, price vs EMA)
+    # EMAs (values, slopes, close_vs)
     for span in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
         e = ema(g['close'], span)
         g[f'ema_{span}'] = e
@@ -291,7 +328,7 @@ def add_features_live(df):
         g[f'ema_{span}_slope_5'] = e.diff(5)
         g[f'close_vs_ema_{span}'] = (g['close'] - e) / (e + 1e-12)
 
-    # ---- MACD (line/signal/hist + slopes + crosses)
+    # MACD (+ slopes + crosses)
     macd_line, macd_sig, macd_hist = macd(g['close'])
     g['macd'] = macd_line
     g['macd_signal'] = macd_sig
@@ -302,7 +339,7 @@ def add_features_live(df):
     g['macd_cross_above'] = ((g['macd'] > g['macd_signal']) & (g['macd'].shift(1) <= g['macd_signal'].shift(1))).astype(int)
     g['macd_cross_below'] = ((g['macd'] < g['macd_signal']) & (g['macd'].shift(1) >= g['macd_signal'].shift(1))).astype(int)
 
-    # ---- RSI (7/14/21/34) + slopes + OB/OS flags
+    # RSI + flags
     for period in [7, 14, 21, 34]:
         r = rsi(g['close'], period)
         g[f'rsi_{period}'] = r
@@ -311,7 +348,7 @@ def add_features_live(df):
         g[f'rsi_{period}_overbought'] = (r > 70).astype(int)
         g[f'rsi_{period}_oversold'] = (r < 30).astype(int)
 
-    # ---- Bollinger (u/m/l/width + z/squeeze/position)
+    # Bollinger (5 outputs in training)
     bb_u, bb_m, bb_l, bb_w, bb_std = bollinger(g['close'], 20, 2.0)
     g['bb_upper'] = bb_u
     g['bb_middle'] = bb_m
@@ -321,7 +358,7 @@ def add_features_live(df):
     g['bb_squeeze'] = bb_w / (g['close'].rolling(20).mean() + 1e-12)
     g['bb_position'] = (g['close'] - bb_l) / (bb_u - bb_l + 1e-12)
 
-    # ---- Stochastic + crosses
+    # Stochastic + crosses
     lowest_low = g['low'].rolling(14).min()
     highest_high = g['high'].rolling(14).max()
     stoch_k = 100 * ((g['close'] - lowest_low) / (highest_high - lowest_low + 1e-12))
@@ -331,32 +368,32 @@ def add_features_live(df):
     g['stoch_cross_above'] = ((stoch_k > stoch_d) & (stoch_k.shift(1) <= stoch_d.shift(1))).astype(int)
     g['stoch_cross_below'] = ((stoch_k < stoch_d) & (stoch_k.shift(1) >= stoch_d.shift(1))).astype(int)
 
-    # ---- Williams %R + slope
+    # Williams %R + slope
     g['williams_r'] = williams_r(g['high'], g['low'], g['close'])
     g['williams_r_slope'] = g['williams_r'].diff()
 
-    # ---- CCI + slope
+    # CCI + slope
     g['cci'] = cci(g['high'], g['low'], g['close'])
     g['cci_slope'] = g['cci'].diff()
 
-    # ---- MFI + slope
+    # MFI + slope
     g['mfi'] = money_flow_index(g['high'], g['low'], g['close'], g['volume'])
     g['mfi_slope'] = g['mfi'].diff()
 
-    # ---- ATR & TR
+    # ATR/TR
     g['atr_14'] = atr(g['high'], g['low'], g['close'], 14)
     g['atr_21'] = atr(g['high'], g['low'], g['close'], 21)
     g['tr'] = true_range(g['high'], g['low'], g['close'])
     g['tr_pct'] = g['tr'] / (g['close'].shift(1) + 1e-12)
 
-    # ---- VWAP 10/20/50 (+ dev / dev_pct)
+    # VWAP 10/20/50 (+ dev/%)
     for window in [10, 20, 50]:
         v = vwap(g['close'], g['high'], g['low'], g['volume'], window)
         g[f'vwap_{window}'] = v
         g[f'vwap_{window}_dev'] = (g['close'] - v) / (v + 1e-12)
-        g[f'vwap_{window}_dev_pct'] = g[f'vwap_{window}_dev'] * 100
+        g[f'vwap_{window}_dev_pct'] = g[f'vwap_{window}_dev'] * 100.0
 
-    # ---- Volume analysis (+ relative/spike)
+    # Volume analysis (+ rel/spike)
     vol = pd.to_numeric(g['volume'], errors='coerce').fillna(0.0)
     for period in [5, 10, 20, 50]:
         g[f'vol_sma_{period}'] = vol.rolling(period).mean()
@@ -364,7 +401,7 @@ def add_features_live(df):
         g[f'rel_vol_{period}'] = vol / (g[f'vol_sma_{period}'] + 1e-12)
         g[f'vol_spike_{period}'] = vol / (g[f'vol_med_{period}'] + 1e-12)
 
-    # ---- OBV + slopes (also keep raw OBV like training)
+    # OBV + slopes (keep raw obv)
     dirn = np.sign(g['close'].diff())
     dirn = dirn.replace(0, np.nan).ffill().fillna(0)
     g['obv'] = (vol * dirn).cumsum()
@@ -372,30 +409,30 @@ def add_features_live(df):
     g['obv_slope_3'] = g['obv'].diff(3)
     g['obv_slope_5'] = g['obv'].diff(5)
 
-    # ---- Support / Resistance (+ distances)
+    # Support/Resistance (+ distances) — denominator = close (as in training)
     for period in [20, 50, 100]:
         g[f'resistance_{period}'] = g['high'].rolling(period).max()
         g[f'support_{period}'] = g['low'].rolling(period).min()
         g[f'resistance_distance_{period}'] = (g[f'resistance_{period}'] - g['close']) / (g['close'] + 1e-12)
         g[f'support_distance_{period}'] = (g['close'] - g[f'support_{period}']) / (g['close'] + 1e-12)
 
-    # ---- Momentum & ROC (*** scale match ***)
+    # Momentum & ROC (scale match)
     for period in [5, 10, 20, 50]:
         g[f'momentum_{period}'] = g['close'] / g['close'].shift(period) - 1
-        g[f'roc_{period}'] = g['close'].pct_change(period) * 100.0  # <- match training
+        g[f'roc_{period}'] = g['close'].pct_change(period) * 100.0
 
-    # ---- Trend strength
+    # Trend strength (includes 10)
     for period in [10, 20, 50]:
-        sma_short = sma(g['close'], period // 2)
+        sma_short = sma(g['close'], period//2)
         sma_long = sma(g['close'], period)
         g[f'trend_strength_{period}'] = (sma_short - sma_long) / (sma_long + 1e-12)
 
-    # ---- Candles
+    # Candles — match training operator precedence exactly
     g['doji'] = ( (g['close'] - g['open']).abs() <= (g['high'] - g['low']) * 0.1 ).astype(int)
-    g['hammer'] = ( ((g['close'] - g['open']) > 0) & (g['lower_shadow'] > g['body_size'] * 2) ).astype(int)
-    g['shooting_star'] = ( ((g['open'] - g['close']) > 0) & (g['upper_shadow'] > g['body_size'] * 2) ).astype(int)
+    g['hammer'] = ((g['close'] - g['open']) > 0) & (g['lower_shadow'] > g['body_size'] * 2).astype(int)
+    g['shooting_star'] = ((g['open'] - g['close']) > 0) & (g['upper_shadow'] > g['body_size'] * 2).astype(int)
 
-    # ---- Time features (UTC)
+    # Time features (UTC)
     g['hour'] = g['timestamp'].dt.hour
     g['dow'] = g['timestamp'].dt.dayofweek
     g['month'] = g['timestamp'].dt.month
@@ -406,27 +443,26 @@ def add_features_live(df):
     g['month_sin'] = np.sin(2*np.pi*g['month']/12)
     g['month_cos'] = np.cos(2*np.pi*g['month']/12)
 
-    # ---- Market sessions (match training UTC windows)
+    # Session flags — UTC windows (training)
     g['is_us_hours'] = ((g['hour'] >= 13) & (g['hour'] <= 21)).astype(int)
     g['is_asia_hours'] = ((g['hour'] >= 0) & (g['hour'] <= 8)).astype(int)
     g['is_europe_hours'] = ((g['hour'] >= 7) & (g['hour'] <= 15)).astype(int)
 
-    # ---- Lagged features
+    # Lags
     lag_features = ['close', 'volume', 'rsi_14', 'macd_hist', 'bb_z', 'vwap_20_dev', 'atr_14']
     for feat in lag_features:
         if feat in g.columns:
             for lag in [1, 2, 3, 5, 8]:
                 g[f'{feat}_lag_{lag}'] = g[feat].shift(lag)
 
-    # ---- Interactions
+    # Interactions
     g['rsi_bb_interaction'] = g['rsi_14'] * g['bb_z']
     g['macd_volume_interaction'] = g['macd_hist'] * g['rel_vol_20']
     g['momentum_volatility_interaction'] = g['momentum_20'] * g['volatility_20']
 
-    # Clean / warmup
     g.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-    # Require *exactly* the same core warmups as training
+    # Core warmup requirement identical to training
     core_cols = ["ema_233","bb_width","rsi_14","atr_14","obv","vwap_20","macd","stoch_k"]
     g = g.dropna(subset=core_cols)
     if g.empty:
@@ -434,155 +470,122 @@ def add_features_live(df):
 
     return g.tail(1).copy()
 
+# --------------------------------
+# EXACT FEATURE ENFORCEMENT / ARTIFACT LOADING
+# --------------------------------
+BINARY_FLAGS = {
+    "close_above_ema_9",           # keep if present
+    "close_above_ema_21",
+    "close_above_ema_50",
+    "close_above_ema_200",
+    "above_bb_mid",
+    "is_us_hours",
+    "is_asia_hours",
+    "is_europe_hours",
+    "doji",
+    "hammer",
+    "shooting_star",
+    "macd_cross_above",
+    "macd_cross_below",
+    "stoch_cross_above",
+    "stoch_cross_below",
+    "rsi_7_overbought",
+    "rsi_7_oversold",
+    "rsi_14_overbought",
+    "rsi_14_oversold",
+    "rsi_21_overbought",
+    "rsi_21_oversold",
+    "rsi_34_overbought",
+    "rsi_34_oversold",
+}
 
+def load_artifacts_strict(model_path, scaler_path, features_path):
+    m = joblib.load(model_path)
+    s = joblib.load(scaler_path)
+    with open(features_path) as f:
+        json_feats = json.load(f)
 
+    model_feats = list(getattr(m, "feature_names_in_", []))
+    scaler_feats = list(getattr(s, "feature_names_in_", []))
+    if not model_feats or not scaler_feats:
+        raise RuntimeError("Model/scaler missing feature_names_in_. Fit with a pandas DataFrame so names persist.")
 
-def _robust_z_drift_report(feats_row: pd.DataFrame, scaler, top=10, prefix=""):
-    """
-    Prints the top features by absolute robust z-score vs the scaler's center_/scale_.
-    Helps catch live/training drift instantly.
-    """
+    if model_feats != json_feats:
+        raise RuntimeError(f"Model feature order != JSON feature list.\nmodel[:8]={model_feats[:8]}\njson[:8]={json_feats[:8]}")
+    if scaler_feats != json_feats:
+        raise RuntimeError(f"Scaler feature order != JSON feature list.\nscaler[:8]={scaler_feats[:8]}\njson[:8]={json_feats[:8]}")
+
+    print(f"[ARTIFACTS] model={os.path.basename(model_path)} expects={len(model_feats)} | scaler-cols={len(scaler_feats)}")
+    return m, s, json_feats
+
+def build_X_exact(feats_df: pd.DataFrame, feature_order: list, scaler):
+    missing = [c for c in feature_order if c not in feats_df.columns]
+    if missing:
+        more = f" ... (+{len(missing)-50} more)" if len(missing) > 50 else ""
+        raise RuntimeError(f"Feature columns missing from live features: {missing[:50]}{more}")
+
+    X_df = feats_df[feature_order].astype("float32")
+    if X_df.isna().any().any():
+        bad = X_df.columns[X_df.isna().any()].tolist()
+        more = f" ... (+{len(bad)-50} more)" if len(bad) > 50 else ""
+        raise RuntimeError(f"NaNs present in features: {bad[:50]}{more}")
+
+    if list(getattr(scaler, "feature_names_in_", [])) != feature_order:
+        raise RuntimeError("Scaler feature order mismatch.")
+
+    X_scaled = scaler.transform(X_df)  # ndarray
+    if not np.isfinite(X_scaled).all():
+        raise RuntimeError("Non-finite values after scaling.")
+    return X_scaled
+
+def drift_report(feats_row: pd.DataFrame, scaler, top=8, prefix=""):
+    """Optional: top-|z| robust z-scores vs scaler center/scale to catch drift fast."""
     try:
         cols = list(getattr(scaler, "feature_names_in_", []))
         if not cols:
             return
         x = feats_row[cols].astype(np.float32).values.reshape(1, -1)
-        # robust z = (x - center) / scale
-        z = (x - scaler.center_) / (scaler.scale_ + 1e-12)
+        z = (x - scaler.center_) / (scaler.scale_ + 1e-12)  # RobustScaler params
         pairs = sorted(
             [(cols[i], float(abs(z[0, i])), float(z[0, i])) for i in range(len(cols))],
             key=lambda t: t[1],
             reverse=True
         )[:top]
-        print(f"{prefix} Top drifted features (abs|z|, z):")
+        print(f"{prefix} drift top-|z|:")
         for name, abz, valz in pairs:
-            print(f"   {name:32s}  {abz:7.3f}  (z={valz:+7.3f})")
+            print(f"   {name:32s}  |z|={abz:7.3f}  z={valz:+7.3f}")
     except Exception as e:
         print(f"{prefix} drift report failed: {e}")
 
-
-
 # --------------------------------
-# EXACT FEATURE ENFORCEMENT
-# --------------------------------
-BINARY_FLAGS = {
-    "close_above_ema_9","close_above_ema_21","close_above_ema_50","close_above_ema_200",
-    "above_bb_mid","is_us_hours","is_asia_hours","is_europe_hours",
-    "doji","hammer","shooting_star",
-    "macd_cross_above","macd_cross_below","stoch_cross_above","stoch_cross_below",
-    "rsi_7_overbought","rsi_7_oversold","rsi_14_overbought","rsi_14_oversold",
-    "rsi_21_overbought","rsi_21_oversold","rsi_34_overbought","rsi_34_oversold",
-}
-
-def load_artifacts_strict(model_path, scaler_path, features_path):
-    """Load model/scaler; align scaler to the model's features; return (model, scaler, model_feats, scaler_feats)."""
-    m = joblib.load(model_path)
-    s = joblib.load(scaler_path)
-    try:
-        with open(features_path) as f:
-            json_feats = json.load(f)
-    except Exception:
-        json_feats = []
-
-    model_feats = list(getattr(m, "feature_names_in_", [])) or list(json_feats)
-    if not model_feats:
-        raise RuntimeError(f"No feature names found for model {model_path}")
-
-    scaler_feats = list(getattr(s, "feature_names_in_", []))
-    if not scaler_feats:
-        raise RuntimeError(f"Scaler {scaler_path} missing feature_names_in_. Refit scaler with DataFrame so names persist.")
-
-    # Keep only scaler columns that the model expects
-    scaler_feats = [f for f in scaler_feats if f in model_feats]
-
-    # Build a filtered RobustScaler with copied params
-    from sklearn.preprocessing import RobustScaler
-    new_scaler = RobustScaler()
-    keep_indices = [i for i, f in enumerate(s.feature_names_in_) if f in scaler_feats]
-    new_scaler.center_ = s.center_[keep_indices]
-    new_scaler.scale_ = s.scale_[keep_indices]
-    new_scaler.feature_names_in_ = np.array(scaler_feats)
-    new_scaler.n_features_in_ = len(scaler_feats)
-
-    print(f"[ARTIFACTS] model={os.path.basename(model_path)} expects={len(model_feats)} | scaler-cols(after filter)={len(scaler_feats)}")
-    return m, new_scaler, model_feats, scaler_feats
-
-def build_X_strict(feats_df: pd.DataFrame, model_feats, scaler, scaler_feats):
-    missing = [c for c in model_feats if c not in feats_df.columns]
-    if missing:
-        raise RuntimeError(f"Feature columns missing from live features: {missing[:20]} ... (+{max(0,len(missing)-20)} more)")
-
-    X_df = feats_df[model_feats].astype("float32").copy()
-
-    # Validate binary flags if present
-    for f in BINARY_FLAGS:
-        if f in X_df.columns:
-            vals = pd.unique(X_df[f])
-            if not np.isin(vals, [0, 1]).all():
-                raise RuntimeError(f"Binary flag {f} contains non 0/1 values: {vals[:5]}")
-
-    # Scale continuous subset
-    scaled = scaler.transform(X_df[scaler_feats])
-    X_df.loc[:, scaler_feats] = scaled
-
-    X = X_df[model_feats].to_numpy(dtype=np.float32)
-    if not np.isfinite(X).all():
-        raise RuntimeError("Non-finite values in X after scaling.")
-    return X
-
-# --------------------------------
-# Live pipeline (multi-model)
+# Live pipeline
 # --------------------------------
 def run_live_pipeline():
-    print("🚀 Running live HGB long pipeline (multi-model per coin)")
+    print("🚀 Running live HGB long pipeline (multi-model per coin, strict parity)")
 
-    # Load artifacts for target coins up front
-    artifacts = {}
+    # Load per-coin artifacts
+    loaded = {}
     for coin, cfg in MODELS.items():
-        try:
-            artifacts[coin] = {
-                "model_path": cfg["model"],
-                "model": None,
-                "scaler": None,
-                "model_feats": None,
-                "scaler_feats": None,
-                "threshold": cfg["threshold"],
-                "features_path": cfg["features"],
-                "scaler_path": cfg["scaler"],
-            }
-            m, s, mf, sf = load_artifacts_strict(cfg["model"], cfg["scaler"], cfg["features"])
-            artifacts[coin]["model"] = m
-            artifacts[coin]["scaler"] = s
-            artifacts[coin]["model_feats"] = mf
-            artifacts[coin]["scaler_feats"] = sf
-        except Exception as e:
-            print(f"❌ Failed to load artifacts for {coin}: {e}")
+        m, s, feats = load_artifacts_strict(cfg["model"], cfg["scaler"], cfg["features"])
+        loaded[coin] = {"model": m, "scaler": s, "features": feats, "thr": cfg["threshold"]}
 
-    # Ensure data coverage per coin (only for our target set)
+    # Ensure data coverage
     for coin in MODELS.keys():
-        try:
-            if not has_recent_400_candles(coin):
-                ensure_recent_candles(coin, required_bars=400)
-            last = get_latest_saved_timestamp(coin)
-            if last is None or (datetime.utcnow().replace(tzinfo=timezone.utc) - last) > timedelta(minutes=10):
-                ensure_recent_candles(coin, required_bars=400)
-        except Exception as e:
-            print(f"❌ Backfill error for {coin}: {e}")
+        if not has_recent_400_candles(coin):
+            ensure_recent_candles(coin, required_bars=400)
+        last = get_latest_saved_timestamp(coin)
+        if last is None or (datetime.utcnow().replace(tzinfo=timezone.utc) - last) > timedelta(minutes=10):
+            ensure_recent_candles(coin, required_bars=400)
 
     # Determine signal bar (latest closed) and entry bar (next)
     utc_now = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
     signal_ts = utc_now if utc_now.minute % 5 == 0 else utc_now.replace(minute=(utc_now.minute // 5) * 5)
-    entry_ts = signal_ts + timedelta(minutes=5 * ENTRY_LAG_BARS)
+    entry_ts = signal_ts + timedelta(minutes=5 * ENTRY_LAG_BARS)  # aware UTC
 
-    # Iterate over our modeled coins only
-    for coin, cfg in MODELS.items():
+    # Iterate only dedicated coins
+    for coin in MODELS.keys():
         try:
-            if coin not in artifacts or artifacts[coin]["model"] is None:
-                print(f"⏭️ {coin}: artifacts not loaded; skipping")
-                continue
-
-            coin_db_symbol = COIN_SYMBOL_MAP_DB[coin]
-            coin_obj = Coin.objects.get(symbol=coin_db_symbol)
+            coin_obj = Coin.objects.get(symbol=COIN_SYMBOL_MAP_DB[coin])
 
             # Skip if this coin already has an open long
             if ModelTrade.objects.filter(exit_timestamp__isnull=True, trade_type='long', coin=coin_obj).exists():
@@ -596,50 +599,35 @@ def run_live_pipeline():
 
             feats_df = add_features_live(recent)
             if feats_df is None or feats_df.empty:
-                print(f"⏭️ {coin}: insufficient/invalid features")
+                print(f"⏭️ {coin}: insufficient/invalid features after warmup")
                 continue
 
-            MODEL_FEATS = artifacts[coin]["model_feats"]
-            SCALER_FEATS = artifacts[coin]["scaler_feats"]
-            model = artifacts[coin]["model"]
-            scaler = artifacts[coin]["scaler"]
-            threshold = artifacts[coin]["threshold"]
-
-            # Quick diagnostics
-            need = set(MODEL_FEATS); have = set(feats_df.columns)
-            missing = sorted(need - have)
-            nan_last = sorted([c for c in need if c in feats_df.columns and pd.isna(feats_df[c].iloc[-1])])
-            if missing or nan_last:
-                print(f"[{coin}] MISSING (first 50):", missing[:50])
-                print(f"[{coin}] NaN in last row (first 50):", nan_last[:50])
-
-
-            _robust_z_drift_report(feats_df, long_scaler, top=10, prefix=f"[{coin}]")
-
+            # Optional drift print
+            drift_report(feats_df, loaded[coin]["scaler"], top=8, prefix=f"[{coin}]")
 
             try:
-                X = build_X_strict(feats_df, MODEL_FEATS, scaler, SCALER_FEATS)
+                X = build_X_exact(feats_df, loaded[coin]["features"], loaded[coin]["scaler"])
             except Exception as e:
                 print(f"⏭️ {coin}: {e}")
                 continue
 
-            prob = float(model.predict_proba(X)[0][1])
+            prob = float(loaded[coin]["model"].predict_proba(X)[0][1])
+            thr = float(loaded[coin]["thr"])
 
-            # Save confidence trail (trim to last 12)
             ConfidenceHistory.objects.create(
                 coin=coin_obj,
-                model_name=os.path.basename(artifacts[coin]["model_path"]),
+                model_name=os.path.basename(MODELS[coin]["model"]),
                 confidence=round(prob, 4),
             )
             qs = ConfidenceHistory.objects.filter(
-                coin=coin_obj, model_name=os.path.basename(artifacts[coin]["model_path"])
+                coin=coin_obj, model_name=os.path.basename(MODELS[coin]["model"])
             ).order_by("-timestamp")
             if qs.count() > 12:
                 for old in qs[12:]:
                     old.delete()
 
-            print(f"📈 {coin} prob={prob:.4f} (thr={threshold:.3f})")
-            if prob < threshold:
+            print(f"📈 {coin} prob={prob:.4f} (thr={thr:.3f})")
+            if prob < thr:
                 continue
 
             # Compute entry price with fallback + slippage
@@ -663,12 +651,12 @@ def run_live_pipeline():
             ModelTrade.objects.create(
                 coin=coin_obj,
                 trade_type='long',
-                entry_timestamp=entry_ts,
+                entry_timestamp=entry_ts,  # aware UTC
                 entry_price=safe_decimal(entry_price),
                 model_confidence=round(prob, 4),
                 take_profit_percent=TAKE_PROFIT * 100.0,
                 stop_loss_percent=STOP_LOSS * 100.0,
-                confidence_trade=threshold,
+                confidence_trade=thr,
                 recent_confidences=[],
             )
             print(f"✅ LONG opened: {coin} @ {entry_price:.6f} ({entry_src}, ts={entry_ts})")
@@ -686,8 +674,8 @@ def run_live_pipeline():
         try:
             entry_price = float(trade.entry_price)
             coin_symbol = f"{trade.coin.symbol}USDT"
-            dfp = get_recent_candles(coin_symbol, limit=1)
-            if dfp is None or dfp.empty:
+            df = get_recent_candles(coin_symbol, limit=1)
+            if df is None or df.empty:
                 print(f"⚠️ No price data for {coin_symbol}, skipping")
                 continue
 
@@ -695,17 +683,17 @@ def run_live_pipeline():
             LivePriceSnapshot.objects.update_or_create(
                 coin=trade.coin.symbol,
                 defaults={
-                    "open":  safe_decimal(dfp.iloc[-1]['open']),
-                    "high":  safe_decimal(dfp.iloc[-1]['high']),
-                    "low":   safe_decimal(dfp.iloc[-1]['low']),
-                    "close": safe_decimal(dfp.iloc[-1]['close']),
-                    "volume": safe_decimal(dfp.iloc[-1]['volume']),
+                    "open":  safe_decimal(df.iloc[-1]['open']),
+                    "high":  safe_decimal(df.iloc[-1]['high']),
+                    "low":   safe_decimal(df.iloc[-1]['low']),
+                    "close": safe_decimal(df.iloc[-1]['close']),
+                    "volume": safe_decimal(df.iloc[-1]['volume']),
                 }
             )
 
-            high = float(dfp.iloc[-1]['high'])
-            low  = float(dfp.iloc[-1]['low'])
-            last_close = float(dfp.iloc[-1]['close'])
+            high = float(df.iloc[-1]['high'])
+            low  = float(df.iloc[-1]['low'])
+            last_close = float(df.iloc[-1]['close'])
 
             tp_px = entry_price * (1.0 + TAKE_PROFIT)
             sl_px = entry_price * (1.0 - STOP_LOSS)
@@ -730,10 +718,12 @@ def run_live_pipeline():
                 result_bool = False
                 exit_px = sl_px
             else:
-                if trade.entry_timestamp and (now() - trade.entry_timestamp) >= timedelta(hours=MAX_HOLD_HOURS):
-                    close_reason = "MAX_HOLD"
-                    result_bool = last_close > entry_price
-                    exit_px = last_close
+                if trade.entry_timestamp:
+                    age = now() - trade.entry_timestamp
+                    if age >= timedelta(hours=MAX_HOLD_HOURS):
+                        close_reason = "MAX_HOLD"
+                        result_bool = last_close > entry_price
+                        exit_px = last_close
 
             if close_reason:
                 trade.exit_price = safe_decimal(exit_px if np.isfinite(exit_px) else last_close)
@@ -757,7 +747,7 @@ def run_live_pipeline():
     print("✅ Pipeline complete")
 
 # --------------------------------
-# Entry
+# Entry (if run as script)
 # --------------------------------
 if __name__ == "__main__":
     run_live_pipeline()
