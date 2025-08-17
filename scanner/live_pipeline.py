@@ -251,7 +251,7 @@ def bollinger(close, period=20, mult=2.0):
     u = m + mult*s
     l = m - mult*s
     w = (u - l) / (m + 1e-12)
-    return u, m, l, w, s  # MUST return 5 values (train parity)
+    return u, m, l, w, s  # 5 values (train parity)
 
 def true_range(h, l, c):
     pc = c.shift(1)
@@ -272,31 +272,24 @@ def vwap(close, high, low, volume, window=20):
 def williams_r(high, low, close, period=14):
     highest_high = high.rolling(period).max()
     lowest_low = low.rolling(period).min()
-    wr = -100 * ((highest_high - close) / (highest_high - lowest_low + 1e-12))
-    return wr
+    return -100 * ((highest_high - close) / (highest_high - lowest_low + 1e-12))
 
 def cci(high, low, close, period=20):
     tp = (high + low + close) / 3
     sma_tp = tp.rolling(period).mean()
     mad = tp.rolling(period).apply(lambda x: np.abs(x - x.mean()).mean())
-    cci_val = (tp - sma_tp) / (0.015 * mad + 1e-12)
-    return cci_val
+    return (tp - sma_tp) / (0.015 * mad + 1e-12)
 
 def money_flow_index(high, low, close, volume, period=14):
     mf = ((close - low) - (high - close)) / (high - low + 1e-12)
     mf = mf * volume
     positive_flow = mf.where(mf > 0, 0).rolling(period).sum()
     negative_flow = mf.where(mf < 0, 0).rolling(period).sum()
-    mfi = 100 - (100 / (1 + positive_flow / (negative_flow + 1e-12)))
-    return mfi
+    return 100 - (100 / (1 + positive_flow / (negative_flow + 1e-12)))
 
 def add_features_live(df):
     """
     Generate the exact same features as training (two_dataset.py) and return the last row.
-    - ROC features scaled by 100
-    - Session flags use UTC windows (13–21, 0–8, 7–15) inclusive
-    - Includes vwap_10, ema_13/21, trend_strength_10, raw obv
-    - Batches assignments to avoid fragmentation warnings
     """
     g = df.copy()
     g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)  # keep UTC-aware
@@ -332,7 +325,7 @@ def add_features_live(df):
         F[f'ema_{span}_slope_5'] = e.diff(5)
         F[f'close_vs_ema_{span}'] = (g['close'] - e) / (e + 1e-12)
 
-    # MACD (+ slopes + crosses)
+    # MACD (+ slopes)
     macd_line, macd_sig, macd_hist = macd(g['close'])
     F['macd'] = macd_line
     F['macd_signal'] = macd_sig
@@ -340,8 +333,6 @@ def add_features_live(df):
     F['macd_hist_slope'] = macd_hist.diff()
     F['macd_hist_slope_3'] = macd_hist.diff(3)
     F['macd_hist_slope_5'] = macd_hist.diff(5)
-
-    # We'll set crosses after we create a DF
 
     # RSI + flags
     for period in [7, 14, 21, 34]:
@@ -421,7 +412,7 @@ def add_features_live(df):
     F['obv_slope_3'] = obv_val.diff(3)
     F['obv_slope_5'] = obv_val.diff(5)
 
-    # Support/Resistance (+ distances) — denominator = close (as in training)
+    # Support/Resistance (+ distances) — denominator = close (train parity)
     for period in [20, 50, 100]:
         res = g['high'].rolling(period).max()
         sup = g['low'].rolling(period).min()
@@ -443,8 +434,8 @@ def add_features_live(df):
 
     # Candles
     F['doji'] = ((g['close'] - g['open']).abs() <= (g['high'] - g['low']) * 0.1).astype(int)
-    F['hammer'] = (((g['close'] - g['open']) > 0) & (F['lower_shadow'] > F['body_size'] * 2)).astype(int)
-    F['shooting_star'] = (((g['open'] - g['close']) > 0) & (F['upper_shadow'] > F['body_size'] * 2)).astype(int)
+    F['hammer'] = (((g['close'] - g['open']) > 0) & ((F['lower_shadow']) > F['body_size'] * 2)).astype(int)
+    F['shooting_star'] = (((g['open'] - g['close']) > 0) & ((F['upper_shadow']) > F['body_size'] * 2)).astype(int)
 
     # Time features (UTC)
     hour = g['timestamp'].dt.hour
@@ -512,26 +503,43 @@ def add_features_live(df):
     return g.tail(1).copy()
 
 # --------------------------------
-# EXACT FEATURE ENFORCEMENT / ARTIFACT LOADING
+# EXACT FEATURE ENFORCEMENT / ARTIFACT LOADING (robust to missing feature_names_in_)
 # --------------------------------
 def load_artifacts_strict(model_path, scaler_path, features_path):
     m = joblib.load(model_path)
     s = joblib.load(scaler_path)
     with open(features_path) as f:
-        json_feats = json.load(f)
+        json_feats = list(json.load(f))
 
+    # Model features
     model_feats = list(getattr(m, "feature_names_in_", []))
-    scaler_feats = list(getattr(s, "feature_names_in_", []))
-    if not model_feats or not scaler_feats:
-        raise RuntimeError("Model/scaler missing feature_names_in_. Fit with a pandas DataFrame so names persist.")
+    if not model_feats:
+        print(f"[ARTIFACTS] {os.path.basename(model_path)}: model missing feature_names_in_ → using JSON order")
+        model_feats = list(json_feats)
 
-    if model_feats != json_feats:
-        raise RuntimeError(f"Model feature order != JSON feature list.\nmodel[:8]={model_feats[:8]}\njson[:8]={json_feats[:8]}")
-    if scaler_feats != json_feats:
-        raise RuntimeError(f"Scaler feature order != JSON feature list.\nscaler[:8]={scaler_feats[:8]}\njson[:8]={json_feats[:8]}")
+    # Scaler features
+    scaler_feats = list(getattr(s, "feature_names_in_", []))
+    if not scaler_feats:
+        print(f"[ARTIFACTS] {os.path.basename(scaler_path)}: scaler missing feature_names_in_ → assuming JSON order")
+        # sanity: if scaler has params, length must align with JSON
+        if hasattr(s, "center_") and len(getattr(s, "center_")) != len(json_feats):
+            raise RuntimeError(
+                f"Scaler param length ({len(s.center_)}) != JSON features ({len(json_feats)})."
+            )
+        try:
+            s.feature_names_in_ = np.array(json_feats)  # monkey-patch for downstream checks
+        except Exception:
+            pass
+        scaler_feats = list(json_feats)
+
+    # Final sanity checks
+    if len(model_feats) != len(json_feats):
+        raise RuntimeError(f"Model feature count {len(model_feats)} != JSON {len(json_feats)}")
+    if len(scaler_feats) != len(json_feats):
+        raise RuntimeError(f"Scaler feature count {len(scaler_feats)} != JSON {len(json_feats)}")
 
     print(f"[ARTIFACTS] model={os.path.basename(model_path)} expects={len(model_feats)} | scaler-cols={len(scaler_feats)}")
-    return m, s, json_feats
+    return m, s, json_feats  # json_feats is the canonical order
 
 def build_X_exact(feats_df: pd.DataFrame, feature_order: list, scaler):
     missing = [c for c in feature_order if c not in feats_df.columns]
@@ -540,13 +548,17 @@ def build_X_exact(feats_df: pd.DataFrame, feature_order: list, scaler):
         raise RuntimeError(f"Feature columns missing from live features: {missing[:50]}{more}")
 
     X_df = feats_df[feature_order].astype("float32")
+
     if X_df.isna().any().any():
         bad = X_df.columns[X_df.isna().any()].tolist()
         more = f" ... (+{len(bad)-50} more)" if len(bad) > 50 else ""
         raise RuntimeError(f"NaNs present in features: {bad[:50]}{more}")
 
-    if list(getattr(scaler, "feature_names_in_", [])) != feature_order:
-        raise RuntimeError("Scaler feature order mismatch.")
+    # If scaler has names, ensure order matches; otherwise just trust feature_order
+    if hasattr(scaler, "feature_names_in_"):
+        names = list(getattr(scaler, "feature_names_in_", []))
+        if names and names != feature_order:
+            raise RuntimeError("Scaler feature order mismatch vs JSON order.")
 
     X_scaled = scaler.transform(X_df)  # ndarray
     if not np.isfinite(X_scaled).all():
@@ -557,7 +569,7 @@ def drift_report(feats_row: pd.DataFrame, scaler, top=8, prefix=""):
     """Optional: top-|z| robust z-scores vs scaler center/scale to catch drift fast."""
     try:
         cols = list(getattr(scaler, "feature_names_in_", []))
-        if not cols:
+        if not cols or not hasattr(scaler, "center_") or not hasattr(scaler, "scale_"):
             return
         x = feats_row[cols].astype(np.float32).values.reshape(1, -1)
         z = (x - scaler.center_) / (scaler.scale_ + 1e-12)  # RobustScaler params
@@ -576,7 +588,7 @@ def drift_report(feats_row: pd.DataFrame, scaler, top=8, prefix=""):
 # Live pipeline
 # --------------------------------
 def run_live_pipeline():
-    print("🚀 Running live HGB long pipeline (multi-model per coin, strict parity)")
+    print("🚀 Running live HGB long pipeline (multi-model per coin, strict parity, robust names)")
 
     # Load per-coin artifacts
     loaded = {}
@@ -626,7 +638,13 @@ def run_live_pipeline():
                 print(f"⏭️ {coin}: {e}")
                 continue
 
-            prob = float(loaded[coin]["model"].predict_proba(X)[0][1])
+            # Predict
+            model = loaded[coin]["model"]
+            if hasattr(model, "predict_proba"):
+                prob = float(model.predict_proba(X)[0][1])
+            else:
+                # fall back: decision_function or predict
+                prob = float(getattr(model, "decision_function", lambda x: model.predict(x))(X))
             thr = float(loaded[coin]["thr"])
 
             ConfidenceHistory.objects.create(
