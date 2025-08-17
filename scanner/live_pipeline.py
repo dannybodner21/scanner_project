@@ -513,24 +513,21 @@ def load_artifacts_strict(model_path, scaler_path, features_path):
 
     # Model features
     model_feats = list(getattr(m, "feature_names_in_", []))
+
     if not model_feats:
-        print(f"[ARTIFACTS] {os.path.basename(model_path)}: model missing feature_names_in_ → using JSON order")
-        model_feats = list(json_feats)
+    raise RuntimeError(
+        f"{os.path.basename(model_path)} was saved without feature_names_in_. "
+        f"Re-export the model with column names preserved (e.g., fit on a DataFrame or set feature_names_in_)."
+    )
 
     # Scaler features
     scaler_feats = list(getattr(s, "feature_names_in_", []))
+
     if not scaler_feats:
-        print(f"[ARTIFACTS] {os.path.basename(scaler_path)}: scaler missing feature_names_in_ → assuming JSON order")
-        # sanity: if scaler has params, length must align with JSON
-        if hasattr(s, "center_") and len(getattr(s, "center_")) != len(json_feats):
-            raise RuntimeError(
-                f"Scaler param length ({len(s.center_)}) != JSON features ({len(json_feats)})."
-            )
-        try:
-            s.feature_names_in_ = np.array(json_feats)  # monkey-patch for downstream checks
-        except Exception:
-            pass
-        scaler_feats = list(json_feats)
+    raise RuntimeError(
+        f"{os.path.basename(scaler_path)} was saved without feature_names_in_. "
+        f"Re-export the scaler with feature_names_in_ matching the training DataFrame column order."
+    )
 
     # Final sanity checks
     if len(model_feats) != len(json_feats):
