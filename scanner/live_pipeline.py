@@ -266,29 +266,27 @@ def add_features_live(df):
     features['lower_shadow'] = (g[['open','close']].min(axis=1) - g['low']) / g['close']
 
     # ---- Returns
-    for n in [1,2,3,5,8,13,21,34,55,89]:
+    for n in [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]:
         r = g['close'].pct_change(n)
         features[f'ret_{n}'] = r
         features[f'ret_{n}_abs'] = r.abs()
         features[f'ret_{n}_squared'] = r ** 2
 
     # ---- Volatility
-    for period in [5,10,20,50]:
+    for period in [5, 10, 20, 50]:
         v = g['close'].pct_change().rolling(period).std()
         features[f'volatility_{period}'] = v
         features[f'volatility_{period}_squared'] = v ** 2
 
-    # ---- EMAs + slopes + price vs EMA
-    for span in [3,5,8,13,21,34,55,89,144,233]:
+    # ---- EMAs + slopes + price vs EMA  (include base EMA for 3,5,8,13,21 to match training)
+    for span in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
         e = ema(g["close"], span)
+        features[f'ema_{span}'] = e
         features[f'ema_{span}_slope'] = e.diff()
         features[f'ema_{span}_slope_3'] = e.diff(3)
         features[f'ema_{span}_slope_5'] = e.diff(5)
-    for span in [5,8,13,21,34,55,89,144,233]:
-        e = ema(g["close"], span)
-        features[f'close_vs_ema_{span}'] = (g["close"] - e) / e
-    for span in [34,55,89,144,233]:
-        features[f'ema_{span}'] = ema(g["close"], span)
+        if span in [5, 8, 13, 21, 34, 55, 89, 144, 233]:
+            features[f'close_vs_ema_{span}'] = (g["close"] - e) / e
 
     # ---- MACD (+ slopes, crosses)
     macd_line, macd_sig, macd_hist = macd(g["close"])
@@ -302,7 +300,7 @@ def add_features_live(df):
     features["macd_cross_below"] = ((macd_line < macd_sig) & (macd_line.shift(1) >= macd_sig.shift(1))).astype(int)
 
     # ---- RSI (7,14,21,34)
-    for period in [7,14,21,34]:
+    for period in [7, 14, 21, 34]:
         r = rsi(g["close"], period)
         features[f"rsi_{period}"] = r
         features[f"rsi_{period}_slope"] = r.diff()
@@ -349,15 +347,15 @@ def add_features_live(df):
     features["tr"] = tr
     features["tr_pct"] = tr / (g["close"].shift(1) + 1e-12)
 
-    # ---- VWAP (20, 50)
-    for window in [20, 50]:
+    # ---- VWAP (10, 20, 50)  <-- add 10 to match LTC/UNI models
+    for window in [10, 20, 50]:
         v = vwap(g["close"], g["high"], g["low"], g["volume"], window)
         features[f'vwap_{window}'] = v
         features[f'vwap_{window}_dev'] = (g["close"] - v) / v
         features[f'vwap_{window}_dev_pct'] = features[f'vwap_{window}_dev'] * 100
 
     # ---- Volume analytics + rel vol
-    for period in [5,10,20,50]:
+    for period in [5, 10, 20, 50]:
         sma_v = g['volume'].rolling(period).mean()
         features[f'vol_sma_{period}'] = sma_v
         features[f'vol_med_{period}'] = g['volume'].rolling(period).median()
@@ -371,7 +369,7 @@ def add_features_live(df):
     features['obv_slope_5'] = obv_val.diff(5)
 
     # ---- Support / Resistance (+ distances)
-    for period in [20,50,100]:
+    for period in [20, 50, 100]:
         res = g['high'].rolling(period).max()
         sup = g['low'].rolling(period).min()
         features[f'resistance_{period}'] = res
@@ -379,10 +377,16 @@ def add_features_live(df):
         features[f'resistance_distance_{period}'] = (res - g['close']) / g['close']
         features[f'support_distance_{period}'] = (g['close'] - sup) / g['close']
 
-    # ---- Momentum & ROC
-    for period in [5,10,20,50]:
+    # ---- Momentum & ROC  (ROC must be percent like training)
+    for period in [5, 10, 20, 50]:
         features[f'momentum_{period}'] = g['close'] / g['close'].shift(period) - 1
-        features[f'roc_{period}'] = g['close'].pct_change(period)
+        features[f'roc_{period}'] = g['close'].pct_change(period) * 100
+
+    # ---- Trend strength (training has 10,20,50; LTC needed 10)
+    for period in [10, 20, 50]:
+        sma_short = sma(g['close'], period // 2)
+        sma_long  = sma(g['close'], period)
+        features[f'trend_strength_{period}'] = (sma_short - sma_long) / (sma_long + 1e-12)
 
     # ---- Time features (UTC)
     hour = g['timestamp'].dt.hour
@@ -408,7 +412,7 @@ def add_features_live(df):
     for feat in lag_features:
         src = features.get(feat, g[feat] if feat in g.columns else None)
         if src is not None:
-            for lag in [1,2,3,5,8]:
+            for lag in [1, 2, 3, 5, 8]:
                 features[f'{feat}_lag_{lag}'] = src.shift(lag)
 
     # ---- Interactions
@@ -424,7 +428,7 @@ def add_features_live(df):
     features_df = pd.DataFrame(features, index=g.index)
     g = pd.concat([g, features_df], axis=1)
 
-    # Warmup gate
+    # Warmup gate (keep as-is; 10-VWAP isn’t required for gating)
     required = ["ema_233","bb_width","rsi_14","atr_14","obv","vwap_20","macd","stoch_k"]
     g = g.dropna(subset=[c for c in required if c in g.columns])
     if g.empty:

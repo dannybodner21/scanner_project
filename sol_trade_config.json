@@ -1,0 +1,24 @@
+{
+  "coin": "SOLUSDT",
+  "train_window": {
+    "start": "2023-01-01 00:00:00+00:00",
+    "end": "2025-06-30 23:55:00+00:00"
+  },
+  "test_window": {
+    "start": "2025-07-01 00:00:00+00:00",
+    "end": "2025-08-08 23:55:00+00:00"
+  },
+  "min_move_pct": 0.03,
+  "horizon_bars": 12,
+  "threshold": 0.59,
+  "test_metrics": {
+    "acc": 0.999,
+    "prec": 0.76,
+    "rec": 0.7917,
+    "f1": 0.999,
+    "auc": 0.9993
+  },
+  "cv_score": 0.9699,
+  "n_features": 150,
+  "model_type": "HistGradientBoostingClassifier"
+}
