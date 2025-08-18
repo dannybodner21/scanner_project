@@ -166,10 +166,6 @@ eth_feature_list.json
 eth_feature_scaler.joblib
 eth_long_hgb_model.joblib
 eth_trade_config.json
-link_feature_list.json
-link_feature_scaler.joblib
-link_long_hgb_model.joblib
-link_trade_config.json
 ltc_trade_config.json
 scanner/management/commands/ada_dataset.py
 scanner/management/commands/btc_dataset.py

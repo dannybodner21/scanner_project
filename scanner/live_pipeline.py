@@ -58,19 +58,19 @@ MODELS = {
         "model": "dot_long_hgb_model.joblib",
         "scaler": "dot_feature_scaler.joblib",
         "features": "dot_feature_list.json",
-        "threshold": 0.72,
+        "threshold": 0.6,  # fallback if config file missing
     },
-    "LTCUSDT": {
-        "model": "ltc_long_hgb_model.joblib",
-        "scaler": "ltc_feature_scaler.joblib",
-        "features": "ltc_feature_list.json",
-        "threshold": 0.85,
+    "LINKUSDT": {
+        "model": "link_long_hgb_model.joblib",
+        "scaler": "link_feature_scaler.joblib",
+        "features": "link_feature_list.json",
+        "threshold": 0.6,
     },
     "UNIUSDT": {
         "model": "uni_long_hgb_model.joblib",
         "scaler": "uni_feature_scaler.joblib",
         "features": "uni_feature_list.json",
-        "threshold": 0.75,
+        "threshold": 0.6,
     },
 }
 
@@ -434,9 +434,9 @@ def add_features_live(df):
 
     # Candles
     F['doji'] = ((g['close'] - g['open']).abs() <= (g['high'] - g['low']) * 0.1).astype(int)
-    F['hammer'] = ((g['close'] - g['open']) > 0) & (F['lower_shadow'] > F['body_size'] * 2).astype(int)
-    F['shooting_star'] = ((g['open'] - g['close']) > 0) & (F['upper_shadow'] > F['body_size'] * 2).astype(int)
-    
+    F['hammer'] = (((g['close'] - g['open']) > 0) & (F['lower_shadow'] > F['body_size'] * 2)).astype(int)
+    F['shooting_star'] = (((g['open'] - g['close']) > 0) & (F['upper_shadow'] > F['body_size'] * 2)).astype(int)
+
     # Time features (UTC)
     hour = g['timestamp'].dt.hour
     dow = g['timestamp'].dt.dayofweek
@@ -503,42 +503,73 @@ def add_features_live(df):
     return g.tail(1).copy()
 
 # --------------------------------
-# EXACT FEATURE ENFORCEMENT / ARTIFACT LOADING (robust to missing feature_names_in_)
+# STRICT ARTIFACT LOADING (names & order must match)
 # --------------------------------
-def load_artifacts_strict(model_path, scaler_path, features_path):
+def _infer_config_path(model_path: str, features_path: str) -> str:
+    # Try to infer {prefix}_trade_config.json from either model or features path
+    base = os.path.basename(features_path)
+    if base.endswith("_feature_list.json"):
+        return features_path.replace("_feature_list.json", "_trade_config.json")
+    mbase = os.path.basename(model_path)
+    if mbase.endswith("_long_hgb_model.joblib"):
+        prefix = mbase[:-len("_long_hgb_model.joblib")]
+        return os.path.join(os.path.dirname(model_path), f"{prefix}_trade_config.json")
+    return os.path.join(os.path.dirname(model_path), "trade_config.json")
+
+def _load_threshold_from_config(config_path: str, fallback: float) -> float:
+    try:
+        with open(config_path, "r") as f:
+            cfg = json.load(f)
+        thr = cfg.get("threshold", None)
+        if thr is None:
+            return float(fallback)
+        return float(thr)
+    except Exception:
+        return float(fallback)
+
+def load_artifacts_strict(model_path, scaler_path, features_path, fallback_thr: float):
     m = joblib.load(model_path)
     s = joblib.load(scaler_path)
     with open(features_path) as f:
         json_feats = list(json.load(f))
 
-    # Model features
     model_feats = list(getattr(m, "feature_names_in_", []))
+    scaler_feats = list(getattr(s, "feature_names_in_", []))
 
     if not model_feats:
         raise RuntimeError(
             f"{os.path.basename(model_path)} was saved without feature_names_in_. "
-            f"Re-export the model with column names preserved (e.g., fit on a DataFrame or set feature_names_in_)."
+            f"Re-export by fitting on a DataFrame (names preserved)."
         )
-
-    # Scaler features
-    scaler_feats = list(getattr(s, "feature_names_in_", []))
-
     if not scaler_feats:
         raise RuntimeError(
             f"{os.path.basename(scaler_path)} was saved without feature_names_in_. "
-            f"Re-export the scaler with feature_names_in_ matching the training DataFrame column order."
+            f"Re-export the scaler fit on a DataFrame with the same column order."
         )
 
-    # Final sanity checks
-    if len(model_feats) != len(json_feats):
-        raise RuntimeError(f"Model feature count {len(model_feats)} != JSON {len(json_feats)}")
-    if len(scaler_feats) != len(json_feats):
-        raise RuntimeError(f"Scaler feature count {len(scaler_feats)} != JSON {len(json_feats)}")
+    # Hard equality enforcement — same length AND same order across model/scaler/JSON
+    if len(model_feats) != len(json_feats) or len(scaler_feats) != len(json_feats):
+        raise RuntimeError(
+            f"Feature count mismatch: model={len(model_feats)} scaler={len(scaler_feats)} json={len(json_feats)}"
+        )
+    if model_feats != json_feats or scaler_feats != json_feats:
+        raise RuntimeError(
+            "Feature order mismatch between model/scaler/JSON. "
+            "Re-run training export to align all three artifacts."
+        )
 
-    print(f"[ARTIFACTS] model={os.path.basename(model_path)} expects={len(model_feats)} | scaler-cols={len(scaler_feats)}")
-    return m, s, json_feats  # json_feats is the canonical order
+    # Load threshold from coin's trade_config if present
+    cfg_path = _infer_config_path(model_path, features_path)
+    thr = _load_threshold_from_config(cfg_path, fallback_thr)
 
+    print(f"[ARTIFACTS] model={os.path.basename(model_path)} expects={len(json_feats)} features | thr={thr:.3f}")
+    return m, s, json_feats, thr
+
+# --------------------------------
+# STRICT FEATURE BUILD & SCALE
+# --------------------------------
 def build_X_exact(feats_df: pd.DataFrame, feature_order: list, scaler):
+    # Fail if any expected column is missing (don’t silently zero it)
     missing = [c for c in feature_order if c not in feats_df.columns]
     if missing:
         more = f" ... (+{len(missing)-50} more)" if len(missing) > 50 else ""
@@ -546,12 +577,12 @@ def build_X_exact(feats_df: pd.DataFrame, feature_order: list, scaler):
 
     X_df = feats_df[feature_order].astype("float32")
 
+    # Fail if any NaNs remain (training used fillna(0) before scaling; so do that explicitly)
     if X_df.isna().any().any():
         bad = X_df.columns[X_df.isna().any()].tolist()
         more = f" ... (+{len(bad)-50} more)" if len(bad) > 50 else ""
         raise RuntimeError(f"NaNs present in features: {bad[:50]}{more}")
 
-    # If scaler has names, ensure order matches; otherwise just trust feature_order
     if hasattr(scaler, "feature_names_in_"):
         names = list(getattr(scaler, "feature_names_in_", []))
         if names and names != feature_order:
@@ -585,13 +616,13 @@ def drift_report(feats_row: pd.DataFrame, scaler, top=8, prefix=""):
 # Live pipeline
 # --------------------------------
 def run_live_pipeline():
-    print("🚀 Running live HGB long pipeline (multi-model per coin, strict parity, robust names)")
+    print("🚀 Running live HGB long pipeline (multi-model per coin, strict feature parity)")
 
-    # Load per-coin artifacts
+    # Load per-coin artifacts (with strict checks and threshold from config)
     loaded = {}
     for coin, cfg in MODELS.items():
-        m, s, feats = load_artifacts_strict(cfg["model"], cfg["scaler"], cfg["features"])
-        loaded[coin] = {"model": m, "scaler": s, "features": feats, "thr": cfg["threshold"]}
+        m, s, feats, thr = load_artifacts_strict(cfg["model"], cfg["scaler"], cfg["features"], cfg["threshold"])
+        loaded[coin] = {"model": m, "scaler": s, "features": feats, "thr": float(thr)}
 
     # Ensure data coverage
     for coin in MODELS.keys():
@@ -640,8 +671,10 @@ def run_live_pipeline():
             if hasattr(model, "predict_proba"):
                 prob = float(model.predict_proba(X)[0][1])
             else:
-                # fall back: decision_function or predict
                 prob = float(getattr(model, "decision_function", lambda x: model.predict(x))(X))
+                # map decision_function to 0..1 if needed
+                if not (0.0 <= prob <= 1.0):
+                    prob = 1.0 / (1.0 + np.exp(-prob))
             thr = float(loaded[coin]["thr"])
 
             ConfidenceHistory.objects.create(
