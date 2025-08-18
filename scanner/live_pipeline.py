@@ -95,10 +95,16 @@ def send_text(messages):
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE")
     chat_ids = [os.environ.get("TELEGRAM_CHAT_ID", "1077594551")]
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    message = " ".join(messages)
+    # join with newlines so it renders like your multi-line template
+    text = "\n".join(messages)
     for chat_id in chat_ids:
         try:
-            r = requests.post(url, data={"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}, timeout=10)
+            # ❗️No parse_mode — avoids all Markdown/HTML parsing errors
+            r = requests.post(
+                url,
+                data={"chat_id": chat_id, "text": text, "disable_web_page_preview": True},
+                timeout=10
+            )
             if r.status_code != 200:
                 print(f"Telegram send failed: {r.text}")
         except Exception as e:
@@ -689,8 +695,8 @@ def run_live_pipeline():
                 for old in qs[12:]:
                     old.delete()
 
-            print(f"📈 {coin} prob={prob:.4f} (thr={thr:.3f})")
-            if prob < thr:
+            print(f"📈 {coin} prob={prob:.4f} (thr=0.60)")
+            if prob < 0.60:
                 continue
 
             # Compute entry price with fallback + slippage
