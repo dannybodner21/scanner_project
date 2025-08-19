@@ -109,7 +109,6 @@ MODELS = {
 }
 
 
-
 # UNIUSDT is good to go. threshold 0.6. 58% accurate. 1k -> 17M in 5 months. sl=1, tp=2
 # XRPUSDT is good to go. threshold 0.6. 56% accurate. 1k -> 20k. sl=1, tp=2
 # LINKUSDT is goog to go. threshold 0.6. 56% accurate. 1k -> 76k. sl=1, tp=2
@@ -119,7 +118,14 @@ MODELS = {
 # AVAXUSDT is good to go. threshold 0.6. 54% accurate. 1k -> 442k. sl=1, tp=2
 # BTCUSDT good but only a few trades. threshold 0.6. 80% accurate. 1k -> 2k. sl=1, tp=2
 
-
+# btc_rf_model.joblib
+# avax_lr_model.joblib
+# doge_lr_model.joblib
+# sol_rf_model.joblib
+# ltc_rf_model.joblib
+# link_rf_model.joblib
+# xrp_rf_model.joblib
+# uni_rf_model.joblib
 
 
 COINAPI_KEY = os.environ.get("COINAPI_KEY", "01293e2a-dcf1-4e81-8310-c6aa9d0cb743")

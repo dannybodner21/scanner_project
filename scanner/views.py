@@ -444,82 +444,113 @@ def get_model_results(request):
     model_name = "two_long_hgb_model.joblib"
     short_model_name = "short_four_model.joblib"
 
+    btc_model = "btc_rf_model.joblib"
+    avax_model = "avax_lr_model.joblib"
+    doge_model = "doge_lr_model.joblib"
+    sol_model = "sol_rf_model.joblib"
+    ltc_model = "ltc_rf_model.joblib"
+    link_model = "link_rf_model.joblib"
+    xrp_model = "xrp_rf_model.joblib"
+    uni_model = "uni_rf_model.joblib"
+
+    btc_long_trades = ModelTrade.objects.filter(trade_type="long", model_name=btc_model, exit_timestamp__isnull=False).count()
+    avax_long_trades = ModelTrade.objects.filter(trade_type="long", model_name=avax_model, exit_timestamp__isnull=False).count()
+    doge_long_trades = ModelTrade.objects.filter(trade_type="long", model_name=doge_model, exit_timestamp__isnull=False).count()
+    sol_long_trades = ModelTrade.objects.filter(trade_type="long", model_name=sol_model, exit_timestamp__isnull=False).count()
+    ltc_long_trades = ModelTrade.objects.filter(trade_type="long", model_name=ltc_model, exit_timestamp__isnull=False).count()
+    link_long_trades = ModelTrade.objects.filter(trade_type="long", model_name=link_model, exit_timestamp__isnull=False).count()
+    xrp_long_trades = ModelTrade.objects.filter(trade_type="long", model_name=xrp_model, exit_timestamp__isnull=False).count()
+    uni_long_trades = ModelTrade.objects.filter(trade_type="long", model_name=uni_model, exit_timestamp__isnull=False).count()
+
+    btc_long_wins = ModelTrade.objects.filter(trade_type="long", model_name=btc_model, result=True).count()
+    avax_long_wins = ModelTrade.objects.filter(trade_type="long", model_name=avax_model, result=True).count()
+    doge_long_wins = ModelTrade.objects.filter(trade_type="long", model_name=doge_model, result=True).count()
+    sol_long_wins = ModelTrade.objects.filter(trade_type="long", model_name=sol_model, result=True).count()
+    ltc_long_wins = ModelTrade.objects.filter(trade_type="long", model_name=ltc_model, result=True).count()
+    link_long_wins = ModelTrade.objects.filter(trade_type="long", model_name=link_model, result=True).count()
+    xrp_long_wins = ModelTrade.objects.filter(trade_type="long", model_name=xrp_model, result=True).count()
+    uni_long_wins = ModelTrade.objects.filter(trade_type="long", model_name=uni_model, result=True).count()
+    
+
     btc_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
+        model_name=btc_model,
         coin__symbol="BTC"
     ).order_by("timestamp")
-    eth_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
-        coin__symbol="ETH"
-    ).order_by("timestamp")
     xrp_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
+        model_name=xrp_model,
         coin__symbol="XRP"
     ).order_by("timestamp")
     ltc_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
+        model_name=ltc_model,
         coin__symbol="LTC"
     ).order_by("timestamp")
     sol_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
+        model_name=sol_model,
         coin__symbol="SOL"
     ).order_by("timestamp")
     doge_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
+        model_name=doge_model,
         coin__symbol="DOGE"
     ).order_by("timestamp")
     link_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
+        model_name=link_model,
         coin__symbol="LINK"
     ).order_by("timestamp")
-    dot_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
-        coin__symbol="DOT"
-    ).order_by("timestamp")
-    shib_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
-        coin__symbol="SHIB"
-    ).order_by("timestamp")
-    ada_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
-        coin__symbol="ADA"
-    ).order_by("timestamp")
     uni_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
+        model_name=uni_model,
         coin__symbol="UNI"
     ).order_by("timestamp")
     avax_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
+        model_name=avax_model,
         coin__symbol="AVAX"
     ).order_by("timestamp")
-    xlm_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
-        coin__symbol="XLM"
-    ).order_by("timestamp")
-    trx_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
-        coin__symbol="TRX"
-    ).order_by("timestamp")
-    atom_history = ConfidenceHistory.objects.filter(
-        model_name=model_name,
-        coin__symbol="ATOM"
-    ).order_by("timestamp")
+
+
+    # eth_history = ConfidenceHistory.objects.filter(
+    #     model_name=model_name,
+    #     coin__symbol="ETH"
+    # ).order_by("timestamp")
+    # dot_history = ConfidenceHistory.objects.filter(
+    #     model_name=model_name,
+    #     coin__symbol="DOT"
+    # ).order_by("timestamp")
+    # shib_history = ConfidenceHistory.objects.filter(
+    #     model_name=model_name,
+    #     coin__symbol="SHIB"
+    # ).order_by("timestamp")
+    # ada_history = ConfidenceHistory.objects.filter(
+    #     model_name=model_name,
+    #     coin__symbol="ADA"
+    # ).order_by("timestamp")
+    # xlm_history = ConfidenceHistory.objects.filter(
+    #     model_name=model_name,
+    #     coin__symbol="XLM"
+    # ).order_by("timestamp")
+    # trx_history = ConfidenceHistory.objects.filter(
+    #     model_name=model_name,
+    #     coin__symbol="TRX"
+    # ).order_by("timestamp")
+    # atom_history = ConfidenceHistory.objects.filter(
+    #     model_name=model_name,
+    #     coin__symbol="ATOM"
+    # ).order_by("timestamp")
 
     btc_list = list(btc_history.values_list("confidence", flat=True))
-    eth_list = list(eth_history.values_list("confidence", flat=True))
     xrp_list = list(xrp_history.values_list("confidence", flat=True))
     ltc_list = list(ltc_history.values_list("confidence", flat=True))
     sol_list = list(sol_history.values_list("confidence", flat=True))
     doge_list = list(doge_history.values_list("confidence", flat=True))
     link_list = list(link_history.values_list("confidence", flat=True))
-    dot_list = list(dot_history.values_list("confidence", flat=True))
-    shib_list = list(shib_history.values_list("confidence", flat=True))
-    ada_list = list(ada_history.values_list("confidence", flat=True))
     uni_list = list(uni_history.values_list("confidence", flat=True))
     avax_list = list(avax_history.values_list("confidence", flat=True))
-    xlm_list = list(xlm_history.values_list("confidence", flat=True))
-    trx_list = list(trx_history.values_list("confidence", flat=True))
-    atom_list = list(atom_history.values_list("confidence", flat=True))
+
+    # eth_list = list(eth_history.values_list("confidence", flat=True))
+    # dot_list = list(dot_history.values_list("confidence", flat=True))
+    # shib_list = list(shib_history.values_list("confidence", flat=True))
+    # ada_list = list(ada_history.values_list("confidence", flat=True))
+    # xlm_list = list(xlm_history.values_list("confidence", flat=True))
+    # trx_list = list(trx_history.values_list("confidence", flat=True))
+    # atom_list = list(atom_history.values_list("confidence", flat=True))
 
     short_btc_history = ConfidenceHistory.objects.filter(
         model_name=short_model_name,
@@ -641,21 +672,41 @@ def get_model_results(request):
         "total_short_trades": total_short_trades,
         "total_long_wins": total_long_wins,
         "total_short_wins": total_short_wins,
+
+        "btc_long_trades": btc_long_trades,
+        "btc_long_wins": btc_long_wins,
+        "uni_long_trades": uni_long_trades,
+        "uni_long_wins": uni_long_wins,
+        "avax_long_trades": avax_long_trades,
+        "avax_long_wins": avax_long_wins,
+        "xrp_long_trades": xrp_long_trades,
+        "xrp_long_wins": xrp_long_wins,
+        "ltc_long_trades": ltc_long_trades,
+        "ltc_long_wins": ltc_long_wins,
+        "sol_long_trades": sol_long_trades,
+        "sol_long_wins": sol_long_wins,
+        "doge_long_trades": doge_long_trades,
+        "doge_long_wins": doge_long_wins,
+        "link_long_trades": link_long_trades,
+        "link_long_wins": link_long_wins,
+
         "btc_list": btc_list,
-        "eth_list": eth_list,
+        "uni_list": uni_list,
+        "avax_list": avax_list,
         "xrp_list": xrp_list,
         "ltc_list": ltc_list,
         "sol_list": sol_list,
         "doge_list": doge_list,
         "link_list": link_list,
-        "dot_list": dot_list,
-        "shib_list": shib_list,
-        "ada_list": ada_list,
-        "uni_list": uni_list,
-        "avax_list": avax_list,
-        "xlm_list": xlm_list,
-        "trx_list": trx_list,
-        "atom_list": atom_list,
+
+        # "eth_list": eth_list,
+        # "dot_list": dot_list,
+        # "shib_list": shib_list,
+        # "ada_list": ada_list,
+        # "xlm_list": xlm_list,
+        # "trx_list": trx_list,
+        # "atom_list": atom_list,
+
         "short_btc_list": short_btc_list,
         "short_eth_list": short_eth_list,
         "short_xrp_list": short_xrp_list,
@@ -669,6 +720,7 @@ def get_model_results(request):
         "short_uni_list": short_uni_list,
         "short_avax_list": short_avax_list,
         "short_xlm_list": short_xlm_list,
+
         "btc_full_window": btc_full_window,
         "eth_full_window": eth_full_window,
         "xrp_full_window": xrp_full_window,

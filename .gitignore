@@ -189,11 +189,3 @@ xlm_long_hgb_model.joblib
 xlm_trade_config.json
 
 
-# UNIUSDT is good to go. threshold 0.6. 58% accurate. 1k -> 17M in 5 months. sl=1, tp=2
-# XRPUSDT is good to go. threshold 0.6. 56% accurate. 1k -> 20k. sl=1, tp=2
-# LINKUSDT is goog to go. threshold 0.6. 56% accurate. 1k -> 76k. sl=1, tp=2
-# LTCUSDT is good to go. threshold 0.6. 56% accurate. 1k -> 35k in 5 months. sl=1, tp=2
-# SOLUSDT is good to go. threshold 0.6. 60% accurate. 1k -> 231k. sl=1, tp=2
-# DOGEUSDT is good to go. threshold 0.6. 51% accurate. 1k -> 1.3M. sl=1, tp=2
-# AVAXUSDT is good to go. threshold 0.6. 54% accurate. 1k -> 442k. sl=1, tp=2
-# BTCUSDT good but only a few trades. threshold 0.6. 80% accurate. 1k -> 2k. sl=1, tp=2
