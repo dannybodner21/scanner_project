@@ -529,49 +529,59 @@ def _load_threshold_from_config(config_path: str, fallback: float) -> float:
 def load_artifacts_flexible(model_path, scaler_path, features_path, fallback_thr: float):
     m = joblib.load(model_path)
     s = joblib.load(scaler_path)
-    with open(features_path) as f:
-        json_feats = list(json.load(f))
+    try:
+        with open(features_path) as f:
+            json_feats = list(json.load(f))
+    except Exception:
+        json_feats = []
 
     model_feats  = list(getattr(m, "feature_names_in_", []))
     scaler_feats = list(getattr(s, "feature_names_in_", []))
 
     if not model_feats:
-        raise RuntimeError(
-            f"{os.path.basename(model_path)} missing feature_names_in_. "
-            f"Re-export by fitting on a DataFrame (names preserved)."
-        )
+        raise RuntimeError(f"{os.path.basename(model_path)} missing feature_names_in_. Re-export by fitting on a DataFrame.")
     if not scaler_feats:
-        raise RuntimeError(
-            f"{os.path.basename(scaler_path)} missing feature_names_in_. "
-            f"Re-export scaler fit on a DataFrame with the same column order."
-        )
+        raise RuntimeError(f"{os.path.basename(scaler_path)} missing feature_names_in_. Re-export scaler fit on a DataFrame.")
 
     set_model  = set(model_feats)
     set_scaler = set(scaler_feats)
-    set_json   = set(json_feats)
 
-    if set_model != set_scaler or set_model != set_json:
-        missing_ms = list(set_model - set_scaler)
-        missing_sm = list(set_scaler - set_model)
-        missing_mj = list(set_model - set_json)
-        missing_jm = list(set_json - set_model)
-        msg = []
-        if missing_ms: msg.append(f"model-only: {missing_ms[:10]}{' ...' if len(missing_ms)>10 else ''}")
-        if missing_sm: msg.append(f"scaler-only: {missing_sm[:10]}{' ...' if len(missing_sm)>10 else ''}")
-        if missing_mj: msg.append(f"model-not-in-json: {missing_mj[:10]}{' ...' if len(missing_mj)>10 else ''}")
-        if missing_jm: msg.append(f"json-not-in-model: {missing_jm[:10]}{' ...' if len(missing_jm)>10 else ''}")
-        raise RuntimeError("Feature SET mismatch among artifacts: " + " | ".join(msg))
+    # MUST match between model and scaler
+    if set_model != set_scaler:
+        only_model  = list(set_model - set_scaler)[:10]
+        only_scaler = list(set_scaler - set_model)[:10]
+        raise RuntimeError(
+            "Model↔Scaler feature SET mismatch.\n"
+            f"  model file:  {os.path.basename(model_path)}\n"
+            f"  scaler file: {os.path.basename(scaler_path)}\n"
+            f"  in model only (first 10):  {only_model}\n"
+            f"  in scaler only (first 10): {only_scaler}\n"
+            "-> Fix: re-run training export for this coin so model & scaler are produced together."
+        )
 
-    # Orders can differ; we’ll align at runtime.
+    # JSON is advisory; warn if it differs
+    if json_feats:
+        set_json = set(json_feats)
+        if set_json != set_model:
+            only_model_json  = list(set_model - set_json)[:10]
+            only_json_model  = list(set_json - set_model)[:10]
+            print(
+                "⚠️  JSON feature list differs from model/scaler set.\n"
+                f"  features json: {os.path.basename(features_path)}\n"
+                f"  missing in json (first 10): {only_model_json}\n"
+                f"  extra in json (first 10):   {only_json_model}\n"
+                "  (Using model/scaler features at runtime.)"
+            )
+
+    # threshold from config (if present)
     cfg_path = _infer_config_path(model_path, features_path)
     thr = _load_threshold_from_config(cfg_path, fallback_thr)
 
     print(
-        f"[ARTIFACTS] {os.path.basename(model_path)} "
-        f"| n_features={len(model_feats)} | thr={thr:.3f} "
-        f"| orders: model≠scaler allowed (set-equal)."
+        f"[ARTIFACTS] {os.path.basename(model_path)} | n_features={len(model_feats)} | thr={thr:.3f} "
+        f"| model/scaler sets match; JSON tolerated."
     )
-    return m, s, {"model": model_feats, "scaler": scaler_feats, "json": json_feats}, float(thr)
+    return m, s, {"model": model_feats, "scaler": scaler_feats}, float(thr)
 
 # --------------------------------
 # FEATURE BUILD & SCALE with dual alignment (scaler→model)
