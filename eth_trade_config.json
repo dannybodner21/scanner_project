@@ -1,0 +1,33 @@
+{
+  "coin": "ETHUSDT",
+  "train_window": {
+    "start": "2023-01-01 00:00:00+00:00",
+    "end": "2025-03-31 23:55:00+00:00"
+  },
+  "test_window": {
+    "start": "2025-04-01 00:00:00+00:00",
+    "end": "2025-08-18 23:55:00+00:00"
+  },
+  "min_move_pct": 0.025,
+  "horizon_bars": 12,
+  "threshold": 0.18,
+  "test_metrics": {
+    "acc": 0.5394,
+    "prec": 0.5247,
+    "rec": 0.9789,
+    "f1": 0.6832,
+    "auc": 0.7009,
+    "confusion": [
+      [
+        44,
+        462
+      ],
+      [
+        11,
+        510
+      ]
+    ]
+  },
+  "n_features": 150,
+  "model_type": "RandomForestClassifier"
+}

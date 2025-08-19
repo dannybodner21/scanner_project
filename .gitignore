@@ -162,11 +162,6 @@ btc_feature_list.json
 btc_feature_scaler.joblib
 btc_long_hgb_model.joblib
 btc_trade_config.json
-eth_feature_list.json
-eth_feature_scaler.joblib
-eth_long_hgb_model.joblib
-eth_trade_config.json
-ltc_trade_config.json
 scanner/management/commands/ada_dataset.py
 scanner/management/commands/btc_dataset.py
 scanner/management/commands/eth_dataset.py
@@ -183,4 +178,8 @@ trx_feature_list.json
 trx_feature_scaler.joblib
 trx_long_hgb_model.joblib
 trx_trade_config.json
-uni_trade_config.json
+ada_rf_model.joblib
+dot_rf_model.joblib
+ltc_rf_model.joblib
+ltc_trade_config.json
+trx_rf_model.joblib

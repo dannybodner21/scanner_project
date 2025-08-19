@@ -2,23 +2,32 @@
   "coin": "XRPUSDT",
   "train_window": {
     "start": "2023-01-01 00:00:00+00:00",
-    "end": "2025-06-30 23:55:00+00:00"
+    "end": "2025-03-31 23:55:00+00:00"
   },
   "test_window": {
-    "start": "2025-07-01 00:00:00+00:00",
-    "end": "2025-08-08 23:55:00+00:00"
+    "start": "2025-04-01 00:00:00+00:00",
+    "end": "2025-08-18 23:55:00+00:00"
   },
-  "min_move_pct": 0.03,
+  "min_move_pct": 0.025,
   "horizon_bars": 12,
-  "threshold": 0.77,
+  "threshold": 0.16,
   "test_metrics": {
-    "acc": 0.9952,
-    "prec": 0.728,
-    "rec": 0.8198,
-    "f1": 0.9953,
-    "auc": 0.9959
+    "acc": 0.4857,
+    "prec": 0.4843,
+    "rec": 0.9948,
+    "f1": 0.6515,
+    "auc": 0.6966,
+    "confusion": [
+      [
+        6,
+        609
+      ],
+      [
+        3,
+        572
+      ]
+    ]
   },
-  "cv_score": 0.9679,
   "n_features": 150,
-  "model_type": "HistGradientBoostingClassifier"
+  "model_type": "RandomForestClassifier"
 }

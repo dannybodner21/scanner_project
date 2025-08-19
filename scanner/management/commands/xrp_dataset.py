@@ -20,6 +20,8 @@ warnings.filterwarnings("ignore")
 
 pd.set_option("display.max_columns", 200)
 
+# optimal threshold: 0.60
+
 # -------------------------
 # Scope & fixed dates
 # -------------------------

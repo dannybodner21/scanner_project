@@ -14,7 +14,7 @@ class Command(BaseCommand):
         ]
 
         start = datetime(2023, 1, 1, tzinfo=timezone.utc)
-        end = datetime(2025, 8, 7, 23, 55, tzinfo=timezone.utc)
+        end = datetime(2025, 8, 17, 23, 55, tzinfo=timezone.utc)
 
         all_data = []
 

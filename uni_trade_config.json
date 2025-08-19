@@ -1,0 +1,33 @@
+{
+  "coin": "UNIUSDT",
+  "train_window": {
+    "start": "2023-01-01 00:00:00+00:00",
+    "end": "2025-03-31 23:55:00+00:00"
+  },
+  "test_window": {
+    "start": "2025-04-01 00:00:00+00:00",
+    "end": "2025-08-18 23:55:00+00:00"
+  },
+  "min_move_pct": 0.025,
+  "horizon_bars": 12,
+  "threshold": 0.36,
+  "test_metrics": {
+    "acc": 0.6171,
+    "prec": 0.6101,
+    "rec": 0.9122,
+    "f1": 0.7312,
+    "auc": 0.6253,
+    "confusion": [
+      [
+        277,
+        956
+      ],
+      [
+        144,
+        1496
+      ]
+    ]
+  },
+  "n_features": 150,
+  "model_type": "RandomForestClassifier"
+}

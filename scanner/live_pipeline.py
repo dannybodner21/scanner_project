@@ -54,22 +54,28 @@ COIN_SYMBOL_MAP_DB = {
 
 # Only trade coins we have dedicated models for
 MODELS = {
-    "DOTUSDT": {
-        "model": "dot_long_hgb_model.joblib",
-        "scaler": "dot_feature_scaler.joblib",
-        "features": "dot_feature_list.json",
-        "threshold": 0.6,  # fallback if config file missing
+    "UNIUSDT": {
+        "model": "uni_long_hgb_model.joblib",
+        "scaler": "uni_feature_scaler.joblib",
+        "features": "uni_feature_list.json",
+        "threshold": 0.65,  # fallback if config file missing
+    },
+    "ETHUSDT": {
+        "model": "eth_long_hgb_model.joblib",
+        "scaler": "eth_feature_scaler.joblib",
+        "features": "eth_feature_list.json",
+        "threshold": 0.6,
+    },
+    "XRPUSDT": {
+        "model": "xrp_long_hgb_model.joblib",
+        "scaler": "xrp_feature_scaler.joblib",
+        "features": "xrp_feature_list.json",
+        "threshold": 0.65,
     },
     "LINKUSDT": {
         "model": "link_long_hgb_model.joblib",
         "scaler": "link_feature_scaler.joblib",
         "features": "link_feature_list.json",
-        "threshold": 0.6,
-    },
-    "UNIUSDT": {
-        "model": "uni_long_hgb_model.joblib",
-        "scaler": "uni_feature_scaler.joblib",
-        "features": "uni_feature_list.json",
         "threshold": 0.6,
     },
 }
@@ -695,8 +701,16 @@ def run_live_pipeline():
                 for old in qs[12:]:
                     old.delete()
 
-            print(f"📈 {coin} prob={prob:.4f} (thr=0.60)")
-            if prob < 0.60:
+            custom_threshold = 0.6
+            if coin == "ETHUSDT" or coin == "LINKUSDT":
+                print(f"📈 {coin} prob={prob:.4f} (thr=0.60)")
+
+            if coin == "UNIUSDT" or coin == "XRPUSDT":
+                print(f"📈 {coin} prob={prob:.4f} (thr=0.65)")
+                custom_threshold = 0.65
+
+
+            if prob < custom_threshold:
                 continue
 
             # Compute entry price with fallback + slippage
