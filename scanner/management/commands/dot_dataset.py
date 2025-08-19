@@ -24,14 +24,23 @@ pd.set_option("display.max_columns", 300)
 
 
 # max hold is 2 hours
-# UNIUSDT is good to go. threshold 0.65. 61% accurate. 1k -> 600k in 5 months. sl=1, tp=2
-# ETHUSDT is good to go. threshold 0.6. 64% accurate. 1k -> 200k in 5 months. sl=1, tp=2
-# XRPUSDT is good to go. threshold 0.65. 62% accurate. 1k -> 18k. sl=1, tp=2
-# LINKUSDT is goog to go. threshold 0.6. 58% accurate. 1k -> 73k. sl=1, tp=2
-# ADAUSDT is average. threshold 0.65. 52% accurate. 1k -> 12k in 5 months. sl=1, tp=2
-# TRXUSDT doesnt take enough trades
-# LTCUSDT is average. threshold 0.6. 52% accurate. 1k -> 15k in 5 months. sl=1, tp=2
 
+# UNIUSDT is good to go. threshold 0.6. 58% accurate. 1k -> 17M in 5 months. sl=1, tp=2
+# XRPUSDT is good to go. threshold 0.6. 56% accurate. 1k -> 20k. sl=1, tp=2
+# LINKUSDT is goog to go. threshold 0.6. 56% accurate. 1k -> 76k. sl=1, tp=2
+# LTCUSDT is good to go. threshold 0.6. 56% accurate. 1k -> 35k in 5 months. sl=1, tp=2
+# SOLUSDT is good to go. threshold 0.6. 60% accurate. 1k -> 231k. sl=1, tp=2
+# DOGEUSDT is good to go. threshold 0.6. 51% accurate. 1k -> 1.3M. sl=1, tp=2
+# AVAXUSDT is good to go. threshold 0.6. 54% accurate. 1k -> 442k. sl=1, tp=2
+# BTCUSDT good but only a few trades. threshold 0.6. 80% accurate. 1k -> 2k. sl=1, tp=2
+
+# ADAUSDT is average. threshold 0.6. 45% accurate. 1k -> 9k in 5 months. sl=1, tp=2
+# ETHUSDT is not good
+# TRXUSDT doesnt take enough trades
+# DOTUSDT not good enough
+# SHIBUSDT is ok. threshold 0.6. 47% accurate. 1k -> 20k. sl=1, tp=2
+# XLMUSDT not good enough.
+# ATOMUSDT is bad.
 
 
 

@@ -10,24 +10,24 @@
   },
   "min_move_pct": 0.025,
   "horizon_bars": 12,
-  "threshold": 0.18,
+  "threshold": 0.21,
   "test_metrics": {
-    "acc": 0.5394,
-    "prec": 0.5247,
-    "rec": 0.9789,
-    "f1": 0.6832,
-    "auc": 0.7009,
+    "acc": 0.5803,
+    "prec": 0.574,
+    "rec": 0.6699,
+    "f1": 0.6182,
+    "auc": 0.6058,
     "confusion": [
       [
-        44,
-        462
+        247,
+        259
       ],
       [
-        11,
-        510
+        172,
+        349
       ]
     ]
   },
   "n_features": 150,
-  "model_type": "RandomForestClassifier"
+  "model_type": "HistGradientBoostingClassifier"
 }

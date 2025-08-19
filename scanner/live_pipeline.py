@@ -1,3 +1,4 @@
+# scanner/live_pipeline.py
 import os
 import json
 import requests
@@ -20,13 +21,13 @@ def _patch_numpy_rng_compat():
         cls = getattr(np.random, name, None)
         if cls is None:
             continue
-        mod = types.ModuleType(f"numpy.random._{name.lower()}")
+        mod = types.ModuleType(f"numpy.random._" + name.lower())
         setattr(mod, name, cls)
         sys.modules[mod.__name__] = mod
 _patch_numpy_rng_compat()
 
 # --------------------------------
-# Maps / Config
+# Config
 # --------------------------------
 COINAPI_SYMBOL_MAP = {
     "BTCUSDT": "BINANCE_SPOT_BTC_USDT",
@@ -52,33 +53,74 @@ COIN_SYMBOL_MAP_DB = {
     "XLMUSDT": "XLM","TRXUSDT": "TRX","ATOMUSDT": "ATOM",
 }
 
-# Only trade coins we have dedicated models for
+# Prefer bundles; fallback to separate files if you haven’t migrated yet.
 MODELS = {
+    # Example with bundle:
+    # "DOTUSDT": {"bundle": "models/dot_model_bundle.joblib"},
+    # If you don’t have bundles yet, use the separate-file form:
     "UNIUSDT": {
-        "model": "uni_long_hgb_model.joblib",
+        "model": "uni_rf_model.joblib",
         "scaler": "uni_feature_scaler.joblib",
         "features": "uni_feature_list.json",
-        "threshold": 0.65,  # fallback if config missing
-    },
-    "ETHUSDT": {
-        "model": "eth_long_hgb_model.joblib",
-        "scaler": "eth_feature_scaler.joblib",
-        "features": "eth_feature_list.json",
-        "threshold": 0.60,
+        "threshold": 0.6,
     },
     "XRPUSDT": {
-        "model": "xrp_long_hgb_model.joblib",
+        "model": "xrp_rf_model.joblib",
         "scaler": "xrp_feature_scaler.joblib",
         "features": "xrp_feature_list.json",
-        "threshold": 0.65,
+        "threshold": 0.6,
     },
     "LINKUSDT": {
-        "model": "link_long_hgb_model.joblib",
+        "model": "link_rf_model.joblib",
         "scaler": "link_feature_scaler.joblib",
         "features": "link_feature_list.json",
         "threshold": 0.60,
     },
+    "LTCUSDT": {
+        "model": "ltc_rf_model.joblib",
+        "scaler": "ltc_feature_scaler.joblib",
+        "features": "ltc_feature_list.json",
+        "threshold": 0.60,
+    },
+    "SOLUSDT": {
+        "model": "sol_rf_model.joblib",
+        "scaler": "sol_feature_scaler.joblib",
+        "features": "sol_feature_list.json",
+        "threshold": 0.60,
+    },
+    "DOGEUSDT": {
+        "model": "doge_lr_model.joblib",
+        "scaler": "doge_feature_scaler.joblib",
+        "features": "doge_feature_list.json",
+        "threshold": 0.60,
+    },
+    "AVAXUSDT": {
+        "model": "avax_lr_model.joblib",
+        "scaler": "avax_feature_scaler.joblib",
+        "features": "avax_feature_list.json",
+        "threshold": 0.60,
+    },
+    "BTCUSDT": {
+        "model": "btc_rf_model.joblib",
+        "scaler": "btc_feature_scaler.joblib",
+        "features": "btc_feature_list.json",
+        "threshold": 0.60,
+    },
 }
+
+
+
+# UNIUSDT is good to go. threshold 0.6. 58% accurate. 1k -> 17M in 5 months. sl=1, tp=2
+# XRPUSDT is good to go. threshold 0.6. 56% accurate. 1k -> 20k. sl=1, tp=2
+# LINKUSDT is goog to go. threshold 0.6. 56% accurate. 1k -> 76k. sl=1, tp=2
+# LTCUSDT is good to go. threshold 0.6. 56% accurate. 1k -> 35k in 5 months. sl=1, tp=2
+# SOLUSDT is good to go. threshold 0.6. 60% accurate. 1k -> 231k. sl=1, tp=2
+# DOGEUSDT is good to go. threshold 0.6. 51% accurate. 1k -> 1.3M. sl=1, tp=2
+# AVAXUSDT is good to go. threshold 0.6. 54% accurate. 1k -> 442k. sl=1, tp=2
+# BTCUSDT good but only a few trades. threshold 0.6. 80% accurate. 1k -> 2k. sl=1, tp=2
+
+
+
 
 COINAPI_KEY = os.environ.get("COINAPI_KEY", "01293e2a-dcf1-4e81-8310-c6aa9d0cb743")
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
@@ -95,13 +137,13 @@ LOCAL_TZ = ZoneInfo("America/Los_Angeles")
 # --------------------------------
 # Telegram
 # --------------------------------
-def send_text(messages):
-    if not messages:
+def send_text(lines):
+    if not lines:
         return
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE")
     chat_ids = [os.environ.get("TELEGRAM_CHAT_ID", "1077594551")]
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    text = "\n".join(messages)
+    text = "\n".join(lines)
     for chat_id in chat_ids:
         try:
             r = requests.post(
@@ -115,13 +157,7 @@ def send_text(messages):
             print(f"Telegram error: {e}")
 
 # --------------------------------
-# Chart stubs (kept but unused)
-# --------------------------------
-def generate_chart_image(*args, **kwargs): return None
-def generate_chart_image_30m(*args, **kwargs): return None
-
-# --------------------------------
-# Helpers: DB & Backfill
+# DB helpers
 # --------------------------------
 def safe_decimal(value):
     try:
@@ -148,7 +184,6 @@ def fetch_chunk(symbol, start_ts, end_ts, limit=1000):
     return r.json()
 
 def ensure_recent_candles(coin, required_bars=400, buffer_bars=60):
-    """Ensure at least `required_bars` recent 5-min candles are in DB (no gaps)."""
     symbol = COINAPI_SYMBOL_MAP[coin]
     end = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
     start = end - timedelta(minutes=5 * (required_bars + buffer_bars))
@@ -207,11 +242,6 @@ def get_recent_candles(coin, limit=600):
     return df.sort_values('timestamp').reset_index(drop=True)
 
 def get_entry_price_or_fallback(coin: str, entry_ts, recent_df: pd.DataFrame, slippage_pct: float):
-    """
-    Try to use the next-bar open; if missing, fall back to the latest close.
-    Always apply +slippage_pct to simulate execution latency.
-    Returns (entry_price_float, source_str).
-    """
     row = (
         CoinAPIPrice.objects
         .filter(coin=coin, timestamp=entry_ts)
@@ -219,24 +249,19 @@ def get_entry_price_or_fallback(coin: str, entry_ts, recent_df: pd.DataFrame, sl
         .first()
     )
     if row and row["open"] is not None and float(row["open"]) > 0:
-        base = float(row["open"])
-        src = "next_bar_open"
+        base = float(row["open"]); src = "next_bar_open"
     else:
         if recent_df is None or recent_df.empty:
             raise RuntimeError("No recent candles available for fallback close.")
-        base = float(recent_df.iloc[-1]["close"])
-        src = "fallback_last_close"
+        base = float(recent_df.iloc[-1]["close"]); src = "fallback_last_close"
     price = base * (1.0 + slippage_pct)
     return price, src
 
 # --------------------------------
-# Feature Engineering (parity with training; returns last row)
+# Feature engineering (MUST match training)
 # --------------------------------
-def ema(s, span):
-    return s.ewm(span=span, adjust=False).mean()
-
-def sma(s, span):
-    return s.rolling(span).mean()
+def ema(s, span): return s.ewm(span=span, adjust=False).mean()
+def sma(s, span): return s.rolling(span).mean()
 
 def rsi(close, period=14):
     d = close.diff()
@@ -248,26 +273,21 @@ def rsi(close, period=14):
     return 100.0 - (100.0 / (1.0 + rs))
 
 def macd(close, fast=12, slow=26, signal=9):
-    ef = ema(close, fast)
-    es = ema(close, slow)
-    line = ef - es
-    sig = ema(line, signal)
+    ef = ema(close, fast); es = ema(close, slow)
+    line = ef - es; sig = ema(line, signal)
     hist = line - sig
     return line, sig, hist
 
 def bollinger(close, period=20, mult=2.0):
     m = close.rolling(period).mean()
     s = close.rolling(period).std(ddof=0)
-    u = m + mult*s
-    l = m - mult*s
+    u = m + mult*s; l = m - mult*s
     w = (u - l) / (m + 1e-12)
-    return u, m, l, w, s  # 5 values (train parity)
+    return u, m, l, w, s
 
 def true_range(h, l, c):
     pc = c.shift(1)
-    a = (h - l)
-    b = (h - pc).abs()
-    d = (l - pc).abs()
+    a = (h - l); b = (h - pc).abs(); d = (l - pc).abs()
     return pd.concat([a,b,d], axis=1).max(axis=1)
 
 def atr(h, l, c, period=14):
@@ -309,21 +329,21 @@ def add_features_live(df):
     F['upper_shadow'] = (g['high'] - g[['open', 'close']].max(axis=1)) / g['close']
     F['lower_shadow'] = (g[['open', 'close']].min(axis=1) - g['low']) / g['close']
 
-    # Returns (Fibonacci)
-    for n in [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]:
+    # Returns
+    for n in [1,2,3,5,8,13,21,34,55,89]:
         r = g['close'].pct_change(n)
         F[f'ret_{n}'] = r
         F[f'ret_{n}_abs'] = r.abs()
-        F[f'ret_{n}_squared'] = r ** 2
+        F[f'ret_{n}_squared'] = r**2
 
     # Volatility
-    for period in [5, 10, 20, 50]:
-        vol = g['close'].pct_change().rolling(period).std()
-        F[f'volatility_{period}'] = vol
-        F[f'volatility_{period}_squared'] = vol ** 2
+    for period in [5,10,20,50]:
+        v = g['close'].pct_change().rolling(period).std()
+        F[f'volatility_{period}'] = v
+        F[f'volatility_{period}_squared'] = v**2
 
     # EMAs
-    for span in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
+    for span in [3,5,8,13,21,34,55,89,144,233]:
         e = ema(g['close'], span)
         F[f'ema_{span}'] = e
         F[f'ema_{span}_slope'] = e.diff()
@@ -331,7 +351,7 @@ def add_features_live(df):
         F[f'ema_{span}_slope_5'] = e.diff(5)
         F[f'close_vs_ema_{span}'] = (g['close'] - e) / (e + 1e-12)
 
-    # MACD (+ slopes)
+    # MACD
     macd_line, macd_sig, macd_hist = macd(g['close'])
     F['macd'] = macd_line
     F['macd_signal'] = macd_sig
@@ -340,8 +360,8 @@ def add_features_live(df):
     F['macd_hist_slope_3'] = macd_hist.diff(3)
     F['macd_hist_slope_5'] = macd_hist.diff(5)
 
-    # RSI + flags
-    for period in [7, 14, 21, 34]:
+    # RSI
+    for period in [7,14,21,34]:
         r = rsi(g['close'], period)
         F[f'rsi_{period}'] = r
         F[f'rsi_{period}_slope'] = r.diff()
@@ -349,11 +369,9 @@ def add_features_live(df):
         F[f'rsi_{period}_overbought'] = (r > 70).astype(int)
         F[f'rsi_{period}_oversold'] = (r < 30).astype(int)
 
-    # Bollinger (5 outputs in training)
+    # Bollinger
     bb_u, bb_m, bb_l, bb_w, bb_std = bollinger(g['close'], 20, 2.0)
-    F['bb_upper'] = bb_u
-    F['bb_middle'] = bb_m
-    F['bb_lower'] = bb_l
+    F['bb_upper'] = bb_u; F['bb_middle'] = bb_m; F['bb_lower'] = bb_l
     F['bb_width'] = bb_w
     F['bb_z'] = (g['close'] - bb_m) / (bb_std + 1e-12)
     F['bb_squeeze'] = bb_w / (g['close'].rolling(20).mean() + 1e-12)
@@ -364,44 +382,38 @@ def add_features_live(df):
     highest_high = g['high'].rolling(14).max()
     stoch_k = 100 * ((g['close'] - lowest_low) / (highest_high - lowest_low + 1e-12))
     stoch_d = stoch_k.rolling(3).mean()
-    F['stoch_k'] = stoch_k
-    F['stoch_d'] = stoch_d
+    F['stoch_k'] = stoch_k; F['stoch_d'] = stoch_d
 
     # Williams %R + slope
     wr = williams_r(g['high'], g['low'], g['close'])
-    F['williams_r'] = wr
-    F['williams_r_slope'] = wr.diff()
+    F['williams_r'] = wr; F['williams_r_slope'] = wr.diff()
 
     # CCI + slope
     cci_val = cci(g['high'], g['low'], g['close'])
-    F['cci'] = cci_val
-    F['cci_slope'] = cci_val.diff()
+    F['cci'] = cci_val; F['cci_slope'] = cci_val.diff()
 
     # MFI + slope
     mfi_val = money_flow_index(g['high'], g['low'], g['close'], g['volume'])
-    F['mfi'] = mfi_val
-    F['mfi_slope'] = mfi_val.diff()
+    F['mfi'] = mfi_val; F['mfi_slope'] = mfi_val.diff()
 
     # ATR/TR
     atr14 = atr(g['high'], g['low'], g['close'], 14)
     atr21 = atr(g['high'], g['low'], g['close'], 21)
     tr = true_range(g['high'], g['low'], g['close'])
-    F['atr_14'] = atr14
-    F['atr_21'] = atr21
-    F['tr'] = tr
-    F['tr_pct'] = tr / (g['close'].shift(1) + 1e-12)
+    F['atr_14'] = atr14; F['atr_21'] = atr21
+    F['tr'] = tr; F['tr_pct'] = tr / (g['close'].shift(1) + 1e-12)
 
-    # VWAP 10/20/50 (+ dev/%)
-    for window in [10, 20, 50]:
+    # VWAP 10/20/50
+    for window in [10,20,50]:
         v = vwap(g['close'], g['high'], g['low'], g['volume'], window)
         F[f'vwap_{window}'] = v
         dev = (g['close'] - v) / (v + 1e-12)
         F[f'vwap_{window}_dev'] = dev
         F[f'vwap_{window}_dev_pct'] = dev * 100.0
 
-    # Volume analysis (+ rel/spike)
+    # Volume
     vol = pd.to_numeric(g['volume'], errors='coerce').fillna(0.0)
-    for period in [5, 10, 20, 50]:
+    for period in [5,10,20,50]:
         sma_vol = vol.rolling(period).mean()
         med_vol = vol.rolling(period).median()
         F[f'vol_sma_{period}'] = sma_vol
@@ -409,7 +421,7 @@ def add_features_live(df):
         F[f'rel_vol_{period}'] = vol / (sma_vol + 1e-12)
         F[f'vol_spike_{period}'] = vol / (med_vol + 1e-12)
 
-    # OBV + slopes (keep raw obv)
+    # OBV + slopes
     dirn = np.sign(g['close'].diff())
     dirn = dirn.replace(0, np.nan).ffill().fillna(0)
     obv_val = (vol * dirn).cumsum()
@@ -419,7 +431,7 @@ def add_features_live(df):
     F['obv_slope_5'] = obv_val.diff(5)
 
     # Support/Resistance (+ distances)
-    for period in [20, 50, 100]:
+    for period in [20,50,100]:
         res = g['high'].rolling(period).max()
         sup = g['low'].rolling(period).min()
         F[f'resistance_{period}'] = res
@@ -428,36 +440,31 @@ def add_features_live(df):
         F[f'support_distance_{period}'] = (g['close'] - sup) / (g['close'] + 1e-12)
 
     # Momentum & ROC
-    for period in [5, 10, 20, 50]:
+    for period in [5,10,20,50]:
         F[f'momentum_{period}'] = g['close'] / g['close'].shift(period) - 1
         F[f'roc_{period}'] = g['close'].pct_change(period) * 100.0
 
     # Trend strength
-    for period in [10, 20, 50]:
+    for period in [10,20,50]:
         sma_short = sma(g['close'], period//2)
         sma_long = sma(g['close'], period)
         F[f'trend_strength_{period}'] = (sma_short - sma_long) / (sma_long + 1e-12)
 
     # Candles
     F['doji'] = ((g['close'] - g['open']).abs() <= (g['high'] - g['low']) * 0.1).astype(int)
-    F['hammer'] = (((g['close'] - g['open']) > 0) & (F['lower_shadow'] > F['body_size'] * 2)).astype(int)
-    F['shooting_star'] = (((g['open'] - g['close']) > 0) & (F['upper_shadow'] > F['body_size'] * 2)).astype(int)
+    F['hammer'] = (((g['close'] - g['open']) > 0) & (( (g[['open','close']].min(axis=1) - g['low']) / g['close']) > ((g['close'] - g['open']).abs() / g['close']) * 2)).astype(int)
+    F['shooting_star'] = (((g['open'] - g['close']) > 0) & (((g['high'] - g[['open','close']].max(axis=1)) / g['close']) > ((g['close'] - g['open']).abs() / g['close']) * 2)).astype(int)
 
     # Time features (UTC)
     hour = g['timestamp'].dt.hour
     dow = g['timestamp'].dt.dayofweek
     month = g['timestamp'].dt.month
-    F['hour'] = hour
-    F['dow'] = dow
-    F['month'] = month
-    F['hour_sin'] = np.sin(2*np.pi*hour/24)
-    F['hour_cos'] = np.cos(2*np.pi*hour/24)
-    F['dow_sin'] = np.sin(2*np.pi*dow/7)
-    F['dow_cos'] = np.cos(2*np.pi*dow/7)
-    F['month_sin'] = np.sin(2*np.pi*month/12)
-    F['month_cos'] = np.cos(2*np.pi*month/12)
+    F['hour'] = hour; F['dow'] = dow; F['month'] = month
+    F['hour_sin'] = np.sin(2*np.pi*hour/24);   F['hour_cos'] = np.cos(2*np.pi*hour/24)
+    F['dow_sin']  = np.sin(2*np.pi*dow/7);     F['dow_cos']  = np.cos(2*np.pi*dow/7)
+    F['month_sin']= np.sin(2*np.pi*month/12);  F['month_cos']= np.cos(2*np.pi*month/12)
 
-    # Session flags — UTC windows (training, inclusive)
+    # Sessions
     F['is_us_hours'] = ((hour >= 13) & (hour <= 21)).astype(int)
     F['is_asia_hours'] = ((hour >= 0) & (hour <= 8)).astype(int)
     F['is_europe_hours'] = ((hour >= 7) & (hour <= 15)).astype(int)
@@ -474,7 +481,7 @@ def add_features_live(df):
     feat_df['stoch_cross_below'] = ((feat_df['stoch_k'] < feat_df['stoch_d']) &
                                     (feat_df['stoch_k'].shift(1) >= feat_df['stoch_d'].shift(1))).astype(int)
 
-    # Lags for selected features
+    # Lags
     lag_sources = {
         'close': g['close'],
         'volume': g['volume'],
@@ -485,7 +492,7 @@ def add_features_live(df):
         'atr_14': feat_df['atr_14'],
     }
     for name, s in lag_sources.items():
-        for lag in [1, 2, 3, 5, 8]:
+        for lag in [1,2,3,5,8]:
             feat_df[f'{name}_lag_{lag}'] = s.shift(lag)
 
     # Interactions
@@ -496,16 +503,14 @@ def add_features_live(df):
     g = pd.concat([g, feat_df], axis=1)
     g.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-    # Core warmup requirement identical to training
     core_cols = ["ema_233","bb_width","rsi_14","atr_14","obv","vwap_20","macd","stoch_k"]
     g = g.dropna(subset=core_cols)
     if g.empty:
         return None
-
     return g.tail(1).copy()
 
 # --------------------------------
-# STRICT ARTIFACT LOADING (set-equality; flexible order)
+# Artifact loading (bundle preferred; otherwise strict set-match)
 # --------------------------------
 def _infer_config_path(model_path: str, features_path: str) -> str:
     base = os.path.basename(features_path)
@@ -522,11 +527,45 @@ def _load_threshold_from_config(config_path: str, fallback: float) -> float:
         with open(config_path, "r") as f:
             cfg = json.load(f)
         thr = cfg.get("threshold", None)
-        return float(thr) if thr is not None else float(fallback)
+        if thr is None:
+            return float(fallback)
+        return float(thr)
     except Exception:
         return float(fallback)
 
-def load_artifacts_flexible(model_path, scaler_path, features_path, fallback_thr: float):
+def load_artifacts_bundle(path: str, fallback_thr: float):
+    bundle = joblib.load(path)
+    if not isinstance(bundle, dict) or not {"model","scaler","features"}.issubset(bundle.keys()):
+        raise RuntimeError(f"{os.path.basename(path)} is not a valid bundle (missing keys).")
+    m = bundle["model"]; s = bundle["scaler"]; feats = list(bundle["features"])
+    thr = float(bundle.get("threshold", fallback_thr))
+
+    model_feats  = list(getattr(m, "feature_names_in_", []))
+    scaler_feats = list(getattr(s, "feature_names_in_", []))
+    if not model_feats or not scaler_feats:
+        raise RuntimeError(f"{os.path.basename(path)} bundle has model/scaler missing feature_names_in_. Re-export.")
+
+    if set(model_feats) != set(scaler_feats):
+        only_m = list(set(model_feats) - set(scaler_feats))[:10]
+        only_s = list(set(scaler_feats) - set(model_feats))[:10]
+        raise RuntimeError(
+            f"Bundle model↔scaler feature SET mismatch in {os.path.basename(path)}."
+            f"\n  model-only:  {only_m}\n  scaler-only: {only_s}"
+        )
+
+    # Use scaler order for transform (safe), but require it to be identical to model order in training runs.
+    if model_feats != scaler_feats:
+        print("⚠️  Bundle warning: model and scaler feature ORDER differ. "
+              "Training should export them with identical order. Using scaler order at runtime.")
+
+    # JSON advisory only
+    if feats and set(feats) != set(model_feats):
+        print("⚠️  Bundle warning: stored features list differs by set. Using scaler/model set at runtime.")
+
+    print(f"[ARTIFACTS] {os.path.basename(path)} | n_features={len(scaler_feats)} | thr={thr:.3f}")
+    return m, s, list(scaler_feats), thr  # return order = scaler order
+
+def load_artifacts_separate(model_path, scaler_path, features_path, fallback_thr: float):
     m = joblib.load(model_path)
     s = joblib.load(scaler_path)
     try:
@@ -537,85 +576,73 @@ def load_artifacts_flexible(model_path, scaler_path, features_path, fallback_thr
 
     model_feats  = list(getattr(m, "feature_names_in_", []))
     scaler_feats = list(getattr(s, "feature_names_in_", []))
-
     if not model_feats:
         raise RuntimeError(f"{os.path.basename(model_path)} missing feature_names_in_. Re-export by fitting on a DataFrame.")
     if not scaler_feats:
         raise RuntimeError(f"{os.path.basename(scaler_path)} missing feature_names_in_. Re-export scaler fit on a DataFrame.")
 
-    set_model  = set(model_feats)
-    set_scaler = set(scaler_feats)
-
-    # MUST match between model and scaler
-    if set_model != set_scaler:
-        only_model  = list(set_model - set_scaler)[:10]
-        only_scaler = list(set_scaler - set_model)[:10]
+    if set(model_feats) != set(scaler_feats):
+        only_model  = list(set(model_feats) - set(scaler_feats))[:10]
+        only_scaler = list(set(scaler_feats) - set(model_feats))[:10]
         raise RuntimeError(
-            "Model↔Scaler feature SET mismatch.\n"
-            f"  model file:  {os.path.basename(model_path)}\n"
-            f"  scaler file: {os.path.basename(scaler_path)}\n"
-            f"  in model only (first 10):  {only_model}\n"
-            f"  in scaler only (first 10): {only_scaler}\n"
-            "-> Fix: re-run training export for this coin so model & scaler are produced together."
+            "Model↔Scaler feature SET mismatch."
+            f"\n  model file:  {os.path.basename(model_path)}"
+            f"\n  scaler file: {os.path.basename(scaler_path)}"
+            f"\n  in model only (first 10):  {only_model}"
+            f"\n  in scaler only (first 10): {only_scaler}"
+            "\n-> Fix: re-run training export for this coin so model & scaler are produced together."
         )
 
-    # JSON is advisory; warn if it differs
-    if json_feats:
-        set_json = set(json_feats)
-        if set_json != set_model:
-            only_model_json  = list(set_model - set_json)[:10]
-            only_json_model  = list(set_json - set_model)[:10]
-            print(
-                "⚠️  JSON feature list differs from model/scaler set.\n"
-                f"  features json: {os.path.basename(features_path)}\n"
-                f"  missing in json (first 10): {only_model_json}\n"
-                f"  extra in json (first 10):   {only_json_model}\n"
-                "  (Using model/scaler features at runtime.)"
-            )
+    if json_feats and set(json_feats) != set(model_feats):
+        miss = list(set(model_feats) - set(json_feats))[:10]
+        extra = list(set(json_feats) - set(model_feats))[:10]
+        print(
+            "⚠️  JSON feature list differs from model/scaler set."
+            f"\n  features json: {os.path.basename(features_path)}"
+            f"\n  missing in json (first 10): {miss}"
+            f"\n  extra in json (first 10):   {extra}"
+            "\n  (Using scaler/model features at runtime.)"
+        )
 
-    # threshold from config (if present)
     cfg_path = _infer_config_path(model_path, features_path)
     thr = _load_threshold_from_config(cfg_path, fallback_thr)
 
-    print(
-        f"[ARTIFACTS] {os.path.basename(model_path)} | n_features={len(model_feats)} | thr={thr:.3f} "
-        f"| model/scaler sets match; JSON tolerated."
-    )
-    return m, s, {"model": model_feats, "scaler": scaler_feats}, float(thr)
+    print(f"[ARTIFACTS] {os.path.basename(model_path)} | n_features={len(scaler_feats)} | thr={thr:.3f} | model/scaler sets match")
+    return m, s, list(scaler_feats), thr  # order = scaler order
 
 # --------------------------------
-# FEATURE BUILD & SCALE with dual alignment (scaler→model)
+# STRICT FEATURE BUILD & SCALE (using scaler order)
 # --------------------------------
-def build_X_aligned(feats_df: pd.DataFrame, orders: dict, scaler):
-    need = set(orders["model"])  # equals scaler/json by construction
-    missing = [c for c in need if c not in feats_df.columns]
+def build_X_exact(feats_df: pd.DataFrame, scaler_feature_order: list, scaler):
+    missing = [c for c in scaler_feature_order if c not in feats_df.columns]
     if missing:
-        more = f" ... (+{len(missing)-20} more)" if len(missing) > 20 else ""
-        raise RuntimeError(f"Feature columns missing from live features: {missing[:20]}{more}")
+        more = f" ... (+{len(missing)-50} more)" if len(missing) > 50 else ""
+        raise RuntimeError(f"Feature columns missing from live features: {missing[:50]}{more}")
 
-    # 1) Align to SCALER order and fill NaNs = 0.0 (training parity)
-    scaler_cols = orders["scaler"]
-    X_for_scaler = feats_df[scaler_cols].astype("float32").fillna(0.0)
+    X_df = feats_df[scaler_feature_order].astype("float32")
 
-    # 2) Transform
-    X_scaled = scaler.transform(X_for_scaler)
-    X_scaled_df = pd.DataFrame(X_scaled, columns=scaler_cols, index=feats_df.index)
+    if X_df.isna().any().any():
+        bad = X_df.columns[X_df.isna().any()].tolist()
+        more = f" ... (+{len(bad)-50} more)" if len(bad) > 50 else ""
+        raise RuntimeError(f"NaNs present in features: {bad[:50]}{more}")
 
-    # 3) Reorder to MODEL order for prediction
-    model_cols = orders["model"]
-    X_model_order = X_scaled_df[model_cols].values.astype(np.float32)
+    if hasattr(scaler, "feature_names_in_"):
+        names = list(getattr(scaler, "feature_names_in_", []))
+        if names and names != scaler_feature_order:
+            raise RuntimeError("Scaler feature order mismatch vs provided order (internal bug).")
 
-    if not np.isfinite(X_model_order).all():
-        raise RuntimeError("Non-finite values after scaling/alignment.")
-    return X_model_order
+    X_scaled = scaler.transform(X_df)
+    if not np.isfinite(X_scaled).all():
+        raise RuntimeError("Non-finite values after scaling.")
+    return X_scaled
 
 def drift_report(feats_row: pd.DataFrame, scaler, top=8, prefix=""):
     try:
         cols = list(getattr(scaler, "feature_names_in_", []))
         if not cols or not hasattr(scaler, "center_") or not hasattr(scaler, "scale_"):
             return
-        x = feats_row[cols].astype(np.float32).fillna(0.0).values.reshape(1, -1)
-        z = (x - scaler.center_) / (scaler.scale_ + 1e-12)  # RobustScaler params
+        x = feats_row[cols].astype(np.float32).values.reshape(1, -1)
+        z = (x - scaler.center_) / (scaler.scale_ + 1e-12)
         pairs = sorted(
             [(cols[i], float(abs(z[0, i])), float(z[0, i])) for i in range(len(cols))],
             key=lambda t: t[1],
@@ -631,16 +658,30 @@ def drift_report(feats_row: pd.DataFrame, scaler, top=8, prefix=""):
 # Live pipeline
 # --------------------------------
 def run_live_pipeline():
-    print("🚀 Running live HGB long pipeline (multi-model per coin, flexible feature-order alignment)")
+    print("🚀 Running live HGB long pipeline (multi-model per coin, strict feature parity)")
 
-    # Load per-coin artifacts (set equality; order aligned at runtime)
+    # Load per-coin artifacts
     loaded = {}
     for coin, cfg in MODELS.items():
-        m, s, orders, thr = load_artifacts_flexible(cfg["model"], cfg["scaler"], cfg["features"], cfg["threshold"])
-        loaded[coin] = {"model": m, "scaler": s, "orders": orders, "thr": float(thr)}
+        try:
+            if "bundle" in cfg and os.path.exists(cfg["bundle"]):
+                m, s, feat_order, thr = load_artifacts_bundle(cfg["bundle"], cfg.get("threshold", 0.6))
+            else:
+                m, s, feat_order, thr = load_artifacts_separate(
+                    cfg["model"], cfg["scaler"], cfg["features"], cfg.get("threshold", 0.6)
+                )
+            loaded[coin] = {"model": m, "scaler": s, "order": feat_order, "thr": float(thr)}
+        except Exception as e:
+            print(f"❌ Live pipeline error loading {coin}: {e}")
+            # Do not crash the whole loop; just skip this coin
+            continue
+
+    if not loaded:
+        print("❌ No coins loaded. Check artifacts.")
+        return
 
     # Ensure data coverage
-    for coin in MODELS.keys():
+    for coin in loaded.keys():
         if not has_recent_400_candles(coin):
             ensure_recent_candles(coin, required_bars=400)
         last = get_latest_saved_timestamp(coin)
@@ -650,10 +691,10 @@ def run_live_pipeline():
     # Determine signal bar (latest closed) and entry bar (next)
     utc_now = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
     signal_ts = utc_now if utc_now.minute % 5 == 0 else utc_now.replace(minute=(utc_now.minute // 5) * 5)
-    entry_ts = signal_ts + timedelta(minutes=5 * ENTRY_LAG_BARS)  # aware UTC
+    entry_ts = signal_ts + timedelta(minutes=5 * ENTRY_LAG_BARS)
 
-    # Iterate only dedicated coins
-    for coin in MODELS.keys():
+    # Iterate coins
+    for coin, arte in loaded.items():
         try:
             coin_obj = Coin.objects.get(symbol=COIN_SYMBOL_MAP_DB[coin])
 
@@ -672,47 +713,39 @@ def run_live_pipeline():
                 print(f"⏭️ {coin}: insufficient/invalid features after warmup")
                 continue
 
-            # Optional drift print (pre-scaling)
-            drift_report(feats_df, loaded[coin]["scaler"], top=8, prefix=f"[{coin}]")
+            drift_report(feats_df, arte["scaler"], top=8, prefix=f"[{coin}]")
 
             try:
-                X = build_X_aligned(feats_df, loaded[coin]["orders"], loaded[coin]["scaler"])
+                X = build_X_exact(feats_df, arte["order"], arte["scaler"])
             except Exception as e:
                 print(f"⏭️ {coin}: {e}")
                 continue
 
-            # Predict
-            model = loaded[coin]["model"]
+            model = arte["model"]
             if hasattr(model, "predict_proba"):
                 prob = float(model.predict_proba(X)[0][1])
             else:
                 raw = float(getattr(model, "decision_function", lambda x: model.predict(x))(X))
-                prob = 1.0 / (1.0 + np.exp(-raw)) if not (0.0 <= raw <= 1.0) else raw
+                prob = raw if 0.0 <= raw <= 1.0 else 1.0 / (1.0 + np.exp(-raw))
 
-            thr = float(loaded[coin]["thr"])
-            print(f"📈 {coin} prob={prob:.4f} (thr={thr:.2f})")
-
+            thr = float(arte["thr"])
             ConfidenceHistory.objects.create(
                 coin=coin_obj,
-                model_name=os.path.basename(MODELS[coin]["model"]),
+                model_name=os.path.basename(getattr(model, "__module__", "model")),
                 confidence=round(prob, 4),
             )
             qs = ConfidenceHistory.objects.filter(
-                coin=coin_obj, model_name=os.path.basename(MODELS[coin]["model"])
+                coin=coin_obj
             ).order_by("-timestamp")
             if qs.count() > 12:
                 for old in qs[12:]:
                     old.delete()
 
-            custom_threshold = 0.6
-
-            if coin == "UNIUSDT" or coin == "XRPUSDT":
-                custom_threshold = 0.65
-
-            if prob < custom_threshold:
+            print(f"📈 {coin} prob={prob:.4f} (thr=0.6)")
+            if prob < 0.6:
                 continue
 
-            # Compute entry price with fallback + slippage
+            # Entry price (next bar)
             try:
                 entry_price, entry_src = get_entry_price_or_fallback(coin, entry_ts, recent, ENTRY_SLIPPAGE_PCT)
             except Exception as e:
@@ -722,17 +755,17 @@ def run_live_pipeline():
             # Telegram alert
             local_entry = entry_ts.astimezone(LOCAL_TZ)
             send_text([
-                f"📥 LONG signal {coin} | prob={prob:.3f}",
-                f"Entry (next bar {entry_src}): {entry_price:.6f} (+{ENTRY_SLIPPAGE_PCT*100:.2f}% slippage)",
-                f"TP={TAKE_PROFIT*100:.1f}% | SL={STOP_LOSS*100:.1f}% | Lev={LEVERAGE:.0f}x",
-                f"TS (UTC): {entry_ts.strftime('%Y-%m-%d %H:%M')} | TS (PT): {local_entry.strftime('%Y-%m-%d %H:%M')}"
+                f"📥 LONG {coin}  prob={prob:.3f}  thr={thr:.2f}",
+                f"Entry ({entry_src}): {entry_price:.6f}  (+{ENTRY_SLIPPAGE_PCT*100:.2f}% slippage)",
+                f"TP={TAKE_PROFIT*100:.1f}%  SL={STOP_LOSS*100:.1f}%  Lev={LEVERAGE:.0f}x",
+                f"UTC: {entry_ts.strftime('%Y-%m-%d %H:%M')} | PT: {local_entry.strftime('%Y-%m-%d %H:%M')}"
             ])
 
             # Open trade
             ModelTrade.objects.create(
                 coin=coin_obj,
                 trade_type='long',
-                entry_timestamp=entry_ts,  # aware UTC
+                entry_timestamp=entry_ts,
                 entry_price=safe_decimal(entry_price),
                 model_confidence=round(prob, 4),
                 take_profit_percent=TAKE_PROFIT * 100.0,
@@ -760,7 +793,6 @@ def run_live_pipeline():
                 print(f"⚠️ No price data for {coin_symbol}, skipping")
                 continue
 
-            # Snapshot (optional)
             LivePriceSnapshot.objects.update_or_create(
                 coin=trade.coin.symbol,
                 defaults={
@@ -784,35 +816,23 @@ def run_live_pipeline():
 
             close_reason = None
             result_bool = None
-            exit_px = last_close  # fallback
+            exit_px = last_close
 
             if tp_hit and sl_hit:
-                close_reason = "BOTH_HIT_SAME_BAR_SL_FIRST"
-                result_bool = False
-                exit_px = sl_px
+                close_reason = "BOTH_HIT_SAME_BAR_SL_FIRST"; result_bool = False; exit_px = sl_px
             elif tp_hit:
-                close_reason = "TAKE_PROFIT"
-                result_bool = True
-                exit_px = tp_px
+                close_reason = "TAKE_PROFIT"; result_bool = True; exit_px = tp_px
             elif sl_hit:
-                close_reason = "STOP_LOSS"
-                result_bool = False
-                exit_px = sl_px
+                close_reason = "STOP_LOSS"; result_bool = False; exit_px = sl_px
             else:
-                if trade.entry_timestamp:
-                    age = now() - trade.entry_timestamp
-                    if age >= timedelta(hours=MAX_HOLD_HOURS):
-                        close_reason = "MAX_HOLD"
-                        result_bool = last_close > entry_price
-                        exit_px = last_close
+                if trade.entry_timestamp and (now() - trade.entry_timestamp) >= timedelta(hours=MAX_HOLD_HOURS):
+                    close_reason = "MAX_HOLD"; result_bool = last_close > entry_price; exit_px = last_close
 
             if close_reason:
                 trade.exit_price = safe_decimal(exit_px if np.isfinite(exit_px) else last_close)
                 trade.exit_timestamp = now()
-                try:
-                    trade.result = result_bool
-                except Exception:
-                    pass
+                try: trade.result = result_bool
+                except Exception: pass
                 trade.save()
 
                 pnl_pct = (float(trade.exit_price) / entry_price - 1.0) * 100.0
