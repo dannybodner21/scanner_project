@@ -58,13 +58,13 @@ MODELS = {
         "model": "uni_long_hgb_model.joblib",
         "scaler": "uni_feature_scaler.joblib",
         "features": "uni_feature_list.json",
-        "threshold": 0.65,  # fallback if config file missing
+        "threshold": 0.65,  # fallback if config missing
     },
     "ETHUSDT": {
         "model": "eth_long_hgb_model.joblib",
         "scaler": "eth_feature_scaler.joblib",
         "features": "eth_feature_list.json",
-        "threshold": 0.6,
+        "threshold": 0.60,
     },
     "XRPUSDT": {
         "model": "xrp_long_hgb_model.joblib",
@@ -76,7 +76,7 @@ MODELS = {
         "model": "link_long_hgb_model.joblib",
         "scaler": "link_feature_scaler.joblib",
         "features": "link_feature_list.json",
-        "threshold": 0.6,
+        "threshold": 0.60,
     },
 }
 
@@ -84,8 +84,8 @@ COINAPI_KEY = os.environ.get("COINAPI_KEY", "01293e2a-dcf1-4e81-8310-c6aa9d0cb74
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 # Trade config
-TAKE_PROFIT     = 0.03
-STOP_LOSS       = 0.02
+TAKE_PROFIT     = 0.02
+STOP_LOSS       = 0.01
 LEVERAGE        = 10.0
 MAX_HOLD_HOURS  = 2
 ENTRY_LAG_BARS  = 1
@@ -101,11 +101,9 @@ def send_text(messages):
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "7672687080:AAFWvkwzp-LQE92XdO9vcVa5yWJDUxO17yE")
     chat_ids = [os.environ.get("TELEGRAM_CHAT_ID", "1077594551")]
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    # join with newlines so it renders like your multi-line template
     text = "\n".join(messages)
     for chat_id in chat_ids:
         try:
-            # ❗️No parse_mode — avoids all Markdown/HTML parsing errors
             r = requests.post(
                 url,
                 data={"chat_id": chat_id, "text": text, "disable_web_page_preview": True},
@@ -232,7 +230,7 @@ def get_entry_price_or_fallback(coin: str, entry_ts, recent_df: pd.DataFrame, sl
     return price, src
 
 # --------------------------------
-# Feature Engineering (exact parity with training two_dataset.py)
+# Feature Engineering (parity with training; returns last row)
 # --------------------------------
 def ema(s, span):
     return s.ewm(span=span, adjust=False).mean()
@@ -300,15 +298,11 @@ def money_flow_index(high, low, close, volume, period=14):
     return 100 - (100 / (1 + positive_flow / (negative_flow + 1e-12)))
 
 def add_features_live(df):
-    """
-    Generate the exact same features as training (two_dataset.py) and return the last row.
-    """
     g = df.copy()
-    g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)  # keep UTC-aware
+    g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)
     g = g.sort_values('timestamp').reset_index(drop=True)
 
     F = {}
-
     # Price action
     F['price_range'] = (g['high'] - g['low']) / g['close']
     F['body_size'] = (g['close'] - g['open']).abs() / g['close']
@@ -328,7 +322,7 @@ def add_features_live(df):
         F[f'volatility_{period}'] = vol
         F[f'volatility_{period}_squared'] = vol ** 2
 
-    # EMAs (values, slopes, close_vs)
+    # EMAs
     for span in [3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
         e = ema(g['close'], span)
         F[f'ema_{span}'] = e
@@ -424,7 +418,7 @@ def add_features_live(df):
     F['obv_slope_3'] = obv_val.diff(3)
     F['obv_slope_5'] = obv_val.diff(5)
 
-    # Support/Resistance (+ distances) — denominator = close (train parity)
+    # Support/Resistance (+ distances)
     for period in [20, 50, 100]:
         res = g['high'].rolling(period).max()
         sup = g['low'].rolling(period).min()
@@ -433,12 +427,12 @@ def add_features_live(df):
         F[f'resistance_distance_{period}'] = (res - g['close']) / (g['close'] + 1e-12)
         F[f'support_distance_{period}'] = (g['close'] - sup) / (g['close'] + 1e-12)
 
-    # Momentum & ROC (scale match)
+    # Momentum & ROC
     for period in [5, 10, 20, 50]:
         F[f'momentum_{period}'] = g['close'] / g['close'].shift(period) - 1
         F[f'roc_{period}'] = g['close'].pct_change(period) * 100.0
 
-    # Trend strength (includes 10)
+    # Trend strength
     for period in [10, 20, 50]:
         sma_short = sma(g['close'], period//2)
         sma_long = sma(g['close'], period)
@@ -468,10 +462,9 @@ def add_features_live(df):
     F['is_asia_hours'] = ((hour >= 0) & (hour <= 8)).astype(int)
     F['is_europe_hours'] = ((hour >= 7) & (hour <= 15)).astype(int)
 
-    # Build features DF once to avoid fragmentation
     feat_df = pd.DataFrame(F, index=g.index)
 
-    # Crosses (need both series in the same frame)
+    # Crosses
     feat_df['macd_cross_above'] = ((feat_df['macd'] > feat_df['macd_signal']) &
                                    (feat_df['macd'].shift(1) <= feat_df['macd_signal'].shift(1))).astype(int)
     feat_df['macd_cross_below'] = ((feat_df['macd'] < feat_df['macd_signal']) &
@@ -500,10 +493,7 @@ def add_features_live(df):
     feat_df['macd_volume_interaction'] = feat_df['macd_hist'] * feat_df['rel_vol_20']
     feat_df['momentum_volatility_interaction'] = feat_df['momentum_20'] * feat_df['volatility_20']
 
-    # Merge back to g (original columns + features)
     g = pd.concat([g, feat_df], axis=1)
-
-    # Clean inf -> NaN
     g.replace([np.inf, -np.inf], np.nan, inplace=True)
 
     # Core warmup requirement identical to training
@@ -515,10 +505,9 @@ def add_features_live(df):
     return g.tail(1).copy()
 
 # --------------------------------
-# STRICT ARTIFACT LOADING (names & order must match)
+# STRICT ARTIFACT LOADING (set-equality; flexible order)
 # --------------------------------
 def _infer_config_path(model_path: str, features_path: str) -> str:
-    # Try to infer {prefix}_trade_config.json from either model or features path
     base = os.path.basename(features_path)
     if base.endswith("_feature_list.json"):
         return features_path.replace("_feature_list.json", "_trade_config.json")
@@ -533,85 +522,89 @@ def _load_threshold_from_config(config_path: str, fallback: float) -> float:
         with open(config_path, "r") as f:
             cfg = json.load(f)
         thr = cfg.get("threshold", None)
-        if thr is None:
-            return float(fallback)
-        return float(thr)
+        return float(thr) if thr is not None else float(fallback)
     except Exception:
         return float(fallback)
 
-def load_artifacts_strict(model_path, scaler_path, features_path, fallback_thr: float):
+def load_artifacts_flexible(model_path, scaler_path, features_path, fallback_thr: float):
     m = joblib.load(model_path)
     s = joblib.load(scaler_path)
     with open(features_path) as f:
         json_feats = list(json.load(f))
 
-    model_feats = list(getattr(m, "feature_names_in_", []))
+    model_feats  = list(getattr(m, "feature_names_in_", []))
     scaler_feats = list(getattr(s, "feature_names_in_", []))
 
     if not model_feats:
         raise RuntimeError(
-            f"{os.path.basename(model_path)} was saved without feature_names_in_. "
+            f"{os.path.basename(model_path)} missing feature_names_in_. "
             f"Re-export by fitting on a DataFrame (names preserved)."
         )
     if not scaler_feats:
         raise RuntimeError(
-            f"{os.path.basename(scaler_path)} was saved without feature_names_in_. "
-            f"Re-export the scaler fit on a DataFrame with the same column order."
+            f"{os.path.basename(scaler_path)} missing feature_names_in_. "
+            f"Re-export scaler fit on a DataFrame with the same column order."
         )
 
-    # Hard equality enforcement — same length AND same order across model/scaler/JSON
-    if len(model_feats) != len(json_feats) or len(scaler_feats) != len(json_feats):
-        raise RuntimeError(
-            f"Feature count mismatch: model={len(model_feats)} scaler={len(scaler_feats)} json={len(json_feats)}"
-        )
-    if model_feats != json_feats or scaler_feats != json_feats:
-        raise RuntimeError(
-            "Feature order mismatch between model/scaler/JSON. "
-            "Re-run training export to align all three artifacts."
-        )
+    set_model  = set(model_feats)
+    set_scaler = set(scaler_feats)
+    set_json   = set(json_feats)
 
-    # Load threshold from coin's trade_config if present
+    if set_model != set_scaler or set_model != set_json:
+        missing_ms = list(set_model - set_scaler)
+        missing_sm = list(set_scaler - set_model)
+        missing_mj = list(set_model - set_json)
+        missing_jm = list(set_json - set_model)
+        msg = []
+        if missing_ms: msg.append(f"model-only: {missing_ms[:10]}{' ...' if len(missing_ms)>10 else ''}")
+        if missing_sm: msg.append(f"scaler-only: {missing_sm[:10]}{' ...' if len(missing_sm)>10 else ''}")
+        if missing_mj: msg.append(f"model-not-in-json: {missing_mj[:10]}{' ...' if len(missing_mj)>10 else ''}")
+        if missing_jm: msg.append(f"json-not-in-model: {missing_jm[:10]}{' ...' if len(missing_jm)>10 else ''}")
+        raise RuntimeError("Feature SET mismatch among artifacts: " + " | ".join(msg))
+
+    # Orders can differ; we’ll align at runtime.
     cfg_path = _infer_config_path(model_path, features_path)
     thr = _load_threshold_from_config(cfg_path, fallback_thr)
 
-    print(f"[ARTIFACTS] model={os.path.basename(model_path)} expects={len(json_feats)} features | thr={thr:.3f}")
-    return m, s, json_feats, thr
+    print(
+        f"[ARTIFACTS] {os.path.basename(model_path)} "
+        f"| n_features={len(model_feats)} | thr={thr:.3f} "
+        f"| orders: model≠scaler allowed (set-equal)."
+    )
+    return m, s, {"model": model_feats, "scaler": scaler_feats, "json": json_feats}, float(thr)
 
 # --------------------------------
-# STRICT FEATURE BUILD & SCALE
+# FEATURE BUILD & SCALE with dual alignment (scaler→model)
 # --------------------------------
-def build_X_exact(feats_df: pd.DataFrame, feature_order: list, scaler):
-    # Fail if any expected column is missing (don’t silently zero it)
-    missing = [c for c in feature_order if c not in feats_df.columns]
+def build_X_aligned(feats_df: pd.DataFrame, orders: dict, scaler):
+    need = set(orders["model"])  # equals scaler/json by construction
+    missing = [c for c in need if c not in feats_df.columns]
     if missing:
-        more = f" ... (+{len(missing)-50} more)" if len(missing) > 50 else ""
-        raise RuntimeError(f"Feature columns missing from live features: {missing[:50]}{more}")
+        more = f" ... (+{len(missing)-20} more)" if len(missing) > 20 else ""
+        raise RuntimeError(f"Feature columns missing from live features: {missing[:20]}{more}")
 
-    X_df = feats_df[feature_order].astype("float32")
+    # 1) Align to SCALER order and fill NaNs = 0.0 (training parity)
+    scaler_cols = orders["scaler"]
+    X_for_scaler = feats_df[scaler_cols].astype("float32").fillna(0.0)
 
-    # Fail if any NaNs remain (training used fillna(0) before scaling; so do that explicitly)
-    if X_df.isna().any().any():
-        bad = X_df.columns[X_df.isna().any()].tolist()
-        more = f" ... (+{len(bad)-50} more)" if len(bad) > 50 else ""
-        raise RuntimeError(f"NaNs present in features: {bad[:50]}{more}")
+    # 2) Transform
+    X_scaled = scaler.transform(X_for_scaler)
+    X_scaled_df = pd.DataFrame(X_scaled, columns=scaler_cols, index=feats_df.index)
 
-    if hasattr(scaler, "feature_names_in_"):
-        names = list(getattr(scaler, "feature_names_in_", []))
-        if names and names != feature_order:
-            raise RuntimeError("Scaler feature order mismatch vs JSON order.")
+    # 3) Reorder to MODEL order for prediction
+    model_cols = orders["model"]
+    X_model_order = X_scaled_df[model_cols].values.astype(np.float32)
 
-    X_scaled = scaler.transform(X_df)  # ndarray
-    if not np.isfinite(X_scaled).all():
-        raise RuntimeError("Non-finite values after scaling.")
-    return X_scaled
+    if not np.isfinite(X_model_order).all():
+        raise RuntimeError("Non-finite values after scaling/alignment.")
+    return X_model_order
 
 def drift_report(feats_row: pd.DataFrame, scaler, top=8, prefix=""):
-    """Optional: top-|z| robust z-scores vs scaler center/scale to catch drift fast."""
     try:
         cols = list(getattr(scaler, "feature_names_in_", []))
         if not cols or not hasattr(scaler, "center_") or not hasattr(scaler, "scale_"):
             return
-        x = feats_row[cols].astype(np.float32).values.reshape(1, -1)
+        x = feats_row[cols].astype(np.float32).fillna(0.0).values.reshape(1, -1)
         z = (x - scaler.center_) / (scaler.scale_ + 1e-12)  # RobustScaler params
         pairs = sorted(
             [(cols[i], float(abs(z[0, i])), float(z[0, i])) for i in range(len(cols))],
@@ -628,13 +621,13 @@ def drift_report(feats_row: pd.DataFrame, scaler, top=8, prefix=""):
 # Live pipeline
 # --------------------------------
 def run_live_pipeline():
-    print("🚀 Running live HGB long pipeline (multi-model per coin, strict feature parity)")
+    print("🚀 Running live HGB long pipeline (multi-model per coin, flexible feature-order alignment)")
 
-    # Load per-coin artifacts (with strict checks and threshold from config)
+    # Load per-coin artifacts (set equality; order aligned at runtime)
     loaded = {}
     for coin, cfg in MODELS.items():
-        m, s, feats, thr = load_artifacts_strict(cfg["model"], cfg["scaler"], cfg["features"], cfg["threshold"])
-        loaded[coin] = {"model": m, "scaler": s, "features": feats, "thr": float(thr)}
+        m, s, orders, thr = load_artifacts_flexible(cfg["model"], cfg["scaler"], cfg["features"], cfg["threshold"])
+        loaded[coin] = {"model": m, "scaler": s, "orders": orders, "thr": float(thr)}
 
     # Ensure data coverage
     for coin in MODELS.keys():
@@ -669,11 +662,11 @@ def run_live_pipeline():
                 print(f"⏭️ {coin}: insufficient/invalid features after warmup")
                 continue
 
-            # Optional drift print
+            # Optional drift print (pre-scaling)
             drift_report(feats_df, loaded[coin]["scaler"], top=8, prefix=f"[{coin}]")
 
             try:
-                X = build_X_exact(feats_df, loaded[coin]["features"], loaded[coin]["scaler"])
+                X = build_X_aligned(feats_df, loaded[coin]["orders"], loaded[coin]["scaler"])
             except Exception as e:
                 print(f"⏭️ {coin}: {e}")
                 continue
@@ -683,11 +676,11 @@ def run_live_pipeline():
             if hasattr(model, "predict_proba"):
                 prob = float(model.predict_proba(X)[0][1])
             else:
-                prob = float(getattr(model, "decision_function", lambda x: model.predict(x))(X))
-                # map decision_function to 0..1 if needed
-                if not (0.0 <= prob <= 1.0):
-                    prob = 1.0 / (1.0 + np.exp(-prob))
+                raw = float(getattr(model, "decision_function", lambda x: model.predict(x))(X))
+                prob = 1.0 / (1.0 + np.exp(-raw)) if not (0.0 <= raw <= 1.0) else raw
+
             thr = float(loaded[coin]["thr"])
+            print(f"📈 {coin} prob={prob:.4f} (thr={thr:.2f})")
 
             ConfidenceHistory.objects.create(
                 coin=coin_obj,
@@ -702,13 +695,9 @@ def run_live_pipeline():
                     old.delete()
 
             custom_threshold = 0.6
-            if coin == "ETHUSDT" or coin == "LINKUSDT":
-                print(f"📈 {coin} prob={prob:.4f} (thr=0.60)")
 
             if coin == "UNIUSDT" or coin == "XRPUSDT":
-                print(f"📈 {coin} prob={prob:.4f} (thr=0.65)")
                 custom_threshold = 0.65
-
 
             if prob < custom_threshold:
                 continue
@@ -723,11 +712,10 @@ def run_live_pipeline():
             # Telegram alert
             local_entry = entry_ts.astimezone(LOCAL_TZ)
             send_text([
-                f"📥 *LONG signal* {coin} | prob={prob:.3f}\n",
-                f"Entry (next bar {entry_src}): {entry_price:.6f} (+{ENTRY_SLIPPAGE_PCT*100:.2f}% slippage)\n",
-                f"TP={TAKE_PROFIT*100:.1f}% | SL={STOP_LOSS*100:.1f}% | Lev={LEVERAGE:.0f}x\n",
-                f"TS (UTC): {entry_ts.strftime('%Y-%m-%d %H:%M')} | ",
-                f"TS (PT): {local_entry.strftime('%Y-%m-%d %H:%M')}"
+                f"📥 LONG signal {coin} | prob={prob:.3f}",
+                f"Entry (next bar {entry_src}): {entry_price:.6f} (+{ENTRY_SLIPPAGE_PCT*100:.2f}% slippage)",
+                f"TP={TAKE_PROFIT*100:.1f}% | SL={STOP_LOSS*100:.1f}% | Lev={LEVERAGE:.0f}x",
+                f"TS (UTC): {entry_ts.strftime('%Y-%m-%d %H:%M')} | TS (PT): {local_entry.strftime('%Y-%m-%d %H:%M')}"
             ])
 
             # Open trade
@@ -819,7 +807,7 @@ def run_live_pipeline():
 
                 pnl_pct = (float(trade.exit_price) / entry_price - 1.0) * 100.0
                 send_text([
-                    f"📤 *Closed* {trade.trade_type.upper()} {trade.coin.symbol} — {close_reason}\n",
+                    f"📤 Closed {trade.trade_type.upper()} {trade.coin.symbol} — {close_reason}",
                     f"Entry: {entry_price:.6f} | Exit: {float(trade.exit_price):.6f} | Δ={pnl_pct:.2f}%"
                 ])
                 print(f"{close_reason} | {trade.trade_type.upper()} {trade.coin.symbol} @ {float(trade.exit_price):.6f}")
