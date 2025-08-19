@@ -118,14 +118,14 @@ MODELS = {
 # AVAXUSDT is good to go. threshold 0.6. 54% accurate. 1k -> 442k. sl=1, tp=2
 # BTCUSDT good but only a few trades. threshold 0.6. 80% accurate. 1k -> 2k. sl=1, tp=2
 
-# btc_rf_model.joblib
-# avax_lr_model.joblib
-# doge_lr_model.joblib
-# sol_rf_model.joblib
-# ltc_rf_model.joblib
-# link_rf_model.joblib
-# xrp_rf_model.joblib
-# uni_rf_model.joblib
+BTC_MODEL = "btc_rf_model.joblib"
+AVAX_MODEL = "avax_lr_model.joblib"
+DOGE_MODEL = "doge_lr_model.joblib"
+SOL_MODEL = "sol_rf_model.joblib"
+LTC_MODEL = "ltc_rf_model.joblib"
+LINK_MODEL = "link_rf_model.joblib"
+XRP_MODEL = "xrp_rf_model.joblib"
+UNI_MODEL = "uni_rf_model.joblib"
 
 
 COINAPI_KEY = os.environ.get("COINAPI_KEY", "01293e2a-dcf1-4e81-8310-c6aa9d0cb743")
@@ -735,9 +735,31 @@ def run_live_pipeline():
                 prob = raw if 0.0 <= raw <= 1.0 else 1.0 / (1.0 + np.exp(-raw))
 
             thr = float(arte["thr"])
+
+
+            CURRENT_MODEL = "no model found"
+
+            if coin == "BTCUSDT":
+                CURRENT_MODEL = BTC_MODEL
+            elif coin == "AVAXUSDT":
+                CURRENT_MODEL = AVAX_MODEL
+            elif coin == "DOGEUSDT":
+                CURRENT_MODEL = DOGE_MODEL
+            elif coin == "SOLUSDT":
+                CURRENT_MODEL = SOL_MODEL
+            elif coin == "LTCUSDT":
+                CURRENT_MODEL = LTC_MODEL
+            elif coin == "LINKUSDT":
+                CURRENT_MODEL = LINK_MODEL
+            elif coin == "XRPUSDT":
+                CURRENT_MODEL = XRP_MODEL
+            elif coin == "UNIUSDT":
+                CURRENT_MODEL = UNI_MODEL
+
+
             ConfidenceHistory.objects.create(
                 coin=coin_obj,
-                model_name=os.path.basename(getattr(model, "__module__", "model")),
+                model_name=CURRENT_MODEL,
                 confidence=round(prob, 4),
             )
             qs = ConfidenceHistory.objects.filter(
@@ -778,6 +800,7 @@ def run_live_pipeline():
                 stop_loss_percent=STOP_LOSS * 100.0,
                 confidence_trade=thr,
                 recent_confidences=[],
+                model_name=CURRENT_MODEL,
             )
             print(f"✅ LONG opened: {coin} @ {entry_price:.6f} ({entry_src}, ts={entry_ts})")
 
