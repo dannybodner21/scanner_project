@@ -495,7 +495,7 @@ def get_model_results(request):
     xrp_long_wins = ModelTrade.objects.filter(trade_type="long", model_name=xrp_model, result=True).count()
     
 
-    ada_histroy = ConfidenceHistory.objects.filter(
+    ada_history = ConfidenceHistory.objects.filter(
         model_name=ada_model,
         coin__symbol="ADA"
     ).order_by("timestamp")
