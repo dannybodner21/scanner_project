@@ -1,0 +1,39 @@
+{
+  "coin": "ATOMUSDT",
+  "train_window": {
+    "start": "2023-01-01 00:00:00+00:00",
+    "end": "2025-06-30 23:55:00+00:00"
+  },
+  "test_window": {
+    "start": "2025-07-01 00:00:00+00:00",
+    "end": "2025-08-19 23:55:00+00:00"
+  },
+  "move_threshold": 0.03,
+  "max_lookahead": 48,
+  "strategy": "Simple move detection for easier prediction",
+  "threshold": 0.185,
+  "balance_method": "class_weights",
+  "test_metrics": {
+    "acc": 0.4112,
+    "prec": 0.4112,
+    "rec": 1.0,
+    "f1": 0.5828,
+    "auc": 0.6189,
+    "balanced_acc": 0.5,
+    "mcc": 0.0,
+    "confusion": [
+      [
+        0,
+        600
+      ],
+      [
+        0,
+        419
+      ]
+    ]
+  },
+  "n_features": 20,
+  "model_type": "RandomForestClassifier",
+  "feature_selection_method": "RF importance + mutual information",
+  "scaling_method": "RobustScaler"
+}

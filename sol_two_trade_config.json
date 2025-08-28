@@ -1,0 +1,39 @@
+{
+  "coin": "SOLUSDT",
+  "train_window": {
+    "start": "2023-01-01 00:00:00+00:00",
+    "end": "2025-06-30 23:55:00+00:00"
+  },
+  "test_window": {
+    "start": "2025-07-01 00:00:00+00:00",
+    "end": "2025-08-19 23:55:00+00:00"
+  },
+  "move_threshold": 0.02,
+  "max_lookahead": 48,
+  "strategy": "Simple move detection for easier prediction",
+  "threshold": 0.23,
+  "balance_method": "class_weights",
+  "test_metrics": {
+    "acc": 0.4873,
+    "prec": 0.4873,
+    "rec": 0.9984,
+    "f1": 0.655,
+    "auc": 0.4652,
+    "balanced_acc": 0.5,
+    "mcc": -0.001,
+    "confusion": [
+      [
+        3,
+        1981
+      ],
+      [
+        3,
+        1883
+      ]
+    ]
+  },
+  "n_features": 20,
+  "model_type": "RandomForestClassifier",
+  "feature_selection_method": "RF importance + mutual information",
+  "scaling_method": "RobustScaler"
+}

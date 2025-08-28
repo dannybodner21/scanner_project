@@ -1,0 +1,39 @@
+{
+  "coin": "UNIUSDT",
+  "train_window": {
+    "start": "2023-01-01 00:00:00+00:00",
+    "end": "2025-06-30 23:55:00+00:00"
+  },
+  "test_window": {
+    "start": "2025-07-01 00:00:00+00:00",
+    "end": "2025-08-19 23:55:00+00:00"
+  },
+  "move_threshold": 0.02,
+  "max_lookahead": 48,
+  "strategy": "Simple move detection for easier prediction",
+  "threshold": 0.24,
+  "balance_method": "class_weights",
+  "test_metrics": {
+    "acc": 0.5262,
+    "prec": 0.5224,
+    "rec": 0.9789,
+    "f1": 0.6812,
+    "auc": 0.5138,
+    "balanced_acc": 0.51,
+    "mcc": 0.0577,
+    "confusion": [
+      [
+        136,
+        3176
+      ],
+      [
+        75,
+        3474
+      ]
+    ]
+  },
+  "n_features": 20,
+  "model_type": "RandomForestClassifier",
+  "feature_selection_method": "RF importance + mutual information",
+  "scaling_method": "RobustScaler"
+}

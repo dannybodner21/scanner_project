@@ -153,11 +153,6 @@ scanner/management/commands/polygon_xrp.py
 scanner/management/commands/tradingview_browser_backfill.py
 scanner/management/commands/tradingview_prices.py
 
-
-ada_feature_list.json
-ada_feature_scaler.joblib
-ada_long_hgb_model.joblib
-ada_trade_config.json
 scanner/management/commands/ada_dataset.py
 scanner/management/commands/btc_dataset.py
 scanner/management/commands/eth_dataset.py
@@ -166,26 +161,6 @@ scanner/management/commands/ltc_dataset.py
 scanner/management/commands/shib_dataset.py
 scanner/management/commands/trx_dataset.py
 scanner/management/commands/uni_dataset.py
-shib_feature_list.json
-shib_feature_scaler.joblib
-shib_long_hgb_model.joblib
-shib_trade_config.json
-trx_feature_list.json
-trx_feature_scaler.joblib
-trx_long_hgb_model.joblib
-trx_trade_config.json
-ada_rf_model.joblib
-dot_rf_model.joblib
-trx_rf_model.joblib
-atom_feature_list.json
-atom_feature_scaler.joblib
-atom_long_hgb_model.joblib
-atom_trade_config.json
-dot_lr_model.joblib
-shib_rf_model.joblib
-xlm_feature_list.json
-xlm_feature_scaler.joblib
-xlm_long_hgb_model.joblib
-xlm_trade_config.json
+
 
 

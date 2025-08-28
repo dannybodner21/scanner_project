@@ -1,0 +1,22 @@
+[
+  "ema_200",
+  "resistance_20",
+  "ema_50",
+  "support_20",
+  "bb_upper",
+  "ema_20",
+  "volatility_50",
+  "bb_lower",
+  "volatility_20",
+  "momentum_50",
+  "momentum_20",
+  "ret_20",
+  "resistance_distance",
+  "close_vs_ema_20",
+  "support_distance",
+  "macd_hist",
+  "is_us_hours",
+  "ret_5",
+  "body_size",
+  "ret_1"
+]

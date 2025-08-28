@@ -1,0 +1,39 @@
+{
+  "coin": "XLMUSDT",
+  "train_window": {
+    "start": "2023-01-01 00:00:00+00:00",
+    "end": "2025-06-30 23:55:00+00:00"
+  },
+  "test_window": {
+    "start": "2025-07-01 00:00:00+00:00",
+    "end": "2025-08-19 23:55:00+00:00"
+  },
+  "move_threshold": 0.025,
+  "max_lookahead": 48,
+  "strategy": "Simple move detection for easier prediction",
+  "threshold": 0.34,
+  "balance_method": "class_weights",
+  "test_metrics": {
+    "acc": 0.5292,
+    "prec": 0.5279,
+    "rec": 0.9996,
+    "f1": 0.6909,
+    "auc": 0.5828,
+    "balanced_acc": 0.5029,
+    "mcc": 0.0517,
+    "confusion": [
+      [
+        13,
+        2055
+      ],
+      [
+        1,
+        2298
+      ]
+    ]
+  },
+  "n_features": 20,
+  "model_type": "RandomForestClassifier",
+  "feature_selection_method": "RF importance + mutual information",
+  "scaling_method": "RobustScaler"
+}

@@ -53,89 +53,113 @@ COIN_SYMBOL_MAP_DB = {
     "XLMUSDT": "XLM","TRXUSDT": "TRX","ATOMUSDT": "ATOM",
 }
 
-# Prefer bundles; fallback to separate files if you haven’t migrated yet.
+# Prefer bundles; fallback to separate files if you haven't migrated yet.
 MODELS = {
-    # Example with bundle:
-    # "DOTUSDT": {"bundle": "models/dot_model_bundle.joblib"},
-    # If you don’t have bundles yet, use the separate-file form:
-    "UNIUSDT": {
-        "model": "uni_rf_model.joblib",
-        "scaler": "uni_feature_scaler.joblib",
-        "features": "uni_feature_list.json",
-        "threshold": 0.6,
+    # All new simplified models from dot_dataset.py script
+    "ADAUSDT": {
+        "model": "ada_rf_model.joblib",
+        "scaler": "ada_two_feature_scaler.joblib",
+        "features": "ada_two_feature_list.json",
+        "threshold": 0.5,
     },
-    "XRPUSDT": {
-        "model": "xrp_rf_model.joblib",
-        "scaler": "xrp_feature_scaler.joblib",
-        "features": "xrp_feature_list.json",
-        "threshold": 0.6,
-    },
-    "LINKUSDT": {
-        "model": "link_rf_model.joblib",
-        "scaler": "link_feature_scaler.joblib",
-        "features": "link_feature_list.json",
-        "threshold": 0.60,
-    },
-    "LTCUSDT": {
-        "model": "ltc_rf_model.joblib",
-        "scaler": "ltc_feature_scaler.joblib",
-        "features": "ltc_feature_list.json",
-        "threshold": 0.60,
-    },
-    "SOLUSDT": {
-        "model": "sol_rf_model.joblib",
-        "scaler": "sol_feature_scaler.joblib",
-        "features": "sol_feature_list.json",
-        "threshold": 0.60,
-    },
-    "DOGEUSDT": {
-        "model": "doge_lr_model.joblib",
-        "scaler": "doge_feature_scaler.joblib",
-        "features": "doge_feature_list.json",
-        "threshold": 0.60,
+    "ATOMUSDT": {
+        "model": "atom_rf_model.joblib",
+        "scaler": "atom_two_feature_scaler.joblib",
+        "features": "atom_two_feature_list.json",
+        "threshold": 0.5,
     },
     "AVAXUSDT": {
         "model": "avax_lr_model.joblib",
-        "scaler": "avax_feature_scaler.joblib",
-        "features": "avax_feature_list.json",
-        "threshold": 0.60,
+        "scaler": "avax_two_feature_scaler.joblib",
+        "features": "avax_two_feature_list.json",
+        "threshold": 0.5,
     },
     "BTCUSDT": {
-        "model": "btc_rf_model.joblib",
-        "scaler": "btc_feature_scaler.joblib",
-        "features": "btc_feature_list.json",
-        "threshold": 0.60,
+        "model": "btc_lr_model.joblib",
+        "scaler": "btc_two_feature_scaler.joblib",
+        "features": "btc_two_feature_list.json",
+        "threshold": 0.38,
+    },
+    "DOGEUSDT": {
+        "model": "doge_two_long_hgb_model.joblib",
+        "scaler": "doge_two_feature_scaler.joblib",
+        "features": "doge_two_feature_list.json",
+        "threshold": 0.5,
+    },
+    "DOTUSDT": {
+        "model": "dot_rf_model.joblib",
+        "scaler": "dot_two_feature_scaler.joblib",
+        "features": "dot_two_feature_list.json",
+        "threshold": 0.55,
+    },
+    "ETHUSDT": {
+        "model": "eth_lr_model.joblib",
+        "scaler": "eth_two_feature_scaler.joblib",
+        "features": "eth_two_feature_list.json",
+        "threshold": 0.4,
+    },
+    "LINKUSDT": {
+        "model": "link_lr_model.joblib",
+        "scaler": "link_two_feature_scaler.joblib",
+        "features": "link_two_feature_list.json",
+        "threshold": 0.45,
+    },
+    "LTCUSDT": {
+        "model": "ltc_rf_model.joblib",
+        "scaler": "ltc_two_feature_scaler.joblib",
+        "features": "ltc_two_feature_list.json",
+        "threshold": 0.55,
+    },
+    "SHIBUSDT": {
+        "model": "shib_rf_model.joblib",
+        "scaler": "shib_two_feature_scaler.joblib",
+        "features": "shib_two_feature_list.json",
+        "threshold": 0.55,
+    },
+    "SOLUSDT": {
+        "model": "sol_rf_model.joblib",
+        "scaler": "sol_two_feature_scaler.joblib",
+        "features": "sol_two_feature_list.json",
+        "threshold": 0.5,
+    },
+    "TRXUSDT": {
+        "model": "trx_two_long_hgb_model.joblib",
+        "scaler": "trx_two_feature_scaler.joblib",
+        "features": "trx_two_feature_list.json",
+        "threshold": 0.1,
+    },
+    "UNIUSDT": {
+        "model": "uni_rf_model.joblib",
+        "scaler": "uni_two_feature_scaler.joblib",
+        "features": "uni_two_feature_list.json",
+        "threshold": 0.55,
+    },
+    "XLMUSDT": {
+        "model": "xlm_rf_model.joblib",
+        "scaler": "xlm_two_feature_scaler.joblib",
+        "features": "xlm_two_feature_list.json",
+        "threshold": 0.5,
+    },
+    "XRPUSDT": {
+        "model": "xrp_rf_model.joblib",
+        "scaler": "xrp_two_feature_scaler.joblib",
+        "features": "xrp_two_feature_list.json",
+        "threshold": 0.55,
     },
 }
 
-
-# UNIUSDT is good to go. threshold 0.6. 58% accurate. 1k -> 17M in 5 months. sl=1, tp=2
-# XRPUSDT is good to go. threshold 0.6. 56% accurate. 1k -> 20k. sl=1, tp=2
-# LINKUSDT is goog to go. threshold 0.6. 56% accurate. 1k -> 76k. sl=1, tp=2
-# LTCUSDT is good to go. threshold 0.6. 56% accurate. 1k -> 35k in 5 months. sl=1, tp=2
-# SOLUSDT is good to go. threshold 0.6. 60% accurate. 1k -> 231k. sl=1, tp=2
-# DOGEUSDT is good to go. threshold 0.6. 51% accurate. 1k -> 1.3M. sl=1, tp=2
-# AVAXUSDT is good to go. threshold 0.6. 54% accurate. 1k -> 442k. sl=1, tp=2
-# BTCUSDT good but only a few trades. threshold 0.6. 80% accurate. 1k -> 2k. sl=1, tp=2
-
-BTC_MODEL = "btc_rf_model.joblib"
-AVAX_MODEL = "avax_lr_model.joblib"
-DOGE_MODEL = "doge_lr_model.joblib"
-SOL_MODEL = "sol_rf_model.joblib"
-LTC_MODEL = "ltc_rf_model.joblib"
-LINK_MODEL = "link_rf_model.joblib"
-XRP_MODEL = "xrp_rf_model.joblib"
-UNI_MODEL = "uni_rf_model.joblib"
+# All models now use new simplified approach from dot_dataset.py script
+# No more old model constants needed
 
 
 COINAPI_KEY = os.environ.get("COINAPI_KEY", "01293e2a-dcf1-4e81-8310-c6aa9d0cb743")
 BASE_URL = "https://rest.coinapi.io/v1/ohlcv"
 
 # Trade config
-TAKE_PROFIT     = 0.02
-STOP_LOSS       = 0.01
-LEVERAGE        = 10.0
-MAX_HOLD_HOURS  = 2
+TAKE_PROFIT     = 0.02  # +2%
+STOP_LOSS       = 0.01  # -1%
+LEVERAGE        = 15.0   # 15x leverage
+MAX_HOLD_HOURS  = None   # No max hold constraint
 ENTRY_LAG_BARS  = 1
 ENTRY_SLIPPAGE_PCT = float(os.environ.get("ENTRY_SLIPPAGE_PCT", "0.001"))
 LOCAL_TZ = ZoneInfo("America/Los_Angeles")
@@ -323,6 +347,9 @@ def money_flow_index(high, low, close, volume, period=14):
     negative_flow = mf.where(mf < 0, 0).rolling(period).sum()
     return 100 - (100 / (1 + positive_flow / (negative_flow + 1e-12)))
 
+# --------------------------------
+# Complex Feature engineering (NO LONGER USED - replaced by simplified approach)
+# --------------------------------
 def add_features_live(df):
     g = df.copy()
     g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)
@@ -510,6 +537,106 @@ def add_features_live(df):
     g.replace([np.inf, -np.inf], np.nan, inplace=True)
 
     core_cols = ["ema_233","bb_width","rsi_14","atr_14","obv","vwap_20","macd","stoch_k"]
+    g = g.dropna(subset=core_cols)
+    if g.empty:
+        return None
+    return g.tail(1).copy()
+
+# --------------------------------
+# Simplified Feature engineering for DOTUSDT (20 features only)
+# --------------------------------
+def add_features_simplified_dot(df):
+    """
+    Simplified feature engineering for DOTUSDT - matches the new 20-feature model
+    This is completely separate from the existing complex feature engineering
+    """
+    g = df.copy()
+    g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)
+    g = g.sort_values('timestamp').reset_index(drop=True)
+
+    F = {}
+    
+    # Core Price Action (3 features)
+    F['price_range'] = (g['high'] - g['low']) / g['close']
+    F['body_size'] = (g['close'] - g['open']).abs() / g['close']
+    F['close_position'] = (g['close'] - g['low']) / (g['high'] - g['low'] + 1e-12)
+    
+    # Core Returns (3 features)
+    F['ret_1'] = g['close'].pct_change(1)
+    F['ret_5'] = g['close'].pct_change(5)
+    F['ret_20'] = g['close'].pct_change(20)
+    
+    # Core Volatility (2 features)
+    F['volatility_20'] = g['close'].pct_change().rolling(20).std()
+    F['volatility_50'] = g['close'].pct_change().rolling(50).std()
+    
+    # Core EMAs (3 features)
+    F['ema_20'] = g['close'].ewm(span=20).mean()
+    F['ema_50'] = g['close'].ewm(span=50).mean()
+    F['ema_200'] = g['close'].ewm(span=200).mean()
+    F['close_vs_ema_20'] = (g['close'] - F['ema_20']) / F['ema_20']
+    F['close_vs_ema_50'] = (g['close'] - F['ema_50']) / F['ema_50']
+    F['ema_trend'] = (F['ema_20'] - F['ema_50']) / F['ema_50']
+    
+    # Core MACD (2 features)
+    F['macd'] = g['close'].ewm(span=12).mean() - g['close'].ewm(span=26).mean()
+    F['macd_signal'] = F['macd'].ewm(span=9).mean()
+    F['macd_hist'] = F['macd'] - F['macd_signal']
+    
+    # Core RSI (1 feature)
+    def rsi(series, period=14):
+        delta = series.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        rs = gain / (loss + 1e-12)
+        return 100 - (100 / (1 + rs))
+    
+    F['rsi_14'] = rsi(g['close'], 14)
+    
+    # Core Bollinger Bands (2 features)
+    bb_20 = g['close'].rolling(20).mean()
+    bb_std = g['close'].rolling(20).std()
+    F['bb_upper'] = bb_20 + (bb_std * 2)
+    F['bb_lower'] = bb_20 - (bb_std * 2)
+    F['bb_position'] = (g['close'] - bb_20) / (bb_std + 1e-12)
+    F['bb_width'] = (F['bb_upper'] - F['bb_lower']) / bb_20
+    
+    # Core Volume (3 features)
+    vol = pd.to_numeric(g['volume'], errors='coerce').fillna(0.0)
+    F['vol_sma_20'] = vol.rolling(20).mean()
+    F['rel_vol'] = vol / F['vol_sma_20']
+    F['vol_spike'] = vol / vol.rolling(50).median()
+    
+    # Core ATR (1 feature)
+    F['atr_14'] = ((g['high'] - g['low']).rolling(14).mean() + 
+                    (g['high'] - g['close'].shift(1)).abs().rolling(14).mean() + 
+                    (g['low'] - g['close'].shift(1)).abs().rolling(14).mean()) / 3
+    
+    # Core Support/Resistance (2 features)
+    F['resistance_20'] = g['high'].rolling(20).max()
+    F['support_20'] = g['low'].rolling(20).min()
+    F['resistance_distance'] = (F['resistance_20'] - g['close']) / g['close']
+    F['support_distance'] = (g['close'] - F['support_20']) / g['close']
+    
+    # Core Momentum (2 features)
+    F['momentum_20'] = g['close'] / g['close'].shift(20) - 1
+    F['momentum_50'] = g['close'] / g['close'].shift(50) - 1
+    
+    # Core Time Features (2 features)
+    hour = g['timestamp'].dt.hour
+    F['hour_sin'] = np.sin(2*np.pi*hour/24)
+    F['is_us_hours'] = ((hour >= 13) & (hour <= 21)).astype(int)
+    
+    # Core Crosses (2 features)
+    F['ema_cross'] = ((F['ema_20'] > F['ema_50']) & (F['ema_20'].shift(1) <= F['ema_50'].shift(1))).astype(int)
+    F['macd_cross'] = ((F['macd'] > F['macd_signal']) & (F['macd'].shift(1) <= F['macd_signal'].shift(1))).astype(int)
+    
+    feat_df = pd.DataFrame(F, index=g.index)
+    g = pd.concat([g, feat_df], axis=1)
+    g.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+    # Only keep essential columns for prediction (matches training)
+    core_cols = ["ema_20", "ema_50", "rsi_14", "bb_position", "vol_sma_20"]
     g = g.dropna(subset=core_cols)
     if g.empty:
         return None
@@ -714,7 +841,10 @@ def run_live_pipeline():
                 print(f"⏭️ {coin}: no recent candles")
                 continue
 
-            feats_df = add_features_live(recent)
+            # All coins now use simplified feature engineering (20 features)
+            print(f"🔧 {coin}: Using simplified feature engineering (20 features)")
+            feats_df = add_features_simplified_dot(recent)
+                
             if feats_df is None or feats_df.empty:
                 print(f"⏭️ {coin}: insufficient/invalid features after warmup")
                 continue
@@ -739,22 +869,36 @@ def run_live_pipeline():
 
             CURRENT_MODEL = "no model found"
 
-            if coin == "BTCUSDT":
-                CURRENT_MODEL = BTC_MODEL
+            if coin == "ADAUSDT":
+                CURRENT_MODEL = "ada_rf_model.joblib"
+            elif coin == "ATOMUSDT":
+                CURRENT_MODEL = "atom_rf_model.joblib"
             elif coin == "AVAXUSDT":
-                CURRENT_MODEL = AVAX_MODEL
+                CURRENT_MODEL = "avax_lr_model.joblib"
+            elif coin == "BTCUSDT":
+                CURRENT_MODEL = "btc_lr_model.joblib"
             elif coin == "DOGEUSDT":
-                CURRENT_MODEL = DOGE_MODEL
-            elif coin == "SOLUSDT":
-                CURRENT_MODEL = SOL_MODEL
-            elif coin == "LTCUSDT":
-                CURRENT_MODEL = LTC_MODEL
+                CURRENT_MODEL = "doge_two_long_hgb_model.joblib"
+            elif coin == "DOTUSDT":
+                CURRENT_MODEL = "dot_rf_model.joblib"
+            elif coin == "ETHUSDT":
+                CURRENT_MODEL = "eth_lr_model.joblib"
             elif coin == "LINKUSDT":
-                CURRENT_MODEL = LINK_MODEL
-            elif coin == "XRPUSDT":
-                CURRENT_MODEL = XRP_MODEL
+                CURRENT_MODEL = "link_lr_model.joblib"
+            elif coin == "LTCUSDT":
+                CURRENT_MODEL = "ltc_rf_model.joblib"
+            elif coin == "SHIBUSDT":
+                CURRENT_MODEL = "shib_rf_model.joblib"
+            elif coin == "SOLUSDT":
+                CURRENT_MODEL = "sol_rf_model.joblib"
+            elif coin == "TRXUSDT":
+                CURRENT_MODEL = "trx_two_long_hgb_model.joblib"
             elif coin == "UNIUSDT":
-                CURRENT_MODEL = UNI_MODEL
+                CURRENT_MODEL = "uni_rf_model.joblib"
+            elif coin == "XLMUSDT":
+                CURRENT_MODEL = "xlm_rf_model.joblib"
+            elif coin == "XRPUSDT":
+                CURRENT_MODEL = "xrp_rf_model.joblib"
 
 
             ConfidenceHistory.objects.create(
@@ -854,8 +998,8 @@ def run_live_pipeline():
             elif sl_hit:
                 close_reason = "STOP_LOSS"; result_bool = False; exit_px = sl_px
             else:
-                if trade.entry_timestamp and (now() - trade.entry_timestamp) >= timedelta(hours=MAX_HOLD_HOURS):
-                    close_reason = "MAX_HOLD"; result_bool = last_close > entry_price; exit_px = last_close
+                # No max hold constraint - trades stay open until TP or SL hit
+                pass
 
             if close_reason:
                 trade.exit_price = safe_decimal(exit_px if np.isfinite(exit_px) else last_close)
