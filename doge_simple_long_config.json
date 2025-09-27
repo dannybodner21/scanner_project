@@ -1,0 +1,15 @@
+{
+  "coin": "DOGEUSDT",
+  "strategy": "SIMPLE long trading - conservative trend following",
+  "move_threshold": 0.03,
+  "max_lookahead": 24,
+  "threshold": 0.3,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.4981,
+    "prec": 0.4835,
+    "rec": 0.9719,
+    "f1": 0.6458,
+    "auc": 0.6489
+  }
+}

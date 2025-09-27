@@ -1,0 +1,20 @@
+[
+  "ema_20",
+  "ema_50",
+  "ema_200",
+  "trend_strength",
+  "ret_5",
+  "ret_20",
+  "momentum",
+  "atr_14",
+  "volatility",
+  "rsi_14",
+  "rsi_overbought",
+  "bb_position",
+  "bb_squeeze",
+  "vol_sma_20",
+  "rel_vol",
+  "price_below_ema_20",
+  "ema_trend_down",
+  "bearish_momentum"
+]

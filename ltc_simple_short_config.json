@@ -1,0 +1,15 @@
+{
+  "coin": "LTCUSDT",
+  "strategy": "SIMPLE short trading - conservative trend following",
+  "move_threshold": 0.03,
+  "max_lookahead": 24,
+  "threshold": 0.3,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.5182,
+    "prec": 0.5132,
+    "rec": 0.9757,
+    "f1": 0.6726,
+    "auc": 0.6194
+  }
+}

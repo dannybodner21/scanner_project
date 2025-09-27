@@ -1,0 +1,15 @@
+{
+  "coin": "LINKUSDT",
+  "strategy": "SIMPLE long trading - conservative trend following",
+  "move_threshold": 0.03,
+  "max_lookahead": 24,
+  "threshold": 0.3,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.525,
+    "prec": 0.5193,
+    "rec": 0.9266,
+    "f1": 0.6656,
+    "auc": 0.5245
+  }
+}

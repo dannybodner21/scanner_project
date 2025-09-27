@@ -1,0 +1,15 @@
+{
+  "coin": "SOLUSDT",
+  "strategy": "SIMPLE long trading - conservative trend following",
+  "move_threshold": 0.03,
+  "max_lookahead": 24,
+  "threshold": 0.3,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.5024,
+    "prec": 0.4801,
+    "rec": 0.9475,
+    "f1": 0.6373,
+    "auc": 0.6078
+  }
+}

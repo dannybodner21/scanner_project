@@ -1,0 +1,15 @@
+{
+  "coin": "TRXUSDT",
+  "strategy": "SIMPLE long trading - conservative trend following",
+  "move_threshold": 0.02,
+  "max_lookahead": 36,
+  "threshold": 0.36,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.566,
+    "prec": 0.4722,
+    "rec": 0.6258,
+    "f1": 0.5383,
+    "auc": 0.5927
+  }
+}

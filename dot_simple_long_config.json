@@ -1,0 +1,15 @@
+{
+  "coin": "DOTUSDT",
+  "strategy": "SIMPLE long trading - conservative trend following",
+  "move_threshold": 0.03,
+  "max_lookahead": 24,
+  "threshold": 0.3,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.4749,
+    "prec": 0.4557,
+    "rec": 0.9166,
+    "f1": 0.6087,
+    "auc": 0.5922
+  }
+}

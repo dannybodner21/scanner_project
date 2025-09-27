@@ -1,0 +1,47 @@
+{
+  "coin": "DOTUSDT",
+  "train_window": {
+    "start": "2023-01-01 00:00:00+00:00",
+    "end": "2025-04-01 00:00:00+00:00"
+  },
+  "test_window": {
+    "start": "2025-04-01 00:05:00+00:00",
+    "end": "2025-09-02 23:55:00+00:00"
+  },
+  "tp": 0.03,
+  "sl": 0.01,
+  "max_hold_bars": 48,
+  "same_bar_policy": "sl-first",
+  "threshold": 0.88,
+  "balance_method": "class_weights",
+  "fill_policy": "assert",
+  "economics": {
+    "leverage": 15.0,
+    "entry_fee_bps": 0.0,
+    "exit_fee_bps": 0.0,
+    "val_pnl_per_trade": 0.071999
+  },
+  "test_metrics_on_labeled_subset": {
+    "acc": 0.8987,
+    "prec": 0.0,
+    "rec": 0.0,
+    "f1": 0.0,
+    "auc": 0.5648,
+    "balanced_acc": 0.4999,
+    "confusion": [
+      [
+        21301,
+        4
+      ],
+      [
+        2397,
+        0
+      ]
+    ]
+  },
+  "n_features": 37,
+  "model_type": "LogisticRegression",
+  "feature_selection_method": "RF importance \u2192 mutual information",
+  "scaling_method": "RobustScaler",
+  "calibration": "Isotonic on validation slice"
+}

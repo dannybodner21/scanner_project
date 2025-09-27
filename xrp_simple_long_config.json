@@ -1,0 +1,15 @@
+{
+  "coin": "XRPUSDT",
+  "strategy": "SIMPLE long trading - conservative trend following",
+  "move_threshold": 0.03,
+  "max_lookahead": 24,
+  "threshold": 0.44,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.5574,
+    "prec": 0.536,
+    "rec": 0.5781,
+    "f1": 0.5563,
+    "auc": 0.583
+  }
+}

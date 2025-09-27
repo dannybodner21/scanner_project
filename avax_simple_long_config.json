@@ -1,0 +1,15 @@
+{
+  "coin": "AVAXUSDT",
+  "strategy": "SIMPLE long trading - conservative trend following",
+  "move_threshold": 0.03,
+  "max_lookahead": 24,
+  "threshold": 0.3,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.5051,
+    "prec": 0.4924,
+    "rec": 0.9329,
+    "f1": 0.6446,
+    "auc": 0.5537
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "coin": "ETHUSDT",
+  "strategy": "SIMPLE long trading - conservative trend following",
+  "move_threshold": 0.03,
+  "max_lookahead": 24,
+  "threshold": 0.3,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.5015,
+    "prec": 0.4659,
+    "rec": 0.8968,
+    "f1": 0.6132,
+    "auc": 0.6271
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "coin": "SHIBUSDT",
+  "strategy": "SIMPLE long trading - conservative trend following",
+  "move_threshold": 0.03,
+  "max_lookahead": 24,
+  "threshold": 0.33,
+  "n_features": 18,
+  "test_metrics": {
+    "acc": 0.5129,
+    "prec": 0.4835,
+    "rec": 0.8983,
+    "f1": 0.6286,
+    "auc": 0.6284
+  }
+}
