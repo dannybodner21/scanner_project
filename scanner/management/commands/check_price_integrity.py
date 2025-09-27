@@ -6,7 +6,7 @@ from collections import Counter
 
 
 
-# python manage.py check_price_integrity --start 2023-01-01 --end 2025-08-08 --coins BTCUSDT ETHUSDT XRPUSDT LTCUSDT SOLUSDT DOGEUSDT LINKUSDT DOTUSDT SHIBUSDT ADAUSDT UNIUSDT AVAXUSDT XLMUSDT TRXUSDT ATOMUSDT
+# python manage.py check_price_integrity --start 2025-08-01 --end 2025-09-07 --coins BTCUSDT ETHUSDT XRPUSDT LTCUSDT SOLUSDT DOGEUSDT LINKUSDT DOTUSDT SHIBUSDT ADAUSDT UNIUSDT AVAXUSDT XLMUSDT TRXUSDT ATOMUSDT
 
 # python manage.py check_price_integrity --start 2023-01-01 --end 2025-08-08 --coins ATOMUSDT
 

@@ -14,7 +14,7 @@ class Command(BaseCommand):
         ]
 
         start = datetime(2023, 1, 1, tzinfo=timezone.utc)
-        end = datetime(2025, 8, 17, 23, 55, tzinfo=timezone.utc)
+        end = datetime(2025, 9, 2, 23, 55, tzinfo=timezone.utc)
 
         all_data = []
 
@@ -42,6 +42,6 @@ class Command(BaseCommand):
 
         final_df = pd.concat(all_data, ignore_index=True)
         final_df.sort_values(['timestamp', 'coin'], inplace=True)
-        final_df.to_csv("baseline_ohlcv.csv", index=False)
+        final_df.to_csv("baseline.csv", index=False)
 
-        self.stdout.write(self.style.SUCCESS("✅ baseline_ohlcv.csv created successfully."))
+        self.stdout.write(self.style.SUCCESS("✅ baseline.csv created successfully."))

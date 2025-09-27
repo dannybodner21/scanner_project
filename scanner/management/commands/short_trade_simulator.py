@@ -5,6 +5,7 @@ import os
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from datetime import timezone
+from collections import Counter
 
 
 class Trade:
@@ -90,14 +91,6 @@ class Trade:
         self.fee_usd = notional * fee_rate
         self.net_pl_usd = self.gross_pl_usd - self.fee_usd
 
-        # Optional consistency check:
-        # qty = notional / self.entry_price
-        # if self.side == 'long':
-        #     alt = qty * (self.exit_price - self.entry_price)
-        # else:
-        #     alt = qty * (self.entry_price - self.exit_price)
-        # assert abs(alt - self.gross_pl_usd) < 1e-6, "PnL mismatch"
-
 
 class Command(BaseCommand):
     help = 'Simulate trading from predictions and OHLCV with TP/SL first-hit exits + profit-lock stop. Supports LONG/SHORT (default SHORT). Compounding ON.'
@@ -105,6 +98,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--predictions-file', type=str, default='uni_short_predictions.csv')
         parser.add_argument('--baseline-file', type=str, default='baseline_ohlcv.csv')
+        parser.add_argument('--coin', type=str, default='XRPUSDT',
+                            help='Coin symbol to trade (e.g., XRPUSDT)')
 
         parser.add_argument('--side', type=str, default='short', choices=['long','short'],
                             help='Trade direction (default short). For short, pred_prob is interpreted as P(short).')
@@ -114,13 +109,13 @@ class Command(BaseCommand):
                             help='Fraction of AVAILABLE balance per new trade (e.g., 0.25 = 25%)')
         parser.add_argument('--leverage', type=float, default=15.0)
 
-        parser.add_argument('--confidence-threshold', type=float, default=0.85)
-        parser.add_argument('--take-profit', type=float, default=0.02, help='3% move in your favor (down for SHORT)')
-        parser.add_argument('--stop-loss', type=float, default=0.02, help='2% move against you (up for SHORT)')
-        parser.add_argument('--max-hold-hours', type=int, default=2, help='Max hold in hours')
+        parser.add_argument('--confidence-threshold', type=float, default=0.5)
+        parser.add_argument('--take-profit', type=float, default=0.02, help='2% move in your favor (down for SHORT)')
+        parser.add_argument('--stop-loss', type=float, default=0.01, help='1% move against you (up for SHORT)')
+        parser.add_argument('--max-hold-hours', type=int, default=6, help='Max hold in hours')
 
-        parser.add_argument('--entry-fee-bps', type=float, default=0.0)
-        parser.add_argument('--exit-fee-bps', type=float, default=0.0)
+        parser.add_argument('--entry-fee-bps', type=float, default=5.0)
+        parser.add_argument('--exit-fee-bps', type=float, default=5.0)
 
         parser.add_argument('--max-concurrent-trades', type=int, default=1)
         parser.add_argument('--output-dir', type=str, default='.')
@@ -130,11 +125,12 @@ class Command(BaseCommand):
                             help='Bars to delay entry after signal (0=same bar open, 1=next bar open)')
 
         # Profit-lock config (arm at 2%, lock 1% by default)
-        parser.add_argument('--profit-arm-threshold', type=float, default=0.07,
+        parser.add_argument('--profit-arm-threshold', type=float, default=1.02,
                             help='Arm profit stop when unrealized gain >= this (abs).')
-        parser.add_argument('--profit-stop-level', type=float, default=0.01,
+        parser.add_argument('--profit-stop-level', type=float, default=1.01,
                             help='Once armed, stop sits at this gain relative to entry (fixed, not trailing).')
 
+        # Entry window (kept, but instrumented so it can’t silently block everything)
         parser.add_argument('--entry-local-tz', type=str, default='America/Los_Angeles', help='Timezone for entry window checks')
         parser.add_argument('--entry-start-hour', type=int, default=8, help='Earliest local hour (inclusive) to allow new entries')
         parser.add_argument('--entry-end-hour', type=int, default=23, help='Latest local hour (exclusive) to allow new entries')
@@ -148,15 +144,21 @@ class Command(BaseCommand):
 
     @staticmethod
     def _normalize_timestamps(df: pd.DataFrame, col: str) -> pd.DataFrame:
+        # Convert anything to UTC then drop tz -> naive UTC.
+        # If already tz-aware, convert to UTC; if naive, treat as UTC.
         if pd.api.types.is_datetime64tz_dtype(df[col]):
             df[col] = df[col].dt.tz_convert('UTC').dt.tz_localize(None)
         else:
-            df[col] = pd.to_datetime(df[col], utc=True).dt.tz_localize(None)
+            df[col] = pd.to_datetime(df[col], utc=True, errors='coerce').dt.tz_localize(None)
+        if df[col].isna().any():
+            bad = int(df[col].isna().sum())
+            raise ValueError(f"{bad} rows have unparseable timestamps in column '{col}'.")
         return df
 
     def handle(self, *args, **opt):
         pred_path = opt['predictions_file']
         base_path = opt['baseline_file']
+        coin_symbol = opt['coin']
 
         if not os.path.exists(pred_path) or not os.path.exists(base_path):
             self.stderr.write("❌ Missing required files.")
@@ -165,7 +167,7 @@ class Command(BaseCommand):
         predictions = pd.read_csv(pred_path)
         baseline = pd.read_csv(base_path)
 
-        # Required columns sanity
+        # Column sanity
         for c in ['coin', 'timestamp', 'pred_prob']:
             if c not in predictions.columns:
                 self.stderr.write(f"❌ Predictions file missing '{c}' column.")
@@ -179,9 +181,26 @@ class Command(BaseCommand):
         predictions = self._normalize_timestamps(predictions, 'timestamp')
         baseline = self._normalize_timestamps(baseline, 'timestamp')
 
-        # Sort
+        # Enforce single coin throughout
+        predictions = predictions[predictions['coin'] == coin_symbol].copy()
+        baseline = baseline[baseline['coin'] == coin_symbol].copy()
+
+        if predictions.empty:
+            self.stderr.write(f"❌ No predictions found for coin {coin_symbol}")
+            return
+        if baseline.empty:
+            self.stderr.write(f"❌ No OHLCV data found for coin {coin_symbol}")
+            return
+
+        # Sort and de-dup
         predictions.sort_values(['timestamp', 'coin'], inplace=True, kind='mergesort')
         baseline.sort_values(['coin', 'timestamp'], inplace=True, kind='mergesort')
+
+        if predictions.duplicated(subset=['coin', 'timestamp']).any():
+            dct = predictions[predictions.duplicated(subset=['coin', 'timestamp'], keep=False)]
+            ndup = len(dct)
+            self.stderr.write(f"⚠️  Predictions contain {ndup} duplicate (coin,timestamp) rows for {coin_symbol}. Keeping first per ts.")
+            predictions = predictions.drop_duplicates(subset=['coin', 'timestamp'], keep='first')
 
         # Enforce unique (coin,timestamp) index for baseline
         baseline.set_index(['coin', 'timestamp'], inplace=True)
@@ -212,8 +231,8 @@ class Command(BaseCommand):
         same_bar_policy = opt['same_bar_policy']
         entry_lag = max(0, int(opt['entry_lag_bars']))
 
-        arm_thr = float(opt['profit_arm_threshold'])     # e.g., 0.02
-        lock_gain = float(opt['profit_stop_level'])      # e.g., 0.01
+        arm_thr = float(opt['profit_arm_threshold'])     # 0.02 default
+        lock_gain = float(opt['profit_stop_level'])      # 0.01 default
 
         entry_tz = ZoneInfo(opt['entry_local_tz'])
         entry_start_hour = int(opt['entry_start_hour'])
@@ -231,8 +250,18 @@ class Command(BaseCommand):
         # Keep only necessary prediction columns
         predictions = predictions[['coin', 'timestamp', 'pred_prob']]
 
+        # Diagnostics: prediction ts alignment to baseline
+        pred_ts = set(predictions['timestamp'].unique().tolist())
+        base_ts = set(market_ts)
+        missing_alignment = len(pred_ts - base_ts)
+        if missing_alignment > 0:
+            self.stderr.write(f"⚠️  {missing_alignment} unique prediction timestamps have no matching OHLCV bar and will be ignored.")
+
         # Track equity over time (on every close)
         equity_points = []
+
+        # Drop-reason counters for entries
+        drop_reasons = Counter()
 
         for ts in market_ts:
             # ===== EXITS =====
@@ -306,48 +335,60 @@ class Command(BaseCommand):
 
             # ===== ENTRIES =====
             if len(open_trades) < max_concurrent:
+                # Check for signals at current timestamp
+                sig_rows = predictions[predictions['timestamp'] == ts]
+                if sig_rows.empty:
+                    continue
+
+                # Apply entry lag - enter at next available timestamp
                 idx = ts_to_index.get(ts, None)
                 if idx is None:
+                    # should not happen; ts is from market_ts
+                    drop_reasons['no_market_index'] += len(sig_rows)
                     continue
 
                 entry_idx = idx + entry_lag
                 if entry_idx >= len(market_ts):
+                    drop_reasons['entry_lag_out_of_range'] += len(sig_rows)
                     continue
 
                 entry_ts = market_ts[entry_idx]
 
                 if not self._in_entry_window(entry_ts, entry_tz, entry_start_hour, entry_end_hour):
-                    continue
-
-                sig_rows = predictions[predictions['timestamp'] == ts]
-                if sig_rows.empty:
+                    drop_reasons['outside_entry_window'] += len(sig_rows)
                     continue
 
                 # Highest prob first
                 sig_rows = sig_rows.sort_values('pred_prob', ascending=False)
                 for _, row in sig_rows.iterrows():
                     if len(open_trades) >= max_concurrent:
+                        drop_reasons['concurrency_limit'] += 1
                         break
 
                     prob = float(row['pred_prob'])
-                    # For SHORT side, pred_prob is P(short); for LONG, P(long)
                     if prob < conf_thr:
+                        drop_reasons['below_conf_threshold'] += 1
                         continue
 
                     coin = row['coin']
                     if any(ot.coin == coin for ot in open_trades):
+                        drop_reasons['already_have_open_trade_for_coin'] += 1
                         continue
 
+                    # Use entry_ts for OHLCV lookup
                     key = (coin, entry_ts)
                     if key not in baseline.index:
+                        drop_reasons['no_ohlcv_at_entry_ts'] += 1
                         continue
 
                     available = balance - reserved_margin
                     if available <= 0:
+                        drop_reasons['no_available_balance'] += 1
                         continue
 
                     position_size_usd = available * position_frac
                     if position_size_usd <= 0:
+                        drop_reasons['nonpositive_position_size'] += 1
                         continue
 
                     brow = baseline.loc[key]
@@ -367,7 +408,7 @@ class Command(BaseCommand):
                     open_trades.append(t)
                     reserved_margin += position_size_usd
 
-        # Force-close leftovers at last available close per coin
+        # Force-close leftovers at last available close per coin (only one coin here, but keep generic)
         if len(open_trades) > 0:
             base_reset = baseline.reset_index()
             last_by_coin = base_reset.groupby('coin')['timestamp'].max().to_dict()
@@ -441,3 +482,17 @@ class Command(BaseCommand):
             f"📊 Trades: {total}, Wins: {wins}, Losses: {losses}, Win %: {win_pct:.2f}%"))
         self.stdout.write(self.style.SUCCESS(
             f"💰 End Balance: ${balance:,.2f}  (Net: ${total_net:,.2f} from start ${opt['initial_balance']:,.2f})"))
+
+        # Entry diagnostics
+        if drop_reasons:
+            self.stdout.write("\n🔍 Entry filters summary (dropped signal reasons):")
+            for k, v in drop_reasons.most_common():
+                self.stdout.write(f" - {k}: {v}")
+
+        # If zero trades, surface likely culprits
+        if total == 0:
+            self.stderr.write("\n⚠️  No trades were taken. Common causes:")
+            self.stderr.write("   • Prediction timestamps don’t align to baseline candles.")
+            self.stderr.write("   • Confidence threshold too high.")
+            self.stderr.write("   • Entry window hours excluded all candidate entries.")
+            self.stderr.write("   • No OHLCV row at the computed entry timestamp (after entry_lag).")

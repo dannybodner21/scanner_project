@@ -53,103 +53,203 @@ COIN_SYMBOL_MAP_DB = {
     "XLMUSDT": "XLM","TRXUSDT": "TRX","ATOMUSDT": "ATOM",
 }
 
-# Prefer bundles; fallback to separate files if you haven't migrated yet.
+# All long models using simple long dataset approach
 MODELS = {
-    # All new simplified models from dot_dataset.py script
     "ADAUSDT": {
-        "model": "ada_rf_model.joblib",
-        "scaler": "ada_two_feature_scaler.joblib",
-        "features": "ada_two_feature_list.json",
-        "threshold": 0.5,
+        "model": "ada_simple_long_rf_model.joblib",
+        "scaler": "ada_simple_long_scaler.joblib", 
+        "features": "ada_simple_long_features.json",
+        "threshold": 0.6,
     },
     "ATOMUSDT": {
-        "model": "atom_rf_model.joblib",
-        "scaler": "atom_two_feature_scaler.joblib",
-        "features": "atom_two_feature_list.json",
-        "threshold": 0.5,
+        "model": "atom_simple_long_rf_model.joblib",
+        "scaler": "atom_simple_long_scaler.joblib", 
+        "features": "atom_simple_long_features.json",
+        "threshold": 0.65,
     },
     "AVAXUSDT": {
-        "model": "avax_lr_model.joblib",
-        "scaler": "avax_two_feature_scaler.joblib",
-        "features": "avax_two_feature_list.json",
-        "threshold": 0.5,
+        "model": "avax_simple_long_rf_model.joblib",
+        "scaler": "avax_simple_long_scaler.joblib", 
+        "features": "avax_simple_long_features.json",
+        "threshold": 0.6,
     },
     "BTCUSDT": {
-        "model": "btc_lr_model.joblib",
-        "scaler": "btc_two_feature_scaler.joblib",
-        "features": "btc_two_feature_list.json",
-        "threshold": 0.38,
-    },
-    "DOGEUSDT": {
-        "model": "doge_two_long_hgb_model.joblib",
-        "scaler": "doge_two_feature_scaler.joblib",
-        "features": "doge_two_feature_list.json",
+        "model": "btc_simple_long_rf_model.joblib",
+        "scaler": "btc_simple_long_scaler.joblib", 
+        "features": "btc_simple_long_features.json",
         "threshold": 0.5,
     },
-    "DOTUSDT": {
-        "model": "dot_rf_model.joblib",
-        "scaler": "dot_two_feature_scaler.joblib",
-        "features": "dot_two_feature_list.json",
+    "DOGEUSDT": {
+        "model": "doge_simple_long_rf_model.joblib",
+        "scaler": "doge_simple_long_scaler.joblib", 
+        "features": "doge_simple_long_features.json",
         "threshold": 0.55,
     },
+    "DOTUSDT": {
+        "model": "dot_simple_long_rf_model.joblib",
+        "scaler": "dot_simple_long_scaler.joblib", 
+        "features": "dot_simple_long_features.json",
+        "threshold": 0.65,
+    },
     "ETHUSDT": {
-        "model": "eth_lr_model.joblib",
-        "scaler": "eth_two_feature_scaler.joblib",
-        "features": "eth_two_feature_list.json",
-        "threshold": 0.4,
+        "model": "eth_simple_long_rf_model.joblib",
+        "scaler": "eth_simple_long_scaler.joblib", 
+        "features": "eth_simple_long_features.json",
+        "threshold": 0.6,
     },
     "LINKUSDT": {
-        "model": "link_lr_model.joblib",
-        "scaler": "link_two_feature_scaler.joblib",
-        "features": "link_two_feature_list.json",
-        "threshold": 0.45,
+        "model": "link_simple_long_rf_model.joblib",
+        "scaler": "link_simple_long_scaler.joblib", 
+        "features": "link_simple_long_features.json",
+        "threshold": 0.55,
     },
     "LTCUSDT": {
-        "model": "ltc_rf_model.joblib",
-        "scaler": "ltc_two_feature_scaler.joblib",
-        "features": "ltc_two_feature_list.json",
+        "model": "ltc_simple_long_rf_model.joblib",
+        "scaler": "ltc_simple_long_scaler.joblib", 
+        "features": "ltc_simple_long_features.json",
         "threshold": 0.55,
     },
     "SHIBUSDT": {
-        "model": "shib_rf_model.joblib",
-        "scaler": "shib_two_feature_scaler.joblib",
-        "features": "shib_two_feature_list.json",
-        "threshold": 0.55,
+        "model": "shib_simple_long_rf_model.joblib",
+        "scaler": "shib_simple_long_scaler.joblib", 
+        "features": "shib_simple_long_features.json",
+        "threshold": 0.65,
     },
     "SOLUSDT": {
-        "model": "sol_rf_model.joblib",
-        "scaler": "sol_two_feature_scaler.joblib",
-        "features": "sol_two_feature_list.json",
-        "threshold": 0.5,
+        "model": "sol_simple_long_rf_model.joblib",
+        "scaler": "sol_simple_long_scaler.joblib", 
+        "features": "sol_simple_long_features.json",
+        "threshold": 0.6,
     },
     "TRXUSDT": {
-        "model": "trx_two_long_hgb_model.joblib",
-        "scaler": "trx_two_feature_scaler.joblib",
-        "features": "trx_two_feature_list.json",
-        "threshold": 0.1,
+        "model": "trx_simple_long_rf_model.joblib",
+        "scaler": "trx_simple_long_scaler.joblib", 
+        "features": "trx_simple_long_features.json",
+        "threshold": 0.75,
     },
     "UNIUSDT": {
-        "model": "uni_rf_model.joblib",
-        "scaler": "uni_two_feature_scaler.joblib",
-        "features": "uni_two_feature_list.json",
-        "threshold": 0.55,
+        "model": "uni_simple_long_rf_model.joblib",
+        "scaler": "uni_simple_long_scaler.joblib", 
+        "features": "uni_simple_long_features.json",
+        "threshold": 0.6,
     },
     "XLMUSDT": {
-        "model": "xlm_rf_model.joblib",
-        "scaler": "xlm_two_feature_scaler.joblib",
-        "features": "xlm_two_feature_list.json",
-        "threshold": 0.5,
+        "model": "xlm_simple_long_rf_model.joblib",
+        "scaler": "xlm_simple_long_scaler.joblib", 
+        "features": "xlm_simple_long_features.json",
+        "threshold": 0.65,
     },
     "XRPUSDT": {
-        "model": "xrp_rf_model.joblib",
-        "scaler": "xrp_two_feature_scaler.joblib",
-        "features": "xrp_two_feature_list.json",
+        "model": "xrp_simple_long_rf_model.joblib",
+        "scaler": "xrp_simple_long_scaler.joblib", 
+        "features": "xrp_simple_long_features.json",
         "threshold": 0.55,
     },
 }
 
 # All models now use new simplified approach from dot_dataset.py script
 # No more old model constants needed
+
+# --------------------------------
+# DUAL MODEL CONFIGURATION
+# --------------------------------
+# All short models using simple short dataset approach
+SHORT_MODELS = {
+    "ADAUSDT": {
+        "model": "ada_simple_short_rf_model.joblib",
+        "scaler": "ada_simple_short_scaler.joblib", 
+        "features": "ada_simple_short_features.json",
+        "threshold": 0.55,
+    },
+    "ATOMUSDT": {
+        "model": "atom_simple_short_rf_model.joblib",
+        "scaler": "atom_simple_short_scaler.joblib", 
+        "features": "atom_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "AVAXUSDT": {
+        "model": "avax_simple_short_rf_model.joblib",
+        "scaler": "avax_simple_short_scaler.joblib", 
+        "features": "avax_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "BTCUSDT": {
+        "model": "btc_simple_short_rf_model.joblib",
+        "scaler": "btc_simple_short_scaler.joblib", 
+        "features": "btc_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "DOGEUSDT": {
+        "model": "doge_simple_short_rf_model.joblib",
+        "scaler": "doge_simple_short_scaler.joblib", 
+        "features": "doge_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "DOTUSDT": {
+        "model": "dot_simple_short_rf_model.joblib",
+        "scaler": "dot_simple_short_scaler.joblib", 
+        "features": "dot_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "ETHUSDT": {
+        "model": "eth_simple_short_rf_model.joblib",
+        "scaler": "eth_simple_short_scaler.joblib", 
+        "features": "eth_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "LINKUSDT": {
+        "model": "link_simple_short_rf_model.joblib",
+        "scaler": "link_simple_short_scaler.joblib", 
+        "features": "link_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "LTCUSDT": {
+        "model": "ltc_simple_short_rf_model.joblib",
+        "scaler": "ltc_simple_short_scaler.joblib", 
+        "features": "ltc_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "SHIBUSDT": {
+        "model": "shib_simple_short_rf_model.joblib",
+        "scaler": "shib_simple_short_scaler.joblib", 
+        "features": "shib_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "SOLUSDT": {
+        "model": "sol_simple_short_rf_model.joblib",
+        "scaler": "sol_simple_short_scaler.joblib", 
+        "features": "sol_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "TRXUSDT": {
+        "model": "trx_simple_short_rf_model.joblib",
+        "scaler": "trx_simple_short_scaler.joblib", 
+        "features": "trx_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "UNIUSDT": {
+        "model": "uni_simple_short_rf_model.joblib",
+        "scaler": "uni_simple_short_scaler.joblib", 
+        "features": "uni_simple_short_features.json",
+        "threshold": 0.5,
+    },
+    "XLMUSDT": {
+        "model": "xlm_simple_short_rf_model.joblib",
+        "scaler": "xlm_simple_short_scaler.joblib", 
+        "features": "xlm_simple_short_features.json",
+        "threshold": 0.6,
+    },
+    "XRPUSDT": {
+        "model": "xrp_simple_short_rf_model.joblib",
+        "scaler": "xrp_simple_short_scaler.joblib", 
+        "features": "xrp_simple_short_features.json",
+        "threshold": 0.6,
+    },
+}
+
+# Dual model thresholds (optimized from our testing)
+DUAL_LONG_THRESHOLD = 0.8   # Higher threshold for long model
+DUAL_SHORT_THRESHOLD = 0.6  # Lower threshold for short model
 
 
 COINAPI_KEY = os.environ.get("COINAPI_KEY", "01293e2a-dcf1-4e81-8310-c6aa9d0cb743")
@@ -640,7 +740,11 @@ def add_features_simplified_dot(df):
     g = g.dropna(subset=core_cols)
     if g.empty:
         return None
-    return g.tail(1).copy()
+    
+    # Ensure proper column names for the model
+    result = g.tail(1).copy()
+    result.columns = result.columns.astype(str)  # Ensure all column names are strings
+    return result
 
 # --------------------------------
 # Artifact loading (bundle preferred; otherwise strict set-match)
@@ -788,9 +892,435 @@ def drift_report(feats_row: pd.DataFrame, scaler, top=8, prefix=""):
         print(f"{prefix} drift report failed: {e}")
 
 # --------------------------------
+# LONG MODEL FEATURE ENGINEERING (Simple Long Dataset)
+# --------------------------------
+def add_features_long_model(df):
+    """
+    Feature engineering for long models - matches the simple long dataset approach
+    """
+    g = df.copy()
+    g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)
+    g = g.sort_values('timestamp').reset_index(drop=True)
+
+    F = {}
+    
+    # 1. TREND FEATURES (4 features)
+    F['ema_20'] = g['close'].ewm(span=20).mean()
+    F['ema_50'] = g['close'].ewm(span=50).mean()
+    F['ema_200'] = g['close'].ewm(span=200).mean()
+    F['trend_strength'] = (F['ema_20'] - F['ema_200']) / F['ema_200']
+    
+    # 2. MOMENTUM FEATURES (3 features)
+    F['ret_5'] = g['close'].pct_change(5)
+    F['ret_20'] = g['close'].pct_change(20)
+    F['momentum'] = g['close'] / g['close'].shift(20) - 1
+    
+    # 3. VOLATILITY FEATURES (2 features)
+    F['atr_14'] = ((g['high'] - g['low']).rolling(14).mean() + 
+                    (g['high'] - g['close'].shift(1)).abs().rolling(14).mean() + 
+                    (g['low'] - g['close'].shift(1)).abs().rolling(14).mean()) / 3
+    F['volatility'] = g['close'].pct_change().rolling(20).std()
+    
+    # 4. RSI FEATURES (2 features)
+    F['rsi_14'] = rsi(g['close'], 14)
+    F['rsi_oversold'] = (F['rsi_14'] < 30).astype(int)  # Bullish signal
+    
+    # 5. BOLLINGER BANDS (2 features)
+    bb_20 = g['close'].rolling(20).mean()
+    bb_std = g['close'].rolling(20).std()
+    F['bb_position'] = (g['close'] - bb_20) / (bb_std + 1e-12)
+    F['bb_squeeze'] = (bb_std < bb_std.rolling(50).quantile(0.25)).astype(int)
+    
+    # 6. VOLUME FEATURES (2 features)
+    vol = pd.to_numeric(g['volume'], errors='coerce').fillna(0.0)
+    F['vol_sma_20'] = vol.rolling(20).mean()
+    F['rel_vol'] = vol / F['vol_sma_20']
+    
+    # 7. LONG-SPECIFIC SIGNALS (3 features)
+    F['price_above_ema_20'] = (g['close'] > F['ema_20']).astype(int)
+    F['ema_trend_up'] = (F['ema_20'] > F['ema_50']).astype(int)
+    F['bullish_momentum'] = ((F['ret_5'] > 0) & (F['ret_20'] > 0)).astype(int)
+    
+    feat_df = pd.DataFrame(F, index=g.index)
+    g = pd.concat([g, feat_df], axis=1)
+    g.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+    # Core columns for prediction
+    core_cols = ["ema_20", "ema_50", "rsi_14", "bb_position", "vol_sma_20"]
+    g = g.dropna(subset=core_cols)
+    if g.empty:
+        return None
+    
+    # Ensure proper column names for the model
+    result = g.tail(1).copy()
+    result.columns = result.columns.astype(str)
+    return result
+
+# --------------------------------
+# SHORT MODEL FEATURE ENGINEERING
+# --------------------------------
+def add_features_short_model(df):
+    """
+    Feature engineering for short models - matches the simple short dataset approach
+    """
+    g = df.copy()
+    g['timestamp'] = pd.to_datetime(g['timestamp'], utc=True)
+    g = g.sort_values('timestamp').reset_index(drop=True)
+
+    F = {}
+    
+    # 1. TREND FEATURES (4 features)
+    F['ema_20'] = g['close'].ewm(span=20).mean()
+    F['ema_50'] = g['close'].ewm(span=50).mean()
+    F['ema_200'] = g['close'].ewm(span=200).mean()
+    F['trend_strength'] = (F['ema_20'] - F['ema_200']) / F['ema_200']
+    
+    # 2. MOMENTUM FEATURES (3 features)
+    F['ret_5'] = g['close'].pct_change(5)
+    F['ret_20'] = g['close'].pct_change(20)
+    F['momentum'] = g['close'] / g['close'].shift(20) - 1
+    
+    # 3. VOLATILITY FEATURES (2 features)
+    F['atr_14'] = ((g['high'] - g['low']).rolling(14).mean() + 
+                    (g['high'] - g['close'].shift(1)).abs().rolling(14).mean() + 
+                    (g['low'] - g['close'].shift(1)).abs().rolling(14).mean()) / 3
+    F['volatility'] = g['close'].pct_change().rolling(20).std()
+    
+    # 4. RSI FEATURES (2 features)
+    F['rsi_14'] = rsi(g['close'], 14)
+    F['rsi_overbought'] = (F['rsi_14'] > 70).astype(int)  # Bearish signal
+    
+    # 5. BOLLINGER BANDS (2 features)
+    bb_20 = g['close'].rolling(20).mean()
+    bb_std = g['close'].rolling(20).std()
+    F['bb_position'] = (g['close'] - bb_20) / (bb_std + 1e-12)
+    F['bb_squeeze'] = (bb_std < bb_std.rolling(50).quantile(0.25)).astype(int)
+    
+    # 6. VOLUME FEATURES (2 features)
+    vol = pd.to_numeric(g['volume'], errors='coerce').fillna(0.0)
+    F['vol_sma_20'] = vol.rolling(20).mean()
+    F['rel_vol'] = vol / F['vol_sma_20']
+    
+    # 7. SHORT-SPECIFIC SIGNALS (3 features)
+    F['price_below_ema_20'] = (g['close'] < F['ema_20']).astype(int)
+    F['ema_trend_down'] = (F['ema_20'] < F['ema_50']).astype(int)
+    F['bearish_momentum'] = ((F['ret_5'] < 0) & (F['ret_20'] < 0)).astype(int)
+    
+    feat_df = pd.DataFrame(F, index=g.index)
+    g = pd.concat([g, feat_df], axis=1)
+    g.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+    # Core columns for prediction
+    core_cols = ["ema_20", "ema_50", "rsi_14", "bb_position", "vol_sma_20"]
+    g = g.dropna(subset=core_cols)
+    if g.empty:
+        return None
+    
+    # Ensure proper column names for the model
+    result = g.tail(1).copy()
+    result.columns = result.columns.astype(str)
+    return result
+
+# --------------------------------
+# DUAL MODEL FUNCTIONS
+# --------------------------------
+def load_dual_models():
+    """Load both long and short models for dual model approach"""
+    loaded_models = {}
+    
+    # Load long models (existing)
+    for coin, cfg in MODELS.items():
+        try:
+            if "bundle" in cfg and os.path.exists(cfg["bundle"]):
+                m, s, feat_order, thr = load_artifacts_bundle(cfg["bundle"], cfg.get("threshold", 0.6))
+            else:
+                m, s, feat_order, thr = load_artifacts_separate(
+                    cfg["model"], cfg["scaler"], cfg["features"], cfg.get("threshold", 0.6)
+                )
+            loaded_models[coin] = {
+                "long_model": m, 
+                "long_scaler": s, 
+                "long_order": feat_order, 
+                "long_thr": float(thr)
+            }
+        except Exception as e:
+            print(f"❌ Error loading long model for {coin}: {e}")
+            continue
+    
+    # Load short models (new)
+    for coin, cfg in SHORT_MODELS.items():
+        try:
+            if "bundle" in cfg and os.path.exists(cfg["bundle"]):
+                m, s, feat_order, thr = load_artifacts_bundle(cfg["bundle"], cfg.get("threshold", 0.6))
+            else:
+                m, s, feat_order, thr = load_artifacts_separate(
+                    cfg["model"], cfg["scaler"], cfg["features"], cfg.get("threshold", 0.6)
+                )
+            
+            if coin not in loaded_models:
+                loaded_models[coin] = {}
+            
+            loaded_models[coin].update({
+                "short_model": m,
+                "short_scaler": s, 
+                "short_order": feat_order,
+                "short_thr": float(thr)
+            })
+        except Exception as e:
+            print(f"❌ Error loading short model for {coin}: {e}")
+            continue
+    
+    return loaded_models
+
+def get_dual_model_prediction(coin, recent_df, loaded_models):
+    """Get predictions from both long and short models"""
+    if coin not in loaded_models:
+        return None, None, None, None
+    
+    coin_models = loaded_models[coin]
+    
+    # Long model prediction (use long model features)
+    long_prob = None
+    long_confidence = None
+    if "long_model" in coin_models:
+        try:
+            feats_df_long = add_features_long_model(recent_df)
+            if feats_df_long is not None and not feats_df_long.empty:
+                X_long = build_X_exact(feats_df_long, coin_models["long_order"], coin_models["long_scaler"])
+                model = coin_models["long_model"]
+                if hasattr(model, "predict_proba"):
+                    long_prob = float(model.predict_proba(X_long)[0][1])
+                else:
+                    raw = float(getattr(model, "decision_function", lambda x: model.predict(x))(X_long))
+                    long_prob = raw if 0.0 <= raw <= 1.0 else 1.0 / (1.0 + np.exp(-raw))
+                long_confidence = long_prob
+        except Exception as e:
+            print(f"❌ Long model prediction error for {coin}: {e}")
+    
+    # Short model prediction (use short model features)
+    short_prob = None
+    short_confidence = None
+    if "short_model" in coin_models:
+        try:
+            feats_df_short = add_features_short_model(recent_df)
+            if feats_df_short is not None and not feats_df_short.empty:
+                X_short = build_X_exact(feats_df_short, coin_models["short_order"], coin_models["short_scaler"])
+                model = coin_models["short_model"]
+                if hasattr(model, "predict_proba"):
+                    short_prob = float(model.predict_proba(X_short)[0][1])
+                else:
+                    raw = float(getattr(model, "decision_function", lambda x: model.predict(x))(X_short))
+                    short_prob = raw if 0.0 <= raw <= 1.0 else 1.0 / (1.0 + np.exp(-raw))
+                short_confidence = short_prob
+        except Exception as e:
+            print(f"❌ Short model prediction error for {coin}: {e}")
+    
+    return long_prob, long_confidence, short_prob, short_confidence
+
+def determine_dual_model_signal(long_prob, short_prob, long_thr, short_thr):
+    """Determine trading signal based on dual model predictions"""
+    if long_prob is None and short_prob is None:
+        return None, None, None
+    
+    # Long signal: long model confident and short model not confident
+    if long_prob is not None and long_prob >= long_thr:
+        if short_prob is None or short_prob < short_thr:
+            return 'long', long_prob, 'long_model'
+    
+    # Short signal: short model confident and long model not confident  
+    if short_prob is not None and short_prob >= short_thr:
+        if long_prob is None or long_prob < long_thr:
+            return 'short', short_prob, 'short_model'
+    
+    # No signal if both are confident or both are not confident
+    return None, None, None
+
+# --------------------------------
 # Live pipeline
 # --------------------------------
-def run_live_pipeline():
+def run_dual_model_pipeline():
+    """New dual model pipeline with both long and short trading"""
+    print("🚀 Running DUAL MODEL pipeline (long + short models)")
+    
+    # Load dual models
+    loaded_models = load_dual_models()
+    if not loaded_models:
+        print("❌ No dual models loaded. Check artifacts.")
+        return
+    
+    print(f"✅ Loaded {len(loaded_models)} coins with dual models")
+    
+    # Ensure data coverage for all coins with dual models
+    print("📊 Ensuring recent data for all coins...")
+    for coin in loaded_models.keys():
+        if not has_recent_400_candles(coin):
+            print(f"📥 Fetching recent data for {coin}")
+            ensure_recent_candles(coin, required_bars=400)
+        last = get_latest_saved_timestamp(coin)
+        if last is None or (datetime.utcnow().replace(tzinfo=timezone.utc) - last) > timedelta(minutes=10):
+            print(f"📥 Updating stale data for {coin}")
+            ensure_recent_candles(coin, required_bars=400)
+    
+    # Determine signal bar (latest closed) and entry bar (next)
+    utc_now = datetime.utcnow().replace(second=0, microsecond=0, tzinfo=timezone.utc)
+    signal_ts = utc_now if utc_now.minute % 5 == 0 else utc_now.replace(minute=(utc_now.minute // 5) * 5)
+    entry_ts = signal_ts + timedelta(minutes=5 * ENTRY_LAG_BARS)
+    
+    # Iterate coins with dual models
+    for coin, coin_models in loaded_models.items():
+        try:
+            coin_obj = Coin.objects.get(symbol=COIN_SYMBOL_MAP_DB[coin])
+            
+            # Skip if this coin already has an open trade (long or short)
+            if ModelTrade.objects.filter(exit_timestamp__isnull=True, coin=coin_obj).exists():
+                print(f"ℹ️ {coin}: trade already open; skipping")
+                continue
+            
+            recent = get_recent_candles(coin, limit=600)
+            if recent is None or recent.empty:
+                print(f"⏭️ {coin}: no recent candles")
+                continue
+            
+            # Get dual model predictions (each model uses its own feature engineering)
+            print(f"🔧 {coin}: Getting dual model predictions")
+            long_prob, long_conf, short_prob, short_conf = get_dual_model_prediction(coin, recent, loaded_models)
+            
+            # Get individual coin thresholds
+            long_thr = coin_models.get("long_thr", 0.6)
+            short_thr = coin_models.get("short_thr", 0.5)
+            
+            # Always print confidence scores for monitoring
+            long_str = f"{long_prob:.4f}" if long_prob is not None else "None"
+            short_str = f"{short_prob:.4f}" if short_prob is not None else "None"
+            print(f"📊 {coin}: Long={long_str} (thr={long_thr:.2f}) | Short={short_str} (thr={short_thr:.2f})")
+            
+            if long_prob is None and short_prob is None:
+                print(f"⏭️ {coin}: no model predictions available")
+                continue
+            
+            # Determine signal using individual coin thresholds
+            signal_type, confidence, model_type = determine_dual_model_signal(
+                long_prob, short_prob, long_thr, short_thr
+            )
+            
+            if signal_type is None:
+                print(f"⏭️ {coin}: no signal (both models below threshold)")
+                continue
+            
+            print(f"📈 {coin} {signal_type.upper()} signal: {model_type} conf={confidence:.4f}")
+            
+            # Entry price (next bar)
+            try:
+                entry_price, entry_src = get_entry_price_or_fallback(coin, entry_ts, recent, ENTRY_SLIPPAGE_PCT)
+            except Exception as e:
+                print(f"⏭️ {coin}: failed to resolve entry price ({e})")
+                continue
+            
+            # Telegram alert
+            local_entry = entry_ts.astimezone(LOCAL_TZ)
+            send_text([
+                f"📥 {signal_type.upper()} {coin}  {model_type} conf={confidence:.3f}",
+                f"Entry ({entry_src}): {entry_price:.6f}  (+{ENTRY_SLIPPAGE_PCT*100:.2f}% slippage)",
+                f"TP={TAKE_PROFIT*100:.1f}%  SL={STOP_LOSS*100:.1f}%  Lev={LEVERAGE:.0f}x",
+                f"UTC: {entry_ts.strftime('%Y-%m-%d %H:%M')} | PT: {local_entry.strftime('%Y-%m-%d %H:%M')}"
+            ])
+            
+            # Open trade
+            ModelTrade.objects.create(
+                coin=coin_obj,
+                trade_type=signal_type,  # 'long' or 'short'
+                entry_timestamp=entry_ts,
+                entry_price=safe_decimal(entry_price),
+                model_confidence=round(confidence, 4),
+                take_profit_percent=TAKE_PROFIT * 100.0,
+                stop_loss_percent=STOP_LOSS * 100.0,
+                confidence_trade=long_thr if signal_type == 'long' else short_thr,
+                recent_confidences=[],
+                model_name=model_type,
+            )
+            print(f"✅ {signal_type.upper()} opened: {coin} @ {entry_price:.6f} ({entry_src}, ts={entry_ts})")
+            
+        except Exception as e:
+            print(f"❌ Error on {coin}: {e}")
+    
+    # Auto-close open trades (both long and short)
+    print("\n🔍 Evaluating open trades...")
+    open_trades = ModelTrade.objects.filter(exit_timestamp__isnull=True)
+    
+    for trade in open_trades:
+        try:
+            entry_price = float(trade.entry_price)
+            coin_symbol = f"{trade.coin.symbol}USDT"
+            df = get_recent_candles(coin_symbol, limit=1)
+            if df is None or df.empty:
+                print(f"⚠️ No price data for {coin_symbol}, skipping")
+                continue
+            
+            LivePriceSnapshot.objects.update_or_create(
+                coin=trade.coin.symbol,
+                defaults={
+                    "open":  safe_decimal(df.iloc[-1]['open']),
+                    "high":  safe_decimal(df.iloc[-1]['high']),
+                    "low":   safe_decimal(df.iloc[-1]['low']),
+                    "close": safe_decimal(df.iloc[-1]['close']),
+                    "volume": safe_decimal(df.iloc[-1]['volume']),
+                }
+            )
+            
+            high = float(df.iloc[-1]['high'])
+            low  = float(df.iloc[-1]['low'])
+            last_close = float(df.iloc[-1]['close'])
+            
+            # Calculate TP/SL based on trade type
+            if trade.trade_type == 'long':
+                tp_px = entry_price * (1.0 + TAKE_PROFIT)
+                sl_px = entry_price * (1.0 - STOP_LOSS)
+                tp_hit = high >= tp_px
+                sl_hit = low  <= sl_px
+            else:  # short
+                tp_px = entry_price * (1.0 - TAKE_PROFIT)
+                sl_px = entry_price * (1.0 + STOP_LOSS)
+                tp_hit = low  <= tp_px
+                sl_hit = high >= sl_px
+            
+            close_reason = None
+            result_bool = None
+            exit_px = last_close
+            
+            if tp_hit and sl_hit:
+                close_reason = "BOTH_HIT_SAME_BAR_SL_FIRST"; result_bool = False; exit_px = sl_px
+            elif tp_hit:
+                close_reason = "TAKE_PROFIT"; result_bool = True; exit_px = tp_px
+            elif sl_hit:
+                close_reason = "STOP_LOSS"; result_bool = False; exit_px = sl_px
+            else:
+                # No max hold constraint - trades stay open until TP or SL hit
+                pass
+            
+            if close_reason:
+                trade.exit_price = safe_decimal(exit_px if np.isfinite(exit_px) else last_close)
+                trade.exit_timestamp = now()
+                try: trade.result = result_bool
+                except Exception: pass
+                trade.save()
+                
+                pnl_pct = (float(trade.exit_price) / entry_price - 1.0) * 100.0
+                if trade.trade_type == 'short':
+                    pnl_pct = -pnl_pct  # Invert for short trades
+                
+                send_text([
+                    f"📤 Closed {trade.trade_type.upper()} {trade.coin.symbol} — {close_reason}",
+                    f"Entry: {entry_price:.6f} | Exit: {float(trade.exit_price):.6f} | Δ={pnl_pct:.2f}%"
+                ])
+                print(f"{close_reason} | {trade.trade_type.upper()} {trade.coin.symbol} @ {float(trade.exit_price):.6f}")
+                
+        except Exception as e:
+            print(f"❌ Error closing trade for {trade.coin.symbol}: {e}")
+    
+    print("✅ Dual model pipeline complete")
+
+# ORIGINAL SINGLE MODEL PIPELINE (COMMENTED OUT - USE DUAL MODEL INSTEAD)
+def run_live_pipeline_original():
     print("🚀 Running live HGB long pipeline (multi-model per coin, strict feature parity)")
 
     # Load per-coin artifacts
@@ -1021,7 +1551,34 @@ def run_live_pipeline():
     print("✅ Pipeline complete")
 
 # --------------------------------
+# CONVENIENCE FUNCTIONS
+# --------------------------------
+def run_live_pipeline():
+    """Main entry point - uses dual model pipeline by default"""
+    run_dual_model_pipeline()
+
+def run_single_model_pipeline():
+    """Run original single model pipeline (long only)"""
+    run_live_pipeline_original()
+
+# --------------------------------
+# Django Management Command
+# --------------------------------
+from django.core.management.base import BaseCommand
+
+class Command(BaseCommand):
+    help = 'Run dual model pipeline (long + short models)'
+    
+    def handle(self, *args, **options):
+        """Run the dual model pipeline"""
+        run_dual_model_pipeline()
+
+# --------------------------------
 # Entry (if run as script)
 # --------------------------------
 if __name__ == "__main__":
-    run_live_pipeline()
+    # Use dual model pipeline by default
+    run_dual_model_pipeline()
+    
+    # Uncomment below to use original single model pipeline
+    # run_live_pipeline_original()

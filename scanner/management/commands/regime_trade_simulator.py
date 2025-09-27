@@ -1,0 +1,409 @@
+# scanner/management/commands/regime_trade_simulator.py
+from django.core.management.base import BaseCommand
+import pandas as pd
+import numpy as np
+import os
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from datetime import timezone
+
+class Trade:
+    """
+    Trade with regime-based entry and fixed TP/SL.
+    PnL math:
+      qty = (margin * lev) / entry
+      gross_pl_usd = qty * (exit - entry) = (margin * lev) * (exit/entry - 1)
+      fees (bps) charged on notional both sides.
+    """
+    def __init__(self, coin, entry_time, entry_price, leverage, position_size_usd,
+                 regime, confidence, trade_id, trade_type):
+        self.coin = coin
+        self.entry_time = entry_time  # naive UTC
+        self.entry_price = float(entry_price)
+        self.leverage = float(leverage)
+        self.position_size_usd = float(position_size_usd)  # margin reserved at entry
+        self.regime = regime
+        self.confidence = float(confidence) if confidence is not None else np.nan
+        self.trade_id = int(trade_id)
+        self.trade_type = trade_type  # 'long' or 'short'
+
+        self.exit_time = None
+        self.exit_price = None
+        self.exit_reason = None
+
+        self.gross_return = 0.0
+        self.gross_pl_usd = 0.0
+        self.fee_usd = 0.0
+        self.net_pl_usd = 0.0
+
+    def close(self, exit_time, exit_price, reason, entry_fee_bps, exit_fee_bps):
+        self.exit_time = exit_time
+        self.exit_price = float(exit_price)
+        self.exit_reason = reason
+
+        # Gross leveraged return (long or short)
+        if self.trade_type == 'long':
+            self.gross_return = (self.exit_price / self.entry_price - 1.0) * self.leverage
+        else:  # short
+            self.gross_return = (self.entry_price / self.exit_price - 1.0) * self.leverage
+            
+        self.gross_pl_usd = self.position_size_usd * self.gross_return
+
+        # Fees on notional round-trip (entry + exit)
+        notional = self.position_size_usd * self.leverage
+        fee_rate = (entry_fee_bps + exit_fee_bps) / 10000.0
+        self.fee_usd = notional * fee_rate
+
+        self.net_pl_usd = self.gross_pl_usd - self.fee_usd
+
+
+class Command(BaseCommand):
+    help = 'Simulate trading with regime-based entries using combined predictions CSV. One trade at a time. Next-bar entries. Fixed TP/SL.'
+
+    def add_arguments(self, parser):
+        parser.add_argument('--predictions-file', type=str, default='xrp_combined_predictions.csv',
+                            help='CSV with regime-based predictions')
+        parser.add_argument('--baseline-file', type=str, default='baseline.csv',
+                            help='OHLCV CSV with columns: coin,timestamp,open,high,low,close')
+
+        # Account & sizing
+        parser.add_argument('--initial-balance', type=float, default=1000.0)
+        parser.add_argument('--position-size', type=float, default=1.00,
+                            help='Fraction of AVAILABLE balance used as margin per trade (e.g., 0.25 = 25 percent)')
+
+        # Leverage
+        parser.add_argument('--leverage', type=float, default=15.0,
+                            help='Leverage multiplier.')
+
+        # Regime-based entry rules
+        parser.add_argument('--bullish-threshold', type=float, default=0.6,
+                            help='Minimum bullish confidence to enter long trades.')
+        parser.add_argument('--bearish-threshold', type=float, default=0.6,
+                            help='Minimum bearish confidence to enter short trades.')
+
+        # Targets (percent moves on underlying; NOT leveraged)
+        parser.add_argument('--take-profit', type=float, default=0.02,
+                            help='Take profit percent of entry price (0.02 = +2 percent)')
+        parser.add_argument('--stop-loss', type=float, default=0.01,
+                            help='Stop loss percent of entry price (0.01 = -1 percent)')
+        parser.add_argument('--max-hold-hours', type=int, default=12,
+                            help='Maximum holding time in hours.')
+
+        # Fees (bps on notional, per side)
+        parser.add_argument('--entry-fee-bps', type=float, default=2.0,
+                            help='Entry fee in basis points (2 bps = 0.02 percent)')
+        parser.add_argument('--exit-fee-bps', type=float, default=2.0,
+                            help='Exit fee in basis points (2 bps = 0.02 percent)')
+
+        # Concurrency & ordering
+        parser.add_argument('--max-concurrent-trades', type=int, default=1,
+                            help='Max simultaneous positions (set 1 for strict one-at-a-time).')
+        parser.add_argument('--same-bar-policy', type=str, default='sl-first',
+                            choices=['sl-first', 'tp-first'],
+                            help='If a bar touches both TP and SL, which applies first.')
+        parser.add_argument('--entry-lag-bars', type=int, default=1,
+                            help='Bars to delay entry after signal (1 = enter at next bar open).')
+
+        # Time-based filtering (local hours)
+        parser.add_argument('--entry-local-tz', type=str, default='America/Los_Angeles')
+        parser.add_argument('--entry-start-hour', type=int, default=4,
+                            help='Earliest local hour for entries (inclusive).')
+        parser.add_argument('--entry-end-hour', type=int, default=23,
+                            help='Latest local hour for entries (exclusive).')
+
+        # Risk limits
+        parser.add_argument('--max-daily-trades', type=int, default=80,
+                            help='Cap number of entries per UTC day.')
+
+        parser.add_argument('--output-dir', type=str, default='simulation_results',
+                    help='Directory to save results (trades, equity curve, summary).')
+
+    # ---- Utility methods ----
+    def _in_entry_window(self, ts_utc_naive, tz: ZoneInfo, start_hour: int, end_hour: int) -> bool:
+        """Return True if ts falls within [start_hour, end_hour) in local timezone."""
+        aware_utc = ts_utc_naive.replace(tzinfo=timezone.utc)
+        local = aware_utc.astimezone(tz)
+        return (start_hour <= local.hour < end_hour)
+
+    @staticmethod
+    def _normalize_timestamps(df: pd.DataFrame, col: str) -> pd.DataFrame:
+        """Normalize timestamps to naive UTC datetime (5-minute grid assumed)."""
+        if pd.api.types.is_datetime64tz_dtype(df[col]):
+            df[col] = df[col].dt.tz_convert('UTC').dt.tz_localize(None)
+        else:
+            df[col] = pd.to_datetime(df[col], utc=True).dt.tz_localize(None)
+        return df
+
+    def handle(self, *args, **opt):
+        pred_path = opt['predictions_file']
+        base_path = opt['baseline_file']
+
+        print(f"🎯 REGIME-BASED TRADING SIMULATION")
+        print(f"   Predictions: {pred_path}")
+        print(f"   Baseline OHLCV: {base_path}")
+        print(f"   Targets: {opt['take_profit']*100:.2f}% TP / {opt['stop_loss']*100:.2f}% SL")
+        print(f"   Leverage: {opt['leverage']:.0f}x")
+        print(f"   Bullish threshold: {opt['bullish_threshold']:.3f}")
+        print(f"   Bearish threshold: {opt['bearish_threshold']:.3f}")
+
+        # Load data
+        print(f"\n📊 Loading data...")
+        
+        # Load predictions
+        pred_df = pd.read_csv(pred_path)
+        pred_df = self._normalize_timestamps(pred_df, 'timestamp')
+        pred_df = pred_df.set_index('timestamp')
+        
+        # Load baseline OHLCV data
+        base_df = pd.read_csv(base_path)
+        base_df = self._normalize_timestamps(base_df, 'timestamp')
+        
+        # Filter for XRPUSDT only
+        xrp_df = base_df[base_df['coin'] == 'XRPUSDT'].copy()
+        xrp_df = xrp_df.set_index('timestamp')
+        
+        print(f"   Predictions: {len(pred_df)} rows")
+        print(f"   XRP OHLCV: {len(xrp_df)} rows")
+        print(f"   Time range: {xrp_df.index.min()} to {xrp_df.index.max()}")
+
+        # Find overlapping time range
+        start_time = max(pred_df.index.min(), xrp_df.index.min())
+        end_time = min(pred_df.index.max(), xrp_df.index.max())
+        
+        # Filter to overlapping period
+        pred_df = pred_df.loc[start_time:end_time]
+        xrp_df = xrp_df.loc[start_time:end_time]
+        
+        print(f"   Overlap period: {start_time} to {end_time}")
+        print(f"   Overlapping candles: {len(pred_df)}")
+
+        # Simulation parameters
+        initial_balance = opt['initial_balance']
+        position_size_pct = opt['position_size']
+        leverage = opt['leverage']
+        bullish_threshold = opt['bullish_threshold']
+        bearish_threshold = opt['bearish_threshold']
+        tp_pct = opt['take_profit']
+        sl_pct = opt['stop_loss']
+        max_hold_hours = opt['max_hold_hours']
+        entry_fee_bps = opt['entry_fee_bps']
+        exit_fee_bps = opt['exit_fee_bps']
+        same_bar_policy = opt['same_bar_policy']
+        entry_lag = opt['entry_lag_bars']
+        max_daily_trades = opt['max_daily_trades']
+        
+        # Timezone for entry filtering
+        entry_tz = ZoneInfo(opt['entry_local_tz'])
+        entry_start_hour = opt['entry_start_hour']
+        entry_end_hour = opt['entry_end_hour']
+
+        # Simulation state
+        balance = initial_balance
+        trades = []
+        active_trade = None
+        trade_id = 0
+        daily_trade_count = {}
+        
+        print(f"\n🚀 Starting simulation...")
+        print(f"   Initial balance: ${balance:,.2f}")
+
+        # Process each candle
+        for i, (timestamp, pred_row) in enumerate(pred_df.iterrows()):
+            if i % 10000 == 0:
+                print(f"   Processed {i:,} candles...")
+            
+            # Check if we have OHLCV data for this timestamp
+            if timestamp not in xrp_df.index:
+                continue
+                
+            ohlcv_row = xrp_df.loc[timestamp]
+            
+            # Check for active trade exit conditions
+            if active_trade is not None:
+                exit_price, exit_reason = self._check_exit_conditions(
+                    active_trade, timestamp, ohlcv_row, tp_pct, sl_pct, 
+                    max_hold_hours, same_bar_policy
+                )
+                
+                if exit_price is not None:
+                    # Close the trade
+                    active_trade.close(timestamp, exit_price, exit_reason, 
+                                     entry_fee_bps, exit_fee_bps)
+                    balance += active_trade.net_pl_usd
+                    trades.append(active_trade)
+                    active_trade = None
+
+            # Check for new entry signals (only if no active trade)
+            if active_trade is None:
+                # Check daily trade limit
+                trade_date = timestamp.date()
+                if trade_date not in daily_trade_count:
+                    daily_trade_count[trade_date] = 0
+                
+                if daily_trade_count[trade_date] >= max_daily_trades:
+                    continue
+                
+                # Check time window
+                if not self._in_entry_window(timestamp, entry_tz, entry_start_hour, entry_end_hour):
+                    continue
+                
+                # Check regime and confidence - support improved regime types
+                regime = pred_row['regime']
+                if regime in ['bullish', 'bullish_strong', 'bullish_weak']:
+                    confidence = pred_row['long_confidence_avg']
+                    if confidence >= bullish_threshold:
+                        # Enter long trade
+                        entry_time = timestamp + timedelta(minutes=5 * entry_lag)
+                        if entry_time in xrp_df.index:
+                            entry_price = xrp_df.loc[entry_time, 'open']
+                            position_size = balance * position_size_pct
+                            
+                            active_trade = Trade(
+                                coin='XRPUSDT',
+                                entry_time=entry_time,
+                                entry_price=entry_price,
+                                leverage=leverage,
+                                position_size_usd=position_size,
+                                regime=regime,
+                                confidence=confidence,
+                                trade_id=trade_id,
+                                trade_type='long'
+                            )
+                            trade_id += 1
+                            daily_trade_count[trade_date] += 1
+                            
+                elif regime in ['bearish', 'bearish_strong', 'bearish_weak']:
+                    confidence = pred_row['short_confidence_avg']
+                    if confidence >= bearish_threshold:
+                        # Enter short trade
+                        entry_time = timestamp + timedelta(minutes=5 * entry_lag)
+                        if entry_time in xrp_df.index:
+                            entry_price = xrp_df.loc[entry_time, 'open']
+                            position_size = balance * position_size_pct
+                            
+                            active_trade = Trade(
+                                coin='XRPUSDT',
+                                entry_time=entry_time,
+                                entry_price=entry_price,
+                                leverage=leverage,
+                                position_size_usd=position_size,
+                                regime=regime,
+                                confidence=confidence,
+                                trade_id=trade_id,
+                                trade_type='short'
+                            )
+                            trade_id += 1
+                            daily_trade_count[trade_date] += 1
+
+        # Close any remaining active trade
+        if active_trade is not None:
+            final_timestamp = xrp_df.index[-1]
+            final_price = xrp_df.loc[final_timestamp, 'close']
+            active_trade.close(final_timestamp, final_price, 'end_of_data', 
+                             entry_fee_bps, exit_fee_bps)
+            balance += active_trade.net_pl_usd
+            trades.append(active_trade)
+
+        # Calculate results
+        print(f"\n📊 SIMULATION RESULTS")
+        print(f"   Final balance: ${balance:,.2f}")
+        print(f"   Total return: {((balance / initial_balance) - 1) * 100:.2f}%")
+        print(f"   Total trades: {len(trades)}")
+        
+        if trades:
+            winning_trades = [t for t in trades if t.net_pl_usd > 0]
+            losing_trades = [t for t in trades if t.net_pl_usd < 0]
+            
+            print(f"   Winning trades: {len(winning_trades)} ({len(winning_trades)/len(trades)*100:.1f}%)")
+            print(f"   Losing trades: {len(losing_trades)} ({len(losing_trades)/len(trades)*100:.1f}%)")
+            print(f"   Average win: ${np.mean([t.net_pl_usd for t in winning_trades]):.2f}")
+            print(f"   Average loss: ${np.mean([t.net_pl_usd for t in losing_trades]):.2f}")
+            
+            # Regime breakdown
+            bullish_trades = [t for t in trades if t.regime == 'bullish']
+            bearish_trades = [t for t in trades if t.regime == 'bearish']
+            
+            print(f"\n📈 Trade Breakdown by Regime:")
+            print(f"   Bullish trades: {len(bullish_trades)}")
+            print(f"   Bearish trades: {len(bearish_trades)}")
+            
+            if bullish_trades:
+                bullish_wins = [t for t in bullish_trades if t.net_pl_usd > 0]
+                print(f"   Bullish win rate: {len(bullish_wins)/len(bullish_trades)*100:.1f}%")
+                
+            if bearish_trades:
+                bearish_wins = [t for t in bearish_trades if t.net_pl_usd > 0]
+                print(f"   Bearish win rate: {len(bearish_wins)/len(bearish_trades)*100:.1f}%")
+
+        # Save results
+        output_dir = opt['output_dir']
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save trades to CSV
+        trades_data = []
+        for trade in trades:
+            trades_data.append({
+                'trade_id': trade.trade_id,
+                'coin': trade.coin,
+                'entry_time': trade.entry_time,
+                'exit_time': trade.exit_time,
+                'entry_price': trade.entry_price,
+                'exit_price': trade.exit_price,
+                'trade_type': trade.trade_type,
+                'regime': trade.regime,
+                'confidence': trade.confidence,
+                'leverage': trade.leverage,
+                'position_size_usd': trade.position_size_usd,
+                'gross_return': trade.gross_return,
+                'gross_pl_usd': trade.gross_pl_usd,
+                'fee_usd': trade.fee_usd,
+                'net_pl_usd': trade.net_pl_usd,
+                'exit_reason': trade.exit_reason
+            })
+        
+        trades_df = pd.DataFrame(trades_data)
+        trades_file = os.path.join(output_dir, 'regime_trades.csv')
+        trades_df.to_csv(trades_file, index=False)
+        
+        print(f"\n💾 Results saved to: {output_dir}")
+        print(f"   Trades: {trades_file}")
+
+    def _check_exit_conditions(self, trade, timestamp, ohlcv_row, tp_pct, sl_pct, 
+                              max_hold_hours, same_bar_policy):
+        """Check if trade should be closed and return (exit_price, reason) or (None, None)"""
+        
+        # Check max hold time
+        hold_hours = (timestamp - trade.entry_time).total_seconds() / 3600
+        if hold_hours >= max_hold_hours:
+            return ohlcv_row['close'], 'max_hold_time'
+        
+        # Check TP/SL
+        high = ohlcv_row['high']
+        low = ohlcv_row['low']
+        
+        if trade.trade_type == 'long':
+            tp_price = trade.entry_price * (1 + tp_pct)
+            sl_price = trade.entry_price * (1 - sl_pct)
+            
+            hit_tp = high >= tp_price
+            hit_sl = low <= sl_price
+            
+        else:  # short
+            tp_price = trade.entry_price * (1 - tp_pct)
+            sl_price = trade.entry_price * (1 + sl_pct)
+            
+            hit_tp = low <= tp_price
+            hit_sl = high >= sl_price
+        
+        if hit_tp and hit_sl:
+            # Both hit in same bar
+            if same_bar_policy == 'sl-first':
+                return sl_price, 'stop_loss'
+            else:
+                return tp_price, 'take_profit'
+        elif hit_tp:
+            return tp_price, 'take_profit'
+        elif hit_sl:
+            return sl_price, 'stop_loss'
+        
+        return None, None
