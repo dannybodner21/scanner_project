@@ -164,3 +164,11 @@ scanner/management/commands/uni_dataset.py
 
 
 
+# local dev
+.venv/
+.vscode/
+.vscode_backup_*/
+*.bak
+__pycache__/
+*.pyc
+.DS_Store
