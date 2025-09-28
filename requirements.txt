@@ -115,8 +115,8 @@ xgboost==3.0.2
 zipp==3.23.0
 zope.interface==7.2
 playwright
-torch==2.1.0+cpu
-torchvision==0.16.0+cpu
+torch==2.8.0
+torchvision==0.23.0
 --extra-index-url https://download.pytorch.org/whl/cpu
 openai>=1.0.0
 python-dotenv
