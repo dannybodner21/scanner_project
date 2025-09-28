@@ -441,24 +441,21 @@ def get_model_results(request):
     total_long_wins = ModelTrade.objects.filter(trade_type="long", result=True).count()
     total_short_wins = ModelTrade.objects.filter(trade_type="short", result=True).count()
 
-    model_name = "two_long_hgb_model.joblib"
-    short_model_name = "short_four_model.joblib"
-
-    ada_model = "ada_rf_model.joblib"
-    atom_model = "atom_rf_model.joblib"
-    avax_model = "avax_lr_model.joblib"
-    btc_model = "btc_lr_model.joblib"
-    doge_model = "doge_two_long_hgb_model.joblib"
-    dot_model = "dot_rf_model.joblib"
-    eth_model = "eth_lr_model.joblib"
-    link_model = "link_lr_model.joblib"
-    ltc_model = "ltc_rf_model.joblib"
-    shib_model = "shib_rf_model.joblib"
-    sol_model = "sol_rf_model.joblib"
-    trx_model = "trx_two_long_hgb_model.joblib"
-    uni_model = "uni_rf_model.joblib"
-    xlm_model = "xlm_rf_model.joblib"
-    xrp_model = "xrp_rf_model.joblib"
+    ada_model = "ada_simple_long_rf_model.joblib"
+    atom_model = "atom_simple_long_rf_model.joblib"
+    avax_model = "avax_simple_long_rf_model.joblib"
+    btc_model = "btc_simple_long_rf_model.joblib"
+    doge_model = "doge_simple_long_rf_model.joblib"
+    dot_model = "dot_simple_long_rf_model.joblib"
+    eth_model = "eth_simple_long_rf_model.joblib"
+    link_model = "link_simple_long_rf_model.joblib"
+    ltc_model = "ltc_simple_long_rf_model.joblib"
+    shib_model = "shib_simple_long_rf_model.joblib"
+    sol_model = "sol_simple_long_rf_model.joblib"
+    trx_model = "trx_simple_long_rf_model.joblib"
+    uni_model = "uni_simple_long_rf_model.joblib"
+    xlm_model = "xlm_simple_long_rf_model.joblib"
+    xrp_model = "xrp_simple_long_rf_model.joblib"
 
 
     ada_long_trades = ModelTrade.objects.filter(trade_type="long", model_name=ada_model, exit_timestamp__isnull=False).count()
@@ -710,7 +707,6 @@ def get_model_results(request):
         "doge_long_wins": doge_long_wins,
         "link_long_trades": link_long_trades,
         "link_long_wins": link_long_wins,
-
         "eth_long_trades": eth_long_trades,
         "eth_long_wins": eth_long_wins,
         "dot_long_trades": dot_long_trades,
@@ -734,7 +730,6 @@ def get_model_results(request):
         "sol_list": sol_list,
         "doge_list": doge_list,
         "link_list": link_list,
-
         "eth_list": eth_list,
         "dot_list": dot_list,
         "shib_list": shib_list,
